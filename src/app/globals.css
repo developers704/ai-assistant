@@ -1,0 +1,196 @@
+/* REVERT FUTURISTIC THEME: remove data-theme="futuristic" from src/app/layout.tsx,
+   remove FuturisticBackground from src/app/(app)/layout.tsx, and git checkout
+   globals.css tailwind.config.ts + ui components (Card, Button, Input, Badge, Sidebar). */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --glass-bg: rgba(15, 23, 42, 0.35);
+  --glass-bg-strong: rgba(15, 23, 42, 0.52);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-blur: 24px;
+  --glow-purple: rgba(139, 92, 246, 0.4);
+  --glow-orange: rgba(251, 146, 60, 0.28);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  html[data-theme="futuristic"] body {
+    @apply text-ink font-sans antialiased min-h-screen;
+    letter-spacing: -0.011em;
+    background: #1e2733;
+  }
+
+  html:not([data-theme="futuristic"]) body {
+    @apply bg-surface-secondary text-ink font-sans antialiased;
+    letter-spacing: -0.011em;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      0 8px 32px rgba(15, 23, 42, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .glass-panel-strong {
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(calc(var(--glass-blur) + 4px));
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 4px));
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    box-shadow:
+      0 12px 40px rgba(15, 23, 42, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  .glass-solid {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.15);
+    color: #0f172a;
+  }
+
+  .bg-mesh-gradient {
+    background:
+      radial-gradient(ellipse 55% 45% at 8% 5%, rgba(109, 40, 217, 0.22), transparent 50%),
+      radial-gradient(ellipse 45% 40% at 92% 12%, rgba(59, 130, 246, 0.12), transparent 45%),
+      radial-gradient(ellipse 40% 35% at 50% 100%, rgba(234, 88, 12, 0.08), transparent 50%),
+      linear-gradient(160deg, #2a3441 0%, #1e2733 50%, #171e28 100%);
+  }
+
+  .bg-dot-grid {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(70px);
+    opacity: 0.22;
+    animation: orb-float 22s ease-in-out infinite;
+  }
+
+  .orb-purple {
+    background: #8b5cf6;
+  }
+
+  .orb-blue {
+    background: #60a5fa;
+    animation-delay: -6s;
+  }
+
+  .orb-orange {
+    background: #fb923c;
+    animation-delay: -12s;
+  }
+
+  .nav-pill-active {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  .btn-futuristic {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    box-shadow:
+      0 8px 24px rgba(15, 23, 42, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  .btn-futuristic:hover {
+    background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  }
+
+  .btn-glass {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .btn-glass:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .text-gradient-title {
+    background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.75) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Crisp vector icons — sharper on retina / scaled UI */
+  svg.lucide,
+  .icon-crisp {
+    shape-rendering: geometricPrecision;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .icon-badge {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  .icon-badge svg {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  }
+
+  .app-logo-badge {
+    background: linear-gradient(145deg, #7c3aed 0%, #4338ca 55%, #312e81 100%);
+    box-shadow:
+      0 4px 16px rgba(109, 40, 217, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
+
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+}
+
+@keyframes orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(24px, -18px) scale(1.05); }
+  66% { transform: translate(-16px, 12px) scale(0.96); }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-white/20 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/35;
+}

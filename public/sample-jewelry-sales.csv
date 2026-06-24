@@ -1,0 +1,634 @@
+Date,Product,Category,Store,Units Sold,Unit Price,Revenue
+2025-01-15,Gold Ring 22K,Rings,Downtown,9,850,7650
+2025-01-21,Gold Ring 22K,Rings,Mall Plaza,7,850,5950
+2025-01-05,Gold Ring 22K,Rings,Airport,1,850,850
+2025-01-27,Diamond Solitaire Ring,Rings,Mall Plaza,7,2400,16800
+2025-01-10,Diamond Solitaire Ring,Rings,Airport,3,2400,7200
+2025-01-23,Silver Band Ring,Rings,Mall Plaza,9,120,1080
+2025-01-08,Silver Band Ring,Rings,Airport,9,120,1080
+2025-01-27,Gold Chain Necklace,Necklaces,Mall Plaza,8,1100,8800
+2025-01-18,Pearl Necklace,Necklaces,Downtown,2,450,900
+2025-01-14,Pearl Necklace,Necklaces,Mall Plaza,8,450,3600
+2025-01-14,Pearl Necklace,Necklaces,Airport,1,450,450
+2025-01-15,Diamond Pendant,Necklaces,Downtown,7,1600,11200
+2025-01-24,Diamond Pendant,Necklaces,Mall Plaza,8,1600,12800
+2025-01-12,Gold Hoop Earrings,Earrings,Downtown,9,380,3420
+2025-01-08,Gold Hoop Earrings,Earrings,Airport,1,380,380
+2025-01-01,Diamond Stud Earrings,Earrings,Downtown,2,950,1900
+2025-01-07,Diamond Stud Earrings,Earrings,Mall Plaza,4,950,3800
+2025-01-20,Diamond Stud Earrings,Earrings,Airport,6,950,5700
+2025-01-17,Silver Drop Earrings,Earrings,Downtown,7,95,665
+2025-01-03,Silver Drop Earrings,Earrings,Airport,9,95,855
+2025-01-07,Gold Bangle,Bracelets,Downtown,8,720,5760
+2025-01-02,Gold Bangle,Bracelets,Airport,1,720,720
+2025-01-15,Tennis Bracelet,Bracelets,Mall Plaza,10,1900,19000
+2025-01-11,Tennis Bracelet,Bracelets,Airport,4,1900,7600
+2025-01-12,Charm Bracelet,Bracelets,Downtown,1,260,260
+2025-01-12,Charm Bracelet,Bracelets,Mall Plaza,8,260,2080
+2025-01-15,Luxury Gold Watch,Watches,Downtown,8,3200,25600
+2025-01-14,Luxury Gold Watch,Watches,Mall Plaza,5,3200,16000
+2025-01-15,Silver Watch,Watches,Mall Plaza,4,540,2160
+2025-01-23,Silver Watch,Watches,Airport,6,540,3240
+2025-01-16,Bridal Jewelry Set,Sets,Mall Plaza,6,4500,27000
+2025-01-19,Gold Anklet,Anklets,Mall Plaza,5,310,1550
+2025-01-18,Gold Anklet,Anklets,Airport,9,310,2790
+2025-02-04,Gold Ring 22K,Rings,Downtown,9,850,7650
+2025-02-10,Gold Ring 22K,Rings,Airport,14,850,11900
+2025-02-02,Diamond Solitaire Ring,Rings,Downtown,3,2400,7200
+2025-02-13,Diamond Solitaire Ring,Rings,Mall Plaza,18,2400,43200
+2025-02-26,Silver Band Ring,Rings,Downtown,12,120,1440
+2025-02-15,Silver Band Ring,Rings,Mall Plaza,10,120,1200
+2025-02-07,Silver Band Ring,Rings,Airport,6,120,720
+2025-02-27,Gold Chain Necklace,Necklaces,Mall Plaza,12,1100,13200
+2025-02-08,Pearl Necklace,Necklaces,Downtown,14,450,6300
+2025-02-07,Pearl Necklace,Necklaces,Mall Plaza,3,450,1350
+2025-02-21,Pearl Necklace,Necklaces,Airport,13,450,5850
+2025-02-26,Diamond Pendant,Necklaces,Mall Plaza,5,1600,8000
+2025-02-07,Gold Hoop Earrings,Earrings,Airport,15,380,5700
+2025-02-02,Diamond Stud Earrings,Earrings,Downtown,5,950,4750
+2025-02-02,Diamond Stud Earrings,Earrings,Mall Plaza,15,950,14250
+2025-02-02,Silver Drop Earrings,Earrings,Downtown,14,95,1330
+2025-02-09,Silver Drop Earrings,Earrings,Airport,8,95,760
+2025-02-12,Gold Bangle,Bracelets,Downtown,13,720,9360
+2025-02-19,Gold Bangle,Bracelets,Mall Plaza,9,720,6480
+2025-02-17,Gold Bangle,Bracelets,Airport,15,720,10800
+2025-02-11,Tennis Bracelet,Bracelets,Downtown,3,1900,5700
+2025-02-16,Tennis Bracelet,Bracelets,Airport,11,1900,20900
+2025-02-23,Charm Bracelet,Bracelets,Downtown,16,260,4160
+2025-02-02,Charm Bracelet,Bracelets,Mall Plaza,8,260,2080
+2025-02-01,Charm Bracelet,Bracelets,Airport,10,260,2600
+2025-02-17,Luxury Gold Watch,Watches,Downtown,16,3200,51200
+2025-02-18,Luxury Gold Watch,Watches,Mall Plaza,2,3200,6400
+2025-02-16,Luxury Gold Watch,Watches,Airport,7,3200,22400
+2025-02-03,Bridal Jewelry Set,Sets,Mall Plaza,5,4500,22500
+2025-02-04,Bridal Jewelry Set,Sets,Airport,5,4500,22500
+2025-02-21,Gold Anklet,Anklets,Airport,8,310,2480
+2025-03-19,Gold Ring 22K,Rings,Downtown,6,850,5100
+2025-03-23,Gold Ring 22K,Rings,Mall Plaza,10,850,8500
+2025-03-01,Gold Ring 22K,Rings,Airport,2,850,1700
+2025-03-15,Diamond Solitaire Ring,Rings,Mall Plaza,4,2400,9600
+2025-03-19,Diamond Solitaire Ring,Rings,Airport,6,2400,14400
+2025-03-12,Silver Band Ring,Rings,Mall Plaza,11,120,1320
+2025-03-24,Gold Chain Necklace,Necklaces,Downtown,7,1100,7700
+2025-03-04,Gold Chain Necklace,Necklaces,Mall Plaza,10,1100,11000
+2025-03-15,Pearl Necklace,Necklaces,Downtown,11,450,4950
+2025-03-16,Pearl Necklace,Necklaces,Mall Plaza,11,450,4950
+2025-03-02,Pearl Necklace,Necklaces,Airport,2,450,900
+2025-03-09,Diamond Pendant,Necklaces,Downtown,6,1600,9600
+2025-03-05,Diamond Pendant,Necklaces,Airport,5,1600,8000
+2025-03-12,Gold Hoop Earrings,Earrings,Downtown,5,380,1900
+2025-03-13,Gold Hoop Earrings,Earrings,Mall Plaza,3,380,1140
+2025-03-20,Gold Hoop Earrings,Earrings,Airport,12,380,4560
+2025-03-24,Diamond Stud Earrings,Earrings,Mall Plaza,11,950,10450
+2025-03-11,Diamond Stud Earrings,Earrings,Airport,3,950,2850
+2025-03-17,Silver Drop Earrings,Earrings,Downtown,14,95,1330
+2025-03-18,Silver Drop Earrings,Earrings,Mall Plaza,7,95,665
+2025-03-23,Silver Drop Earrings,Earrings,Airport,9,95,855
+2025-03-27,Gold Bangle,Bracelets,Mall Plaza,2,720,1440
+2025-03-03,Tennis Bracelet,Bracelets,Downtown,13,1900,24700
+2025-03-18,Tennis Bracelet,Bracelets,Mall Plaza,8,1900,15200
+2025-03-16,Tennis Bracelet,Bracelets,Airport,4,1900,7600
+2025-03-16,Charm Bracelet,Bracelets,Mall Plaza,9,260,2340
+2025-03-20,Charm Bracelet,Bracelets,Airport,13,260,3380
+2025-03-04,Luxury Gold Watch,Watches,Downtown,13,3200,41600
+2025-03-04,Luxury Gold Watch,Watches,Airport,12,3200,38400
+2025-03-07,Silver Watch,Watches,Downtown,2,540,1080
+2025-03-15,Silver Watch,Watches,Mall Plaza,13,540,7020
+2025-03-10,Silver Watch,Watches,Airport,5,540,2700
+2025-03-09,Bridal Jewelry Set,Sets,Downtown,2,4500,9000
+2025-03-08,Bridal Jewelry Set,Sets,Mall Plaza,11,4500,49500
+2025-03-25,Bridal Jewelry Set,Sets,Airport,4,4500,18000
+2025-03-08,Gold Anklet,Anklets,Downtown,5,310,1550
+2025-03-05,Gold Anklet,Anklets,Mall Plaza,5,310,1550
+2025-03-07,Gold Anklet,Anklets,Airport,6,310,1860
+2025-04-18,Gold Ring 22K,Rings,Downtown,6,850,5100
+2025-04-26,Gold Ring 22K,Rings,Mall Plaza,5,850,4250
+2025-04-04,Gold Ring 22K,Rings,Airport,12,850,10200
+2025-04-01,Diamond Solitaire Ring,Rings,Downtown,13,2400,31200
+2025-04-24,Silver Band Ring,Rings,Downtown,3,120,360
+2025-04-10,Silver Band Ring,Rings,Mall Plaza,10,120,1200
+2025-04-10,Silver Band Ring,Rings,Airport,6,120,720
+2025-04-04,Gold Chain Necklace,Necklaces,Downtown,14,1100,15400
+2025-04-02,Gold Chain Necklace,Necklaces,Mall Plaza,9,1100,9900
+2025-04-06,Gold Chain Necklace,Necklaces,Airport,12,1100,13200
+2025-04-18,Pearl Necklace,Necklaces,Downtown,12,450,5400
+2025-04-18,Pearl Necklace,Necklaces,Mall Plaza,14,450,6300
+2025-04-14,Pearl Necklace,Necklaces,Airport,13,450,5850
+2025-04-09,Diamond Pendant,Necklaces,Airport,7,1600,11200
+2025-04-13,Gold Hoop Earrings,Earrings,Mall Plaza,13,380,4940
+2025-04-22,Gold Hoop Earrings,Earrings,Airport,13,380,4940
+2025-04-26,Diamond Stud Earrings,Earrings,Mall Plaza,12,950,11400
+2025-04-24,Diamond Stud Earrings,Earrings,Airport,8,950,7600
+2025-04-12,Silver Drop Earrings,Earrings,Downtown,2,95,190
+2025-04-20,Silver Drop Earrings,Earrings,Mall Plaza,7,95,665
+2025-04-21,Silver Drop Earrings,Earrings,Airport,13,95,1235
+2025-04-16,Gold Bangle,Bracelets,Mall Plaza,13,720,9360
+2025-04-03,Gold Bangle,Bracelets,Airport,14,720,10080
+2025-04-23,Tennis Bracelet,Bracelets,Downtown,11,1900,20900
+2025-04-09,Tennis Bracelet,Bracelets,Airport,14,1900,26600
+2025-04-27,Charm Bracelet,Bracelets,Downtown,11,260,2860
+2025-04-07,Charm Bracelet,Bracelets,Mall Plaza,6,260,1560
+2025-04-20,Luxury Gold Watch,Watches,Downtown,15,3200,48000
+2025-04-02,Luxury Gold Watch,Watches,Mall Plaza,14,3200,44800
+2025-04-09,Luxury Gold Watch,Watches,Airport,15,3200,48000
+2025-04-16,Silver Watch,Watches,Downtown,7,540,3780
+2025-04-05,Silver Watch,Watches,Mall Plaza,4,540,2160
+2025-04-08,Silver Watch,Watches,Airport,7,540,3780
+2025-04-26,Bridal Jewelry Set,Sets,Downtown,14,4500,63000
+2025-04-17,Bridal Jewelry Set,Sets,Mall Plaza,7,4500,31500
+2025-04-23,Bridal Jewelry Set,Sets,Airport,6,4500,27000
+2025-04-03,Gold Anklet,Anklets,Mall Plaza,8,310,2480
+2025-04-05,Gold Anklet,Anklets,Airport,4,310,1240
+2025-05-09,Gold Ring 22K,Rings,Downtown,4,850,3400
+2025-05-01,Diamond Solitaire Ring,Rings,Downtown,4,2400,9600
+2025-05-12,Diamond Solitaire Ring,Rings,Mall Plaza,12,2400,28800
+2025-05-21,Diamond Solitaire Ring,Rings,Airport,11,2400,26400
+2025-05-25,Silver Band Ring,Rings,Downtown,12,120,1440
+2025-05-15,Silver Band Ring,Rings,Mall Plaza,10,120,1200
+2025-05-24,Silver Band Ring,Rings,Airport,11,120,1320
+2025-05-23,Gold Chain Necklace,Necklaces,Downtown,5,1100,5500
+2025-05-05,Gold Chain Necklace,Necklaces,Airport,13,1100,14300
+2025-05-05,Pearl Necklace,Necklaces,Downtown,8,450,3600
+2025-05-06,Pearl Necklace,Necklaces,Airport,10,450,4500
+2025-05-21,Diamond Pendant,Necklaces,Downtown,11,1600,17600
+2025-05-21,Gold Hoop Earrings,Earrings,Mall Plaza,6,380,2280
+2025-05-24,Gold Hoop Earrings,Earrings,Airport,9,380,3420
+2025-05-25,Diamond Stud Earrings,Earrings,Downtown,2,950,1900
+2025-05-21,Diamond Stud Earrings,Earrings,Mall Plaza,11,950,10450
+2025-05-15,Diamond Stud Earrings,Earrings,Airport,8,950,7600
+2025-05-20,Silver Drop Earrings,Earrings,Downtown,10,95,950
+2025-05-26,Silver Drop Earrings,Earrings,Mall Plaza,11,95,1045
+2025-05-25,Silver Drop Earrings,Earrings,Airport,12,95,1140
+2025-05-10,Gold Bangle,Bracelets,Mall Plaza,14,720,10080
+2025-05-27,Gold Bangle,Bracelets,Airport,3,720,2160
+2025-05-26,Tennis Bracelet,Bracelets,Downtown,6,1900,11400
+2025-05-01,Tennis Bracelet,Bracelets,Mall Plaza,4,1900,7600
+2025-05-12,Tennis Bracelet,Bracelets,Airport,14,1900,26600
+2025-05-06,Charm Bracelet,Bracelets,Downtown,7,260,1820
+2025-05-14,Charm Bracelet,Bracelets,Mall Plaza,12,260,3120
+2025-05-06,Luxury Gold Watch,Watches,Downtown,3,3200,9600
+2025-05-17,Luxury Gold Watch,Watches,Mall Plaza,9,3200,28800
+2025-05-15,Luxury Gold Watch,Watches,Airport,13,3200,41600
+2025-05-21,Silver Watch,Watches,Airport,11,540,5940
+2025-05-14,Bridal Jewelry Set,Sets,Downtown,9,4500,40500
+2025-05-22,Bridal Jewelry Set,Sets,Mall Plaza,6,4500,27000
+2025-05-20,Bridal Jewelry Set,Sets,Airport,7,4500,31500
+2025-05-08,Gold Anklet,Anklets,Downtown,11,310,3410
+2025-05-08,Gold Anklet,Anklets,Mall Plaza,4,310,1240
+2025-05-03,Gold Anklet,Anklets,Airport,7,310,2170
+2025-06-25,Gold Ring 22K,Rings,Airport,6,850,5100
+2025-06-01,Diamond Solitaire Ring,Rings,Downtown,10,2400,24000
+2025-06-08,Diamond Solitaire Ring,Rings,Mall Plaza,6,2400,14400
+2025-06-09,Diamond Solitaire Ring,Rings,Airport,7,2400,16800
+2025-06-11,Silver Band Ring,Rings,Downtown,7,120,840
+2025-06-17,Silver Band Ring,Rings,Mall Plaza,10,120,1200
+2025-06-05,Silver Band Ring,Rings,Airport,3,120,360
+2025-06-04,Gold Chain Necklace,Necklaces,Downtown,9,1100,9900
+2025-06-23,Gold Chain Necklace,Necklaces,Mall Plaza,9,1100,9900
+2025-06-04,Pearl Necklace,Necklaces,Downtown,7,450,3150
+2025-06-25,Pearl Necklace,Necklaces,Mall Plaza,6,450,2700
+2025-06-14,Pearl Necklace,Necklaces,Airport,1,450,450
+2025-06-22,Diamond Pendant,Necklaces,Downtown,4,1600,6400
+2025-06-07,Diamond Pendant,Necklaces,Mall Plaza,10,1600,16000
+2025-06-08,Diamond Pendant,Necklaces,Airport,4,1600,6400
+2025-06-26,Gold Hoop Earrings,Earrings,Downtown,2,380,760
+2025-06-01,Gold Hoop Earrings,Earrings,Airport,2,380,760
+2025-06-01,Diamond Stud Earrings,Earrings,Downtown,2,950,1900
+2025-06-09,Diamond Stud Earrings,Earrings,Mall Plaza,3,950,2850
+2025-06-27,Diamond Stud Earrings,Earrings,Airport,10,950,9500
+2025-06-23,Silver Drop Earrings,Earrings,Downtown,10,95,950
+2025-06-07,Silver Drop Earrings,Earrings,Mall Plaza,10,95,950
+2025-06-04,Silver Drop Earrings,Earrings,Airport,12,95,1140
+2025-06-13,Tennis Bracelet,Bracelets,Downtown,4,1900,7600
+2025-06-09,Tennis Bracelet,Bracelets,Mall Plaza,7,1900,13300
+2025-06-25,Tennis Bracelet,Bracelets,Airport,12,1900,22800
+2025-06-08,Charm Bracelet,Bracelets,Mall Plaza,6,260,1560
+2025-06-14,Luxury Gold Watch,Watches,Downtown,11,3200,35200
+2025-06-08,Luxury Gold Watch,Watches,Mall Plaza,8,3200,25600
+2025-06-25,Luxury Gold Watch,Watches,Airport,6,3200,19200
+2025-06-06,Silver Watch,Watches,Mall Plaza,12,540,6480
+2025-06-10,Silver Watch,Watches,Airport,12,540,6480
+2025-06-24,Bridal Jewelry Set,Sets,Downtown,3,4500,13500
+2025-06-27,Bridal Jewelry Set,Sets,Mall Plaza,3,4500,13500
+2025-06-04,Bridal Jewelry Set,Sets,Airport,10,4500,45000
+2025-06-17,Gold Anklet,Anklets,Downtown,9,310,2790
+2025-06-24,Gold Anklet,Anklets,Airport,3,310,930
+2025-07-15,Gold Ring 22K,Rings,Airport,6,850,5100
+2025-07-09,Diamond Solitaire Ring,Rings,Downtown,9,2400,21600
+2025-07-11,Silver Band Ring,Rings,Mall Plaza,7,120,840
+2025-07-01,Gold Chain Necklace,Necklaces,Downtown,4,1100,4400
+2025-07-21,Gold Chain Necklace,Necklaces,Mall Plaza,4,1100,4400
+2025-07-14,Gold Chain Necklace,Necklaces,Airport,8,1100,8800
+2025-07-04,Pearl Necklace,Necklaces,Downtown,8,450,3600
+2025-07-10,Pearl Necklace,Necklaces,Airport,1,450,450
+2025-07-27,Diamond Pendant,Necklaces,Mall Plaza,2,1600,3200
+2025-07-22,Gold Hoop Earrings,Earrings,Mall Plaza,8,380,3040
+2025-07-19,Gold Hoop Earrings,Earrings,Airport,8,380,3040
+2025-07-23,Diamond Stud Earrings,Earrings,Mall Plaza,2,950,1900
+2025-07-02,Diamond Stud Earrings,Earrings,Airport,7,950,6650
+2025-07-25,Silver Drop Earrings,Earrings,Downtown,4,95,380
+2025-07-21,Silver Drop Earrings,Earrings,Mall Plaza,5,95,475
+2025-07-25,Silver Drop Earrings,Earrings,Airport,7,95,665
+2025-07-16,Gold Bangle,Bracelets,Downtown,5,720,3600
+2025-07-17,Gold Bangle,Bracelets,Mall Plaza,8,720,5760
+2025-07-03,Gold Bangle,Bracelets,Airport,9,720,6480
+2025-07-05,Tennis Bracelet,Bracelets,Downtown,3,1900,5700
+2025-07-24,Tennis Bracelet,Bracelets,Mall Plaza,7,1900,13300
+2025-07-05,Tennis Bracelet,Bracelets,Airport,1,1900,1900
+2025-07-22,Charm Bracelet,Bracelets,Downtown,2,260,520
+2025-07-04,Charm Bracelet,Bracelets,Mall Plaza,3,260,780
+2025-07-12,Charm Bracelet,Bracelets,Airport,1,260,260
+2025-07-27,Luxury Gold Watch,Watches,Downtown,1,3200,3200
+2025-07-03,Luxury Gold Watch,Watches,Mall Plaza,4,3200,12800
+2025-07-21,Luxury Gold Watch,Watches,Airport,6,3200,19200
+2025-07-14,Silver Watch,Watches,Downtown,1,540,540
+2025-07-21,Silver Watch,Watches,Mall Plaza,8,540,4320
+2025-07-17,Silver Watch,Watches,Airport,10,540,5400
+2025-07-04,Bridal Jewelry Set,Sets,Downtown,8,4500,36000
+2025-07-26,Bridal Jewelry Set,Sets,Mall Plaza,10,4500,45000
+2025-07-08,Bridal Jewelry Set,Sets,Airport,1,4500,4500
+2025-07-17,Gold Anklet,Anklets,Downtown,9,310,2790
+2025-07-05,Gold Anklet,Anklets,Airport,5,310,1550
+2025-08-25,Gold Ring 22K,Rings,Downtown,6,850,5100
+2025-08-15,Gold Ring 22K,Rings,Mall Plaza,5,850,4250
+2025-08-26,Diamond Solitaire Ring,Rings,Downtown,6,2400,14400
+2025-08-26,Diamond Solitaire Ring,Rings,Mall Plaza,6,2400,14400
+2025-08-27,Diamond Solitaire Ring,Rings,Airport,6,2400,14400
+2025-08-14,Silver Band Ring,Rings,Mall Plaza,1,120,120
+2025-08-24,Silver Band Ring,Rings,Airport,5,120,600
+2025-08-12,Gold Chain Necklace,Necklaces,Downtown,2,1100,2200
+2025-08-25,Gold Chain Necklace,Necklaces,Mall Plaza,5,1100,5500
+2025-08-06,Pearl Necklace,Necklaces,Downtown,1,450,450
+2025-08-06,Pearl Necklace,Necklaces,Mall Plaza,3,450,1350
+2025-08-04,Pearl Necklace,Necklaces,Airport,1,450,450
+2025-08-16,Diamond Pendant,Necklaces,Downtown,7,1600,11200
+2025-08-08,Gold Hoop Earrings,Earrings,Airport,4,380,1520
+2025-08-27,Diamond Stud Earrings,Earrings,Mall Plaza,4,950,3800
+2025-08-04,Diamond Stud Earrings,Earrings,Airport,1,950,950
+2025-08-05,Gold Bangle,Bracelets,Downtown,7,720,5040
+2025-08-03,Gold Bangle,Bracelets,Airport,3,720,2160
+2025-08-09,Tennis Bracelet,Bracelets,Mall Plaza,1,1900,1900
+2025-08-18,Tennis Bracelet,Bracelets,Airport,2,1900,3800
+2025-08-24,Charm Bracelet,Bracelets,Downtown,5,260,1300
+2025-08-02,Charm Bracelet,Bracelets,Airport,5,260,1300
+2025-08-27,Luxury Gold Watch,Watches,Mall Plaza,3,3200,9600
+2025-08-03,Luxury Gold Watch,Watches,Airport,6,3200,19200
+2025-08-03,Silver Watch,Watches,Downtown,4,540,2160
+2025-08-23,Silver Watch,Watches,Airport,2,540,1080
+2025-08-25,Bridal Jewelry Set,Sets,Mall Plaza,7,4500,31500
+2025-08-05,Bridal Jewelry Set,Sets,Airport,2,4500,9000
+2025-09-14,Gold Ring 22K,Rings,Downtown,2,850,1700
+2025-09-10,Gold Ring 22K,Rings,Mall Plaza,5,850,4250
+2025-09-16,Diamond Solitaire Ring,Rings,Downtown,5,2400,12000
+2025-09-10,Diamond Solitaire Ring,Rings,Mall Plaza,5,2400,12000
+2025-09-21,Silver Band Ring,Rings,Downtown,2,120,240
+2025-09-21,Silver Band Ring,Rings,Mall Plaza,3,120,360
+2025-09-21,Gold Chain Necklace,Necklaces,Downtown,1,1100,1100
+2025-09-02,Gold Chain Necklace,Necklaces,Airport,1,1100,1100
+2025-09-02,Pearl Necklace,Necklaces,Downtown,2,450,900
+2025-09-22,Pearl Necklace,Necklaces,Mall Plaza,3,450,1350
+2025-09-08,Pearl Necklace,Necklaces,Airport,4,450,1800
+2025-09-12,Diamond Pendant,Necklaces,Downtown,3,1600,4800
+2025-09-08,Diamond Pendant,Necklaces,Mall Plaza,2,1600,3200
+2025-09-27,Diamond Pendant,Necklaces,Airport,4,1600,6400
+2025-09-16,Gold Hoop Earrings,Earrings,Downtown,4,380,1520
+2025-09-06,Diamond Stud Earrings,Earrings,Downtown,2,950,1900
+2025-09-02,Diamond Stud Earrings,Earrings,Mall Plaza,5,950,4750
+2025-09-17,Silver Drop Earrings,Earrings,Downtown,6,95,570
+2025-09-20,Silver Drop Earrings,Earrings,Mall Plaza,5,95,475
+2025-09-03,Gold Bangle,Bracelets,Airport,2,720,1440
+2025-09-03,Tennis Bracelet,Bracelets,Mall Plaza,4,1900,7600
+2025-09-17,Tennis Bracelet,Bracelets,Airport,4,1900,7600
+2025-09-17,Charm Bracelet,Bracelets,Downtown,2,260,520
+2025-09-04,Charm Bracelet,Bracelets,Mall Plaza,3,260,780
+2025-09-06,Luxury Gold Watch,Watches,Downtown,1,3200,3200
+2025-09-04,Luxury Gold Watch,Watches,Mall Plaza,5,3200,16000
+2025-09-13,Luxury Gold Watch,Watches,Airport,6,3200,19200
+2025-09-12,Silver Watch,Watches,Downtown,5,540,2700
+2025-09-17,Silver Watch,Watches,Mall Plaza,5,540,2700
+2025-09-12,Bridal Jewelry Set,Sets,Downtown,1,4500,4500
+2025-09-05,Bridal Jewelry Set,Sets,Mall Plaza,4,4500,18000
+2025-09-15,Bridal Jewelry Set,Sets,Airport,2,4500,9000
+2025-09-04,Gold Anklet,Anklets,Downtown,5,310,1550
+2025-09-07,Gold Anklet,Anklets,Mall Plaza,2,310,620
+2025-09-21,Gold Anklet,Anklets,Airport,3,310,930
+2025-10-16,Gold Ring 22K,Rings,Downtown,4,850,3400
+2025-10-16,Gold Ring 22K,Rings,Airport,2,850,1700
+2025-10-04,Diamond Solitaire Ring,Rings,Mall Plaza,3,2400,7200
+2025-10-04,Diamond Solitaire Ring,Rings,Airport,3,2400,7200
+2025-10-19,Silver Band Ring,Rings,Downtown,1,120,120
+2025-10-20,Silver Band Ring,Rings,Airport,1,120,120
+2025-10-22,Gold Chain Necklace,Necklaces,Downtown,3,1100,3300
+2025-10-13,Gold Chain Necklace,Necklaces,Mall Plaza,4,1100,4400
+2025-10-02,Gold Chain Necklace,Necklaces,Airport,2,1100,2200
+2025-10-09,Pearl Necklace,Necklaces,Downtown,4,450,1800
+2025-10-15,Pearl Necklace,Necklaces,Mall Plaza,1,450,450
+2025-10-18,Pearl Necklace,Necklaces,Airport,1,450,450
+2025-10-01,Diamond Pendant,Necklaces,Mall Plaza,3,1600,4800
+2025-10-06,Diamond Pendant,Necklaces,Airport,4,1600,6400
+2025-10-15,Gold Hoop Earrings,Earrings,Airport,1,380,380
+2025-10-12,Diamond Stud Earrings,Earrings,Downtown,4,950,3800
+2025-10-22,Diamond Stud Earrings,Earrings,Mall Plaza,2,950,1900
+2025-10-15,Diamond Stud Earrings,Earrings,Airport,4,950,3800
+2025-10-26,Silver Drop Earrings,Earrings,Downtown,2,95,190
+2025-10-02,Silver Drop Earrings,Earrings,Airport,2,95,190
+2025-10-11,Gold Bangle,Bracelets,Downtown,4,720,2880
+2025-10-02,Gold Bangle,Bracelets,Mall Plaza,4,720,2880
+2025-10-27,Gold Bangle,Bracelets,Airport,1,720,720
+2025-10-21,Tennis Bracelet,Bracelets,Downtown,5,1900,9500
+2025-10-24,Tennis Bracelet,Bracelets,Mall Plaza,3,1900,5700
+2025-10-11,Charm Bracelet,Bracelets,Mall Plaza,1,260,260
+2025-10-10,Luxury Gold Watch,Watches,Downtown,1,3200,3200
+2025-10-09,Luxury Gold Watch,Watches,Mall Plaza,2,3200,6400
+2025-10-07,Luxury Gold Watch,Watches,Airport,1,3200,3200
+2025-10-19,Silver Watch,Watches,Downtown,3,540,1620
+2025-10-26,Silver Watch,Watches,Mall Plaza,4,540,2160
+2025-10-24,Silver Watch,Watches,Airport,1,540,540
+2025-10-02,Bridal Jewelry Set,Sets,Downtown,2,4500,9000
+2025-10-24,Bridal Jewelry Set,Sets,Mall Plaza,4,4500,18000
+2025-10-06,Gold Anklet,Anklets,Downtown,3,310,930
+2025-10-17,Gold Anklet,Anklets,Airport,4,310,1240
+2025-11-18,Gold Ring 22K,Rings,Downtown,5,850,4250
+2025-11-10,Gold Ring 22K,Rings,Airport,2,850,1700
+2025-11-26,Diamond Solitaire Ring,Rings,Downtown,1,2400,2400
+2025-11-14,Diamond Solitaire Ring,Rings,Airport,3,2400,7200
+2025-11-20,Silver Band Ring,Rings,Downtown,3,120,360
+2025-11-05,Silver Band Ring,Rings,Mall Plaza,1,120,120
+2025-11-21,Silver Band Ring,Rings,Airport,5,120,600
+2025-11-18,Gold Chain Necklace,Necklaces,Downtown,2,1100,2200
+2025-11-14,Pearl Necklace,Necklaces,Downtown,2,450,900
+2025-11-13,Pearl Necklace,Necklaces,Airport,6,450,2700
+2025-11-13,Diamond Pendant,Necklaces,Downtown,4,1600,6400
+2025-11-05,Diamond Pendant,Necklaces,Mall Plaza,3,1600,4800
+2025-11-21,Gold Hoop Earrings,Earrings,Downtown,2,380,760
+2025-11-08,Gold Hoop Earrings,Earrings,Mall Plaza,2,380,760
+2025-11-01,Diamond Stud Earrings,Earrings,Downtown,5,950,4750
+2025-11-07,Diamond Stud Earrings,Earrings,Mall Plaza,1,950,950
+2025-11-04,Diamond Stud Earrings,Earrings,Airport,1,950,950
+2025-11-19,Silver Drop Earrings,Earrings,Downtown,5,95,475
+2025-11-18,Silver Drop Earrings,Earrings,Mall Plaza,2,95,190
+2025-11-26,Gold Bangle,Bracelets,Mall Plaza,4,720,2880
+2025-11-09,Gold Bangle,Bracelets,Airport,3,720,2160
+2025-11-02,Tennis Bracelet,Bracelets,Mall Plaza,4,1900,7600
+2025-11-07,Tennis Bracelet,Bracelets,Airport,6,1900,11400
+2025-11-23,Charm Bracelet,Bracelets,Downtown,5,260,1300
+2025-11-06,Charm Bracelet,Bracelets,Mall Plaza,1,260,260
+2025-11-08,Charm Bracelet,Bracelets,Airport,4,260,1040
+2025-11-10,Luxury Gold Watch,Watches,Downtown,5,3200,16000
+2025-11-22,Luxury Gold Watch,Watches,Mall Plaza,5,3200,16000
+2025-11-03,Luxury Gold Watch,Watches,Airport,4,3200,12800
+2025-11-10,Silver Watch,Watches,Downtown,1,540,540
+2025-11-25,Bridal Jewelry Set,Sets,Downtown,2,4500,9000
+2025-11-04,Bridal Jewelry Set,Sets,Airport,3,4500,13500
+2025-11-18,Gold Anklet,Anklets,Downtown,2,310,620
+2025-11-18,Gold Anklet,Anklets,Mall Plaza,4,310,1240
+2025-12-09,Gold Ring 22K,Rings,Downtown,10,850,8500
+2025-12-19,Diamond Solitaire Ring,Rings,Downtown,4,2400,9600
+2025-12-20,Silver Band Ring,Rings,Airport,7,120,840
+2025-12-24,Gold Chain Necklace,Necklaces,Downtown,2,1100,2200
+2025-12-22,Pearl Necklace,Necklaces,Downtown,4,450,1800
+2025-12-13,Pearl Necklace,Necklaces,Mall Plaza,5,450,2250
+2025-12-09,Pearl Necklace,Necklaces,Airport,3,450,1350
+2025-12-19,Diamond Pendant,Necklaces,Mall Plaza,7,1600,11200
+2025-12-09,Gold Hoop Earrings,Earrings,Downtown,13,380,4940
+2025-12-10,Gold Hoop Earrings,Earrings,Mall Plaza,12,380,4560
+2025-12-16,Gold Hoop Earrings,Earrings,Airport,4,380,1520
+2025-12-21,Diamond Stud Earrings,Earrings,Downtown,9,950,8550
+2025-12-18,Diamond Stud Earrings,Earrings,Mall Plaza,11,950,10450
+2025-12-16,Diamond Stud Earrings,Earrings,Airport,10,950,9500
+2025-12-06,Silver Drop Earrings,Earrings,Airport,8,95,760
+2025-12-11,Gold Bangle,Bracelets,Downtown,1,720,720
+2025-12-02,Gold Bangle,Bracelets,Mall Plaza,1,720,720
+2025-12-11,Gold Bangle,Bracelets,Airport,5,720,3600
+2025-12-21,Tennis Bracelet,Bracelets,Mall Plaza,12,1900,22800
+2025-12-21,Tennis Bracelet,Bracelets,Airport,9,1900,17100
+2025-12-14,Charm Bracelet,Bracelets,Mall Plaza,7,260,1820
+2025-12-01,Charm Bracelet,Bracelets,Airport,4,260,1040
+2025-12-10,Luxury Gold Watch,Watches,Downtown,9,3200,28800
+2025-12-24,Luxury Gold Watch,Watches,Airport,8,3200,25600
+2025-12-10,Silver Watch,Watches,Downtown,10,540,5400
+2025-12-12,Silver Watch,Watches,Mall Plaza,6,540,3240
+2025-12-06,Silver Watch,Watches,Airport,7,540,3780
+2025-12-26,Bridal Jewelry Set,Sets,Downtown,7,4500,31500
+2025-12-09,Bridal Jewelry Set,Sets,Mall Plaza,6,4500,27000
+2025-12-21,Bridal Jewelry Set,Sets,Airport,5,4500,22500
+2025-12-17,Gold Anklet,Anklets,Downtown,2,310,620
+2025-12-04,Gold Anklet,Anklets,Mall Plaza,2,310,620
+2025-12-24,Gold Anklet,Anklets,Airport,4,310,1240
+2026-01-16,Gold Ring 22K,Rings,Downtown,9,850,7650
+2026-01-27,Gold Ring 22K,Rings,Mall Plaza,2,850,1700
+2026-01-06,Diamond Solitaire Ring,Rings,Downtown,3,2400,7200
+2026-01-01,Diamond Solitaire Ring,Rings,Mall Plaza,7,2400,16800
+2026-01-19,Diamond Solitaire Ring,Rings,Airport,4,2400,9600
+2026-01-22,Silver Band Ring,Rings,Downtown,2,120,240
+2026-01-21,Silver Band Ring,Rings,Mall Plaza,8,120,960
+2026-01-06,Silver Band Ring,Rings,Airport,6,120,720
+2026-01-21,Gold Chain Necklace,Necklaces,Downtown,5,1100,5500
+2026-01-08,Gold Chain Necklace,Necklaces,Airport,5,1100,5500
+2026-01-23,Pearl Necklace,Necklaces,Downtown,1,450,450
+2026-01-13,Pearl Necklace,Necklaces,Mall Plaza,9,450,4050
+2026-01-18,Pearl Necklace,Necklaces,Airport,9,450,4050
+2026-01-12,Diamond Pendant,Necklaces,Downtown,3,1600,4800
+2026-01-07,Diamond Pendant,Necklaces,Mall Plaza,8,1600,12800
+2026-01-23,Diamond Pendant,Necklaces,Airport,10,1600,16000
+2026-01-23,Gold Hoop Earrings,Earrings,Downtown,7,380,2660
+2026-01-07,Gold Hoop Earrings,Earrings,Airport,3,380,1140
+2026-01-04,Diamond Stud Earrings,Earrings,Downtown,5,950,4750
+2026-01-03,Diamond Stud Earrings,Earrings,Mall Plaza,5,950,4750
+2026-01-08,Diamond Stud Earrings,Earrings,Airport,7,950,6650
+2026-01-07,Silver Drop Earrings,Earrings,Downtown,8,95,760
+2026-01-06,Silver Drop Earrings,Earrings,Mall Plaza,6,95,570
+2026-01-10,Gold Bangle,Bracelets,Downtown,6,720,4320
+2026-01-27,Gold Bangle,Bracelets,Mall Plaza,1,720,720
+2026-01-27,Gold Bangle,Bracelets,Airport,5,720,3600
+2026-01-02,Tennis Bracelet,Bracelets,Mall Plaza,10,1900,19000
+2026-01-20,Tennis Bracelet,Bracelets,Airport,8,1900,15200
+2026-01-23,Charm Bracelet,Bracelets,Downtown,2,260,520
+2026-01-10,Charm Bracelet,Bracelets,Airport,4,260,1040
+2026-01-04,Luxury Gold Watch,Watches,Downtown,1,3200,3200
+2026-01-09,Luxury Gold Watch,Watches,Mall Plaza,6,3200,19200
+2026-01-15,Luxury Gold Watch,Watches,Airport,9,3200,28800
+2026-01-14,Silver Watch,Watches,Downtown,8,540,4320
+2026-01-13,Silver Watch,Watches,Mall Plaza,7,540,3780
+2026-01-19,Silver Watch,Watches,Airport,7,540,3780
+2026-01-08,Bridal Jewelry Set,Sets,Mall Plaza,9,4500,40500
+2026-01-13,Bridal Jewelry Set,Sets,Airport,5,4500,22500
+2026-01-09,Gold Anklet,Anklets,Airport,3,310,930
+2026-02-02,Gold Ring 22K,Rings,Downtown,15,850,12750
+2026-02-10,Gold Ring 22K,Rings,Mall Plaza,9,850,7650
+2026-02-20,Gold Ring 22K,Rings,Airport,9,850,7650
+2026-02-11,Diamond Solitaire Ring,Rings,Downtown,11,2400,26400
+2026-02-15,Diamond Solitaire Ring,Rings,Mall Plaza,16,2400,38400
+2026-02-25,Diamond Solitaire Ring,Rings,Airport,14,2400,33600
+2026-02-04,Silver Band Ring,Rings,Downtown,7,120,840
+2026-02-17,Silver Band Ring,Rings,Airport,4,120,480
+2026-02-09,Gold Chain Necklace,Necklaces,Downtown,13,1100,14300
+2026-02-17,Gold Chain Necklace,Necklaces,Mall Plaza,16,1100,17600
+2026-02-03,Gold Chain Necklace,Necklaces,Airport,8,1100,8800
+2026-02-15,Pearl Necklace,Necklaces,Downtown,4,450,1800
+2026-02-13,Diamond Pendant,Necklaces,Downtown,3,1600,4800
+2026-02-02,Diamond Pendant,Necklaces,Mall Plaza,6,1600,9600
+2026-02-01,Gold Hoop Earrings,Earrings,Downtown,11,380,4180
+2026-02-11,Gold Hoop Earrings,Earrings,Mall Plaza,13,380,4940
+2026-02-12,Gold Hoop Earrings,Earrings,Airport,13,380,4940
+2026-02-19,Diamond Stud Earrings,Earrings,Downtown,5,950,4750
+2026-02-05,Diamond Stud Earrings,Earrings,Airport,7,950,6650
+2026-02-19,Silver Drop Earrings,Earrings,Downtown,5,95,475
+2026-02-09,Silver Drop Earrings,Earrings,Mall Plaza,15,95,1425
+2026-02-05,Gold Bangle,Bracelets,Downtown,15,720,10800
+2026-02-20,Gold Bangle,Bracelets,Mall Plaza,6,720,4320
+2026-02-15,Gold Bangle,Bracelets,Airport,17,720,12240
+2026-02-25,Tennis Bracelet,Bracelets,Downtown,13,1900,24700
+2026-02-25,Tennis Bracelet,Bracelets,Mall Plaza,11,1900,20900
+2026-02-08,Tennis Bracelet,Bracelets,Airport,9,1900,17100
+2026-02-13,Charm Bracelet,Bracelets,Mall Plaza,2,260,520
+2026-02-18,Charm Bracelet,Bracelets,Airport,6,260,1560
+2026-02-20,Luxury Gold Watch,Watches,Downtown,7,3200,22400
+2026-02-20,Luxury Gold Watch,Watches,Mall Plaza,15,3200,48000
+2026-02-21,Silver Watch,Watches,Downtown,11,540,5940
+2026-02-07,Bridal Jewelry Set,Sets,Airport,14,4500,63000
+2026-02-06,Gold Anklet,Anklets,Mall Plaza,2,310,620
+2026-02-17,Gold Anklet,Anklets,Airport,11,310,3410
+2026-03-26,Gold Ring 22K,Rings,Downtown,2,850,1700
+2026-03-10,Gold Ring 22K,Rings,Mall Plaza,12,850,10200
+2026-03-11,Gold Ring 22K,Rings,Airport,11,850,9350
+2026-03-11,Diamond Solitaire Ring,Rings,Downtown,4,2400,9600
+2026-03-09,Diamond Solitaire Ring,Rings,Mall Plaza,4,2400,9600
+2026-03-15,Diamond Solitaire Ring,Rings,Airport,5,2400,12000
+2026-03-11,Silver Band Ring,Rings,Downtown,7,120,840
+2026-03-04,Silver Band Ring,Rings,Mall Plaza,9,120,1080
+2026-03-02,Gold Chain Necklace,Necklaces,Airport,4,1100,4400
+2026-03-07,Pearl Necklace,Necklaces,Downtown,13,450,5850
+2026-03-21,Pearl Necklace,Necklaces,Mall Plaza,6,450,2700
+2026-03-21,Pearl Necklace,Necklaces,Airport,10,450,4500
+2026-03-25,Diamond Pendant,Necklaces,Downtown,13,1600,20800
+2026-03-05,Diamond Pendant,Necklaces,Mall Plaza,4,1600,6400
+2026-03-05,Diamond Pendant,Necklaces,Airport,10,1600,16000
+2026-03-05,Gold Hoop Earrings,Earrings,Downtown,14,380,5320
+2026-03-12,Gold Hoop Earrings,Earrings,Airport,8,380,3040
+2026-03-17,Diamond Stud Earrings,Earrings,Mall Plaza,4,950,3800
+2026-03-10,Diamond Stud Earrings,Earrings,Airport,9,950,8550
+2026-03-05,Silver Drop Earrings,Earrings,Downtown,8,95,760
+2026-03-05,Silver Drop Earrings,Earrings,Mall Plaza,5,95,475
+2026-03-05,Silver Drop Earrings,Earrings,Airport,8,95,760
+2026-03-02,Gold Bangle,Bracelets,Downtown,9,720,6480
+2026-03-12,Gold Bangle,Bracelets,Mall Plaza,14,720,10080
+2026-03-13,Tennis Bracelet,Bracelets,Mall Plaza,13,1900,24700
+2026-03-05,Charm Bracelet,Bracelets,Downtown,12,260,3120
+2026-03-26,Charm Bracelet,Bracelets,Mall Plaza,13,260,3380
+2026-03-02,Charm Bracelet,Bracelets,Airport,5,260,1300
+2026-03-19,Luxury Gold Watch,Watches,Downtown,7,3200,22400
+2026-03-27,Silver Watch,Watches,Downtown,9,540,4860
+2026-03-02,Silver Watch,Watches,Mall Plaza,2,540,1080
+2026-03-03,Bridal Jewelry Set,Sets,Downtown,8,4500,36000
+2026-03-21,Bridal Jewelry Set,Sets,Mall Plaza,4,4500,18000
+2026-03-07,Bridal Jewelry Set,Sets,Airport,6,4500,27000
+2026-03-20,Gold Anklet,Anklets,Downtown,11,310,3410
+2026-03-16,Gold Anklet,Anklets,Airport,4,310,1240
+2026-04-23,Gold Ring 22K,Rings,Airport,3,850,2550
+2026-04-19,Diamond Solitaire Ring,Rings,Downtown,6,2400,14400
+2026-04-14,Diamond Solitaire Ring,Rings,Mall Plaza,14,2400,33600
+2026-04-24,Silver Band Ring,Rings,Downtown,7,120,840
+2026-04-18,Silver Band Ring,Rings,Airport,12,120,1440
+2026-04-07,Gold Chain Necklace,Necklaces,Downtown,6,1100,6600
+2026-04-20,Gold Chain Necklace,Necklaces,Mall Plaza,9,1100,9900
+2026-04-04,Gold Chain Necklace,Necklaces,Airport,14,1100,15400
+2026-04-03,Pearl Necklace,Necklaces,Downtown,7,450,3150
+2026-04-19,Pearl Necklace,Necklaces,Mall Plaza,12,450,5400
+2026-04-20,Diamond Pendant,Necklaces,Downtown,7,1600,11200
+2026-04-12,Diamond Pendant,Necklaces,Airport,3,1600,4800
+2026-04-07,Gold Hoop Earrings,Earrings,Downtown,11,380,4180
+2026-04-01,Gold Hoop Earrings,Earrings,Mall Plaza,12,380,4560
+2026-04-01,Gold Hoop Earrings,Earrings,Airport,9,380,3420
+2026-04-03,Diamond Stud Earrings,Earrings,Airport,9,950,8550
+2026-04-03,Silver Drop Earrings,Earrings,Downtown,14,95,1330
+2026-04-06,Silver Drop Earrings,Earrings,Mall Plaza,11,95,1045
+2026-04-03,Silver Drop Earrings,Earrings,Airport,11,95,1045
+2026-04-03,Gold Bangle,Bracelets,Downtown,8,720,5760
+2026-04-01,Gold Bangle,Bracelets,Mall Plaza,14,720,10080
+2026-04-10,Tennis Bracelet,Bracelets,Mall Plaza,8,1900,15200
+2026-04-18,Charm Bracelet,Bracelets,Downtown,7,260,1820
+2026-04-24,Luxury Gold Watch,Watches,Downtown,2,3200,6400
+2026-04-10,Luxury Gold Watch,Watches,Mall Plaza,13,3200,41600
+2026-04-04,Silver Watch,Watches,Downtown,14,540,7560
+2026-04-27,Silver Watch,Watches,Mall Plaza,12,540,6480
+2026-04-13,Silver Watch,Watches,Airport,4,540,2160
+2026-04-14,Bridal Jewelry Set,Sets,Downtown,5,4500,22500
+2026-04-13,Bridal Jewelry Set,Sets,Mall Plaza,2,4500,9000
+2026-04-01,Bridal Jewelry Set,Sets,Airport,13,4500,58500
+2026-04-22,Gold Anklet,Anklets,Downtown,13,310,4030
+2026-04-09,Gold Anklet,Anklets,Airport,7,310,2170
+2026-05-14,Gold Ring 22K,Rings,Downtown,8,850,6800
+2026-05-13,Gold Ring 22K,Rings,Airport,8,850,6800
+2026-05-14,Diamond Solitaire Ring,Rings,Downtown,13,2400,31200
+2026-05-16,Diamond Solitaire Ring,Rings,Mall Plaza,12,2400,28800
+2026-05-27,Diamond Solitaire Ring,Rings,Airport,2,2400,4800
+2026-05-07,Silver Band Ring,Rings,Downtown,3,120,360
+2026-05-15,Silver Band Ring,Rings,Airport,11,120,1320
+2026-05-27,Gold Chain Necklace,Necklaces,Mall Plaza,6,1100,6600
+2026-05-04,Pearl Necklace,Necklaces,Downtown,8,450,3600
+2026-05-10,Pearl Necklace,Necklaces,Mall Plaza,9,450,4050
+2026-05-02,Pearl Necklace,Necklaces,Airport,13,450,5850
+2026-05-14,Diamond Pendant,Necklaces,Downtown,5,1600,8000
+2026-05-02,Diamond Pendant,Necklaces,Mall Plaza,13,1600,20800
+2026-05-10,Diamond Pendant,Necklaces,Airport,13,1600,20800
+2026-05-11,Gold Hoop Earrings,Earrings,Downtown,9,380,3420
+2026-05-22,Gold Hoop Earrings,Earrings,Mall Plaza,7,380,2660
+2026-05-04,Gold Hoop Earrings,Earrings,Airport,7,380,2660
+2026-05-14,Diamond Stud Earrings,Earrings,Downtown,10,950,9500
+2026-05-02,Diamond Stud Earrings,Earrings,Mall Plaza,9,950,8550
+2026-05-25,Diamond Stud Earrings,Earrings,Airport,14,950,13300
+2026-05-20,Silver Drop Earrings,Earrings,Downtown,4,95,380
+2026-05-06,Gold Bangle,Bracelets,Downtown,14,720,10080
+2026-05-08,Gold Bangle,Bracelets,Mall Plaza,3,720,2160
+2026-05-20,Gold Bangle,Bracelets,Airport,14,720,10080
+2026-05-26,Tennis Bracelet,Bracelets,Downtown,13,1900,24700
+2026-05-22,Tennis Bracelet,Bracelets,Airport,5,1900,9500
+2026-05-04,Charm Bracelet,Bracelets,Downtown,7,260,1820
+2026-05-20,Charm Bracelet,Bracelets,Mall Plaza,7,260,1820
+2026-05-24,Charm Bracelet,Bracelets,Airport,13,260,3380
+2026-05-22,Luxury Gold Watch,Watches,Downtown,3,3200,9600
+2026-05-27,Luxury Gold Watch,Watches,Airport,11,3200,35200
+2026-05-19,Silver Watch,Watches,Downtown,3,540,1620
+2026-05-21,Silver Watch,Watches,Mall Plaza,14,540,7560
+2026-05-16,Silver Watch,Watches,Airport,2,540,1080
+2026-05-27,Bridal Jewelry Set,Sets,Downtown,13,4500,58500
+2026-05-23,Bridal Jewelry Set,Sets,Mall Plaza,9,4500,40500
+2026-05-06,Bridal Jewelry Set,Sets,Airport,5,4500,22500
+2026-05-09,Gold Anklet,Anklets,Downtown,4,310,1240
+2026-05-08,Gold Anklet,Anklets,Mall Plaza,12,310,3720
+2026-05-03,Gold Anklet,Anklets,Airport,9,310,2790
+2026-06-01,Gold Ring 22K,Rings,Downtown,11,850,9350
+2026-06-02,Gold Ring 22K,Rings,Airport,12,850,10200
+2026-06-15,Diamond Solitaire Ring,Rings,Downtown,2,2400,4800
+2026-06-26,Diamond Solitaire Ring,Rings,Airport,3,2400,7200
+2026-06-18,Silver Band Ring,Rings,Mall Plaza,4,120,480
+2026-06-04,Silver Band Ring,Rings,Airport,10,120,1200
+2026-06-16,Gold Chain Necklace,Necklaces,Downtown,7,1100,7700
+2026-06-11,Gold Chain Necklace,Necklaces,Mall Plaza,3,1100,3300
+2026-06-15,Gold Chain Necklace,Necklaces,Airport,8,1100,8800
+2026-06-04,Pearl Necklace,Necklaces,Mall Plaza,4,450,1800
+2026-06-12,Pearl Necklace,Necklaces,Airport,4,450,1800
+2026-06-19,Diamond Pendant,Necklaces,Airport,9,1600,14400
+2026-06-04,Gold Hoop Earrings,Earrings,Downtown,8,380,3040
+2026-06-12,Gold Hoop Earrings,Earrings,Airport,10,380,3800
+2026-06-04,Diamond Stud Earrings,Earrings,Downtown,12,950,11400
+2026-06-27,Diamond Stud Earrings,Earrings,Airport,2,950,1900
+2026-06-04,Silver Drop Earrings,Earrings,Downtown,11,95,1045
+2026-06-15,Silver Drop Earrings,Earrings,Mall Plaza,12,95,1140
+2026-06-03,Gold Bangle,Bracelets,Mall Plaza,10,720,7200
+2026-06-08,Gold Bangle,Bracelets,Airport,8,720,5760
+2026-06-22,Tennis Bracelet,Bracelets,Downtown,11,1900,20900
+2026-06-17,Tennis Bracelet,Bracelets,Mall Plaza,4,1900,7600
+2026-06-26,Tennis Bracelet,Bracelets,Airport,11,1900,20900
+2026-06-20,Charm Bracelet,Bracelets,Downtown,2,260,520
+2026-06-05,Luxury Gold Watch,Watches,Downtown,6,3200,19200
+2026-06-06,Luxury Gold Watch,Watches,Mall Plaza,11,3200,35200
+2026-06-22,Luxury Gold Watch,Watches,Airport,10,3200,32000
+2026-06-20,Silver Watch,Watches,Downtown,5,540,2700
+2026-06-19,Silver Watch,Watches,Mall Plaza,7,540,3780
+2026-06-26,Silver Watch,Watches,Airport,10,540,5400
+2026-06-09,Bridal Jewelry Set,Sets,Downtown,4,4500,18000
+2026-06-21,Bridal Jewelry Set,Sets,Airport,2,4500,9000
+2026-06-23,Gold Anklet,Anklets,Mall Plaza,12,310,3720
+2026-06-07,Gold Anklet,Anklets,Airport,6,310,1860

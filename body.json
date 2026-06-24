@@ -1,0 +1,1 @@
+{"question":"top 3 products by revenue","schema":{"rowCount":633,"columns":[{"name":"Date","type":"DATE","kind":"date","samples":["2025-01-12"]},{"name":"Product","type":"VARCHAR","kind":"text","samples":["Gold Ring 22K"]},{"name":"Revenue","type":"BIGINT","kind":"number","samples":["850"]}]}}
