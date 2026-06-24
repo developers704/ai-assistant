@@ -22,11 +22,11 @@ async function buildSessionConfig(model: string) {
     audio: {
       input: {
         turn_detection: {
-          type: "server_vad",
+          type: "server_vad" as const,
           threshold: 0.5,
           prefix_padding_ms: 300,
           silence_duration_ms: 700,
-          create_response: false,
+          create_response: true,
         },
         transcription: { model: "gpt-4o-mini-transcribe" },
       },
