@@ -3,14 +3,14 @@
 import { useApp } from "@/lib/store/app-context";
 import { useRealtimeVoice } from "@/lib/voice/useRealtimeVoice";
 import { Icon } from "@/components/ui/Icon";
-import { Mic, MicOff, Loader2, Volume2, PhoneOff } from "lucide-react";
+import { Mic, Loader2, Volume2, PhoneOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABELS: Record<string, string> = {
-  idle: "Hold to talk",
+  idle: "Start voice",
   connecting: "Connecting…",
-  ready: "Hold to talk",
-  listening: "Keep holding…",
+  ready: "Listening…",
+  listening: "Listening…",
   thinking: "Thinking…",
   speaking: "Speaking…",
   error: "Tap to retry",
@@ -22,135 +22,116 @@ export function RealtimeVoiceButton() {
 
   const {
     status,
+    sessionActive,
     error,
     supported,
     userTranscript,
     assistantTranscript,
-    startListening,
-    stopListening,
-    disconnect,
-    connect,
+    startSession,
+    closePanel,
   } = useRealtimeVoice(voiceEnabled);
 
   if (!supported || !voiceEnabled) return null;
 
-  const panelOpen =
-    status !== "idle" || !!userTranscript || !!assistantTranscript || !!error;
+  const panelOpen = sessionActive || status === "error";
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    void startListening();
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    e.preventDefault();
-    if ((e.target as HTMLElement).hasPointerCapture(e.pointerId)) {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  const handleMicClick = () => {
+    if (status === "error") {
+      closePanel();
+      void startSession();
+      return;
     }
-    stopListening();
+    if (!sessionActive && status === "idle") {
+      void startSession();
+    }
   };
 
-  const handleRetry = () => {
-    disconnect();
-    void connect();
-  };
-
-  const isActive = status === "listening";
+  const isLive = sessionActive && (status === "listening" || status === "ready");
   const isBusy = status === "connecting" || status === "thinking";
   const isSpeaking = status === "speaking";
 
   return (
     <div
-      className="fixed right-4 bottom-6 z-30 flex flex-col items-end gap-3"
+      className="fixed right-4 bottom-5 z-30 flex flex-col items-end gap-2"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0)" }}
     >
       {panelOpen && (
-        <div className="max-w-xs w-72 glass-panel-strong shadow-elevated rounded-3xl p-4 animate-in fade-in slide-in-from-bottom-2">
-          <p className="text-[11px] uppercase tracking-wide text-ink-muted mb-2">
-            Voice · Realtime
-          </p>
-          <p className="text-[10px] text-ink-muted mb-2">
-            Press &amp; hold, speak, then release (at least 1 second).
-          </p>
+        <div className="max-w-xs w-64 glass-panel-strong shadow-elevated rounded-2xl p-3.5 animate-in fade-in slide-in-from-bottom-2">
+          <div className="mb-2">
+            <p className="text-[10px] uppercase tracking-wide text-ink-muted">
+              Voice · Realtime
+            </p>
+            <p className="text-[10px] text-ink-muted mt-0.5">
+              Speak naturally — ask follow-ups anytime. Press Exit when done.
+            </p>
+          </div>
 
-          {error && (
-            <p className="text-sm text-rose-300 mb-2">{error}</p>
+          {error && <p className="text-xs text-rose-300 mb-2">{error}</p>}
+
+          {isLive && !userTranscript && !isBusy && !isSpeaking && (
+            <p className="text-xs text-emerald-300/90 mb-2 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Mic is on — go ahead and speak
+            </p>
           )}
 
           {userTranscript && (
             <div className="mb-2">
-              <p className="text-[11px] uppercase tracking-wide text-ink-muted">You</p>
-              <p className="text-sm text-ink font-medium">{userTranscript}</p>
+              <p className="text-[10px] uppercase tracking-wide text-ink-muted">You</p>
+              <p className="text-xs text-ink font-medium">{userTranscript}</p>
             </div>
           )}
 
           {isBusy && (
-            <p className="text-sm text-ink-muted flex items-center gap-2">
-              <Loader2 size={14} className="animate-spin" />
+            <p className="text-xs text-ink-muted flex items-center gap-2">
+              <Loader2 size={13} className="animate-spin" />
               {STATUS_LABELS[status]}
             </p>
           )}
 
           {assistantTranscript && (
             <div className="mt-2 pt-2 border-t border-white/15">
-              <p className="text-[11px] uppercase tracking-wide text-ink-muted flex items-center gap-1">
-                <Volume2 size={11} /> Alexa {isSpeaking && "(speaking)"}
+              <p className="text-[10px] uppercase tracking-wide text-ink-muted flex items-center gap-1">
+                <Volume2 size={10} /> Alexa {isSpeaking && "(speaking)"}
               </p>
-              <p className="text-sm text-ink-secondary mt-0.5 line-clamp-6 whitespace-pre-wrap">
+              <p className="text-xs text-ink-secondary mt-0.5 line-clamp-6 whitespace-pre-wrap">
                 {assistantTranscript}
               </p>
             </div>
           )}
 
-          {status !== "idle" && status !== "connecting" && (
-            <button
-              type="button"
-              onClick={disconnect}
-              className="mt-3 text-xs text-ink-muted hover:text-ink flex items-center gap-1"
-            >
-              <PhoneOff size={12} /> End session
-            </button>
-          )}
-
-          {status === "error" && (
-            <button
-              type="button"
-              onClick={handleRetry}
-              className="mt-2 text-xs text-accent-neon hover:underline"
-            >
-              Retry connection
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={closePanel}
+            className="mt-3 w-full py-2 text-xs font-medium rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 hover:text-rose-100 ring-1 ring-rose-400/30 transition-colors flex items-center justify-center gap-1.5"
+          >
+            <PhoneOff size={13} />
+            Exit voice chat
+          </button>
         </div>
       )}
 
       <button
         type="button"
-        onPointerDown={status === "error" ? undefined : handlePointerDown}
-        onPointerUp={status === "error" ? undefined : handlePointerUp}
-        onPointerLeave={status === "error" ? undefined : handlePointerUp}
-        onClick={status === "error" ? handleRetry : undefined}
-        aria-label={isActive ? "Release to send" : "Hold to talk"}
+        onClick={handleMicClick}
+        disabled={sessionActive && status !== "error"}
+        aria-label={sessionActive ? "Voice session active" : "Start voice chat"}
+        title={STATUS_LABELS[status] ?? "Start voice"}
         className={cn(
-          "w-16 h-16 rounded-full flex flex-col items-center justify-center shadow-elevated transition-all duration-300 select-none touch-none",
-          isActive
-            ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white scale-110 animate-pulse shadow-glow-orange"
+          "w-12 h-12 rounded-full flex items-center justify-center shadow-elevated transition-all duration-300",
+          sessionActive && status !== "error"
+            ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white scale-105 shadow-glow-orange cursor-default"
             : isSpeaking
               ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white scale-105 shadow-glow"
-              : "btn-futuristic text-accent-neon hover:scale-105 hover:shadow-glow"
+              : "btn-futuristic text-accent-neon hover:scale-105 hover:shadow-glow",
+          sessionActive && status !== "error" && "animate-pulse"
         )}
       >
-        {isActive ? (
-          <Icon icon={MicOff} size="xl" active />
-        ) : isBusy ? (
-          <Loader2 size={24} className="animate-spin" />
+        {isBusy ? (
+          <Loader2 size={18} className="animate-spin" />
         ) : (
-          <Icon icon={Mic} size="xl" active />
+          <Icon icon={Mic} size="md" active={sessionActive || status === "idle"} />
         )}
-        <span className="text-[9px] mt-0.5 font-medium opacity-80">
-          {STATUS_LABELS[status] ?? "Hold"}
-        </span>
       </button>
     </div>
   );

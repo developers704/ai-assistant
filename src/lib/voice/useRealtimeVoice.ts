@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { VoiceUiAction } from "@/lib/voice/execute-tool";
-import { VOICE_MAX_TURNS, VOICE_MIN_RECORDING_MS, VOICE_SESSION_MAX_MS } from "@/lib/voice/config";
+import { VOICE_MAX_TURNS, VOICE_SESSION_MAX_MS } from "@/lib/voice/config";
 import { detectVoiceIntent, normalizeVoiceTranscript } from "@/lib/voice/intent";
 
 export type RealtimeVoiceStatus =
@@ -34,6 +34,7 @@ function sendEvent(dc: RTCDataChannel, event: Record<string, unknown>) {
 export function useRealtimeVoice(enabled: boolean) {
   const router = useRouter();
   const [status, setStatus] = useState<RealtimeVoiceStatus>("idle");
+  const [sessionActive, setSessionActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userTranscript, setUserTranscript] = useState("");
   const [assistantTranscript, setAssistantTranscript] = useState("");
@@ -45,11 +46,9 @@ export function useRealtimeVoice(enabled: boolean) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const sessionStartRef = useRef<number | null>(null);
   const turnCountRef = useRef(0);
-  const holdingRef = useRef(false);
+  const sessionActiveRef = useRef(false);
   const processingToolRef = useRef(false);
-  const listenStartRef = useRef<number | null>(null);
-  const isRecordingRef = useRef(false);
-  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const processingResponseRef = useRef(false);
   const pendingResponseRef = useRef(false);
   const responseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTranscriptRef = useRef("");
@@ -61,11 +60,14 @@ export function useRealtimeVoice(enabled: boolean) {
     }
   }, []);
 
-  const clearCommitTimer = useCallback(() => {
-    if (commitTimerRef.current) {
-      clearTimeout(commitTimerRef.current);
-      commitTimerRef.current = null;
-    }
+  const enableMic = useCallback(() => {
+    const track = micStreamRef.current?.getAudioTracks()[0];
+    if (track) track.enabled = true;
+  }, []);
+
+  const disableMic = useCallback(() => {
+    const track = micStreamRef.current?.getAudioTracks()[0];
+    if (track) track.enabled = false;
   }, []);
 
   const applyUiAction = useCallback(
@@ -79,12 +81,16 @@ export function useRealtimeVoice(enabled: boolean) {
 
   const createResponse = useCallback(
     async (transcript: string) => {
-      if (!pendingResponseRef.current) return;
+      if (!sessionActiveRef.current || processingResponseRef.current) return;
       pendingResponseRef.current = false;
       clearResponseTimer();
+      processingResponseRef.current = true;
 
       const dc = dcRef.current;
-      if (!dc) return;
+      if (!dc) {
+        processingResponseRef.current = false;
+        return;
+      }
 
       const normalized = normalizeVoiceTranscript(transcript);
       const intent = detectVoiceIntent(normalized);
@@ -108,7 +114,7 @@ export function useRealtimeVoice(enabled: boolean) {
           });
           return;
         } catch {
-          // fall through
+          // fall through to next intent
         }
       }
 
@@ -150,7 +156,7 @@ export function useRealtimeVoice(enabled: boolean) {
           });
           return;
         } catch {
-          // fall through to generic flow
+          // fall through
         }
       }
 
@@ -199,18 +205,25 @@ export function useRealtimeVoice(enabled: boolean) {
   const scheduleResponse = useCallback(() => {
     clearResponseTimer();
     responseTimerRef.current = setTimeout(() => {
-      void createResponse(lastTranscriptRef.current);
+      if (pendingResponseRef.current && lastTranscriptRef.current) {
+        void createResponse(lastTranscriptRef.current);
+      } else if (pendingResponseRef.current && sessionActiveRef.current) {
+        pendingResponseRef.current = false;
+        processingResponseRef.current = false;
+        setStatus("listening");
+      }
     }, 8000);
   }, [clearResponseTimer, createResponse]);
 
-  const disconnect = useCallback(() => {
-    clearCommitTimer();
+  const teardownConnection = useCallback(() => {
     clearResponseTimer();
     pendingResponseRef.current = false;
+    processingResponseRef.current = false;
     dcRef.current?.close();
     dcRef.current = null;
     pcRef.current?.close();
     pcRef.current = null;
+    disableMic();
     micStreamRef.current?.getTracks().forEach((t) => t.stop());
     micStreamRef.current = null;
     if (audioRef.current) {
@@ -218,12 +231,35 @@ export function useRealtimeVoice(enabled: boolean) {
     }
     sessionStartRef.current = null;
     turnCountRef.current = 0;
-    holdingRef.current = false;
     processingToolRef.current = false;
-    listenStartRef.current = null;
-    isRecordingRef.current = false;
+  }, [clearResponseTimer, disableMic]);
+
+  const disconnect = useCallback(() => {
+    sessionActiveRef.current = false;
+    setSessionActive(false);
+    teardownConnection();
     setStatus("idle");
-  }, [clearCommitTimer, clearResponseTimer]);
+    setUserTranscript("");
+    setAssistantTranscript("");
+    setError(null);
+  }, [teardownConnection]);
+
+  const endSessionWithError = useCallback(
+    (message: string) => {
+      sessionActiveRef.current = false;
+      setSessionActive(false);
+      teardownConnection();
+      setUserTranscript("");
+      setAssistantTranscript("");
+      setError(message);
+      setStatus("error");
+    },
+    [teardownConnection]
+  );
+
+  const closePanel = useCallback(() => {
+    disconnect();
+  }, [disconnect]);
 
   const handleFunctionCall = useCallback(
     async (name: string, callId: string, argsJson: string) => {
@@ -272,19 +308,28 @@ export function useRealtimeVoice(enabled: boolean) {
       switch (event.type) {
         case "session.created":
         case "session.updated":
-          if (!holdingRef.current) setStatus("ready");
+          if (sessionActiveRef.current) setStatus("listening");
           break;
         case "input_audio_buffer.speech_started":
-          if (holdingRef.current) setStatus("listening");
+          if (sessionActiveRef.current) {
+            setUserTranscript("");
+            setAssistantTranscript("");
+            setStatus("listening");
+          }
+          break;
+        case "input_audio_buffer.speech_stopped":
+          if (sessionActiveRef.current) {
+            setStatus("thinking");
+            pendingResponseRef.current = true;
+            scheduleResponse();
+          }
           break;
         case "conversation.item.input_audio_transcription.completed":
-          if (event.transcript) {
+          if (event.transcript && sessionActiveRef.current) {
             const normalized = normalizeVoiceTranscript(event.transcript);
             setUserTranscript(normalized);
             lastTranscriptRef.current = normalized;
-            if (pendingResponseRef.current) {
-              void createResponse(normalized);
-            }
+            void createResponse(normalized);
           }
           break;
         case "response.output_audio_transcript.delta":
@@ -304,23 +349,17 @@ export function useRealtimeVoice(enabled: boolean) {
           break;
         case "response.done":
           turnCountRef.current += 1;
+          processingResponseRef.current = false;
           if (turnCountRef.current >= VOICE_MAX_TURNS) {
-            disconnect();
-            setError("Session limit reached. Tap to start a new session.");
-          } else if (!holdingRef.current) {
-            setStatus("ready");
+            endSessionWithError("Session limit reached. Tap mic to start again.");
+          } else if (sessionActiveRef.current) {
+            enableMic();
+            setStatus("listening");
           }
           break;
         case "error": {
           const msg = event.error?.message ?? "Voice session error";
-          if (/buffer too small/i.test(msg)) {
-            setError("Hold the button a little longer while you speak.");
-            setStatus("ready");
-            if (dcRef.current) {
-              sendEvent(dcRef.current, { type: "input_audio_buffer.clear" });
-            }
-            break;
-          }
+          processingResponseRef.current = false;
           setError(msg);
           setStatus("error");
           break;
@@ -329,15 +368,13 @@ export function useRealtimeVoice(enabled: boolean) {
           break;
       }
     },
-    [createResponse, disconnect, handleFunctionCall]
+    [createResponse, enableMic, endSessionWithError, handleFunctionCall, scheduleResponse]
   );
 
   const connect = useCallback(async () => {
     if (pcRef.current || !enabled) return;
     setError(null);
     setStatus("connecting");
-    setUserTranscript("");
-    setAssistantTranscript("");
 
     try {
       const sessionRes = await fetch("/api/voice/session", { method: "POST" });
@@ -403,14 +440,16 @@ export function useRealtimeVoice(enabled: boolean) {
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
 
       sessionStartRef.current = Date.now();
-      setStatus("ready");
+      if (sessionActiveRef.current) {
+        enableMic();
+        setStatus("listening");
+      } else {
+        setStatus("ready");
+      }
     } catch (err) {
-      disconnect();
-      const message = err instanceof Error ? err.message : "Failed to connect";
-      setError(message);
-      setStatus("error");
+      endSessionWithError(err instanceof Error ? err.message : "Failed to connect");
     }
-  }, [disconnect, enabled, handleServerEvent]);
+  }, [enabled, enableMic, endSessionWithError, handleServerEvent]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -427,92 +466,40 @@ export function useRealtimeVoice(enabled: boolean) {
         sessionStartRef.current &&
         Date.now() - sessionStartRef.current > VOICE_SESSION_MAX_MS
       ) {
-        disconnect();
-        setError("Session timed out (5 min). Hold to talk again.");
+        endSessionWithError("Session timed out (5 min). Tap mic to start again.");
       }
     }, 5000);
     return () => clearInterval(timer);
-  }, [disconnect, status]);
+  }, [endSessionWithError, status]);
 
   useEffect(() => {
     return () => disconnect();
   }, [disconnect]);
 
-  const startListening = useCallback(async () => {
-    if (!enabled) return;
-    clearCommitTimer();
-    holdingRef.current = true;
+  const startSession = useCallback(async () => {
+    if (!enabled || sessionActiveRef.current) return;
+    sessionActiveRef.current = true;
+    setSessionActive(true);
     setError(null);
     setUserTranscript("");
     setAssistantTranscript("");
 
     if (!pcRef.current) {
       await connect();
-    }
-
-    if (!holdingRef.current) return;
-    if (!pcRef.current || !dcRef.current) return;
-
-    const track = micStreamRef.current?.getAudioTracks()[0];
-    const dc = dcRef.current;
-    if (!track || !dc) return;
-
-    sendEvent(dc, { type: "input_audio_buffer.clear" });
-    listenStartRef.current = Date.now();
-    isRecordingRef.current = true;
-    track.enabled = true;
-    setStatus("listening");
-  }, [clearCommitTimer, connect, enabled]);
-
-  const stopListening = useCallback(() => {
-    if (!holdingRef.current && !isRecordingRef.current) return;
-    holdingRef.current = false;
-
-    const track = micStreamRef.current?.getAudioTracks()[0];
-    const dc = dcRef.current;
-
-    if (!dc || !isRecordingRef.current || !listenStartRef.current) {
-      if (track) track.enabled = false;
-      isRecordingRef.current = false;
-      listenStartRef.current = null;
-      if (dc) sendEvent(dc, { type: "input_audio_buffer.clear" });
-      setStatus(pcRef.current ? "ready" : "idle");
-      return;
-    }
-
-    const startedAt = listenStartRef.current;
-    const elapsed = Date.now() - startedAt;
-    const waitMs = Math.max(0, VOICE_MIN_RECORDING_MS - elapsed);
-
-    const finishCommit = () => {
-      commitTimerRef.current = null;
-      if (track) track.enabled = false;
-      isRecordingRef.current = false;
-      listenStartRef.current = null;
-      setStatus("thinking");
-      pendingResponseRef.current = true;
-      lastTranscriptRef.current = "";
-      sendEvent(dc, { type: "input_audio_buffer.commit" });
-      scheduleResponse();
-    };
-
-    if (waitMs > 0) {
-      setStatus("listening");
-      commitTimerRef.current = setTimeout(finishCommit, waitMs);
     } else {
-      finishCommit();
+      enableMic();
+      setStatus("listening");
     }
-  }, [scheduleResponse]);
+  }, [connect, enableMic, enabled]);
 
   return {
     status,
+    sessionActive,
     error,
     supported,
     userTranscript,
     assistantTranscript,
-    startListening,
-    stopListening,
-    disconnect,
-    connect,
+    startSession,
+    closePanel,
   };
-}
+};

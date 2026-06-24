@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { v4 as uuidv4 } from "uuid";
 
-import { getState, setState } from "@/lib/store/server-store";
+import { getState, setState, clearChatHistory } from "@/lib/store/server-store";
 
 import { getEnrichedState, applyGoogleCacheToState, getIntegrationsMeta } from "@/lib/google/sync";
 
@@ -159,6 +159,16 @@ export async function GET() {
   const state = await getEnrichedState();
 
   return NextResponse.json({ history: state.chatHistory });
+
+}
+
+
+
+export async function DELETE() {
+
+  clearChatHistory();
+
+  return NextResponse.json({ ok: true });
 
 }
 

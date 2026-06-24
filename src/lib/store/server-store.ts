@@ -63,3 +63,7 @@ export function login(email: string, password: string): boolean {
 export function logout(): void {
   serverState = { ...serverState, isAuthenticated: false };
 }
+
+export function clearChatHistory(): void {
+  serverState = { ...serverState, chatHistory: [] };
+}

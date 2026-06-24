@@ -148,6 +148,8 @@ function SettingsContent() {
 
     voiceEnabled: true,
 
+    defaultCallApp: "magicapp" as "sim" | "magicapp",
+
   });
 
 
@@ -181,6 +183,8 @@ function SettingsContent() {
         dailyBriefingTime: state.user.preferences.dailyBriefingTime,
 
         voiceEnabled: state.user.preferences.voiceEnabled,
+
+        defaultCallApp: state.user.preferences.defaultCallApp ?? "magicapp",
 
       });
 
@@ -377,6 +381,8 @@ function SettingsContent() {
         dailyBriefingTime: profile.dailyBriefingTime,
 
         voiceEnabled: profile.voiceEnabled,
+
+        defaultCallApp: profile.defaultCallApp,
 
       },
 
@@ -633,6 +639,28 @@ function SettingsContent() {
                     </div>
 
                   ))}
+
+                  <div className="pt-2 border-t border-white/10">
+                    <label className="block text-sm text-ink-secondary mb-1.5">
+                      Default phone calls
+                    </label>
+                    <select
+                      value={profile.defaultCallApp}
+                      onChange={(e) =>
+                        setProfile((p) => ({
+                          ...p,
+                          defaultCallApp: e.target.value as "sim" | "magicapp",
+                        }))
+                      }
+                      className="w-full rounded-xl px-3 py-2 text-sm bg-white/[0.06] ring-1 ring-white/15 text-ink"
+                    >
+                      <option value="magicapp">magicApp (international — India, Pakistan, etc.)</option>
+                      <option value="sim">Phone SIM (regular dialer)</option>
+                    </select>
+                    <p className="text-xs text-ink-muted mt-1.5">
+                      Contacts → Call uses this on your mobile. magicApp opens the app and copies the number.
+                    </p>
+                  </div>
 
                 </div>
 

@@ -8,6 +8,7 @@ interface AppContextType {
   loading: boolean;
   refresh: () => Promise<void>;
   sendChat: (message: string) => Promise<ChatMessage | null>;
+  clearChat: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateProfile: (profile: Partial<AppState["user"]>) => Promise<void>;
@@ -70,7 +71,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [fetchState]);
 
   useEffect(() => {
-    refresh();
+    const init = async () => {
+      const nav = performance.getEntriesByType("navigation")[0] as
+        | PerformanceNavigationTiming
+        | undefined;
+      if (nav?.type === "reload" || nav?.type === "navigate") {
+        await fetch("/api/chat", { method: "DELETE" });
+      }
+      await refresh();
+    };
+    void init();
   }, [refresh]);
 
   const login = async (email: string, password: string) => {
@@ -103,6 +113,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return data.message;
     }
     return null;
+  };
+
+  const clearChat = async () => {
+    await fetch("/api/chat", { method: "DELETE" });
+    setState((prev) => (prev ? { ...prev, chatHistory: [] } : prev));
   };
 
   const updateProfile = async (profile: Partial<AppState["user"]>) => {
@@ -181,6 +196,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         loading,
         refresh,
         sendChat,
+        clearChat,
         login,
         logout,
         updateProfile,

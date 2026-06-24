@@ -5,7 +5,7 @@ import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { ChatBubble, ChatInput } from "@/components/ui/ChatBubble";
 import { WeatherWidget } from "@/components/ui/WeatherWidget";
-import { Bot, Loader2, Sparkles } from "lucide-react";
+import { Bot, Loader2, Sparkles, MessageSquarePlus } from "lucide-react";
 
 const suggestions = [
   { text: "What do I need to focus on today?", color: "hover:ring-violet-400/40" },
@@ -17,7 +17,7 @@ const suggestions = [
 ];
 
 export default function ChatPage() {
-  const { state, sendChat, confirmAction, rejectAction } = useApp();
+  const { state, sendChat, clearChat, confirmAction, rejectAction } = useApp();
   const [sending, setSending] = useState(false);
   const [pendingText, setPendingText] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -47,7 +47,23 @@ export default function ChatPage() {
           <PageHeader
             title="AI Chat"
             subtitle="Your executive assistant — ask anything"
-            action={<WeatherWidget />}
+            action={
+              <div className="flex items-center gap-2">
+                {messages.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => void clearChat()}
+                    disabled={sending}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl glass-panel ring-1 ring-white/10 text-ink-secondary hover:text-ink hover:bg-white/10 disabled:opacity-50"
+                    title="Start a new conversation"
+                  >
+                    <MessageSquarePlus size={14} />
+                    New chat
+                  </button>
+                )}
+                <WeatherWidget />
+              </div>
+            }
           />
         </div>
 

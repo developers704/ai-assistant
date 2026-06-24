@@ -14,6 +14,8 @@ export interface UserProfile {
     confirmBeforeMeeting: boolean;
     dailyBriefingTime: string;
     voiceEnabled: boolean;
+    /** SIM dialer vs magicApp for international calls (India, Pakistan, etc.) */
+    defaultCallApp: "sim" | "magicapp";
   };
 }
 
