@@ -17,16 +17,22 @@ import {
 } from "@/lib/ai/assistant-engine";
 
 import { isLLMChatConfigured, processMessageWithLLM } from "@/lib/ai/llm-chat";
+import { isImageGenerateRequest } from "@/lib/images/generate-jewellery-image";
+import { processImageGenerate } from "@/lib/ai/image-generate";
 
 import type { AIResponse, ChatMessage } from "@/types";
 
 
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 
 
 async function resolveResponse(message: string, state: Awaited<ReturnType<typeof getEnrichedState>>): Promise<AIResponse> {
+  if (isImageGenerateRequest(message)) {
+    return processImageGenerate(message);
+  }
 
   if (shouldUseRuleEngine(message)) {
 
@@ -99,17 +105,15 @@ export async function POST(req: NextRequest) {
 
 
   const assistantMessage: ChatMessage = {
-
     id: uuidv4(),
-
     role: "assistant",
-
     content: response.message,
-
     timestamp: new Date().toISOString(),
-
     pendingAction: response.pendingAction,
-
+    imageUrl:
+      typeof response.data?.generatedImage === "string"
+        ? response.data.generatedImage
+        : undefined,
   };
 
 

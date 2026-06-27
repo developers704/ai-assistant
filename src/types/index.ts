@@ -196,6 +196,7 @@ export interface ChatMessage {
   timestamp: string;
   pendingAction?: PendingAction;
   attachments?: { name: string; type: string }[];
+  imageUrl?: string;
 }
 
 export interface AIAction {
@@ -282,6 +283,7 @@ export type IntentType =
   | "reject_action"
   | "portfolio_summary"
   | "store_list"
+  | "image_generate"
   | "general"
   | "help";
 

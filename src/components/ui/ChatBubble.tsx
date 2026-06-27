@@ -84,6 +84,16 @@ export function ChatBubble({ message, onConfirm, onReject }: ChatBubbleProps) {
           )}
         >
           {renderMarkdown(message.content)}
+          {!isUser && message.imageUrl && (
+            <div className="mt-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={message.imageUrl}
+                alt="Generated jewellery"
+                className="rounded-xl max-w-full max-h-80 object-contain border border-white/20"
+              />
+            </div>
+          )}
         </div>
         {!isUser && message.pendingAction && (
           <PendingActionCard

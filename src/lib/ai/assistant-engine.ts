@@ -211,7 +211,7 @@ export function processMessage(message: string, state: AppState): AIResponse {
 • **Reminders** — Set tasks, recurring reminders, daily briefings
 • **Sales Reports** — Daily/weekly sales, store & product analysis
 • **Documents** — Summarize PDFs, contracts, Excel reports
-• **Images** — Analyze screenshots, dashboards, business cards
+• **Images** — Generate jewellery product photos, analyze screenshots and dashboards
 • **WhatsApp & Calls** — Draft messages and prepare calls (always with confirmation)
 
 • **Investments** — Portfolio value, holdings, and allocation (Vanguard via Plaid)
