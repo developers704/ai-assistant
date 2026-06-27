@@ -72,7 +72,7 @@ function scoreChunk(query: string, chunk: ReturnType<typeof loadAllRagChunks>[0]
   score += exactMatchBoost(query, chunk.text, preferExact);
 
   if (chunk.metadata.answer_policy?.includes("guardrail") || chunk.metadata.tags?.includes("guardrail")) {
-    if (/how many|store count|locations/.test(query.toLowerCase())) score += 5;
+    if (/how many|store count|locations/.test(query.toLowerCase())) score += 2;
   }
 
   return score;

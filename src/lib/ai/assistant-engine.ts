@@ -17,6 +17,12 @@ import {
 } from "@/lib/calendar-dates";
 import { findEmailByContext } from "@/lib/email-utils";
 import { computeAllocation } from "@/lib/plaid/portfolio-context";
+import {
+  buildStoreListMarkdown,
+  detectStoreRegionQuery,
+  isStoreLocationQuery,
+} from "@/lib/stores/store-knowledge";
+import { resolveTaskTarget } from "@/lib/voice/tool-helpers";
 
 function detectIntent(message: string): IntentType {
   const lower = message.toLowerCase().trim();
@@ -31,14 +37,35 @@ function detectIntent(message: string): IntentType {
   if (/summarize.*(?:email|inbox)|summarize inbox|important email|inbox summary|pending repl|email summary|check email/.test(lower)) return "email_summary";
   if (/draft.*(?:email|reply)|write.*email|reply to|email to|send email/.test(lower)) return "email_draft";
   if (/whatsapp|whats app|message to|text to|send.*to.*manager/.test(lower)) return "whatsapp_draft";
-  if (/remind me|set.*reminder|create.*reminder|every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)/.test(lower)) return "reminder_create";
-  if (/show.*reminder|pending task|my tasks|task list|to-do|todo/.test(lower)) return "reminder_list";
+  if (
+    /(?:remove|delete|cancel)\s+(?:the\s+)?(?:this\s+)?task|remove .+ from (?:my )?tasks?|delete .+ task/i.test(
+      lower
+    )
+  ) {
+    return "task_delete";
+  }
+  if (
+    /(?:mark.*complete|done with|finished.*task|complete.*task|task.*(?:is )?(?:done|completed)|this is completed)/i.test(
+      lower
+    ) &&
+    !/create|add|new task|remind/i.test(lower)
+  ) {
+    return "task_complete";
+  }
+  if (/remind me|set.*reminder|create.*reminder|every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)/.test(lower)) {
+    return "reminder_create";
+  }
+  if (/show.*(?:reminder|tasks?)|pending task|my tasks|all tasks|task list|to-do|todo/.test(lower)) {
+    return "reminder_list";
+  }
   if (/today('s)? schedule|calendar|my meetings|what meetings/.test(lower)) return "calendar_today";
   if (/summarize.*(pdf|document|doc|file|contract|report)|key points|analyze.*(excel|csv|data)/.test(lower)) return "document_summarize";
   if (/analyze.*(screenshot|image|photo|picture|dashboard)|what does this (show|dashboard)/.test(lower)) return "image_analyze";
   if (/call\s+\w+|phone call|dial/.test(lower)) return "call_prepare";
-  if (/mark.*complete|done with|finished.*task|complete.*task/.test(lower)) return "task_complete";
-  if (/portfolio|investments?|vanguard|holdings|net worth|401k|ira\b|stock allocation|my stocks|what('s| is) my.*worth/.test(lower)) return "portfolio_summary";
+  if (/portfolio|investments?|vanguard|holdings|net worth|401k|ira\b|stock allocation|my stocks|what('s| is) my.*worth/.test(lower)) {
+    return "portfolio_summary";
+  }
+  if (isStoreLocationQuery(message)) return "store_list";
 
   return "general";
 }
@@ -145,6 +172,8 @@ export function processMessage(message: string, state: AppState): AIResponse {
       return generateDailyBriefing(state);
     case "portfolio_summary":
       return generatePortfolioSummary(state);
+    case "store_list":
+      return listStores(message);
     case "sales_report":
       return generateSalesReport();
     case "schedule_meeting":
@@ -159,6 +188,10 @@ export function processMessage(message: string, state: AppState): AIResponse {
       return createReminder(message);
     case "reminder_list":
       return listReminders(state);
+    case "task_delete":
+      return deleteTask(message, state);
+    case "task_complete":
+      return completeTask(message, state);
     case "calendar_today":
       return showCalendar(message, state);
     case "document_summarize":
@@ -571,6 +604,67 @@ I'll notify you when it's due.`,
   };
 }
 
+function listStores(message: string): AIResponse {
+  const region = detectStoreRegionQuery(message) ?? "all";
+  return {
+    intent: "store_list",
+    message: buildStoreListMarkdown(region),
+    speak: true,
+  };
+}
+
+function deleteTask(message: string, state: AppState): AIResponse {
+  const lastAssistant = [...state.chatHistory]
+    .reverse()
+    .find((m) => m.role === "assistant")
+    ?.content;
+  const contextMessage = lastAssistant ? `${lastAssistant}\n${message}` : message;
+  const target =
+    resolveTaskTarget(contextMessage, state.reminders) ??
+    resolveTaskTarget(message, state.reminders);
+  if (!target) {
+    return {
+      intent: "task_delete",
+      message:
+        "I couldn't find which task to remove. Please say the task name, or open Calendar & Tasks to delete it manually.",
+      speak: true,
+    };
+  }
+
+  return {
+    intent: "task_delete",
+    message: `Removed task:\n\n**${target.title}**`,
+    speak: true,
+    data: { deletedReminderId: target.id },
+  };
+}
+
+function completeTask(message: string, state: AppState): AIResponse {
+  const lastAssistant = [...state.chatHistory]
+    .reverse()
+    .find((m) => m.role === "assistant")
+    ?.content;
+  const contextMessage = lastAssistant ? `${lastAssistant}\n${message}` : message;
+  const target =
+    resolveTaskTarget(contextMessage, state.reminders) ??
+    resolveTaskTarget(message, state.reminders);
+  if (!target) {
+    return {
+      intent: "task_complete",
+      message:
+        "I couldn't find which task to mark complete. Please say the task name, or check Calendar & Tasks.",
+      speak: true,
+    };
+  }
+
+  return {
+    intent: "task_complete",
+    message: `Marked complete:\n\n**${target.title}**`,
+    speak: true,
+    data: { completedReminderId: target.id },
+  };
+}
+
 function listReminders(state: AppState): AIResponse {
   const pending = state.reminders.filter((r) => !r.completed);
   const high = pending.filter((r) => r.priority === "high");
@@ -771,6 +865,18 @@ export function executeSideEffects(response: AIResponse, state: AppState): Parti
     updates.reminders = [...state.reminders, response.data.reminder as Reminder];
   }
 
+  if (response.data?.deletedReminderId) {
+    updates.reminders = state.reminders.filter(
+      (r) => r.id !== response.data!.deletedReminderId
+    );
+  }
+
+  if (response.data?.completedReminderId) {
+    updates.reminders = state.reminders.map((r) =>
+      r.id === response.data!.completedReminderId ? { ...r, completed: true } : r
+    );
+  }
+
   if (response.pendingAction) {
     updates.pendingActions = [response.pendingAction];
   }
@@ -830,5 +936,12 @@ export function getMessageIntent(message: string): IntentType {
 
 export function shouldUseRuleEngine(message: string): boolean {
   const intent = detectIntent(message);
-  return intent === "confirm_action" || intent === "reject_action";
+  return (
+    intent === "confirm_action" ||
+    intent === "reject_action" ||
+    intent === "task_delete" ||
+    intent === "task_complete" ||
+    intent === "reminder_list" ||
+    intent === "store_list"
+  );
 }

@@ -1,8 +1,9 @@
 import type { AppState, CalendarEvent, Email } from "@/types";
 import { toEmailPreview } from "@/lib/email-html";
-import { computeSalesSummary, mockSalesData, getStoreStats, mockStores } from "@/lib/mock-data";
+import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { houseOfBrands, brandPillars } from "@/lib/mock-data/products";
 import { formatPortfolioContext } from "@/lib/plaid/portfolio-context";
+import { buildStoreDirectoryContext } from "@/lib/stores/store-knowledge";
 import {
   userTimezone,
   isTodayInTimezone,
@@ -56,7 +57,7 @@ export function buildAssistantContext(state: AppState): string {
     .slice(0, 8);
 
   const sales = computeSalesSummary(mockSalesData);
-  const storeStats = getStoreStats();
+  const storeDirectory = buildStoreDirectoryContext();
   const pendingTasks = state.reminders.filter((r) => !r.completed);
   const googleConnected = state.integrations?.google?.connected ?? false;
   const plaidConnected = state.integrations?.plaid?.connected ?? false;
@@ -89,10 +90,6 @@ export function buildAssistantContext(state: AppState): string {
     : plaidConnected
       ? "## Investments\nPlaid connected but portfolio data not loaded — suggest user open Investments page and refresh."
       : "## Investments\nNot connected — user can connect Vanguard via Settings → Plaid.";
-
-  const storeSample = mockStores.slice(0, 12).map(
-    (s) => `${s.city}, ${s.state} — ${s.mall} (${s.region}, ${s.status})`
-  );
 
   return `
 ## Current date/time
@@ -145,11 +142,8 @@ ${state.contacts
   .map((c) => `- ${c.name}, ${c.role} @ ${c.company}${c.email ? ` (${c.email})` : ""}`)
   .join("\n")}
 
-## Stores (${storeStats.total} locations)
-Open: ${storeStats.open} | Opening soon: ${storeStats.openingSoon}
-By region: CA ${storeStats.byRegion.California}, NV ${storeStats.byRegion.Nevada}, AZ ${storeStats.byRegion.Arizona}, TX ${storeStats.byRegion.Texas}
-Sample locations:
-${storeSample.join("\n")}
+## Store directory (authoritative — use for store count and location questions)
+${storeDirectory}
 
 ## Sales snapshot (demo POS data)
 Total revenue (latest period): $${sales.totalRevenue.toLocaleString()}

@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
 import type { AIResponse, AppState, PendingAction, Reminder } from "@/types";
 import { buildAssistantContext } from "./context-builder";
+import { resolveTaskTarget } from "@/lib/voice/tool-helpers";
 import {
   retrieveKnowledge,
   formatRetrievedContext,
@@ -24,7 +25,8 @@ Guidelines:
 - For "any meeting today?", "today mails?", etc., answer from LIVE CONTEXT.
 - Respect the user's timezone when discussing dates and times.
 - When the user asks to SEND email, WhatsApp, schedule a meeting, or place a call, use the appropriate tool — never claim you sent anything without calling the tool.
-- For reminders/tasks, use create_reminder unless they need to confirm an outbound message.
+- For reminders/tasks: use create_reminder to ADD tasks; use delete_task to REMOVE; use complete_task to mark done. Never create a reminder when the user asked to remove or complete a task.
+- For store count or location questions, use LIVE CONTEXT Store directory — Valliani has exactly 29 locations with city and mall names. Give the count and list by state when asked.
 - Do not ask "could you provide more details?" when the context already has the answer.
 - For portfolio, net worth, Vanguard, holdings, or allocation questions, use LIVE CONTEXT investments data.
 - Pending confirmations: if something awaits confirm, remind them they can say yes or cancel.`;
@@ -52,7 +54,7 @@ const TOOLS: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "create_reminder",
-      description: "Create a task/reminder immediately (no confirmation needed).",
+      description: "Create a NEW task/reminder. Do NOT use when user wants to remove or complete an existing task.",
       parameters: {
         type: "object",
         properties: {
@@ -63,6 +65,34 @@ const TOOLS: OpenAI.ChatCompletionTool[] = [
           priority: { type: "string", enum: ["low", "medium", "high"] },
         },
         required: ["title", "due_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_task",
+      description: "Remove/delete an existing task by title. Use when user says remove, delete, or cancel a task.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Task title or keywords to match" },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "complete_task",
+      description: "Mark an existing task as done/complete by title.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Task title or keywords to match" },
+        },
+        required: ["title"],
       },
     },
   },
@@ -118,7 +148,8 @@ function handleToolCall(
   name: string,
   args: Record<string, unknown>,
   state: AppState,
-  assistantText: string
+  assistantText: string,
+  userMessage: string
 ): AIResponse {
   switch (name) {
     case "propose_send_email": {
@@ -162,6 +193,44 @@ function handleToolCall(
           `Reminder created:\n\n**${reminder.title}**\n📅 ${reminder.dueDate}${reminder.dueTime ? ` at ${reminder.dueTime}` : ""}\nPriority: ${reminder.priority}`,
         speak: true,
         data: { reminder },
+      };
+    }
+    case "delete_task": {
+      const title = String(args.title ?? "");
+      const target = resolveTaskTarget(userMessage, state.reminders, title);
+      if (!target) {
+        return {
+          intent: "task_delete",
+          message:
+            assistantText ||
+            "I couldn't find that task to remove. Try the exact task name or open Calendar & Tasks.",
+          speak: true,
+        };
+      }
+      return {
+        intent: "task_delete",
+        message: assistantText || `Removed task:\n\n**${target.title}**`,
+        speak: true,
+        data: { deletedReminderId: target.id },
+      };
+    }
+    case "complete_task": {
+      const title = String(args.title ?? "");
+      const target = resolveTaskTarget(userMessage, state.reminders, title);
+      if (!target) {
+        return {
+          intent: "task_complete",
+          message:
+            assistantText ||
+            "I couldn't find that task to mark complete. Try the exact task name or open Calendar & Tasks.",
+          speak: true,
+        };
+      }
+      return {
+        intent: "task_complete",
+        message: assistantText || `Marked complete:\n\n**${target.title}**`,
+        speak: true,
+        data: { completedReminderId: target.id },
       };
     }
     case "propose_schedule_meeting": {
@@ -282,7 +351,7 @@ ${formatRetrievedContext(retrieved)}`;
     const tool = choice.tool_calls[0];
     if (tool.type === "function") {
       const args = parseToolArgs(tool.function.arguments);
-      return handleToolCall(tool.function.name, args, state, text);
+      return handleToolCall(tool.function.name, args, state, text, message);
     }
   }
 

@@ -277,9 +277,11 @@ export type IntentType =
   | "image_analyze"
   | "call_prepare"
   | "task_complete"
+  | "task_delete"
   | "confirm_action"
   | "reject_action"
   | "portfolio_summary"
+  | "store_list"
   | "general"
   | "help";
 

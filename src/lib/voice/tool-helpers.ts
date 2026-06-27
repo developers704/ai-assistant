@@ -13,6 +13,80 @@ export function matchByTitle<T extends { title: string; id: string }>(
   );
 }
 
+/** Resolve which pending task the user means (chat, voice, or rules). */
+export function resolveTaskTarget(
+  message: string,
+  tasks: Reminder[],
+  explicitQuery?: string
+): Reminder | undefined {
+  const pending = tasks.filter((t) => !t.completed);
+  if (pending.length === 0) return undefined;
+
+  const query = explicitQuery?.trim();
+  if (query) {
+    const byQuery = matchByTitle(pending, query);
+    if (byQuery) return byQuery;
+  }
+
+  const extractPatterns = [
+    /(?:remove|delete|cancel|complete|finish|mark done)\s+(?:the\s+)?task\s+(?:about\s+|called\s+|named\s+)?(.+)/i,
+    /(?:remove|delete|complete)\s+(.+?)\s+(?:from\s+)?(?:my\s+)?tasks?/i,
+  ];
+  for (const pattern of extractPatterns) {
+    const match = message.match(pattern);
+    if (match?.[1]) {
+      const cleaned = match[1].replace(/[,.\s]*(this|it)\s+is\s+completed.*$/i, "").trim();
+      const found = matchByTitle(pending, cleaned);
+      if (found) return found;
+    }
+  }
+
+  const lower = message.toLowerCase();
+  if (
+    /\b(this|that)\s+task\b|remove this|delete this|cancel this|the task above/i.test(lower)
+  ) {
+    if (pending.length === 1) return pending[0];
+    const fromContext = resolveTaskFromRecentContext(message, tasks);
+    if (fromContext) return fromContext;
+  }
+
+  for (const task of pending) {
+    const significant = task.title
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 4);
+    if (significant.some((w) => lower.includes(w))) {
+      return task;
+    }
+  }
+
+  return pending.length === 1 ? pending[0] : undefined;
+}
+
+/** When user says "this task", match a task title quoted or listed in their message. */
+export function resolveTaskFromRecentContext(
+  message: string,
+  tasks: Reminder[]
+): Reminder | undefined {
+  const pending = tasks.filter((t) => !t.completed);
+  let best: Reminder | undefined;
+  let bestScore = 0;
+
+  for (const task of pending) {
+    const title = task.title.toLowerCase();
+    if (message.toLowerCase().includes(title)) return task;
+
+    const words = title.split(/\s+/).filter((w) => w.length > 4);
+    const score = words.filter((w) => message.toLowerCase().includes(w)).length;
+    if (score > bestScore) {
+      bestScore = score;
+      best = task;
+    }
+  }
+
+  return bestScore >= 2 ? best : undefined;
+}
+
 export function buildTasksVoiceScript(tasks: Reminder[]): string {
   const pending = tasks.filter((t) => !t.completed);
   if (pending.length === 0) {
