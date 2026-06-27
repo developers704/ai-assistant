@@ -36,6 +36,8 @@ import {
   estimateJewelleryPrice,
   getMarketRatesSummary,
   getNewsHeadlinesScript,
+  getPoliticsHeadlinesScript,
+  getSportsHeadlinesScript,
 } from "@/lib/voice/section-tools";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
 
@@ -585,7 +587,23 @@ export async function executeVoiceTool(
       const script = await getNewsHeadlinesScript();
       return {
         output: JSON.stringify({ spokenAnswer: script }),
-        uiAction: { type: "navigate", path: "/news" },
+        uiAction: { type: "navigate", path: "/news?tab=industry" },
+      };
+    }
+
+    case "get_sports_news": {
+      const script = await getSportsHeadlinesScript();
+      return {
+        output: JSON.stringify({ spokenAnswer: script }),
+        uiAction: { type: "navigate", path: "/news?tab=sports" },
+      };
+    }
+
+    case "get_politics_news": {
+      const script = await getPoliticsHeadlinesScript();
+      return {
+        output: JSON.stringify({ spokenAnswer: script }),
+        uiAction: { type: "navigate", path: "/news?tab=politics" },
       };
     }
 

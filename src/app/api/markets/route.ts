@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchLiveNews } from "@/lib/news";
+import { fetchLiveNews, fetchRssPoliticsNews, fetchRssSportsNews } from "@/lib/news";
 
 
 
@@ -127,11 +127,13 @@ function buildMetal(
 export async function GET(req: NextRequest) {
   const forceNews = req.nextUrl.searchParams.get("refresh") === "1";
 
-  const [goldOz, silverOz, platinumOz, newsResult] = await Promise.all([
+  const [goldOz, silverOz, platinumOz, newsResult, sportsResult, politicsResult] = await Promise.all([
     fetchSpot("XAU"),
     fetchSpot("XAG"),
     fetchSpot("XPT"),
     fetchLiveNews(forceNews),
+    fetchRssSportsNews(forceNews),
+    fetchRssPoliticsNews(forceNews),
   ]);
 
 
@@ -197,6 +199,14 @@ export async function GET(req: NextRequest) {
     gems,
 
     news: newsResult.news,
+
+    sportsNews: sportsResult.news,
+    sportsLive: sportsResult.live,
+    sportsError: sportsResult.error ?? null,
+
+    politicsNews: politicsResult.news,
+    politicsLive: politicsResult.live,
+    politicsError: politicsResult.error ?? null,
 
   });
 

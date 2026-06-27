@@ -1,4 +1,8 @@
-import { fetchLiveNews } from "@/lib/news";
+import {
+  fetchLiveNews,
+  fetchRssPoliticsNews,
+  fetchRssSportsNews,
+} from "@/lib/news";
 import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { getState } from "@/lib/store/server-store";
 import {
@@ -141,6 +145,28 @@ export async function getNewsHeadlinesScript(): Promise<string> {
   }
   const top = result.news.slice(0, 3);
   return `Top jewellery industry headlines: ${top.map((n) => n.title).join(". ")}. Open News for full stories and live gold charts.`;
+}
+
+export async function getSportsHeadlinesScript(): Promise<string> {
+  const result = await fetchRssSportsNews(false);
+  if (!result.news.length) {
+    return result.error
+      ? "I couldn't load sports news right now. Open the News page to retry."
+      : "No sports headlines available right now.";
+  }
+  const top = result.news.slice(0, 3);
+  return `Top sports headlines: ${top.map((n) => `${n.title}, from ${n.source}`).join(". ")}. Open News for the full sports feed.`;
+}
+
+export async function getPoliticsHeadlinesScript(): Promise<string> {
+  const result = await fetchRssPoliticsNews(false);
+  if (!result.news.length) {
+    return result.error
+      ? "I couldn't load politics news right now. Open the News page to retry."
+      : "No politics headlines available right now.";
+  }
+  const top = result.news.slice(0, 4);
+  return `Top US and world headlines: ${top.map((n) => n.title).join(". ")}. Open News for the full politics feed.`;
 }
 
 export async function buildDailyBriefingScript(): Promise<string> {

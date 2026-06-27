@@ -36,6 +36,8 @@ TOOL RULES (critical — always follow):
 - Gold price / silver price / metal rates → call get_metal_rates.
 - Price quote / how much for X grams gold → call estimate_jewellery_price with weight_grams and karat.
 - Industry news / jewellery news → call get_industry_news.
+- Sports news / scores / game headlines → call get_sports_news.
+- Politics news / US politics / world news → call get_politics_news.
 - Data analyst / analyze sales data / CSV → call open_data_analyst (user uploads file on that page).
 - Scan document / invoice / receipt → call open_document_scanner.
 - Generate jewellery image / create product photo → call generate_jewellery_image with prompt.
@@ -220,6 +222,18 @@ export const VOICE_PILOT_TOOLS = [
     type: "function",
     name: "get_industry_news",
     description: "Top jewellery, watch, and metals industry headlines.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "get_sports_news",
+    description: "Top sports headlines from ESPN, BBC Sport, and AP Sports.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "get_politics_news",
+    description: "US-heavy politics and world news from NPR, AP, and BBC.",
     parameters: { type: "object", properties: {}, additionalProperties: false },
   },
   {

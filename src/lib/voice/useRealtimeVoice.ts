@@ -309,6 +309,24 @@ export function useRealtimeVoice(enabled: boolean) {
         }
       }
 
+      if (intent === "sports_news") {
+        try {
+          await runTool("get_sports_news", {}, "The user asked for SPORTS NEWS. Say exactly this:", 280);
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "politics_news") {
+        try {
+          await runTool("get_politics_news", {}, "The user asked for POLITICS NEWS. Say exactly this:", 300);
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
       if (intent === "news") {
         try {
           await runTool("get_industry_news", {}, "The user asked for NEWS. Say exactly this:", 280);

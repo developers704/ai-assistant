@@ -11,6 +11,8 @@ export type VoicePrefetchIntent =
   | "daily_briefing"
   | "health"
   | "news"
+  | "sports_news"
+  | "politics_news"
   | "metal_rates"
   | "price_estimate"
   | "image_generate"
@@ -113,7 +115,23 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /(?:industry|jewell?(?:ery|ery)?|jewelry)\s+news|headlines|what(?:'s| is) in the news|news today/i.test(
+    /sports news|sports headlines|latest sports|(?:nfl|nba|mlb|soccer|football)\s+(?:news|headlines)|what(?:'s| is) (?:the )?(?:sports|game)/i.test(
+      lower
+    )
+  ) {
+    return "sports_news";
+  }
+
+  if (
+    /politics news|political news|politics headlines|us politics|world news|international news|what(?:'s| is) happening (?:in|with) politics|headlines today/i.test(
+      lower
+    )
+  ) {
+    return "politics_news";
+  }
+
+  if (
+    /(?:industry|jewell?(?:ery|ery)?|jewelry)\s+news|what(?:'s| is) in the news|news today/i.test(
       lower
     )
   ) {

@@ -23,6 +23,7 @@
     "react-dom": "^19.0.0",
     "react-plaid-link": "^4.1.1",
     "recharts": "^3.8.1",
+    "rss-parser": "^3.13.0",
     "uuid": "^11.0.3"
   },
   "devDependencies": {
