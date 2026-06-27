@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - name: Deploy to Hetzner VPS
+        id: deploy1
+        continue-on-error: true
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -29,8 +31,9 @@ jobs:
             cd /var/www/lindy_ai
             bash deploy.sh
 
-      - name: Retry deploy if SSH failed
-        if: failure()
+      - name: Retry deploy if first attempt failed
+        id: deploy2
+        if: steps.deploy1.outcome == 'failure'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -43,3 +46,7 @@ jobs:
             sleep 10
             cd /var/www/lindy_ai
             bash deploy.sh
+
+      - name: Mark job failed if both attempts failed
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome != 'success'
+        run: exit 1
