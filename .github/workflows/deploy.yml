@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -22,5 +26,20 @@ jobs:
           timeout: 60s
           command_timeout: 15m
           script: |
+            cd /var/www/lindy_ai
+            bash deploy.sh
+
+      - name: Retry deploy if SSH failed
+        if: failure()
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 2203
+          timeout: 60s
+          command_timeout: 15m
+          script: |
+            sleep 10
             cd /var/www/lindy_ai
             bash deploy.sh
