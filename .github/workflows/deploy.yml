@@ -29,7 +29,11 @@ jobs:
           command_timeout: 15m
           script: |
             cd /var/www/lindy_ai
-            bash deploy.sh
+            if [ -f scripts/deploy.sh ]; then
+              bash scripts/deploy.sh
+            else
+              bash deploy.sh
+            fi
 
       - name: Retry deploy if first attempt failed
         id: deploy2
@@ -45,7 +49,11 @@ jobs:
           script: |
             sleep 10
             cd /var/www/lindy_ai
-            bash deploy.sh
+            if [ -f scripts/deploy.sh ]; then
+              bash scripts/deploy.sh
+            else
+              bash deploy.sh
+            fi
 
       - name: Mark job failed if both attempts failed
         if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome != 'success'
