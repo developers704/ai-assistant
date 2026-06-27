@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -83,6 +83,29 @@ export default function ImageGenerationPage() {
 
   // Lightbox
   const [viewing, setViewing] = useState<GeneratedImage | null>(null);
+
+  useEffect(() => {
+    fetch("/api/voice/last-image")
+      .then((r) => r.json())
+      .then((data: { image?: { prompt: string; src: string } | null }) => {
+        if (!data.image?.src) return;
+        setImages((prev) => {
+          if (prev.some((img) => img.src === data.image!.src)) return prev;
+          return [
+            {
+              id: crypto.randomUUID(),
+              prompt: data.image!.prompt,
+              src: data.image!.src,
+              kind: "generated",
+              size: "1024x1024",
+              quality: "high",
+            },
+            ...prev,
+          ];
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   const generate = async (text: string) => {
     if (!text.trim() || loading) return;

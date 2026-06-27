@@ -259,6 +259,7 @@ export interface AppState {
   imageAnalyses: ImageAnalysis[];
   integrations?: AppIntegrations;
   portfolio?: PortfolioSnapshot;
+  voiceLastImage?: { prompt: string; src: string; createdAt: string };
 }
 
 export type IntentType =

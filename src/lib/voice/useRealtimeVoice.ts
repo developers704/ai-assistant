@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { VoiceUiAction } from "@/lib/voice/execute-tool";
 import { VOICE_MAX_TURNS, VOICE_SESSION_MAX_MS } from "@/lib/voice/config";
-import { detectVoiceIntent, extractCompleteTaskQuery, extractContactQuery, extractTaskQuery, normalizeVoiceTranscript } from "@/lib/voice/intent";
+import { detectVoiceIntent, extractCompleteTaskQuery, extractContactQuery, extractImagePrompt, extractPriceEstimate, extractTaskQuery, normalizeVoiceTranscript } from "@/lib/voice/intent";
 
 export type RealtimeVoiceStatus =
   | "idle"
@@ -29,6 +29,14 @@ function sendEvent(dc: RTCDataChannel, event: Record<string, unknown>) {
   if (dc.readyState === "open") {
     dc.send(JSON.stringify(event));
   }
+}
+
+const STOP_INSTRUCTION =
+  "Say ONLY the text below, then stop. Do NOT ask follow-up questions. Do NOT offer to read emails, set reminders, or take any other action. Wait for the user to speak again.";
+
+function isUsableTranscript(text: string): boolean {
+  const t = text.trim();
+  return t.length >= 3 && !/^(uh+|um+|hmm+|ok+|yeah+)$/i.test(t);
 }
 
 export function useRealtimeVoice(enabled: boolean) {
@@ -82,6 +90,12 @@ export function useRealtimeVoice(enabled: boolean) {
   const createResponse = useCallback(
     async (transcript: string) => {
       if (!sessionActiveRef.current || processingResponseRef.current) return;
+      if (!isUsableTranscript(transcript)) {
+        processingResponseRef.current = false;
+        pendingResponseRef.current = false;
+        setStatus("listening");
+        return;
+      }
       pendingResponseRef.current = false;
       clearResponseTimer();
       processingResponseRef.current = true;
@@ -91,6 +105,8 @@ export function useRealtimeVoice(enabled: boolean) {
         processingResponseRef.current = false;
         return;
       }
+
+      sendEvent(dc, { type: "response.cancel" });
 
       const normalized = normalizeVoiceTranscript(transcript);
       const intent = detectVoiceIntent(normalized);
@@ -115,10 +131,11 @@ export function useRealtimeVoice(enabled: boolean) {
         const script = parsed.spokenAnswer ?? parsed.script ?? "Done.";
         setAssistantTranscript(script);
         setStatus("thinking");
+        disableMic();
         sendEvent(dc, {
           type: "response.create",
           response: {
-            instructions: `${instructionPrefix}\n\n${script}`,
+            instructions: `${instructionPrefix}\n\n${STOP_INSTRUCTION}\n\n${script}`,
             max_output_tokens: maxTokens,
           },
         });
@@ -134,10 +151,11 @@ export function useRealtimeVoice(enabled: boolean) {
           const script = String(data.script ?? "");
           setAssistantTranscript(script);
           setStatus("thinking");
+          disableMic();
           sendEvent(dc, {
             type: "response.create",
             response: {
-              instructions: `The user asked to DRAFT AN EMAIL REPLY. Say exactly this and nothing else — do not set reminders or mention calendar:\n\n${script}`,
+              instructions: `The user asked to DRAFT AN EMAIL REPLY.\n\n${STOP_INSTRUCTION}\n\n${script}`,
               max_output_tokens: 280,
             },
           });
@@ -155,10 +173,11 @@ export function useRealtimeVoice(enabled: boolean) {
           const script = String(data.script ?? "");
           setAssistantTranscript(script);
           setStatus("thinking");
+          disableMic();
           sendEvent(dc, {
             type: "response.create",
             response: {
-              instructions: `The user asked about EMAIL. Say exactly this inbox summary and nothing else — do not mention calendar or meetings:\n\n${script}`,
+              instructions: `The user asked about EMAIL.\n\n${STOP_INSTRUCTION}\n\n${script}`,
               max_output_tokens: 250,
             },
           });
@@ -176,10 +195,11 @@ export function useRealtimeVoice(enabled: boolean) {
           const script = String(data.script ?? "");
           setAssistantTranscript(script);
           setStatus("thinking");
+          disableMic();
           sendEvent(dc, {
             type: "response.create",
             response: {
-              instructions: `The user asked about CALENDAR. Say exactly this and nothing else — do not mention emails:\n\n${script}`,
+              instructions: `The user asked about CALENDAR.\n\n${STOP_INSTRUCTION}\n\n${script}`,
               max_output_tokens: 200,
             },
           });
@@ -271,17 +291,102 @@ export function useRealtimeVoice(enabled: boolean) {
         }
       }
 
+      if (intent === "daily_briefing") {
+        try {
+          await runTool("get_daily_briefing", {}, "The user asked for a DAILY BRIEFING. Say exactly this:", 320);
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "health") {
+        try {
+          await runTool("get_health_briefing", {}, "The user asked about HEALTH. Say exactly this:");
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "news") {
+        try {
+          await runTool("get_industry_news", {}, "The user asked for NEWS. Say exactly this:", 280);
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "metal_rates") {
+        try {
+          await runTool("get_metal_rates", {}, "The user asked about METAL PRICES. Say exactly this:");
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "price_estimate") {
+        const est = extractPriceEstimate(normalized);
+        if (est) {
+          try {
+            await runTool(
+              "estimate_jewellery_price",
+              { weight_grams: est.weight, karat: est.karat ?? "22K" },
+              "The user asked for a PRICE ESTIMATE. Say exactly this:"
+            );
+            return;
+          } catch {
+            // fall through
+          }
+        }
+      }
+
+      if (intent === "image_generate") {
+        const prompt = extractImagePrompt(normalized) ?? normalized;
+        try {
+          await runTool(
+            "generate_jewellery_image",
+            { prompt },
+            "The user asked to GENERATE AN IMAGE. Say exactly this:",
+            200
+          );
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "analyst") {
+        try {
+          await runTool("open_data_analyst", {}, "The user asked about DATA ANALYST. Say exactly this:");
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "scan") {
+        try {
+          await runTool("open_document_scanner", {}, "The user asked to SCAN A DOCUMENT. Say exactly this:");
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
       setStatus("thinking");
+      disableMic();
       sendEvent(dc, {
         type: "response.create",
         response: {
-          instructions:
-            "Answer using the right tool when needed (calendar, email, sales, tasks, meetings, contacts, portfolio, email draft). Never invent data. If unclear, ask them to repeat.",
-          max_output_tokens: 280,
+          instructions: `${STOP_INSTRUCTION}\n\nUse ONE appropriate tool for what the user asked. After speaking the result, stop. Never ask follow-up questions or take extra actions while the user is silent.`,
+          max_output_tokens: 220,
         },
       });
     },
-    [applyUiAction, clearResponseTimer]
+    [applyUiAction, clearResponseTimer, disableMic]
   );
 
   const scheduleResponse = useCallback(() => {
@@ -349,6 +454,7 @@ export function useRealtimeVoice(enabled: boolean) {
       if (!dc || processingToolRef.current) return;
       processingToolRef.current = true;
       setStatus("thinking");
+      disableMic();
 
       try {
         const res = await fetch("/api/voice/tools", {
@@ -359,6 +465,12 @@ export function useRealtimeVoice(enabled: boolean) {
         const data = await res.json();
         applyUiAction(data.uiAction as VoiceUiAction | undefined);
 
+        const parsed = JSON.parse(String(data.output ?? "{}")) as {
+          spokenAnswer?: string;
+          script?: string;
+        };
+        const script = parsed.spokenAnswer ?? parsed.script ?? "Done.";
+
         sendEvent(dc, {
           type: "conversation.item.create",
           item: {
@@ -367,7 +479,13 @@ export function useRealtimeVoice(enabled: boolean) {
             output: String(data.output ?? "{}"),
           },
         });
-        sendEvent(dc, { type: "response.create" });
+        sendEvent(dc, {
+          type: "response.create",
+          response: {
+            instructions: `${STOP_INSTRUCTION}\n\n${script}`,
+            max_output_tokens: 220,
+          },
+        });
       } catch {
         sendEvent(dc, {
           type: "conversation.item.create",
@@ -377,12 +495,18 @@ export function useRealtimeVoice(enabled: boolean) {
             output: JSON.stringify({ error: "Tool failed" }),
           },
         });
-        sendEvent(dc, { type: "response.create" });
+        sendEvent(dc, {
+          type: "response.create",
+          response: {
+            instructions: `${STOP_INSTRUCTION}\n\nSorry, that action failed. Please try again.`,
+            max_output_tokens: 80,
+          },
+        });
       } finally {
         processingToolRef.current = false;
       }
     },
-    [applyUiAction]
+    [applyUiAction, disableMic]
   );
 
   const handleServerEvent = useCallback(
@@ -393,9 +517,14 @@ export function useRealtimeVoice(enabled: boolean) {
           if (sessionActiveRef.current) setStatus("listening");
           break;
         case "input_audio_buffer.speech_started":
-          if (sessionActiveRef.current) {
+          if (sessionActiveRef.current && dcRef.current) {
+            sendEvent(dcRef.current, { type: "response.cancel" });
+            processingResponseRef.current = false;
+            pendingResponseRef.current = false;
+            clearResponseTimer();
             setUserTranscript("");
             setAssistantTranscript("");
+            enableMic();
             setStatus("listening");
           }
           break;
@@ -407,15 +536,20 @@ export function useRealtimeVoice(enabled: boolean) {
           }
           break;
         case "conversation.item.input_audio_transcription.completed":
-          if (event.transcript && sessionActiveRef.current) {
+          if (event.transcript && sessionActiveRef.current && isUsableTranscript(event.transcript)) {
             const normalized = normalizeVoiceTranscript(event.transcript);
             setUserTranscript(normalized);
             lastTranscriptRef.current = normalized;
             void createResponse(normalized);
+          } else if (sessionActiveRef.current) {
+            pendingResponseRef.current = false;
+            processingResponseRef.current = false;
+            setStatus("listening");
           }
           break;
         case "response.output_audio_transcript.delta":
           if (event.delta) {
+            disableMic();
             setAssistantTranscript((prev) => prev + event.delta);
             setStatus("speaking");
           }
@@ -450,7 +584,7 @@ export function useRealtimeVoice(enabled: boolean) {
           break;
       }
     },
-    [createResponse, enableMic, endSessionWithError, handleFunctionCall, scheduleResponse]
+    [createResponse, enableMic, disableMic, endSessionWithError, handleFunctionCall, scheduleResponse, clearResponseTimer]
   );
 
   const connect = useCallback(async () => {

@@ -31,14 +31,29 @@ TOOL RULES (critical — always follow):
 - Cancel / remove meeting → call delete_meeting with title.
 - Contacts / call someone / phone number → call list_contacts with query (person name).
 - Portfolio / investments / net worth → call get_portfolio.
-- Open a screen → call show_detail_page (sales, calendar, email, dashboard, chat, contacts, investments, images).
+- Daily briefing / what should I focus on → call get_daily_briefing.
+- Health / steps / heart rate / sleep / BMI → call get_health_briefing.
+- Gold price / silver price / metal rates → call get_metal_rates.
+- Price quote / how much for X grams gold → call estimate_jewellery_price with weight_grams and karat.
+- Industry news / jewellery news → call get_industry_news.
+- Data analyst / analyze sales data / CSV → call open_data_analyst (user uploads file on that page).
+- Scan document / invoice / receipt → call open_document_scanner.
+- Generate jewellery image / create product photo → call generate_jewellery_image with prompt.
+- Open any app section → call show_detail_page (dashboard, sales, calendar, email, chat, contacts, investments, images, news, health, analyst, calculator, scan, settings).
 
 DATA RULES:
 - NEVER invent meetings, emails, sales, tasks, or portfolio numbers.
 - Speak ONLY from tool results or LIVE CONTEXT below.
 - After a write action (add/delete task or meeting), confirm briefly what you did.
 
-You help with daily briefings, sales, calendar, tasks, email drafts, contacts, portfolio, and navigation.`;
+TURN RULES (critical — prevents runaway behavior):
+- ONE action per user request. Then STOP and wait silently for the user to speak again.
+- NEVER ask "would you like…", "shall I…", or any follow-up question unless the user asked something ambiguous.
+- NEVER read an email aloud, open a specific email, or set a reminder unless the user explicitly asked for that in this turn.
+- Do NOT continue the conversation on your own while the user is silent.
+- If the user only said "open email" or "open calendar", give the summary or confirm the page is open — do not offer extra steps.
+
+You help with every section: dashboard, sales, calendar, email, tasks, contacts, portfolio, news, health, calculator, data analyst, document scan, image generation, and settings.`;
 
 export const VOICE_PILOT_TOOLS = [
   {
@@ -168,6 +183,72 @@ export const VOICE_PILOT_TOOLS = [
   },
   {
     type: "function",
+    name: "get_daily_briefing",
+    description: "Full daily executive briefing: calendar, email, tasks, and sales.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "get_health_briefing",
+    description: "Health summary: steps, heart rate, sleep, water, BMI. Opens Health page.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "get_metal_rates",
+    description: "Live or indicative gold and silver prices per gram. Opens Price Calculator.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "estimate_jewellery_price",
+    description: "Estimate jewellery price from weight in grams, karat, and optional making/tax percent.",
+    parameters: {
+      type: "object",
+      properties: {
+        weight_grams: { type: "number", description: "Weight in grams" },
+        karat: { type: "string", enum: ["24K", "22K", "18K", "14K"] },
+        metal: { type: "string", enum: ["gold", "silver"] },
+        making_percent: { type: "number" },
+        tax_percent: { type: "number" },
+      },
+      required: ["weight_grams"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "get_industry_news",
+    description: "Top jewellery, watch, and metals industry headlines.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "open_data_analyst",
+    description: "Open Data Analyst page for CSV upload and natural-language data questions.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "open_document_scanner",
+    description: "Open document scan for invoices, receipts, or OCR.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "generate_jewellery_image",
+    description: "Generate an AI product image from a text description. Opens Images page when ready.",
+    parameters: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "Jewellery description to generate" },
+      },
+      required: ["prompt"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
     name: "show_detail_page",
     description: "Navigate to an app page while giving a short spoken summary.",
     parameters: {
@@ -175,7 +256,22 @@ export const VOICE_PILOT_TOOLS = [
       properties: {
         page: {
           type: "string",
-          enum: ["sales", "calendar", "email", "dashboard", "chat", "contacts", "investments", "images"],
+          enum: [
+            "sales",
+            "calendar",
+            "email",
+            "dashboard",
+            "chat",
+            "contacts",
+            "investments",
+            "images",
+            "news",
+            "health",
+            "analyst",
+            "calculator",
+            "scan",
+            "settings",
+          ],
         },
       },
       required: ["page"],

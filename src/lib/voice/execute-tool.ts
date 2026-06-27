@@ -29,6 +29,14 @@ import { fetchInvestmentSummary } from "@/lib/plaid/investments";
 import { isPlaidConnected } from "@/lib/plaid/token-store";
 import { filterCalendarEvents } from "@/lib/calendar-utils";
 import { userTimezone } from "@/lib/calendar-dates";
+import { generateGeminiImage } from "@/lib/gemini/image";
+import {
+  buildDailyBriefingScript,
+  buildHealthBriefing,
+  estimateJewelleryPrice,
+  getMarketRatesSummary,
+  getNewsHeadlinesScript,
+} from "@/lib/voice/section-tools";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
 
 export interface VoiceUiAction {
@@ -50,6 +58,12 @@ const PAGE_PATHS: Record<string, string> = {
   contacts: "/contacts",
   investments: "/investments",
   images: "/images",
+  news: "/news",
+  health: "/health",
+  analyst: "/analyst",
+  calculator: "/calculator",
+  scan: "/scan",
+  settings: "/settings",
 };
 
 function formatEventTime(iso: string, tz: string): string {
@@ -517,6 +531,125 @@ export async function executeVoiceTool(
         }),
         uiAction: { type: "navigate", path: draft.targetEmail ? "/chat" : "/email" },
       };
+    }
+
+    case "get_daily_briefing": {
+      const script = await buildDailyBriefingScript();
+      return {
+        output: JSON.stringify({ spokenAnswer: script }),
+        uiAction: { type: "navigate", path: "/dashboard" },
+      };
+    }
+
+    case "get_health_briefing": {
+      const script = buildHealthBriefing();
+      return {
+        output: JSON.stringify({ spokenAnswer: script }),
+        uiAction: { type: "navigate", path: "/health" },
+      };
+    }
+
+    case "get_metal_rates": {
+      const rates = await getMarketRatesSummary();
+      return {
+        output: JSON.stringify({
+          spokenAnswer: rates.spokenAnswer,
+          gold22PerGram: rates.gold22PerGram,
+          gold24PerGram: rates.gold24PerGram,
+          silverPerGram: rates.silverPerGram,
+          live: rates.live,
+        }),
+        uiAction: { type: "navigate", path: "/calculator" },
+      };
+    }
+
+    case "estimate_jewellery_price": {
+      const weight = Number(args.weight_grams ?? args.weight ?? 0);
+      const result = estimateJewelleryPrice({
+        weight_grams: weight,
+        karat: args.karat ? String(args.karat) : "22K",
+        metal: args.metal ? String(args.metal) : "gold",
+        making_percent: args.making_percent != null ? Number(args.making_percent) : undefined,
+        tax_percent: args.tax_percent != null ? Number(args.tax_percent) : undefined,
+      });
+      return {
+        output: JSON.stringify({
+          spokenAnswer: result.spokenAnswer,
+          estimatedTotal: result.total,
+        }),
+        uiAction: { type: "navigate", path: "/calculator" },
+      };
+    }
+
+    case "get_industry_news": {
+      const script = await getNewsHeadlinesScript();
+      return {
+        output: JSON.stringify({ spokenAnswer: script }),
+        uiAction: { type: "navigate", path: "/news" },
+      };
+    }
+
+    case "open_data_analyst": {
+      return {
+        output: JSON.stringify({
+          spokenAnswer:
+            "Opening the Data Analyst. Upload your sales CSV file there, then ask questions like top products or monthly trends. I can guide you on the Analyst page.",
+        }),
+        uiAction: { type: "navigate", path: "/analyst" },
+      };
+    }
+
+    case "open_document_scanner": {
+      return {
+        output: JSON.stringify({
+          spokenAnswer:
+            "Opening document scan. Upload or photograph an invoice or receipt to extract the details.",
+        }),
+        uiAction: { type: "navigate", path: "/scan" },
+      };
+    }
+
+    case "generate_jewellery_image": {
+      const prompt = String(args.prompt ?? "").trim();
+      if (!prompt) {
+        return {
+          output: JSON.stringify({
+            success: false,
+            spokenAnswer:
+              "Please describe the jewellery piece you want to generate, for example a gold bridal necklace with rubies.",
+          }),
+          uiAction: { type: "navigate", path: "/images" },
+        };
+      }
+      const fullPrompt = `Professional high-end jewellery product photography. ${prompt}. Studio lighting, sharp focus, fine detail on metal and gemstones, elegant clean background, photorealistic, luxury catalog quality.`;
+      try {
+        const { image, model } = await generateGeminiImage(fullPrompt, "1024x1024", "high");
+        setState((s) => ({
+          ...s,
+          voiceLastImage: {
+            prompt,
+            src: image,
+            createdAt: new Date().toISOString(),
+          },
+        }));
+        return {
+          output: JSON.stringify({
+            success: true,
+            spokenAnswer: `Your jewellery image is ready on the Images page. I created it using ${model}.`,
+            model,
+          }),
+          uiAction: { type: "navigate", path: "/images" },
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Generation failed";
+        return {
+          output: JSON.stringify({
+            success: false,
+            spokenAnswer: `I couldn't generate that image right now. Open the Images page to try again. ${message}`,
+          }),
+          uiAction: { type: "navigate", path: "/images" },
+        };
+      }
     }
 
     case "show_detail_page": {

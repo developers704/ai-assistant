@@ -7,7 +7,15 @@ export type VoicePrefetchIntent =
   | "task_remove"
   | "task_complete"
   | "portfolio"
-  | "contacts";
+  | "contacts"
+  | "daily_briefing"
+  | "health"
+  | "news"
+  | "metal_rates"
+  | "price_estimate"
+  | "image_generate"
+  | "analyst"
+  | "scan";
 
 /** Fix common Realtime speech-to-text mishearings before intent detection. */
 export function normalizeVoiceTranscript(text: string): string {
@@ -58,9 +66,82 @@ export function extractContactQuery(text: string): string {
   return "";
 }
 
+export function extractImagePrompt(text: string): string | null {
+  const patterns = [
+    /(?:generate|create|make)\s+(?:an?\s+)?(?:image|photo|picture)\s+(?:of\s+)?(.+)/i,
+    /(?:generate|create)\s+(.+?(?:necklace|ring|earring|bracelet|jewel|gold|diamond).*)/i,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m?.[1]?.trim()) return m[1].trim();
+  }
+  return null;
+}
+
+export function extractPriceEstimate(text: string): { weight: number; karat?: string } | null {
+  const m = text.match(/(\d+(?:\.\d+)?)\s*(?:gram|grams|g)\b.*?(\d{2}k)?/i);
+  if (m) {
+    return { weight: parseFloat(m[1]), karat: m[2]?.toUpperCase() };
+  }
+  const m2 = text.match(/(\d+(?:\.\d+)?)\s*(?:gram|grams|g)\b/i);
+  if (m2) return { weight: parseFloat(m2[1]) };
+  return null;
+}
+
 export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   const lower = normalizeVoiceTranscript(text).toLowerCase().trim();
   if (!lower) return null;
+
+  if (
+    /daily briefing|morning briefing|what should i focus|give me a briefing|full briefing/i.test(
+      lower
+    )
+  ) {
+    return "daily_briefing";
+  }
+
+  if (
+    /(?:generate|create|make)\s+(?:an?\s+)?(?:image|photo|picture)|generate .*(?:necklace|ring|earring|jewel)/i.test(
+      lower
+    )
+  ) {
+    return "image_generate";
+  }
+
+  if (/health|my steps|heart rate|sleep|bmi|apple watch|fitness/i.test(lower)) {
+    return "health";
+  }
+
+  if (
+    /(?:industry|jewell?(?:ery|ery)?|jewelry)\s+news|headlines|what(?:'s| is) in the news|news today/i.test(
+      lower
+    )
+  ) {
+    return "news";
+  }
+
+  if (
+    /gold price|silver price|metal rate|price of gold|how much is gold|live rate|spot price/i.test(
+      lower
+    )
+  ) {
+    return "metal_rates";
+  }
+
+  if (
+    /how much (?:for|is|would)|price (?:for|of)|estimate|quote.*(?:gram|gold|22k|24k)/i.test(lower) &&
+    /\d+\s*(?:gram|grams|g)\b/i.test(lower)
+  ) {
+    return "price_estimate";
+  }
+
+  if (/data analyst|analyze (?:my )?data|sales csv|upload csv|analyst page/i.test(lower)) {
+    return "analyst";
+  }
+
+  if (/scan (?:a )?(?:document|invoice|receipt)|document scan|ocr/i.test(lower)) {
+    return "scan";
+  }
 
   if (
     /draft.*(?:email|reply|mail)|make a draft|write (?:an? )?email|reply to|compose (?:an? )?email|email draft|draft of this/i.test(
@@ -108,7 +189,7 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /summarize.*(?:email|inbox)|email summary|important emails?|my (email|inbox)|inbox summary|unread emails?|check (my )?email|emails? to reply|any (new )?mail/i.test(
+    /summarize.*(?:email|inbox)|email summary|important emails?|my (email|inbox)|inbox summary|unread emails?|check (my )?email|emails? to reply|any (new )?mail|open (?:the |my )?email|show (?:the |my )?email|go to email/i.test(
       lower
     )
   ) {
@@ -116,7 +197,7 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /calendar|schedule|meeting|what'?s on today|events? today|on my (calendar|plate)|my day look|appointments?/i.test(
+    /calendar|schedule|meeting|what'?s on today|events? today|on my (calendar|plate)|my day look|appointments?|open (?:the |my )?calendar|show (?:the |my )?calendar|go to calendar/i.test(
       lower
     ) &&
     !/add meeting|schedule a|remove meeting|cancel meeting|delete meeting/i.test(lower)
