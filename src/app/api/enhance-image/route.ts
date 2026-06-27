@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI, { toFile } from "openai";
+import { isGeminiConfigured } from "@/lib/gemini/config";
+import { editGeminiImage } from "@/lib/gemini/image";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -7,18 +9,44 @@ export const maxDuration = 120;
 const SIZES = ["1024x1024", "1536x1024", "1024x1536", "auto"] as const;
 type Size = (typeof SIZES)[number];
 
-const MAX_BYTES = 20 * 1024 * 1024; // 20MB
+const MAX_BYTES = 20 * 1024 * 1024;
 const ALLOWED = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
-export async function POST(req: NextRequest) {
+async function enhanceWithOpenAI(
+  file: File,
+  prompt: string,
+  size: Size,
+  quality: "low" | "medium" | "high"
+): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || apiKey.includes("REPLACE")) {
-    return NextResponse.json(
-      { error: "OpenAI API key is not configured. Add OPENAI_API_KEY to .env.local and restart the dev server." },
-      { status: 500 }
-    );
+    throw new Error("OpenAI API key is not configured.");
   }
 
+  const client = new OpenAI({ apiKey });
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const uploadable = await toFile(buffer, file.name || "upload.png", {
+    type: file.type || "image/png",
+  });
+
+  const openAiSize = size === "auto" ? "1024x1024" : size;
+  const result = await client.images.edit({
+    model: "gpt-image-1",
+    image: uploadable,
+    prompt,
+    size: openAiSize,
+    quality,
+    n: 1,
+  });
+
+  const b64 = result.data?.[0]?.b64_json;
+  if (!b64) {
+    throw new Error("OpenAI did not return an image.");
+  }
+  return `data:image/png;base64,${b64}`;
+}
+
+export async function POST(req: NextRequest) {
   let form: FormData;
   try {
     form = await req.formData();
@@ -42,6 +70,7 @@ export async function POST(req: NextRequest) {
   const qualityRaw = (form.get("quality") as string | null) || "medium";
   const size: Size = SIZES.includes(sizeRaw as Size) ? (sizeRaw as Size) : "1024x1024";
   const quality = qualityRaw === "high" || qualityRaw === "low" ? qualityRaw : "medium";
+  const geminiSize = size === "auto" ? "1024x1024" : size;
 
   const prompt = [
     "Transform this photo into a premium e-commerce jewellery product image.",
@@ -54,30 +83,36 @@ export async function POST(req: NextRequest) {
     .filter(Boolean)
     .join(" ");
 
-  const client = new OpenAI({ apiKey });
+  if (isGeminiConfigured()) {
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const { image, model, imageSize } = await editGeminiImage(
+        prompt,
+        buffer,
+        file.type || "image/png",
+        geminiSize,
+        quality
+      );
+      return NextResponse.json({ image, provider: "gemini", model, imageSize });
+    } catch (err) {
+      console.error("Gemini image enhancement failed, trying OpenAI fallback:", err);
+    }
+  }
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadable = await toFile(buffer, file.name || "upload.png", {
-      type: file.type || "image/png",
-    });
-
-    const result = await client.images.edit({
-      model: "gpt-image-1",
-      image: uploadable,
-      prompt,
-      size,
-      quality: quality as "low" | "medium" | "high",
-      n: 1,
-    });
-
-    const b64 = result.data?.[0]?.b64_json;
-    if (!b64) {
-      return NextResponse.json({ error: "The model did not return an image." }, { status: 502 });
-    }
-    return NextResponse.json({ image: `data:image/png;base64,${b64}` });
+    const image = await enhanceWithOpenAI(file, prompt, size, quality);
+    return NextResponse.json({ image, provider: "openai", model: "gpt-image-1" });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
+    if (!isGeminiConfigured()) {
+      return NextResponse.json(
+        {
+          error:
+            "Image enhancement is not configured. Add GEMINI_API_KEY (recommended) or OPENAI_API_KEY to .env.local and restart the server.",
+        },
+        { status: 500 }
+      );
+    }
     return NextResponse.json({ error: `Image enhancement failed: ${message}` }, { status: 502 });
   }
 }

@@ -1,4 +1,13 @@
-export type VoicePrefetchIntent = "email_draft" | "email" | "calendar" | "sales";
+export type VoicePrefetchIntent =
+  | "email_draft"
+  | "email"
+  | "calendar"
+  | "sales"
+  | "task_list"
+  | "task_remove"
+  | "task_complete"
+  | "portfolio"
+  | "contacts";
 
 /** Fix common Realtime speech-to-text mishearings before intent detection. */
 export function normalizeVoiceTranscript(text: string): string {
@@ -11,6 +20,42 @@ export function normalizeVoiceTranscript(text: string): string {
   t = t.replace(/draft (?:of )?this seen/gi, "draft of this email");
   t = t.replace(/this scene/gi, "this email");
   return t;
+}
+
+export function extractTaskQuery(text: string): string | null {
+  const patterns = [
+    /(?:remove|delete|cancel)\s+(?:the\s+)?task\s+(?:about\s+|called\s+|named\s+)?(.+)/i,
+    /(?:remove|delete)\s+(.+?)\s+from\s+(?:my\s+)?tasks?/i,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m?.[1]?.trim()) return m[1].trim();
+  }
+  return null;
+}
+
+export function extractCompleteTaskQuery(text: string): string | null {
+  const patterns = [
+    /(?:complete|finish|done with|mark complete)\s+(?:the\s+)?task\s+(?:about\s+|called\s+)?(.+)/i,
+    /(?:complete|finish|mark done)\s+(.+)/i,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m?.[1]?.trim()) return m[1].trim();
+  }
+  return null;
+}
+
+export function extractContactQuery(text: string): string {
+  const patterns = [
+    /(?:contact|phone(?:\s+number)?|call|whatsapp|reach)\s+(?:for\s+)?(.+)/i,
+    /(?:who is|find)\s+(.+)/i,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m?.[1]?.trim()) return m[1].trim();
+  }
+  return "";
 }
 
 export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
@@ -26,6 +71,43 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
+    /(?:remove|delete|cancel)\s+(?:the\s+)?task|remove .+ from (?:my )?tasks?/i.test(lower)
+  ) {
+    return "task_remove";
+  }
+
+  if (
+    /(?:complete|finish|mark complete|mark done|done with)\s+(?:the\s+)?task|complete .+ task/i.test(
+      lower
+    )
+  ) {
+    return "task_complete";
+  }
+
+  if (
+    /(?:my tasks|task list|pending tasks?|to-?do list|what tasks|what do i need to do|list tasks)/i.test(
+      lower
+    )
+  ) {
+    return "task_list";
+  }
+
+  if (
+    /portfolio|investments?|holdings|net worth|vanguard|what(?:'s| is) my.*worth|401k|my stocks/i.test(
+      lower
+    )
+  ) {
+    return "portfolio";
+  }
+
+  if (
+    /contacts?|phone number|call ross|call umair|who is|find contact|whatsapp/i.test(lower) &&
+    !/draft|email|calendar|sales|task|meeting|portfolio/i.test(lower)
+  ) {
+    return "contacts";
+  }
+
+  if (
     /summarize.*(?:email|inbox)|email summary|important emails?|my (email|inbox)|inbox summary|unread emails?|check (my )?email|emails? to reply|any (new )?mail/i.test(
       lower
     )
@@ -36,7 +118,8 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   if (
     /calendar|schedule|meeting|what'?s on today|events? today|on my (calendar|plate)|my day look|appointments?/i.test(
       lower
-    )
+    ) &&
+    !/add meeting|schedule a|remove meeting|cancel meeting|delete meeting/i.test(lower)
   ) {
     return "calendar";
   }

@@ -79,3 +79,14 @@ export async function createGoogleCalendarEvent(
     status: mapEventStatus(data.status),
   };
 }
+
+export async function deleteGoogleCalendarEvent(
+  client: GoogleOAuth2Client,
+  eventId: string
+): Promise<void> {
+  const calendar = google.calendar({ version: "v3", auth: client });
+  await calendar.events.delete({
+    calendarId: "primary",
+    eventId,
+  });
+}

@@ -66,7 +66,7 @@ export default function ImageGenerationPage() {
   const [mode, setMode] = useState<"generate" | "enhance">("generate");
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState("1024x1024");
-  const [quality, setQuality] = useState("medium");
+  const [quality, setQuality] = useState("high");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<GeneratedImage[]>([]);
@@ -172,6 +172,11 @@ export default function ImageGenerationPage() {
     a.href = img.src;
     a.download = `jewellery-${img.id.slice(0, 8)}.png`;
     a.click();
+  };
+
+  const removeImage = (id: string) => {
+    setImages((prev) => prev.filter((img) => img.id !== id));
+    setViewing((v) => (v?.id === id ? null : v));
   };
 
   const aspectQuality = (
@@ -487,6 +492,15 @@ export default function ImageGenerationPage() {
                       </Button>
                       <Button size="sm" variant="outline" className="flex-1" onClick={() => download(img)}>
                         <Download size={14} /> Download
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => removeImage(img.id)}
+                        aria-label="Remove image"
+                        title="Remove"
+                      >
+                        <X size={14} />
                       </Button>
                     </div>
                   </div>

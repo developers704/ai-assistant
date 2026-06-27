@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { VoiceUiAction } from "@/lib/voice/execute-tool";
 import { VOICE_MAX_TURNS, VOICE_SESSION_MAX_MS } from "@/lib/voice/config";
-import { detectVoiceIntent, normalizeVoiceTranscript } from "@/lib/voice/intent";
+import { detectVoiceIntent, extractCompleteTaskQuery, extractContactQuery, extractTaskQuery, normalizeVoiceTranscript } from "@/lib/voice/intent";
 
 export type RealtimeVoiceStatus =
   | "idle"
@@ -95,6 +95,35 @@ export function useRealtimeVoice(enabled: boolean) {
       const normalized = normalizeVoiceTranscript(transcript);
       const intent = detectVoiceIntent(normalized);
 
+      const runTool = async (
+        name: string,
+        args: Record<string, unknown>,
+        instructionPrefix: string,
+        maxTokens = 250
+      ) => {
+        const res = await fetch("/api/voice/tools", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, arguments: args }),
+        });
+        const data = await res.json();
+        applyUiAction(data.uiAction as VoiceUiAction | undefined);
+        const parsed = JSON.parse(String(data.output ?? "{}")) as {
+          spokenAnswer?: string;
+          script?: string;
+        };
+        const script = parsed.spokenAnswer ?? parsed.script ?? "Done.";
+        setAssistantTranscript(script);
+        setStatus("thinking");
+        sendEvent(dc, {
+          type: "response.create",
+          response: {
+            instructions: `${instructionPrefix}\n\n${script}`,
+            max_output_tokens: maxTokens,
+          },
+        });
+      };
+
       if (intent === "email_draft") {
         try {
           const res = await fetch("/api/voice/email-draft", { method: "POST" });
@@ -162,27 +191,80 @@ export function useRealtimeVoice(enabled: boolean) {
 
       if (intent === "sales") {
         try {
-          const res = await fetch("/api/voice/tools", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: "get_today_sales", arguments: {} }),
-          });
-          const data = await res.json();
-          applyUiAction(data.uiAction as VoiceUiAction | undefined);
-          const parsed = JSON.parse(String(data.output ?? "{}")) as {
-            totalRevenue?: number;
-            totalTransactions?: number;
-          };
-          const script = `Today's sales are $${(parsed.totalRevenue ?? 0).toLocaleString()} across ${parsed.totalTransactions ?? 0} transactions.`;
-          setAssistantTranscript(script);
-          setStatus("thinking");
-          sendEvent(dc, {
-            type: "response.create",
-            response: {
-              instructions: `Say exactly this and nothing else:\n\n${script}`,
-              max_output_tokens: 150,
-            },
-          });
+          await runTool(
+            "get_today_sales",
+            {},
+            "The user asked about SALES. Say exactly this:",
+            150
+          );
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "task_list") {
+        try {
+          await runTool("list_tasks", {}, "The user asked about TASKS. Say exactly this:");
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "task_remove") {
+        const title = extractTaskQuery(normalized);
+        if (title) {
+          try {
+            await runTool(
+              "delete_task",
+              { title },
+              "The user asked to REMOVE A TASK. Say exactly this:"
+            );
+            return;
+          } catch {
+            // fall through
+          }
+        }
+      }
+
+      if (intent === "task_complete") {
+        const title = extractCompleteTaskQuery(normalized);
+        if (title) {
+          try {
+            await runTool(
+              "complete_task",
+              { title },
+              "The user asked to COMPLETE A TASK. Say exactly this:"
+            );
+            return;
+          } catch {
+            // fall through
+          }
+        }
+      }
+
+      if (intent === "portfolio") {
+        try {
+          await runTool(
+            "get_portfolio",
+            {},
+            "The user asked about PORTFOLIO. Say exactly this:"
+          );
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "contacts") {
+        try {
+          const query = extractContactQuery(normalized);
+          await runTool(
+            "list_contacts",
+            query ? { query } : {},
+            "The user asked about CONTACTS. Say exactly this:"
+          );
           return;
         } catch {
           // fall through
@@ -194,8 +276,8 @@ export function useRealtimeVoice(enabled: boolean) {
         type: "response.create",
         response: {
           instructions:
-            "Answer only what the user asked. If unclear, ask them to repeat. Do not invent reminders, calendar events, or tasks unless they explicitly asked.",
-          max_output_tokens: 200,
+            "Answer using the right tool when needed (calendar, email, sales, tasks, meetings, contacts, portfolio, email draft). Never invent data. If unclear, ask them to repeat.",
+          max_output_tokens: 280,
         },
       });
     },
