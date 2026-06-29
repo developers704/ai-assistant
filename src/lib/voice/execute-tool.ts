@@ -37,7 +37,7 @@ import {
   getPoliticsHeadlinesScript,
   getSportsHeadlinesScript,
 } from "@/lib/voice/section-tools";
-import { getAssistantSalesSummary } from "@/lib/assistant/sales-data";
+import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
 import { sortTopProducts } from "@/lib/utils";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
 
@@ -150,6 +150,8 @@ export async function executeVoiceTool(
           totalTransactions: summary.totalTransactions,
           averageOrderValue: Math.round(summary.averageOrderValue),
           vsPreviousPercent: Number(summary.comparisonPreviousDay.toFixed(1)),
+          grossSales: "grossSales" in summary ? summary.grossSales : undefined,
+          discountTotal: "discountTotal" in summary ? summary.discountTotal : undefined,
           topStores: topStores.map((s) => ({ name: s.name, revenue: Math.round(s.revenue) })),
           topProducts: topProducts.map((p) => ({
             name: p.name,
@@ -158,6 +160,7 @@ export async function executeVoiceTool(
             units: p.units,
           })),
           spokenAnswer: spoken,
+          markdown: formatSalesReportMarkdown(),
           note:
             source === "report"
               ? `From uploaded report${vendorCode ? ` (${vendorCode})` : ""}.`

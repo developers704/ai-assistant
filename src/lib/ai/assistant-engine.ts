@@ -23,6 +23,7 @@ import {
 } from "@/lib/stores/store-knowledge";
 import { resolveTaskTarget } from "@/lib/voice/tool-helpers";
 import { formatLongDate } from "@/lib/utils";
+import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
 
 function detectIntent(message: string): IntentType {
   const lower = message.toLowerCase().trim();
@@ -49,7 +50,9 @@ function detectIntent(message: string): IntentType {
   if (/focus on today|what do i need|daily briefing|morning briefing|what('s| is) on today|priorities today/.test(lower)) {
     return "daily_briefing";
   }
-  if (/sales report|today('s)? sales|store sales|revenue|sales across|sales data|forecast/.test(lower)) return "sales_report";
+  if (/sales report|today('s)? sales|store sales|revenue|sales across|sales data|forecast|show me.*sales/.test(lower)) {
+    return "sales_report";
+  }
   if (/schedule|book|set up.*meeting|meeting with|meeting at/.test(lower)) return "schedule_meeting";
   if (/summarize.*(?:email|inbox)|summarize inbox|important email|inbox summary|pending repl|email summary|check email/.test(lower)) return "email_summary";
   if (/draft.*(?:email|reply)|write.*email|reply to|email to|send email/.test(lower)) return "email_draft";
@@ -303,29 +306,13 @@ ${urgentEmails.length > 0 ? `\n⚠️ **Alert:** Urgent email from ${urgentEmail
 }
 
 function generateSalesReport(): AIResponse {
-  const summary = computeSalesSummary(mockSalesData);
-  const changeIcon = summary.comparisonPreviousDay >= 0 ? "↑" : "↓";
+  const { summary, source } = getAssistantSalesSummary();
 
   return {
     intent: "sales_report",
-    message: `**Today's Sales Summary**
-
-**Total Revenue:** $${summary.totalRevenue.toLocaleString()} (${changeIcon} ${Math.abs(summary.comparisonPreviousDay).toFixed(1)}% vs yesterday)
-**Transactions:** ${summary.totalTransactions}
-**Avg. Order Value:** $${summary.averageOrderValue.toFixed(0)}
-
-**Top Stores:**
-${summary.topStores.slice(0, 3).map((s, i) => `${i + 1}. ${s.name} — $${s.revenue.toLocaleString()} (${s.change >= 0 ? "+" : ""}${s.change.toFixed(1)}%)`).join("\n")}
-
-**Best Sellers:**
-${summary.topProducts.slice(0, 3).map((p, i) => `${i + 1}. ${p.name} — $${p.revenue.toLocaleString()} (${p.units} units)`).join("\n")}
-
-${summary.underperformingStores.length > 0 ? `**Needs Attention:** ${summary.underperformingStores.map((s) => `${s.name} (${s.change.toFixed(1)}%)`).join(", ")}` : ""}
-
-**Recommendations:**
-${summary.recommendations.map((r) => `• ${r}`).join("\n")}`,
+    message: formatSalesReportMarkdown(),
     speak: true,
-    data: { summary },
+    data: { summary, source },
   };
 }
 
@@ -893,6 +880,12 @@ export function shouldUseRuleEngine(message: string): boolean {
   return (
     intent === "confirm_action" ||
     intent === "reject_action" ||
-    intent === "acknowledgment"
+    intent === "acknowledgment" ||
+    intent === "sales_report" ||
+    intent === "calendar_today" ||
+    intent === "email_summary" ||
+    intent === "daily_briefing" ||
+    intent === "reminder_list" ||
+    intent === "date_query"
   );
 }

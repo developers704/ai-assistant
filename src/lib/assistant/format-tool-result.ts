@@ -1,4 +1,5 @@
-import { formatCurrency, formatPieceCount } from "@/lib/utils";
+import { formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
+import { formatCurrency } from "@/lib/utils";
 import type { VoiceToolResult } from "@/lib/voice/execute-tool";
 import type { IntentType } from "@/types";
 
@@ -58,36 +59,8 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
       return `${header}\n\n${lines.join("\n")}`;
     }
 
-    case "get_today_sales": {
-      const revenue = Number(data.totalRevenue ?? 0);
-      const units = Number(data.totalTransactions ?? 0);
-      const source = String(data.source ?? "mock");
-      const label = data.reportLabel ? String(data.reportLabel) : undefined;
-      const topStores = (data.topStores as Array<{ name: string; revenue: number }>) ?? [];
-      const topProducts =
-        (data.topProducts as Array<{ name: string; itemNumber?: string; revenue: number; units: number }>) ?? [];
-
-      let md = `**Sales summary** — ${formatCurrency(revenue)} net · ${units.toLocaleString()} units`;
-      if (source === "report" && label) md += `\n\n_From uploaded report: **${label}**_`;
-      else if (source === "mock") md += `\n\n_Demo data — upload a CSV in **Data Analyst** for real numbers._`;
-
-      if (topStores.length > 0) {
-        md += `\n\n**Top stores**\n${topStores
-          .slice(0, 5)
-          .map((s, i) => `${i + 1}. ${s.name} — ${formatCurrency(s.revenue)}`)
-          .join("\n")}`;
-      }
-      if (topProducts.length > 0) {
-        md += `\n\n**Top products**\n${topProducts
-          .slice(0, 5)
-          .map((p, i) => {
-            const id = p.itemNumber ? `#${p.itemNumber} · ` : "";
-            return `${i + 1}. ${id}${p.name} — ${formatCurrency(p.revenue)} · ${formatPieceCount(p.units)}`;
-          })
-          .join("\n")}`;
-      }
-      return md;
-    }
+    case "get_today_sales":
+      return typeof data.markdown === "string" ? data.markdown : formatSalesReportMarkdown();
 
     case "get_daily_briefing":
       return String(data.spokenAnswer ?? data.markdown ?? "Daily briefing loaded.");

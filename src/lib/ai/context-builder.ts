@@ -1,8 +1,9 @@
 import type { AppState, CalendarEvent, Email } from "@/types";
 import { toEmailPreview } from "@/lib/email-html";
-import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { houseOfBrands, brandPillars } from "@/lib/mock-data/products";
 import { buildStoreDirectoryContext } from "@/lib/stores/store-knowledge";
+import { getAssistantSalesSummary } from "@/lib/assistant/sales-data";
+import { formatCurrency, formatPieceCount, sortTopProducts } from "@/lib/utils";
 import {
   userTimezone,
   isTodayInTimezone,
@@ -55,7 +56,9 @@ export function buildAssistantContext(state: AppState): string {
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
     .slice(0, 8);
 
-  const sales = computeSalesSummary(mockSalesData);
+  const salesBundle = getAssistantSalesSummary();
+  const sales = salesBundle.summary;
+  const topProducts = sortTopProducts(sales.topProducts).slice(0, 3);
   const storeDirectory = buildStoreDirectoryContext();
   const pendingTasks = state.reminders.filter((r) => !r.completed);
   const googleConnected = state.integrations?.google?.connected ?? false;
@@ -111,12 +114,12 @@ ${state.contacts
 ## Store directory (authoritative — use for store count and location questions)
 ${storeDirectory}
 
-## Sales snapshot (demo POS data)
-Total revenue (latest period): $${sales.totalRevenue.toLocaleString()}
-Transactions: ${sales.totalTransactions} | AOV: $${Math.round(sales.averageOrderValue).toLocaleString()}
-vs previous day: ${sales.comparisonPreviousDay.toFixed(1)}%
-Top stores: ${sales.topStores.slice(0, 3).map((s) => `${s.name} $${Math.round(s.revenue).toLocaleString()}`).join("; ")}
-Top products: ${sales.topProducts.slice(0, 3).map((p) => `${p.itemNumber ? `#${p.itemNumber} ` : ""}${p.name} (${p.units} units)`).join("; ")}
+## Sales (${salesBundle.source === "report" ? `uploaded report: ${salesBundle.label ?? "latest"}` : "demo POS — call get_today_sales or upload CSV"})
+Total revenue: ${formatCurrency(sales.totalRevenue)}
+Units: ${sales.totalTransactions.toLocaleString()} | AOV: ${formatCurrency(sales.averageOrderValue)}
+vs previous period: ${sales.comparisonPreviousDay.toFixed(1)}%
+Top stores: ${sales.topStores.slice(0, 3).map((s) => `${s.name} ${formatCurrency(s.revenue)}`).join("; ")}
+Top products: ${topProducts.map((p) => `${p.itemNumber ? `#${p.itemNumber} ` : ""}${p.name} (${formatPieceCount(p.units)})`).join("; ")}
 
 ## Pending user confirmations
 ${state.pendingActions.length ? state.pendingActions.map((a) => `- ${a.type}: ${a.title}`).join("\n") : "None — if user says yes/confirm, tell them nothing is waiting."}
