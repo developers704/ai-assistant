@@ -889,5 +889,10 @@ export function getMessageIntent(message: string): IntentType {
 }
 
 export function shouldUseRuleEngine(message: string): boolean {
-  return detectIntent(message) !== "general";
+  const intent = detectIntent(message);
+  return (
+    intent === "confirm_action" ||
+    intent === "reject_action" ||
+    intent === "acknowledgment"
+  );
 }

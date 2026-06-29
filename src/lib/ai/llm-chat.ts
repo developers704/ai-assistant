@@ -10,126 +10,46 @@ import {
   getRagAnswerStyle,
   isRagAvailable,
 } from "@/lib/rag";
+import {
+  ASSISTANT_CHAT_TOOLS,
+  READ_TOOL_NAMES,
+  mapToolNameForExecutor,
+} from "@/lib/assistant/tool-definitions";
+import {
+  formatToolResultForChat,
+  intentForTool,
+} from "@/lib/assistant/format-tool-result";
+import { executeVoiceTool } from "@/lib/voice/execute-tool";
 
 const SYSTEM_PROMPT = `You are the Executive AI Assistant for Valliani Jewelers — a premium, proactive chief-of-staff style assistant for the business owner.
 
 You answer naturally like a capable LLM. Combine:
 1) LIVE CONTEXT — emails, calendar, tasks, sales, contacts (real-time)
 2) COMPANY KNOWLEDGE — retrieved official Valliani sources (policies, brands, locations, contacts)
+3) TOOLS — call the right tool BEFORE answering when live data is needed
+
+TOOL RULES (critical):
+- Calendar / schedule / meetings / "what's on my calendar" → get_calendar_today
+- Email / inbox / unread mail → get_email_summary
+- Sales / revenue / top products / stores / MHVR / uploaded report → get_today_sales
+- Daily briefing / what should I focus on / priorities → get_daily_briefing
+- Tasks / to-do / reminders list → list_tasks
+- Contacts / phone number → list_contacts
+- Gold/silver prices → get_metal_rates · jewellery price quote → estimate_jewellery_price
+- Industry/sports/politics news → get_industry_news / get_sports_news / get_politics_news
+- Open a page → show_detail_page or open_data_analyst
+- Draft email reply to important mail → draft_email_reply
+- ADD task → create_reminder · REMOVE task → delete_task · COMPLETE task → complete_task
+- Send email / WhatsApp / schedule meeting → propose_send_email / propose_whatsapp / propose_schedule_meeting (needs user confirm)
 
 Guidelines:
 - Be concise but complete. Use markdown: **bold**, bullet lists, short sections.
-- Answer style: direct answer first, then supporting detail.
-- For company/policy/brand/location questions, prioritize COMPANY KNOWLEDGE sources over general knowledge or demo app data.
-- Follow accuracy guardrails in COMPANY KNOWLEDGE — do not invent store counts, in-store return rules, or policy details not in sources.
-- For "any meeting today?", "today mails?", etc., answer from LIVE CONTEXT.
-- Respect the user's timezone when discussing dates and times.
-- When the user asks to SEND email, WhatsApp, schedule a meeting, or place a call, use the appropriate tool — never claim you sent anything without calling the tool.
-- For reminders/tasks: use create_reminder to ADD tasks; use delete_task to REMOVE; use complete_task to mark done. Never create a reminder when the user asked to remove or complete a task.
-- For store count or location questions, use LIVE CONTEXT Store directory — Valliani has exactly 29 locations with city and mall names. Give the count and list by state when asked.
-- For jewellery image generation (rings, necklaces, etc.), tell the user to ask in chat with phrases like "generate a gold ring" — the app will create product images automatically.
-- Do not ask "could you provide more details?" when the context already has the answer.
-- Pending confirmations: if something awaits confirm, remind them they can say yes or cancel.`;
-
-const TOOLS: OpenAI.ChatCompletionTool[] = [
-  {
-    type: "function",
-    function: {
-      name: "propose_send_email",
-      description:
-        "Propose sending an email. User must confirm before send. Use for drafts and replies.",
-      parameters: {
-        type: "object",
-        properties: {
-          to_email: { type: "string", description: "Recipient email address" },
-          to_name: { type: "string", description: "Recipient display name" },
-          subject: { type: "string" },
-          body: { type: "string", description: "Full email body" },
-        },
-        required: ["to_email", "subject", "body"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "create_reminder",
-      description: "Create a NEW task/reminder. Do NOT use when user wants to remove or complete an existing task.",
-      parameters: {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          description: { type: "string" },
-          due_date: { type: "string", description: "YYYY-MM-DD" },
-          due_time: { type: "string", description: "HH:MM 24h, optional" },
-          priority: { type: "string", enum: ["low", "medium", "high"] },
-        },
-        required: ["title", "due_date"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "delete_task",
-      description: "Remove/delete an existing task by title. Use when user says remove, delete, or cancel a task.",
-      parameters: {
-        type: "object",
-        properties: {
-          title: { type: "string", description: "Task title or keywords to match" },
-        },
-        required: ["title"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "complete_task",
-      description: "Mark an existing task as done/complete by title.",
-      parameters: {
-        type: "object",
-        properties: {
-          title: { type: "string", description: "Task title or keywords to match" },
-        },
-        required: ["title"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "propose_schedule_meeting",
-      description: "Propose scheduling a meeting — requires user confirmation.",
-      parameters: {
-        type: "object",
-        properties: {
-          person: { type: "string" },
-          date: { type: "string", description: "e.g. tomorrow, 2026-06-20" },
-          time: { type: "string", description: "e.g. 4:00 PM" },
-          title: { type: "string" },
-          attendees: { type: "array", items: { type: "string" } },
-        },
-        required: ["person", "date", "time"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "propose_whatsapp",
-      description: "Propose sending a WhatsApp message — requires confirmation.",
-      parameters: {
-        type: "object",
-        properties: {
-          contact_name: { type: "string" },
-          message: { type: "string" },
-        },
-        required: ["contact_name", "message"],
-      },
-    },
-  },
-];
+- Direct answer first, then supporting detail.
+- For company/policy/brand/location questions, prioritize COMPANY KNOWLEDGE.
+- NEVER invent meetings, emails, sales numbers, or tasks — use tools or LIVE CONTEXT.
+- For store count questions: Valliani has exactly 29 locations (see Store directory in context).
+- Jewellery image generation: user can say "generate a gold ring" in chat.
+- Pending confirmations: remind user they can say yes or cancel.`;
 
 export function isLLMChatConfigured(): boolean {
   const key = process.env.OPENAI_API_KEY;
@@ -144,36 +64,14 @@ function parseToolArgs(raw: string): Record<string, unknown> {
   }
 }
 
-function handleToolCall(
+function handleWriteToolCall(
   name: string,
   args: Record<string, unknown>,
   state: AppState,
   assistantText: string,
   userMessage: string
-): AIResponse {
+): AIResponse | null {
   switch (name) {
-    case "propose_send_email": {
-      const to = String(args.to_email ?? "");
-      const toName = String(args.to_name ?? to);
-      const subject = String(args.subject ?? "Follow-up");
-      const body = String(args.body ?? "");
-      const pendingAction: PendingAction = {
-        id: uuidv4(),
-        type: "email",
-        title: `Email to ${toName}`,
-        preview: body,
-        payload: { to, subject, body, to_name: toName },
-        createdAt: new Date().toISOString(),
-      };
-      return {
-        intent: "email_draft",
-        message:
-          assistantText ||
-          `I've drafted an email for your review:\n\n**To:** ${toName} (${to})\n**Subject:** ${subject}\n\n---\n${body}\n\n---\n\nShould I send this email?`,
-        pendingAction,
-        speak: true,
-      };
-    }
     case "create_reminder": {
       const reminder: Reminder = {
         id: uuidv4(),
@@ -233,6 +131,28 @@ function handleToolCall(
         data: { completedReminderId: target.id },
       };
     }
+    case "propose_send_email": {
+      const to = String(args.to_email ?? "");
+      const toName = String(args.to_name ?? to);
+      const subject = String(args.subject ?? "Follow-up");
+      const body = String(args.body ?? "");
+      const pendingAction: PendingAction = {
+        id: uuidv4(),
+        type: "email",
+        title: `Email to ${toName}`,
+        preview: body,
+        payload: { to, subject, body, to_name: toName },
+        createdAt: new Date().toISOString(),
+      };
+      return {
+        intent: "email_draft",
+        message:
+          assistantText ||
+          `I've drafted an email for your review:\n\n**To:** ${toName} (${to})\n**Subject:** ${subject}\n\n---\n${body}\n\n---\n\nShould I send this email?`,
+        pendingAction,
+        speak: true,
+      };
+    }
     case "propose_schedule_meeting": {
       const person = String(args.person ?? "Team");
       const date = String(args.date ?? "today");
@@ -286,12 +206,38 @@ function handleToolCall(
       };
     }
     default:
-      return {
-        intent: "general",
-        message: assistantText || "I completed that request.",
-        speak: true,
-      };
+      return null;
   }
+}
+
+async function handleToolCall(
+  name: string,
+  args: Record<string, unknown>,
+  state: AppState,
+  assistantText: string,
+  userMessage: string
+): Promise<AIResponse> {
+  const writeResponse = handleWriteToolCall(name, args, state, assistantText, userMessage);
+  if (writeResponse) return writeResponse;
+
+  if (READ_TOOL_NAMES.has(name) || name === "draft_email_reply") {
+    const executorName = mapToolNameForExecutor(name);
+    const result = await executeVoiceTool(executorName, args);
+    const formatted = formatToolResultForChat(name, result);
+    const prefix = assistantText ? `${assistantText}\n\n` : "";
+    return {
+      intent: intentForTool(name),
+      message: prefix + formatted,
+      speak: true,
+      data: result.uiAction?.path ? { navigate: result.uiAction.path } : undefined,
+    };
+  }
+
+  return {
+    intent: "general",
+    message: assistantText || "I completed that request.",
+    speak: true,
+  };
 }
 
 export async function processMessageWithLLM(
@@ -333,10 +279,10 @@ ${formatRetrievedContext(retrieved)}`;
 
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
-    temperature: 0.4,
+    temperature: 0.35,
     max_tokens: 1200,
     messages,
-    tools: TOOLS,
+    tools: ASSISTANT_CHAT_TOOLS,
     tool_choice: "auto",
   });
 

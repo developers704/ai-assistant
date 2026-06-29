@@ -3,7 +3,6 @@ import {
   fetchRssPoliticsNews,
   fetchRssSportsNews,
 } from "@/lib/news";
-import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { getState } from "@/lib/store/server-store";
 import {
   buildCalendarVoiceScript,
@@ -11,6 +10,7 @@ import {
 } from "@/lib/voice/calendar-data";
 import { buildEmailVoiceScript, getVoiceEmails } from "@/lib/voice/email-data";
 import { buildTasksVoiceScript } from "@/lib/voice/tool-helpers";
+import { getAssistantSalesSummary } from "@/lib/assistant/sales-data";
 
 const TROY_OUNCE_GRAMS = 31.1035;
 const KARAT_PURITY: Record<string, number> = {
@@ -171,14 +171,19 @@ export async function getPoliticsHeadlinesScript(): Promise<string> {
 
 export async function buildDailyBriefingScript(): Promise<string> {
   const [calendar, inbox] = await Promise.all([getVoiceCalendarEvents(), getVoiceEmails()]);
-  const sales = computeSalesSummary(mockSalesData);
+  const { summary, source, label } = getAssistantSalesSummary();
   const tasks = buildTasksVoiceScript(getState().reminders);
+
+  const salesLine =
+    source === "report"
+      ? `Latest report${label ? ` ${label}` : ""}: $${summary.totalRevenue.toLocaleString()} net, ${summary.totalTransactions.toLocaleString()} units.`
+      : `Today's sales: $${summary.totalRevenue.toLocaleString()} across ${summary.totalTransactions} transactions.`;
 
   return [
     `Daily briefing for Kash.`,
     buildCalendarVoiceScript(calendar.events, calendar.tz),
     buildEmailVoiceScript(inbox.emails),
     tasks,
-    `Today's sales: $${sales.totalRevenue.toLocaleString()} across ${sales.totalTransactions} transactions.`,
+    salesLine,
   ].join(" ");
 }

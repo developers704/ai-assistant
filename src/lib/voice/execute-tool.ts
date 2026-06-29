@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { computeSalesSummary, mockContacts, mockSalesData } from "@/lib/mock-data";
+import { mockContacts } from "@/lib/mock-data";
 import { getState, setState } from "@/lib/store/server-store";
 import {
   buildCalendarVoiceScript,
@@ -37,6 +37,8 @@ import {
   getPoliticsHeadlinesScript,
   getSportsHeadlinesScript,
 } from "@/lib/voice/section-tools";
+import { getAssistantSalesSummary } from "@/lib/assistant/sales-data";
+import { sortTopProducts } from "@/lib/utils";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
 
 export interface VoiceUiAction {
@@ -131,18 +133,35 @@ export async function executeVoiceTool(
 ): Promise<VoiceToolResult> {
   switch (name) {
     case "get_today_sales": {
-      const summary = computeSalesSummary(mockSalesData);
-      const top = summary.topStores.slice(0, 3);
+      const { summary, source, label, vendorCode } = getAssistantSalesSummary();
+      const topStores = summary.topStores.slice(0, 5);
+      const topProducts = sortTopProducts(summary.topProducts).slice(0, 5);
+      const spoken =
+        source === "report"
+          ? `Latest report${label ? ` ${label}` : ""}: ${summary.totalRevenue.toLocaleString()} dollars net across ${summary.totalTransactions.toLocaleString()} units.`
+          : `Today's sales are $${summary.totalRevenue.toLocaleString()} across ${summary.totalTransactions} transactions. Demo data until a CSV is uploaded.`;
+
       return {
         output: JSON.stringify({
-          date: new Date().toISOString().split("T")[0],
+          source,
+          reportLabel: label,
+          vendorCode,
           totalRevenue: summary.totalRevenue,
           totalTransactions: summary.totalTransactions,
           averageOrderValue: Math.round(summary.averageOrderValue),
-          vsYesterdayPercent: Number(summary.comparisonPreviousDay.toFixed(1)),
-          topStores: top.map((s) => ({ name: s.name, revenue: Math.round(s.revenue) })),
-          spokenAnswer: `Today's sales are $${summary.totalRevenue.toLocaleString()} across ${summary.totalTransactions} transactions.`,
-          note: "Demo POS data until JewelMate is connected.",
+          vsPreviousPercent: Number(summary.comparisonPreviousDay.toFixed(1)),
+          topStores: topStores.map((s) => ({ name: s.name, revenue: Math.round(s.revenue) })),
+          topProducts: topProducts.map((p) => ({
+            name: p.name,
+            itemNumber: p.itemNumber,
+            revenue: Math.round(p.revenue),
+            units: p.units,
+          })),
+          spokenAnswer: spoken,
+          note:
+            source === "report"
+              ? `From uploaded report${vendorCode ? ` (${vendorCode})` : ""}.`
+              : "Demo POS data — upload CSV in Data Analyst.",
         }),
         uiAction: { type: "navigate", path: "/sales" },
       };
