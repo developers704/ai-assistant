@@ -136,7 +136,7 @@ function buildSummaryForDate(rows: NormalizedRow[], date: string, prevDate: stri
 
   const topProducts = Array.from(productMap.entries())
     .map(([name, stats]) => ({ name, ...stats }))
-    .sort((a, b) => b.revenue - a.revenue);
+    .sort((a, b) => b.revenue - a.revenue || b.units - a.units);
 
   const underperformingStores = topStores.filter((s) => s.change < 0);
   const totalUnits = todayData.reduce((s, r) => s + r.quantity, 0);
@@ -226,7 +226,7 @@ function summarizeGeneric(
     });
     const topProducts = Array.from(productMap.entries())
       .map(([name, stats]) => ({ name, ...stats }))
-      .sort((a, b) => b.revenue - a.revenue);
+      .sort((a, b) => b.revenue - a.revenue || b.units - a.units);
 
     summaryBase = {
       totalRevenue,

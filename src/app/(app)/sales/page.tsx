@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/Sidebar";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatPieceCount, sortTopProducts } from "@/lib/utils";
 import type { SalesSummary, StoreLocation, Product, CustomerReview } from "@/types";
 import type { ReportSummary } from "@/lib/reports/types";
 import { ReportInsightsCards } from "@/components/reports/ReportInsightsCards";
@@ -70,6 +70,7 @@ export default function SalesPage() {
   }
 
   const regions = ["California", "Nevada", "Arizona", "Texas"] as const;
+  const topProducts = sortTopProducts(summary.topProducts).slice(0, 10);
 
   return (
     <div>
@@ -167,25 +168,31 @@ export default function SalesPage() {
             <CardTitle className="flex items-center gap-2">
               <Package size={18} className="text-brand-600" /> Top Products
             </CardTitle>
+            <span className="text-xs text-ink-muted">Highest revenue first</span>
           </CardHeader>
-          <div className="space-y-3">
-            {summary.topProducts.map((product, i) => (
-              <div key={`${product.itemNumber ?? ""}-${product.name}-${i}`} className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-sm text-ink-muted w-6 shrink-0">{i + 1}</span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink leading-snug">
-                      {product.itemNumber && (
-                        <span className="text-cyan-300/90 font-mono text-xs mr-1.5 shrink-0">
-                          #{product.itemNumber}
-                        </span>
-                      )}
-                      <span className="break-words">{product.name}</span>
-                    </p>
-                    <p className="text-xs text-ink-muted">{product.units} pieces sold</p>
-                  </div>
+          <div className="space-y-2.5">
+            {topProducts.map((product, i) => (
+              <div
+                key={`${product.itemNumber ?? ""}-${product.name}-${i}`}
+                className="flex items-start justify-between gap-3"
+              >
+                <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                  <span className="text-sm font-medium text-ink-muted w-5 shrink-0 pt-0.5 tabular-nums">
+                    {i + 1}
+                  </span>
+                  <p className="text-sm text-ink leading-snug min-w-0">
+                    {product.itemNumber && (
+                      <span className="font-mono text-cyan-300/90 text-xs">#{product.itemNumber} · </span>
+                    )}
+                    <span className="font-medium break-words">{product.name}</span>
+                  </p>
                 </div>
-                <span className="text-sm font-medium shrink-0">{formatCurrency(product.revenue)}</span>
+                <span className="shrink-0 text-sm tabular-nums whitespace-nowrap pt-0.5">
+                  <span className="font-semibold text-ink">{formatCurrency(product.revenue)}</span>
+                  <span className="text-ink-muted text-xs font-normal ml-1.5">
+                    · {formatPieceCount(product.units)}
+                  </span>
+                </span>
               </div>
             ))}
           </div>

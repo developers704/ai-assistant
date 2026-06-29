@@ -141,7 +141,9 @@ function rankProducts(rows: VendorPosRow[], limit = 10) {
     });
   }
 
-  return [...map.values()].sort((a, b) => b.revenue - a.revenue).slice(0, limit);
+  return [...map.values()]
+    .sort((a, b) => b.revenue - a.revenue || b.units - a.units)
+    .slice(0, limit);
 }
 
 export function summarizeVendorPos(

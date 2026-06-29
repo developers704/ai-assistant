@@ -13,6 +13,15 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+export function formatPieceCount(units: number): string {
+  const n = Math.round(units);
+  return n === 1 ? "1 pc" : `${n.toLocaleString()} pcs`;
+}
+
+export function sortTopProducts<T extends { revenue: number; units: number }>(products: T[]): T[] {
+  return [...products].sort((a, b) => b.revenue - a.revenue || b.units - a.units);
+}
+
 export function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString("en-US", {
     hour: "numeric",
