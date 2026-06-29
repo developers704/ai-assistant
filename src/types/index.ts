@@ -282,6 +282,7 @@ export type IntentType =
   | "confirm_action"
   | "reject_action"
   | "acknowledgment"
+  | "date_query"
   | "portfolio_summary"
   | "store_list"
   | "image_generate"

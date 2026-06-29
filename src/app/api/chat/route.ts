@@ -35,12 +35,8 @@ async function resolveResponse(message: string, state: Awaited<ReturnType<typeof
   }
 
   if (shouldUseRuleEngine(message)) {
-
     return processMessage(message, state);
-
   }
-
-
 
   if (isLLMChatConfigured()) {
 

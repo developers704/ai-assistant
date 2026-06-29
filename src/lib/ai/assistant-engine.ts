@@ -22,6 +22,7 @@ import {
   isStoreLocationQuery,
 } from "@/lib/stores/store-knowledge";
 import { resolveTaskTarget } from "@/lib/voice/tool-helpers";
+import { formatLongDate } from "@/lib/utils";
 
 function detectIntent(message: string): IntentType {
   const lower = message.toLowerCase().trim();
@@ -37,8 +38,17 @@ function detectIntent(message: string): IntentType {
   if (/^(yes|confirm|go ahead|send it|proceed|approved?|do it)\b/.test(lower)) return "confirm_action";
   if (/^(no|cancel|reject|don't|stop|nevermind|never mind)\b/.test(lower)) return "reject_action";
   if (/help|what can you do|capabilities/.test(lower)) return "help";
-  if (/good morning|hello|hi\b|hey\b|greetings/.test(lower)) return "greeting";
-  if (/focus on today|what do i need|daily briefing|morning briefing|what('s| is) on today|priorities today/.test(lower)) return "daily_briefing";
+  if (
+    /good morning|hello|hi\b|hey\b|greetings|how\s+(?:r\s+u|are\s+you|you\s+doing|going)/.test(lower)
+  ) {
+    return "greeting";
+  }
+  if (/what('s| is|s)?\s*(today'?s?\s*)?date|what date|today'?s date|date today/.test(lower)) {
+    return "date_query";
+  }
+  if (/focus on today|what do i need|daily briefing|morning briefing|what('s| is) on today|priorities today/.test(lower)) {
+    return "daily_briefing";
+  }
   if (/sales report|today('s)? sales|store sales|revenue|sales across|sales data|forecast/.test(lower)) return "sales_report";
   if (/schedule|book|set up.*meeting|meeting with|meeting at/.test(lower)) return "schedule_meeting";
   if (/summarize.*(?:email|inbox)|summarize inbox|important email|inbox summary|pending repl|email summary|check email/.test(lower)) return "email_summary";
@@ -65,7 +75,13 @@ function detectIntent(message: string): IntentType {
   if (/show.*(?:reminder|tasks?)|pending task|my tasks|all tasks|task list|to-do|todo/.test(lower)) {
     return "reminder_list";
   }
-  if (/today('s)? schedule|calendar|my meetings|what meetings/.test(lower)) return "calendar_today";
+  if (
+    /(?:what'?s|whats|what is)\s+(?:on\s+)?(?:my\s+)?(?:calender|calendar)|(?:calender|calendar)\s+today|today('s)?\s*schedule|on my (?:calender|calendar)|my meetings|what meetings|any meetings? today/.test(
+      lower
+    )
+  ) {
+    return "calendar_today";
+  }
   if (/summarize.*(pdf|document|doc|file|contract|report)|key points|analyze.*(excel|csv|data)/.test(lower)) return "document_summarize";
   if (/analyze.*(screenshot|image|photo|picture|dashboard)|what does this (show|dashboard)/.test(lower)) return "image_analyze";
   if (/call\s+\w+|phone call|dial/.test(lower)) return "call_prepare";
@@ -168,12 +184,30 @@ export function processMessage(message: string, state: AppState): AIResponse {
       return handleRejectAction(state);
     case "acknowledgment":
       return handleAcknowledgment(message);
-    case "greeting":
+    case "date_query": {
+      const tz = userTimezone(state);
+      const now = new Date();
       return {
-        intent,
-        message: `Good day, Kash. I'm your Executive AI Assistant. You have ${state.events.filter((e) => isTodayInTimezone(e.start, userTimezone(state))).length} meetings today and ${state.reminders.filter((r) => !r.completed).length} pending tasks. How may I assist you?`,
+        intent: "date_query",
+        message: `Today is **${formatLongDate(now)}** (${tz}).`,
         speak: true,
       };
+    }
+    case "greeting": {
+      const tz = userTimezone(state);
+      const meetings = state.events.filter(
+        (e) => isTodayInTimezone(e.start, tz) && e.status !== "cancelled"
+      ).length;
+      const tasks = state.reminders.filter((r) => !r.completed).length;
+      const casual = /how\s+(?:r\s+u|are\s+you|you\s+doing|going)/.test(message.toLowerCase());
+      return {
+        intent: "greeting",
+        message: casual
+          ? `I'm doing well, thank you. You have **${meetings}** meeting${meetings !== 1 ? "s" : ""} today and **${tasks}** pending task${tasks !== 1 ? "s" : ""}. What can I help with?`
+          : `Good day, Kash. I'm your Executive AI Assistant. You have ${meetings} meetings today and ${tasks} pending tasks. How may I assist you?`,
+        speak: true,
+      };
+    }
     case "daily_briefing":
       return generateDailyBriefing(state);
     case "store_list":
@@ -855,14 +889,5 @@ export function getMessageIntent(message: string): IntentType {
 }
 
 export function shouldUseRuleEngine(message: string): boolean {
-  const intent = detectIntent(message);
-  return (
-    intent === "confirm_action" ||
-    intent === "reject_action" ||
-    intent === "acknowledgment" ||
-    intent === "task_delete" ||
-    intent === "task_complete" ||
-    intent === "reminder_list" ||
-    intent === "store_list"
-  );
+  return detectIntent(message) !== "general";
 }
