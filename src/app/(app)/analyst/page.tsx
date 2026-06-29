@@ -355,16 +355,14 @@ export default function AnalystPage() {
           </div>
 
           <div className="flex-1 flex flex-col lg:flex-row items-stretch justify-center p-6 sm:p-10 gap-6 max-w-5xl mx-auto w-full">
-            {savedReports.length > 0 && (
-              <SavedReportsPanel
-                reports={savedReports}
-                activeId={activeReportId}
-                loading={loadingFile}
-                deletingId={deletingReportId}
-                onOpen={loadSavedReport}
-                onDelete={removeReport}
-              />
-            )}
+            <SavedReportsPanel
+              reports={savedReports}
+              activeId={activeReportId}
+              loading={loadingFile}
+              deletingId={deletingReportId}
+              onOpen={loadSavedReport}
+              onDelete={removeReport}
+            />
 
             <div
               className="flex-1 flex flex-col justify-center min-w-0"
@@ -510,17 +508,15 @@ export default function AnalystPage() {
         </div>
 
         <div className="px-5 sm:px-6 pt-4 pb-2 shrink-0 space-y-3">
-          {savedReports.length > 0 && (
-            <SavedReportsPanel
-              reports={savedReports}
-              activeId={activeReportId}
-              loading={loadingFile}
-              deletingId={deletingReportId}
-              onOpen={loadSavedReport}
-              onDelete={removeReport}
-              compact
-            />
-          )}
+          <SavedReportsPanel
+            reports={savedReports}
+            activeId={activeReportId}
+            loading={loadingFile}
+            deletingId={deletingReportId}
+            onOpen={loadSavedReport}
+            onDelete={removeReport}
+            compact
+          />
           <DataPreview schema={schema} />
         </div>
 

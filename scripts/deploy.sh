@@ -22,6 +22,12 @@ git fetch --prune origin
 git checkout "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
+echo "Deploying commit: $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
+
+mkdir -p .data/reports
+
 npm ci
 npm run build
 pm2 restart all
+
+echo "Deploy finished at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"

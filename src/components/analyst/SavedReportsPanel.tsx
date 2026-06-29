@@ -32,7 +32,24 @@ export function SavedReportsPanel({
   onDelete,
   compact,
 }: SavedReportsPanelProps) {
-  if (reports.length === 0) return null;
+  if (reports.length === 0) {
+    return (
+      <div
+        className={`glass-panel rounded-2xl ring-1 ring-white/10 ${
+          compact ? "p-3" : "p-4 w-full max-w-xl"
+        }`}
+      >
+        <p className="text-sm font-medium text-ink flex items-center gap-2 mb-2">
+          <FolderOpen size={16} className="text-cyan-300" />
+          Saved reports
+        </p>
+        <p className="text-xs text-ink-muted leading-relaxed">
+          No reports saved on this server yet. Upload a CSV with &quot;Save to server&quot; checked — files stay
+          here (not copied from your laptop).
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
