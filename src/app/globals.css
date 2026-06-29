@@ -167,6 +167,18 @@
   }
 }
 
+@layer components {
+  .select-dark {
+    @apply rounded-xl border border-white/25 bg-slate-900 px-2 py-1.5 text-sm text-ink;
+    color-scheme: dark;
+  }
+
+  .select-dark option {
+    background-color: #0f172a;
+    color: #f1f5f9;
+  }
+}
+
 @layer utilities {
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0);

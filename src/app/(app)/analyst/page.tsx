@@ -1,16 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/Button";
 import { DataPreview } from "@/components/analyst/DataPreview";
+import { SavedReportsPanel } from "@/components/analyst/SavedReportsPanel";
 import { ResultTable } from "@/components/analyst/ResultTable";
 import { ResultChart, ForecastChart } from "@/components/analyst/ResultChart";
-import { loadCSV, runQuery, validateReadOnlySQL } from "@/lib/analyst/duckdb";
+import { loadCSV, loadCSVFromText, runQuery, validateReadOnlySQL } from "@/lib/analyst/duckdb";
 import { computeForecast } from "@/lib/analyst/forecast";
 import { toSchemaForLLM } from "@/lib/analyst/types";
 import type { AnalystMessage, AnalystPlan, QueryResult, TableSchema } from "@/lib/analyst/types";
+import type { ReportCategory, ReportPeriod, StoredReportMeta } from "@/lib/reports/types";
 import {
   Upload,
   Send,
@@ -21,9 +23,26 @@ import {
   AlertTriangle,
   Loader2,
   BarChart3,
+  Save,
 } from "lucide-react";
 
 function buildSuggestions(schema: TableSchema): string[] {
+  const colNames = schema.columns.map((c) => c.name.toLowerCase());
+  const isVendorPos =
+    colNames.includes("total") &&
+    colNames.some((c) => c.includes("department")) &&
+    colNames.some((c) => c.includes("store"));
+
+  if (isVendorPos) {
+    return [
+      "Top 10 stores by net sales (Total)",
+      "Sales by Department",
+      "Top Design lines by revenue",
+      "Total discounts given (Disc Amt)",
+      "Daily net sales trend by Transaction Date",
+    ].slice(0, 5);
+  }
+
   const numeric = schema.columns.filter((c) => c.kind === "number");
   const text = schema.columns.filter((c) => c.kind === "text");
   const date = schema.columns.find((c) => c.kind === "date");
@@ -65,25 +84,143 @@ export default function AnalystPage() {
   const [loadingFile, setLoadingFile] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [saveToServer, setSaveToServer] = useState(true);
+  const [reportPeriod, setReportPeriod] = useState<ReportPeriod>("daily");
+  const [reportCategory, setReportCategory] = useState<ReportCategory>("vendor");
+  const [savedReports, setSavedReports] = useState<StoredReportMeta[]>([]);
+  const [activeReportId, setActiveReportId] = useState<string | null>(null);
+  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
+  const [bootstrapping, setBootstrapping] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const scrollDown = () =>
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
 
-  const handleFile = async (file: File) => {
+  const welcomeMessage = (fileName: string, rowCount: number, colCount: number, saved?: boolean) =>
+    `Loaded "${fileName}" — ${rowCount.toLocaleString()} rows and ${colCount} columns.${
+      saved ? " Saved to daily reports — Dashboard will use this data." : ""
+    } Ask me anything: totals, top/low sellers, trends, breakdowns, or forecasts.`;
+
+  const applySchema = (s: TableSchema, saved?: boolean, reportId?: string | null) => {
+    setSchema(s);
+    if (reportId !== undefined) setActiveReportId(reportId);
+    setMessages([
+      {
+        id: uuidv4(),
+        role: "assistant",
+        content: welcomeMessage(s.fileName, s.rowCount, s.columns.length, saved),
+      },
+    ]);
+  };
+
+  const refreshReportList = async () => {
+    const res = await fetch("/api/reports");
+    if (res.ok) {
+      const data = await res.json();
+      setSavedReports(data.reports ?? []);
+    }
+  };
+
+  const loadSavedReport = async (id: string) => {
     setLoadingFile(true);
     setFileError(null);
     try {
+      const res = await fetch(`/api/reports/latest?id=${encodeURIComponent(id)}`);
+      const data = await res.json();
+      if (!res.ok || !data.csv) throw new Error(data.error || "Could not load report");
+      const s = await loadCSVFromText(data.report.fileName, data.csv);
+      applySchema(s, false, id);
+    } catch (err) {
+      setFileError(err instanceof Error ? err.message : "Failed to load saved report.");
+    } finally {
+      setLoadingFile(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await refreshReportList();
+        const res = await fetch("/api/reports/latest");
+        const data = await res.json();
+        if (!cancelled && data.csv && data.report) {
+          const s = await loadCSVFromText(data.report.fileName, data.csv);
+          applySchema(s, false, data.report.id);
+        }
+      } catch {
+        // no saved reports yet
+      } finally {
+        if (!cancelled) setBootstrapping(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const saveReportToServer = async (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("label", file.name.replace(/\.csv$/i, ""));
+    form.append("reportPeriod", reportPeriod);
+    form.append("reportCategory", reportCategory);
+    const res = await fetch("/api/reports", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save report");
+    await refreshReportList();
+    return data.report?.id as string | undefined;
+  };
+
+  const removeReport = async (id: string) => {
+    const target = savedReports.find((r) => r.id === id);
+    if (!target) return;
+    const confirmed = window.confirm(
+      `Remove "${target.label}" from saved reports?\n\nThis will not affect your Dashboard until you upload a new report.`
+    );
+    if (!confirmed) return;
+
+    setDeletingReportId(id);
+    setFileError(null);
+    try {
+      const res = await fetch(`/api/reports?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to remove report");
+
+      const wasActive = activeReportId === id;
+      await refreshReportList();
+
+      if (wasActive) {
+        const latestRes = await fetch("/api/reports/latest");
+        const latestData = await latestRes.json();
+        if (latestData.csv && latestData.report) {
+          const s = await loadCSVFromText(latestData.report.fileName, latestData.csv);
+          applySchema(s, false, latestData.report.id);
+        } else {
+          setSchema(null);
+          setActiveReportId(null);
+          setMessages([]);
+        }
+      }
+    } catch (err) {
+      setFileError(err instanceof Error ? err.message : "Failed to remove report.");
+    } finally {
+      setDeletingReportId(null);
+    }
+  };
+
+  const handleFile = async (file: File, options?: { save?: boolean }) => {
+    setLoadingFile(true);
+    setFileError(null);
+    const shouldSave = options?.save ?? saveToServer;
+    try {
+      let reportId: string | null = null;
+      if (shouldSave) {
+        reportId = (await saveReportToServer(file)) ?? null;
+      }
       const s = await loadCSV(file);
-      setSchema(s);
-      setMessages([
-        {
-          id: uuidv4(),
-          role: "assistant",
-          content: `Loaded "${file.name}" — ${s.rowCount.toLocaleString()} rows and ${s.columns.length} columns. Ask me anything about this data: totals, top/low sellers, trends, breakdowns, or forecasts. Every number is computed directly from your file.`,
-        },
-      ]);
+      applySchema(s, shouldSave, reportId);
     } catch (err) {
       setFileError(err instanceof Error ? err.message : "Failed to load the CSV file.");
     } finally {
@@ -198,6 +335,14 @@ export default function AnalystPage() {
     }
   };
 
+  if (bootstrapping) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100dvh-5.5rem)] text-ink-muted">
+        <Loader2 className="animate-spin mr-2" size={20} /> Loading saved reports…
+      </div>
+    );
+  }
+
   if (!schema) {
     return (
       <div className="flex flex-col h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-4rem)]">
@@ -205,13 +350,27 @@ export default function AnalystPage() {
           <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
             <PageHeader
               title="Data Analyst"
-              subtitle="Upload a CSV and ask questions — exact answers, charts, and forecasts"
+              subtitle="Upload a daily CSV report — saved for Dashboard & analysis"
             />
           </div>
 
-          <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+          <div className="flex-1 flex flex-col lg:flex-row items-stretch justify-center p-6 sm:p-10 gap-6 max-w-5xl mx-auto w-full">
+            {savedReports.length > 0 && (
+              <SavedReportsPanel
+                reports={savedReports}
+                activeId={activeReportId}
+                loading={loadingFile}
+                deletingId={deletingReportId}
+                onOpen={loadSavedReport}
+                onDelete={removeReport}
+              />
+            )}
+
             <div
-              className="w-full max-w-xl rounded-3xl border-2 border-dashed border-cyan-400/30 bg-cyan-500/5 p-10 sm:p-12 text-center cursor-pointer hover:border-cyan-400/50 hover:bg-cyan-500/10 transition-all ring-1 ring-white/5"
+              className="flex-1 flex flex-col justify-center min-w-0"
+            >
+            <div
+              className="w-full max-w-xl rounded-3xl border-2 border-dashed border-cyan-400/30 bg-cyan-500/5 p-10 sm:p-12 text-center cursor-pointer hover:border-cyan-400/50 hover:bg-cyan-500/10 transition-all ring-1 ring-white/5 mx-auto"
               onClick={() => fileRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
@@ -241,10 +400,49 @@ export default function AnalystPage() {
                     <Upload size={28} className="text-cyan-300" />
                   </span>
                   <div>
-                    <p className="text-lg font-semibold text-ink">Upload a CSV file</p>
+                    <p className="text-lg font-semibold text-ink">Upload a daily CSV report</p>
                     <p className="text-sm text-ink-muted mt-1.5 max-w-sm mx-auto">
-                      Drag and drop or click to browse — sales data, inventory, anything tabular
+                      Sales, inventory, or store exports — saved for the boss Dashboard
                     </p>
+                  </div>
+                  <label
+                    className="flex items-center justify-center gap-2 text-xs text-ink-secondary cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={saveToServer}
+                      onChange={(e) => setSaveToServer(e.target.checked)}
+                      className="rounded"
+                    />
+                    <Save size={12} className="text-cyan-300" /> Save to server (updates Dashboard)
+                  </label>
+                  <div
+                    className="flex flex-wrap items-center justify-center gap-2 text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <select
+                      value={reportCategory}
+                      onChange={(e) => setReportCategory(e.target.value as ReportCategory)}
+                      className="select-dark"
+                    >
+                      <option value="vendor">Vendor report (MHVR)</option>
+                      <option value="sales">Company sales</option>
+                      <option value="inventory">Inventory</option>
+                      <option value="custom">Other</option>
+                    </select>
+                    <select
+                      value={reportPeriod}
+                      onChange={(e) => setReportPeriod(e.target.value as ReportPeriod)}
+                      className="select-dark"
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="half_yearly">Half-yearly</option>
+                      <option value="yearly">Yearly</option>
+                      <option value="custom">Custom period</option>
+                    </select>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-ink-muted mt-1 px-4 py-2 rounded-full glass-panel">
                     <BarChart3 size={13} className="text-cyan-300" />
@@ -257,6 +455,7 @@ export default function AnalystPage() {
                   <AlertTriangle size={14} /> {fileError}
                 </p>
               )}
+            </div>
             </div>
           </div>
         </div>
@@ -285,15 +484,43 @@ export default function AnalystPage() {
                     if (f) handleFile(f);
                   }}
                 />
+                {savedReports.length > 1 && (
+                  <select
+                    className="select-dark text-xs max-w-[140px]"
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (e.target.value) loadSavedReport(e.target.value);
+                      e.target.value = "";
+                    }}
+                  >
+                    <option value="">Past reports</option>
+                    {savedReports.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={loadingFile}>
-                  <Upload size={15} /> {loadingFile ? "Loading…" : "New CSV"}
+                  <Upload size={15} /> {loadingFile ? "Loading…" : "Upload CSV"}
                 </Button>
               </>
             }
           />
         </div>
 
-        <div className="px-5 sm:px-6 pt-4 pb-2 shrink-0">
+        <div className="px-5 sm:px-6 pt-4 pb-2 shrink-0 space-y-3">
+          {savedReports.length > 0 && (
+            <SavedReportsPanel
+              reports={savedReports}
+              activeId={activeReportId}
+              loading={loadingFile}
+              deletingId={deletingReportId}
+              onOpen={loadSavedReport}
+              onDelete={removeReport}
+              compact
+            />
+          )}
           <DataPreview schema={schema} />
         </div>
 

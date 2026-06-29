@@ -2,7 +2,6 @@ import type { AppState, CalendarEvent, Email } from "@/types";
 import { toEmailPreview } from "@/lib/email-html";
 import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { houseOfBrands, brandPillars } from "@/lib/mock-data/products";
-import { formatPortfolioContext } from "@/lib/plaid/portfolio-context";
 import { buildStoreDirectoryContext } from "@/lib/stores/store-knowledge";
 import {
   userTimezone,
@@ -60,36 +59,6 @@ export function buildAssistantContext(state: AppState): string {
   const storeDirectory = buildStoreDirectoryContext();
   const pendingTasks = state.reminders.filter((r) => !r.completed);
   const googleConnected = state.integrations?.google?.connected ?? false;
-  const plaidConnected = state.integrations?.plaid?.connected ?? false;
-
-  const portfolioSection = state.portfolio
-    ? formatPortfolioContext({
-        totalValue: state.portfolio.totalValue,
-        institutionName: state.portfolio.institutionName,
-        env: state.integrations?.plaid?.env,
-        accounts: state.portfolio.accounts.map((a) => ({
-          id: a.id,
-          name: a.name,
-          type: a.type,
-          subtype: a.subtype,
-          balance: a.balance,
-          currency: "USD",
-        })),
-        holdings: state.portfolio.holdings.map((h) => ({
-          accountId: "",
-          accountName: h.accountName,
-          securityName: h.securityName,
-          ticker: h.ticker,
-          quantity: h.quantity,
-          price: h.price,
-          value: h.value,
-          currency: "USD",
-        })),
-        lastUpdated: state.portfolio.lastUpdated,
-      })
-    : plaidConnected
-      ? "## Investments\nPlaid connected but portfolio data not loaded — suggest user open Investments page and refresh."
-      : "## Investments\nNot connected — user can connect Vanguard via Settings → Plaid.";
 
   return `
 ## Current date/time
@@ -114,10 +83,7 @@ ${(user?.priorities ?? []).map((p) => `- ${p}`).join("\n")}
 
 ## Integrations
 Gmail/Calendar: ${googleConnected ? `connected (${state.integrations?.google?.email ?? "Google account"})` : "not connected — email/calendar data may be demo"}
-Plaid/Investments: ${plaidConnected ? `connected (${state.integrations?.plaid?.institutionName ?? "broker"})` : "not connected"}
 ${state.integrations?.google?.syncError ? `Sync note: ${state.integrations.google.syncError}` : ""}
-
-${portfolioSection}
 
 ## Calendar (${todayEvents.length} today, ${tomorrowEvents.length} tomorrow)
 ### Today

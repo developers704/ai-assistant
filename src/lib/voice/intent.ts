@@ -6,7 +6,6 @@ export type VoicePrefetchIntent =
   | "task_list"
   | "task_remove"
   | "task_complete"
-  | "portfolio"
   | "contacts"
   | "daily_briefing"
   | "health"
@@ -192,16 +191,8 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /portfolio|investments?|holdings|net worth|vanguard|what(?:'s| is) my.*worth|401k|my stocks/i.test(
-      lower
-    )
-  ) {
-    return "portfolio";
-  }
-
-  if (
     /contacts?|phone number|call ross|call umair|who is|find contact|whatsapp/i.test(lower) &&
-    !/draft|email|calendar|sales|task|meeting|portfolio/i.test(lower)
+    !/draft|email|calendar|sales|task|meeting/i.test(lower)
   ) {
     return "contacts";
   }

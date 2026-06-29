@@ -16,7 +16,6 @@ import {
   resolveCalendarDay,
 } from "@/lib/calendar-dates";
 import { findEmailByContext } from "@/lib/email-utils";
-import { computeAllocation } from "@/lib/plaid/portfolio-context";
 import {
   buildStoreListMarkdown,
   detectStoreRegionQuery,
@@ -27,7 +26,15 @@ import { resolveTaskTarget } from "@/lib/voice/tool-helpers";
 function detectIntent(message: string): IntentType {
   const lower = message.toLowerCase().trim();
 
-  if (/^(yes|confirm|go ahead|send it|proceed|approved?|do it|ok(ay)?)\b/.test(lower)) return "confirm_action";
+  if (
+    /^(ok(ay)?|thanks?|thank you|thx|got it|cool|great|perfect|sounds good|appreciate it|cheers)(\s+(thanks?|thank you|thx))?[.!]*$/i.test(
+      lower
+    )
+  ) {
+    return "acknowledgment";
+  }
+
+  if (/^(yes|confirm|go ahead|send it|proceed|approved?|do it)\b/.test(lower)) return "confirm_action";
   if (/^(no|cancel|reject|don't|stop|nevermind|never mind)\b/.test(lower)) return "reject_action";
   if (/help|what can you do|capabilities/.test(lower)) return "help";
   if (/good morning|hello|hi\b|hey\b|greetings/.test(lower)) return "greeting";
@@ -62,9 +69,6 @@ function detectIntent(message: string): IntentType {
   if (/summarize.*(pdf|document|doc|file|contract|report)|key points|analyze.*(excel|csv|data)/.test(lower)) return "document_summarize";
   if (/analyze.*(screenshot|image|photo|picture|dashboard)|what does this (show|dashboard)/.test(lower)) return "image_analyze";
   if (/call\s+\w+|phone call|dial/.test(lower)) return "call_prepare";
-  if (/portfolio|investments?|vanguard|holdings|net worth|401k|ira\b|stock allocation|my stocks|what('s| is) my.*worth/.test(lower)) {
-    return "portfolio_summary";
-  }
   if (isStoreLocationQuery(message)) return "store_list";
 
   return "general";
@@ -162,6 +166,8 @@ export function processMessage(message: string, state: AppState): AIResponse {
       return handleConfirmAction(state);
     case "reject_action":
       return handleRejectAction(state);
+    case "acknowledgment":
+      return handleAcknowledgment(message);
     case "greeting":
       return {
         intent,
@@ -170,8 +176,6 @@ export function processMessage(message: string, state: AppState): AIResponse {
       };
     case "daily_briefing":
       return generateDailyBriefing(state);
-    case "portfolio_summary":
-      return generatePortfolioSummary(state);
     case "store_list":
       return listStores(message);
     case "sales_report":
@@ -214,9 +218,7 @@ export function processMessage(message: string, state: AppState): AIResponse {
 • **Images** — Generate jewellery product photos, analyze screenshots and dashboards
 • **WhatsApp & Calls** — Draft messages and prepare calls (always with confirmation)
 
-• **Investments** — Portfolio value, holdings, and allocation (Vanguard via Plaid)
-
-Try: "What do I need to focus on today?" or "What's my portfolio worth?"`,
+Try: "What do I need to focus on today?" or "Summarize my inbox."`,
         speak: true,
       };
     default:
@@ -247,13 +249,6 @@ function generateDailyBriefing(state: AppState): AIResponse {
     ? `Yesterday's sales were ${Math.abs(salesChange).toFixed(0)}% lower than the previous day.`
     : `Sales are trending ${salesChange >= 0 ? "up" : "down"} at ${Math.abs(salesChange).toFixed(1)}% vs yesterday.`;
 
-  const portfolio = state.portfolio;
-  const portfolioLine = portfolio
-    ? `**Portfolio:** $${portfolio.totalValue.toLocaleString()} (${portfolio.institutionName ?? "investments"}) — ${portfolio.holdings.length} holding${portfolio.holdings.length !== 1 ? "s" : ""} across ${portfolio.accounts.length} account${portfolio.accounts.length !== 1 ? "s" : ""}`
-    : state.integrations?.plaid?.connected
-      ? "**Portfolio:** Connected — open Investments to sync latest data"
-      : null;
-
   return {
     intent: "daily_briefing",
     message: `Here's your focus for today:
@@ -263,100 +258,13 @@ function generateDailyBriefing(state: AppState): AIResponse {
 **Tasks:** ${pendingTasks.length} pending item${pendingTasks.length !== 1 ? "s" : ""}
 
 **Sales:** ${salesNote}
-${portfolioLine ? `\n${portfolioLine}` : ""}
 
 **Priority actions:**
 ${actions.map((a, i) => `${i + 1}. ${a.charAt(0).toUpperCase() + a.slice(1)}`).join("\n")}
 
 ${urgentEmails.length > 0 ? `\n⚠️ **Alert:** Urgent email from ${urgentEmails[0].from} — "${urgentEmails[0].subject}"` : ""}`,
     speak: true,
-    data: { events: todayEvents.length, tasks: pendingTasks.length, salesChange, portfolioValue: portfolio?.totalValue },
-  };
-}
-
-function generatePortfolioSummary(state: AppState): AIResponse {
-  const portfolio = state.portfolio;
-  const institution = state.integrations?.plaid?.institutionName ?? "your broker";
-
-  if (!state.integrations?.plaid?.connected) {
-    return {
-      intent: "portfolio_summary",
-      message:
-        "Investments aren't connected yet. Go to **Settings → Investments (Vanguard via Plaid)** and connect your account.",
-      speak: true,
-    };
-  }
-
-  if (!portfolio) {
-    return {
-      intent: "portfolio_summary",
-      message:
-        "Your investment account is connected but I couldn't load holdings. Open the **Investments** page and tap **Refresh**.",
-      speak: true,
-    };
-  }
-
-  const allocation = computeAllocation(
-    portfolio.holdings.map((h) => ({
-      accountId: "",
-      accountName: h.accountName,
-      securityName: h.securityName,
-      ticker: h.ticker,
-      quantity: h.quantity,
-      price: h.price,
-      value: h.value,
-      currency: "USD",
-    })),
-    portfolio.accounts.map((a) => ({
-      id: a.id,
-      name: a.name,
-      type: a.type,
-      subtype: a.subtype,
-      balance: a.balance,
-      currency: "USD",
-    })),
-    portfolio.totalValue
-  );
-
-  const accountLines = portfolio.accounts
-    .map((a) => `- **${a.name}** (${a.subtype ?? a.type}): $${a.balance.toLocaleString()}`)
-    .join("\n");
-
-  const topHoldings = portfolio.holdings.slice(0, 5);
-  const holdingLines = topHoldings.length
-    ? topHoldings
-        .map(
-          (h) =>
-            `- **${h.ticker ?? h.securityName}**: $${Math.round(h.value).toLocaleString()} (${h.quantity.toLocaleString(undefined, { maximumFractionDigits: 2 })} shares)`
-        )
-        .join("\n")
-    : allocation.length
-      ? allocation.map((s) => `- **${s.name}**: $${Math.round(s.value).toLocaleString()} (${s.percent.toFixed(1)}%)`).join("\n")
-      : "No holdings breakdown available — account balance only.";
-
-  const allocLines = allocation
-    .slice(0, 5)
-    .map((s) => `- ${s.name}: ${s.percent.toFixed(1)}%`)
-    .join("\n");
-
-  return {
-    intent: "portfolio_summary",
-    message: `**Portfolio summary** (${institution})
-
-**Total value:** $${portfolio.totalValue.toLocaleString()}
-
-**Accounts:**
-${accountLines}
-
-**Top positions:**
-${holdingLines}
-
-**Allocation:**
-${allocLines || "Single account — no fund-level split yet."}
-
-_Data as of ${new Date(portfolio.lastUpdated).toLocaleString()}. View full details on the Investments page._`,
-    speak: true,
-    data: { portfolio },
+    data: { events: todayEvents.length, tasks: pendingTasks.length, salesChange },
   };
 }
 
@@ -805,6 +713,18 @@ Should I place this call? I'll log notes afterward and can create a follow-up ta
   };
 }
 
+function handleAcknowledgment(message: string): AIResponse {
+  const lower = message.toLowerCase().trim();
+  const isThanks = /thanks?|thank you|thx|appreciate|cheers/.test(lower);
+  return {
+    intent: "acknowledgment",
+    message: isThanks
+      ? "You're welcome! Let me know if you need anything else."
+      : "Got it. I'm here whenever you need me.",
+    speak: true,
+  };
+}
+
 function handleConfirmAction(state: AppState): AIResponse {
   const pending = state.pendingActions[0];
   if (!pending) {
@@ -939,6 +859,7 @@ export function shouldUseRuleEngine(message: string): boolean {
   return (
     intent === "confirm_action" ||
     intent === "reject_action" ||
+    intent === "acknowledgment" ||
     intent === "task_delete" ||
     intent === "task_complete" ||
     intent === "reminder_list" ||

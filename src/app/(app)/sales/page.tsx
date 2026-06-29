@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils";
 import type { SalesSummary, StoreLocation, Product, CustomerReview } from "@/types";
+import type { ReportSummary } from "@/lib/reports/types";
+import { ReportInsightsCards } from "@/components/reports/ReportInsightsCards";
 import { BarChart3, TrendingUp, TrendingDown, Store, Package, MapPin, Gem, Star } from "lucide-react";
 
 interface BrandInfo {
@@ -25,6 +27,8 @@ interface StoreStats {
 export default function SalesPage() {
   const { sendChat } = useApp();
   const [summary, setSummary] = useState<SalesSummary | null>(null);
+  const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
+  const [dataSource, setDataSource] = useState<"mock" | "report">("mock");
   const [stores, setStores] = useState<StoreLocation[]>([]);
   const [stats, setStats] = useState<StoreStats | null>(null);
   const [showAllStores, setShowAllStores] = useState(false);
@@ -36,7 +40,11 @@ export default function SalesPage() {
   useEffect(() => {
     fetch("/api/sales")
       .then((r) => r.json())
-      .then((d) => setSummary(d.summary));
+      .then((d) => {
+        setSummary(d.summary);
+        setDataSource(d.source === "report" ? "report" : "mock");
+        if (d.source === "report") setReportSummary(d.summary as ReportSummary);
+      });
     fetch("/api/stores")
       .then((r) => r.json())
       .then((d) => {
@@ -67,7 +75,11 @@ export default function SalesPage() {
     <div>
       <PageHeader
         title="Sales Reports"
-        subtitle={`Daily performance · ${stats?.total ?? 29} Valliani Jewelers locations (${stats?.open ?? 27} open, ${stats?.openingSoon ?? 2} opening soon)`}
+        subtitle={
+          dataSource === "report" && reportSummary?.reportLabel
+            ? `${reportSummary.vendorCode ? reportSummary.vendorCode + " · " : ""}${reportSummary.reportLabel}`
+            : `Daily performance · ${stats?.total ?? 29} Valliani Jewelers locations (${stats?.open ?? 27} open, ${stats?.openingSoon ?? 2} opening soon)`
+        }
         action={
           <Button size="sm" onClick={() => sendChat("Show me today's sales across all stores")}>
             Ask Assistant
@@ -112,6 +124,12 @@ export default function SalesPage() {
           <p className="text-sm text-ink-muted mt-2">+{summary.comparisonPreviousWeek.toFixed(1)}% vs last week</p>
         </Card>
       </div>
+
+      {reportSummary && dataSource === "report" && (
+        <div className="mb-6">
+          <ReportInsightsCards summary={reportSummary} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
         <Card>

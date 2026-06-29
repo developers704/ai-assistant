@@ -281,6 +281,7 @@ export type IntentType =
   | "task_delete"
   | "confirm_action"
   | "reject_action"
+  | "acknowledgment"
   | "portfolio_summary"
   | "store_list"
   | "image_generate"

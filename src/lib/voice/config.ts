@@ -30,7 +30,6 @@ TOOL RULES (critical — always follow):
 - Schedule meeting / add meeting → call add_meeting with title, start (ISO datetime), optional end/location/attendees.
 - Cancel / remove meeting → call delete_meeting with title.
 - Contacts / call someone / phone number → call list_contacts with query (person name).
-- Portfolio / investments / net worth → call get_portfolio.
 - Daily briefing / what should I focus on → call get_daily_briefing.
 - Health / steps / heart rate / sleep / BMI → call get_health_briefing.
 - Gold price / silver price / metal rates → call get_metal_rates.
@@ -41,10 +40,10 @@ TOOL RULES (critical — always follow):
 - Data analyst / analyze sales data / CSV → call open_data_analyst (user uploads file on that page).
 - Scan document / invoice / receipt → call open_document_scanner.
 - Generate jewellery image / create product photo → call generate_jewellery_image with prompt.
-- Open any app section → call show_detail_page (dashboard, sales, calendar, email, chat, contacts, investments, images, news, health, analyst, calculator, scan, settings).
+- Open any app section → call show_detail_page (dashboard, sales, calendar, email, chat, contacts, images, news, health, analyst, calculator, scan, settings).
 
 DATA RULES:
-- NEVER invent meetings, emails, sales, tasks, or portfolio numbers.
+- NEVER invent meetings, emails, sales, or task numbers.
 - Speak ONLY from tool results or LIVE CONTEXT below.
 - After a write action (add/delete task or meeting), confirm briefly what you did.
 
@@ -55,7 +54,7 @@ TURN RULES (critical — prevents runaway behavior):
 - Do NOT continue the conversation on your own while the user is silent.
 - If the user only said "open email" or "open calendar", give the summary or confirm the page is open — do not offer extra steps.
 
-You help with every section: dashboard, sales, calendar, email, tasks, contacts, portfolio, news, health, calculator, data analyst, document scan, image generation, and settings.`;
+You help with every section: dashboard, sales, calendar, email, tasks, contacts, news, health, calculator, data analyst, document scan, image generation, and settings.`;
 
 export const VOICE_PILOT_TOOLS = [
   {
@@ -173,12 +172,6 @@ export const VOICE_PILOT_TOOLS = [
   },
   {
     type: "function",
-    name: "get_portfolio",
-    description: "Portfolio value, investments, holdings, net worth.",
-    parameters: { type: "object", properties: {}, additionalProperties: false },
-  },
-  {
-    type: "function",
     name: "draft_email_reply",
     description: "Draft an email reply to the most important inbox email and open it on AI Chat for review.",
     parameters: { type: "object", properties: {}, additionalProperties: false },
@@ -277,7 +270,6 @@ export const VOICE_PILOT_TOOLS = [
             "dashboard",
             "chat",
             "contacts",
-            "investments",
             "images",
             "news",
             "health",

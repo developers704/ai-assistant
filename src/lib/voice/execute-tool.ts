@@ -25,8 +25,6 @@ import {
 } from "@/lib/google/calendar";
 import { invalidateGoogleCache, getGoogleCache, setGoogleCache } from "@/lib/google/cache";
 import { isGoogleConnected, getGoogleTokens } from "@/lib/google/token-store";
-import { fetchInvestmentSummary } from "@/lib/plaid/investments";
-import { isPlaidConnected } from "@/lib/plaid/token-store";
 import { filterCalendarEvents } from "@/lib/calendar-utils";
 import { userTimezone } from "@/lib/calendar-dates";
 import { generateGeminiImage } from "@/lib/gemini/image";
@@ -58,7 +56,6 @@ const PAGE_PATHS: Record<string, string> = {
   dashboard: "/dashboard",
   chat: "/chat",
   contacts: "/contacts",
-  investments: "/investments",
   images: "/images",
   news: "/news",
   health: "/health",
@@ -126,51 +123,6 @@ function buildContactsScript(contacts: Contact[], query?: string): string {
     return "No contacts found.";
   }
   return `Key contacts: ${list.map((c) => `${c.name} (${c.role})`).join("; ")}.`;
-}
-
-async function buildPortfolioScript(): Promise<string> {
-  let portfolio = getState().portfolio;
-
-  if (isPlaidConnected()) {
-    try {
-      const live = await fetchInvestmentSummary();
-      if (live) {
-        portfolio = {
-          totalValue: live.totalValue,
-          institutionName: getState().integrations?.plaid?.institutionName ?? "Investments",
-          accounts: live.accounts.map((a) => ({
-            id: a.id,
-            name: a.name,
-            type: a.type,
-            subtype: a.subtype,
-            balance: a.balance,
-          })),
-          holdings: live.holdings.map((h) => ({
-            securityName: h.securityName,
-            ticker: h.ticker,
-            value: h.value,
-            quantity: h.quantity,
-            price: h.price,
-            accountName: h.accountName,
-          })),
-          lastUpdated: live.lastUpdated,
-        };
-      }
-    } catch {
-      // use cached state portfolio if fetch fails
-    }
-  }
-
-  if (!portfolio) {
-    return "Your portfolio isn't connected yet. Open Settings to link Vanguard, or go to the Investments page.";
-  }
-
-  const top = portfolio.holdings.slice(0, 3);
-  const holdingLine =
-    top.length > 0
-      ? ` Top holdings: ${top.map((h) => h.ticker ?? h.securityName).join(", ")}.`
-      : "";
-  return `Your portfolio is worth $${portfolio.totalValue.toLocaleString()} at ${portfolio.institutionName ?? "your investment account"}.${holdingLine} Open Investments for full details.`;
 }
 
 export async function executeVoiceTool(
@@ -509,14 +461,6 @@ export async function executeVoiceTool(
           })),
         }),
         uiAction: { type: "navigate", path: "/contacts" },
-      };
-    }
-
-    case "get_portfolio": {
-      const script = await buildPortfolioScript();
-      return {
-        output: JSON.stringify({ spokenAnswer: script }),
-        uiAction: { type: "navigate", path: "/investments" },
       };
     }
 

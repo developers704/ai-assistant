@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Icon, IconBadge } from "@/components/ui/Icon";
 import { WeatherWidget } from "@/components/ui/WeatherWidget";
+import { Badge } from "@/components/ui/Badge";
 import {
   formatCurrency,
   getPriorityColor,
@@ -16,6 +18,9 @@ import {
 import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { filterCalendarEvents, formatTimeInTimezone } from "@/lib/calendar-utils";
 import { isTodayInTimezone, userTimezone } from "@/lib/calendar-dates";
+import type { SalesSummary } from "@/types";
+import type { ReportSummary } from "@/lib/reports/types";
+import { ReportInsightsCards } from "@/components/reports/ReportInsightsCards";
 import {
   Calendar,
   CheckSquare,
@@ -24,16 +29,32 @@ import {
   AlertTriangle,
   ArrowRight,
   Plus,
-  PieChart,
 } from "lucide-react";
 
 export default function DashboardPage() {
   const { state } = useApp();
-  if (!state) return null;
+  const [salesSummary, setSalesSummary] = useState<SalesSummary>(() =>
+    computeSalesSummary(mockSalesData)
+  );
+  const [salesSource, setSalesSource] = useState<"mock" | "report">("mock");
+  const [reportLabel, setReportLabel] = useState<string | null>(null);
+  const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
 
-  const portfolio = state.portfolio;
-  const plaidConnected = state.integrations?.plaid?.connected ?? false;
-  const institutionName = state.integrations?.plaid?.institutionName ?? "Investments";
+  useEffect(() => {
+    fetch("/api/sales")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.summary) {
+          setSalesSummary(d.summary);
+          setSalesSource(d.source === "report" ? "report" : "mock");
+          setReportLabel(d.reportLabel ?? null);
+          if (d.source === "report") setReportSummary(d.summary as ReportSummary);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!state) return null;
 
   const tz = userTimezone(state);
   const todayEvents = filterCalendarEvents(state.events)
@@ -42,7 +63,6 @@ export default function DashboardPage() {
 
   const pendingTasks = state.reminders.filter((r) => !r.completed);
   const urgentEmails = state.emails.filter((e) => e.category === "urgent" && !e.isRead);
-  const salesSummary = computeSalesSummary(mockSalesData);
 
   const firstName = getDisplayFirstName(state.user?.name);
 
@@ -61,14 +81,6 @@ export default function DashboardPage() {
           <span className="text-ink font-medium">{pendingTasks.length} tasks</span>
           {" · "}
           <span className="text-ink font-medium">{urgentEmails.length} urgent emails</span>
-          {portfolio && (
-            <>
-              {" · "}
-              <span className="text-ink font-medium">
-                Portfolio {formatCurrency(portfolio.totalValue)}
-              </span>
-            </>
-          )}
         </p>
       </Card>
 
@@ -84,7 +96,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2.5">
@@ -94,12 +106,17 @@ export default function DashboardPage() {
                 iconColor="text-emerald-300"
                 size="md"
               />
-              Today&apos;s Sales
+              {salesSource === "report" ? "Latest Report Sales" : "Today&apos;s Sales"}
             </CardTitle>
             <Link href="/sales" className="text-emerald-300 text-sm hover:text-emerald-200 flex items-center gap-1">
               Details <Icon icon={ArrowRight} size="sm" />
             </Link>
           </CardHeader>
+          {salesSource === "report" && reportLabel && (
+            <Badge variant="success" className="mb-2 text-[10px]">
+              From uploaded report: {reportLabel}
+            </Badge>
+          )}
           <p className="text-3xl font-bold text-ink">{formatCurrency(salesSummary.totalRevenue)}</p>
           <div className="flex items-center gap-2 mt-2">
             {salesSummary.comparisonPreviousDay >= 0 ? (
@@ -109,9 +126,18 @@ export default function DashboardPage() {
             )}
             <span className={salesSummary.comparisonPreviousDay >= 0 ? "text-emerald-400" : "text-rose-400"}>
               {salesSummary.comparisonPreviousDay >= 0 ? "+" : ""}
-              {salesSummary.comparisonPreviousDay.toFixed(1)}% vs yesterday
+              {salesSummary.comparisonPreviousDay.toFixed(1)}% vs previous period
             </span>
           </div>
+          {salesSource === "mock" && (
+            <p className="text-xs text-ink-muted mt-2">
+              Demo data — upload a CSV in{" "}
+              <Link href="/analyst" className="text-cyan-300 hover:underline">
+                Data Analyst
+              </Link>{" "}
+              for real numbers
+            </p>
+          )}
           <div className="mt-4 space-y-2">
             {salesSummary.topStores.slice(0, 2).map((store) => (
               <div key={store.name} className="flex justify-between text-sm">
@@ -185,55 +211,13 @@ export default function DashboardPage() {
             )}
           </div>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2.5">
-              <IconBadge icon={PieChart} iconBg="bg-indigo-500/20" iconColor="text-indigo-300" size="md" />
-              Portfolio
-            </CardTitle>
-            <Link href="/investments" className="text-indigo-300 text-sm hover:text-indigo-200">
-              View all
-            </Link>
-          </CardHeader>
-          {plaidConnected && portfolio ? (
-            <>
-              <p className="text-3xl font-bold text-ink">{formatCurrency(portfolio.totalValue)}</p>
-              <p className="text-xs text-ink-muted mt-1">{institutionName}</p>
-              <div className="mt-4 space-y-2">
-                {(portfolio.holdings.length > 0
-                  ? portfolio.holdings.slice(0, 3).map((h) => ({
-                      key: h.ticker ?? h.securityName,
-                      label: h.ticker ?? h.securityName,
-                      value: h.value,
-                    }))
-                  : portfolio.accounts.slice(0, 3).map((a) => ({
-                      key: a.id,
-                      label: a.name,
-                      value: a.balance,
-                    }))
-                ).map((item) => (
-                  <div key={item.key} className="flex justify-between text-sm gap-2">
-                    <span className="text-ink-secondary truncate">{item.label}</span>
-                    <span className="font-medium text-ink shrink-0">{formatCurrency(item.value)}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="py-2">
-              <p className="text-sm text-ink-muted">
-                {plaidConnected ? "Loading portfolio…" : "Connect Vanguard in Settings"}
-              </p>
-              {!plaidConnected && (
-                <Link href="/settings" className="text-xs text-indigo-300 hover:text-indigo-200 mt-2 inline-block">
-                  Connect account
-                </Link>
-              )}
-            </div>
-          )}
-        </Card>
       </div>
+
+      {reportSummary && salesSource === "report" && (
+        <div className="mt-6">
+          <ReportInsightsCards summary={reportSummary} compact />
+        </div>
+      )}
     </div>
   );
 }

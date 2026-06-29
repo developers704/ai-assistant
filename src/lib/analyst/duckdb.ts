@@ -177,14 +177,9 @@ async function autoCleanColumns(
 }
 
 /**
- * Load a CSV file into DuckDB table `data` and profile it.
- * Uses PapaParse to sanitize/validate the file, then DuckDB's CSV sniffer
- * (sample_size=-1 scans every row, so type detection is exact).
+ * Load CSV text into DuckDB table `data` and profile it.
  */
-export async function loadCSV(file: File): Promise<TableSchema> {
-  const text = await file.text();
-
-  // Validate structure with PapaParse before handing to the engine.
+export async function loadCSVFromText(fileName: string, text: string): Promise<TableSchema> {
   const parsed = Papa.parse<string[]>(text, { skipEmptyLines: true, preview: 5 });
   if (parsed.data.length < 2) {
     throw new Error("This CSV appears to be empty or has no data rows.");
@@ -199,14 +194,12 @@ export async function loadCSV(file: File): Promise<TableSchema> {
       "CREATE TABLE data AS SELECT * FROM read_csv_auto('upload.csv', header=true, sample_size=-1)"
     );
 
-    // Convert currency-text and date-text columns to real types before profiling.
     const conversions = await autoCleanColumns(conn, await runDescribe(conn));
 
     const describe = await runDescribe(conn);
     const countRes = await conn.query("SELECT count(*)::DOUBLE AS n FROM data");
     const rowCount = Number(normalizeValue(countRes.toArray()[0].toJSON().n));
 
-    // Null counts + sample values per column in two queries total.
     const nullExprs = describe
       .map(
         (c, i) => `count(*) FILTER (WHERE ${quoteIdent(c.name)} IS NULL)::DOUBLE AS c${i}`
@@ -224,9 +217,6 @@ export async function loadCSV(file: File): Promise<TableSchema> {
       return obj;
     });
 
-    // For category-like text columns, capture the complete distinct value list so
-    // the AI can filter with exact equality (e.g. Department = 'GOLD RINGS')
-    // instead of error-prone substring matching.
     const MAX_CATEGORY_VALUES = 80;
     const distinctValues = new Map<string, string[]>();
     const textCols = describe.filter((c) => kindFromDuckType(c.type) === "text");
@@ -273,8 +263,18 @@ export async function loadCSV(file: File): Promise<TableSchema> {
       };
     });
 
-    return { fileName: file.name, rowCount, columns, previewRows };
+    return { fileName, rowCount, columns, previewRows };
   });
+}
+
+/**
+ * Load a CSV file into DuckDB table `data` and profile it.
+ * Uses PapaParse to sanitize/validate the file, then DuckDB's CSV sniffer
+ * (sample_size=-1 scans every row, so type detection is exact).
+ */
+export async function loadCSV(file: File): Promise<TableSchema> {
+  const text = await file.text();
+  return loadCSVFromText(file.name, text);
 }
 
 async function runDescribe(

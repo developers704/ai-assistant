@@ -21,7 +21,6 @@ import {
   Newspaper,
   HeartPulse,
   Calculator,
-  PieChart,
   Menu,
   X,
   type LucideIcon,
@@ -66,15 +65,6 @@ const navItems: NavItem[] = [
     iconColor: "text-sky-300",
     activeBg: "bg-sky-500/30",
     accent: "bg-sky-400",
-  },
-  {
-    href: "/investments",
-    label: "Investments",
-    icon: PieChart,
-    iconBg: "bg-indigo-500/20",
-    iconColor: "text-indigo-300",
-    activeBg: "bg-indigo-500/30",
-    accent: "bg-indigo-400",
   },
   {
     href: "/email",

@@ -20,8 +20,6 @@ import { cn } from "@/lib/utils";
 
 import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug } from "lucide-react";
 
-import { PlaidConnectButton } from "@/components/settings/PlaidConnectButton";
-
 
 
 const fieldClass =
@@ -236,14 +234,6 @@ function SettingsContent() {
 
   const googleSyncError = state.integrations?.google?.syncError;
 
-  const plaidConnected = state.integrations?.plaid?.connected ?? false;
-
-  const plaidConfigured = state.integrations?.plaid?.configured ?? false;
-
-  const plaidInstitution = state.integrations?.plaid?.institutionName;
-
-  const plaidEnv = state.integrations?.plaid?.env ?? "sandbox";
-
 
 
   const handleDisconnectGoogle = async () => {
@@ -321,24 +311,6 @@ function SettingsContent() {
       status: state.integrations?.news?.configured ? "Connected" : "Not configured",
 
       variant: state.integrations?.news?.configured ? ("success" as const) : ("warning" as const),
-
-    },
-
-    {
-
-      name: "Investments (Plaid)",
-
-      status: plaidConnected
-
-        ? `Connected${plaidInstitution ? ` · ${plaidInstitution}` : ""}`
-
-        : plaidConfigured
-
-          ? `Not connected (${plaidEnv})`
-
-          : "Not configured",
-
-      variant: plaidConnected ? ("success" as const) : ("warning" as const),
 
     },
 
@@ -700,27 +672,9 @@ function SettingsContent() {
 
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-white/10">
-
-                  <p className="text-sm font-medium text-ink mb-2">Investments (Vanguard via Plaid)</p>
-
-                  <PlaidConnectButton
-
-                    connected={plaidConnected}
-
-                    institutionName={plaidInstitution}
-
-                    configured={plaidConfigured}
-
-                    onConnected={refresh}
-
-                  />
-
-                </div>
-
                 <p className="text-xs text-ink-muted mt-3">
 
-                  Connect Google for inbox and calendar. Connect investments via Plaid (Sandbox test bank first, then Vanguard in Production).
+                  Connect Google for inbox and calendar.
 
                 </p>
 

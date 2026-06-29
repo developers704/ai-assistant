@@ -264,19 +264,6 @@ export function useRealtimeVoice(enabled: boolean) {
         }
       }
 
-      if (intent === "portfolio") {
-        try {
-          await runTool(
-            "get_portfolio",
-            {},
-            "The user asked about PORTFOLIO. Say exactly this:"
-          );
-          return;
-        } catch {
-          // fall through
-        }
-      }
-
       if (intent === "contacts") {
         try {
           const query = extractContactQuery(normalized);
