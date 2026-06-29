@@ -25,14 +25,29 @@ import { resolveTaskTarget } from "@/lib/voice/tool-helpers";
 import { formatLongDate } from "@/lib/utils";
 import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
 
+function isAcknowledgmentMessage(message: string): boolean {
+  const normalized = message
+    .toLowerCase()
+    .trim()
+    .replace(/[!.,]+$/g, "")
+    .replace(/\s+/g, " ");
+  if (!normalized || normalized.length > 50) return false;
+
+  return (
+    /^(ok(ay)?|k)( (thank\s*you|thankyou|thanks|thx|ty|cheers))?$/i.test(normalized) ||
+    /^(thank\s*you|thankyou|thanks|thx|ty|cheers|much appreciated|appreciate it)( (so much|a lot|again))?$/i.test(
+      normalized
+    ) ||
+    /^(got it|perfect|great|cool|nice|good|awesome|sounds good|noted|will do|lovely|fine)$/i.test(
+      normalized
+    )
+  );
+}
+
 function detectIntent(message: string): IntentType {
   const lower = message.toLowerCase().trim();
 
-  if (
-    /^(ok(ay)?|thanks?|thank you|thx|got it|cool|great|perfect|sounds good|appreciate it|cheers)(\s+(thanks?|thank you|thx))?[.!]*$/i.test(
-      lower
-    )
-  ) {
+  if (isAcknowledgmentMessage(message)) {
     return "acknowledgment";
   }
 
@@ -736,7 +751,7 @@ Should I place this call? I'll log notes afterward and can create a follow-up ta
 
 function handleAcknowledgment(message: string): AIResponse {
   const lower = message.toLowerCase().trim();
-  const isThanks = /thanks?|thank you|thx|appreciate|cheers/.test(lower);
+  const isThanks = /thanks?|thank\s*you|thankyou|thx|\bty\b|appreciate|cheers/.test(lower);
   return {
     intent: "acknowledgment",
     message: isThanks
