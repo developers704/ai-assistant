@@ -170,15 +170,22 @@ export default function SalesPage() {
           </CardHeader>
           <div className="space-y-3">
             {summary.topProducts.map((product, i) => (
-              <div key={product.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-ink-muted w-6">{i + 1}</span>
-                  <div>
-                    <p className="text-sm font-medium text-ink">{product.name}</p>
+              <div key={`${product.itemNumber ?? ""}-${product.name}-${i}`} className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-sm text-ink-muted w-6 shrink-0">{i + 1}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink leading-snug">
+                      {product.itemNumber && (
+                        <span className="text-cyan-300/90 font-mono text-xs mr-1.5 shrink-0">
+                          #{product.itemNumber}
+                        </span>
+                      )}
+                      <span className="break-words">{product.name}</span>
+                    </p>
                     <p className="text-xs text-ink-muted">{product.units} pieces sold</p>
                   </div>
                 </div>
-                <span className="text-sm font-medium">{formatCurrency(product.revenue)}</span>
+                <span className="text-sm font-medium shrink-0">{formatCurrency(product.revenue)}</span>
               </div>
             ))}
           </div>

@@ -116,7 +116,7 @@ Total revenue (latest period): $${sales.totalRevenue.toLocaleString()}
 Transactions: ${sales.totalTransactions} | AOV: $${Math.round(sales.averageOrderValue).toLocaleString()}
 vs previous day: ${sales.comparisonPreviousDay.toFixed(1)}%
 Top stores: ${sales.topStores.slice(0, 3).map((s) => `${s.name} $${Math.round(s.revenue).toLocaleString()}`).join("; ")}
-Top products: ${sales.topProducts.slice(0, 3).map((p) => `${p.name} (${p.units} units)`).join("; ")}
+Top products: ${sales.topProducts.slice(0, 3).map((p) => `${p.itemNumber ? `#${p.itemNumber} ` : ""}${p.name} (${p.units} units)`).join("; ")}
 
 ## Pending user confirmations
 ${state.pendingActions.length ? state.pendingActions.map((a) => `- ${a.type}: ${a.title}`).join("\n") : "None — if user says yes/confirm, tell them nothing is waiting."}

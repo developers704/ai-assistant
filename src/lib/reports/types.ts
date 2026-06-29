@@ -9,6 +9,7 @@ export interface VendorPosRow {
   storeName: string;
   department: string;
   design: string;
+  itemNumber: string;
   description: string;
   vendor: string;
   quantity: number;

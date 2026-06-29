@@ -52,6 +52,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   const deptCol = findCol(columns, [/^department$/]);
   const designCol = findCol(columns, [/^design$/]);
   const descCol = findCol(columns, [/^description$/]);
+  const itemCol = findCol(columns, [/^item\s*#?$/, /^item number$/]);
   const qtyCol = findCol(columns, [/^qty$/, /quantity/]);
   const grossCol = findCol(columns, [/sales amount/]);
   const discCol = findCol(columns, [/disc amt/, /discount amt/]);
@@ -79,6 +80,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       storeName: store || "Unknown store",
       department: department || "Uncategorized",
       design: designCol ? String(rec[designCol] ?? "").trim() || "—" : "—",
+      itemNumber: itemCol ? String(rec[itemCol] ?? "").trim() : "",
       description: descCol ? String(rec[descCol] ?? "").trim() || department : department,
       vendor: vendorCol ? String(rec[vendorCol] ?? "").trim().toUpperCase() : "",
       quantity: qty || 1,
@@ -110,6 +112,36 @@ function rankMap(
     .map(([name, stats]) => ({ name, ...stats }))
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, limit);
+}
+
+function rankProducts(rows: VendorPosRow[], limit = 10) {
+  const map = new Map<
+    string,
+    { name: string; itemNumber?: string; revenue: number; units: number }
+  >();
+
+  for (const r of rows) {
+    const label = r.description?.trim();
+    const itemNumber = r.itemNumber?.trim();
+    if (!label && !itemNumber) continue;
+
+    const key = itemNumber ? `item:${itemNumber}` : `desc:${label}`;
+    const existing = map.get(key) || {
+      name: label || itemNumber || "Unknown item",
+      itemNumber: itemNumber || undefined,
+      revenue: 0,
+      units: 0,
+    };
+
+    map.set(key, {
+      name: label || existing.name,
+      itemNumber: itemNumber || existing.itemNumber,
+      revenue: existing.revenue + r.netRevenue,
+      units: existing.units + r.quantity,
+    });
+  }
+
+  return [...map.values()].sort((a, b) => b.revenue - a.revenue).slice(0, limit);
 }
 
 export function summarizeVendorPos(
@@ -180,13 +212,7 @@ export function summarizeVendorPos(
     (r) => r.quantity
   );
 
-  const topProducts = rankMap(
-    periodRows,
-    (r) => r.description,
-    (r) => r.netRevenue,
-    (r) => r.quantity,
-    10
-  );
+  const topProducts = rankProducts(periodRows, 10);
 
   const underperformingStores = topStores.filter((s) => s.change < 0);
   const avgDiscountRate =

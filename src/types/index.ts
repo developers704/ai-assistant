@@ -154,7 +154,7 @@ export interface SalesSummary {
   comparisonPreviousDay: number;
   comparisonPreviousWeek: number;
   topStores: { name: string; revenue: number; change: number }[];
-  topProducts: { name: string; revenue: number; units: number }[];
+  topProducts: { name: string; itemNumber?: string; revenue: number; units: number }[];
   underperformingStores: { name: string; revenue: number; change: number }[];
   recommendations: string[];
 }
