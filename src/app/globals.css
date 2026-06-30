@@ -169,13 +169,19 @@
 
 @layer components {
   .select-dark {
-    @apply rounded-xl border border-white/25 bg-slate-900 px-2 py-1.5 text-sm text-ink;
+    @apply rounded-xl border border-white/25 bg-slate-900 px-2 py-1.5 text-sm;
+    color: #f1f5f9;
     color-scheme: dark;
   }
 
   .select-dark option {
     background-color: #0f172a;
     color: #f1f5f9;
+  }
+
+  .select-dark option:checked {
+    background-color: #334155;
+    color: #ffffff;
   }
 }
 
