@@ -25,6 +25,7 @@ import {
   Loader2,
   AlertTriangle,
   TrendingUp,
+  TrendingDown,
   LineChart,
   Trophy,
   Landmark,
@@ -47,9 +48,8 @@ interface MetalPrice {
   pricePerGram: number;
 
   live: boolean;
-
+  changePct?: number;
   derived?: { label: string; pricePerGram: number }[];
-
 }
 
 interface NewsItem {
@@ -73,7 +73,7 @@ interface MarketData {
   updatedAt: string;
 
   metalsLive: boolean;
-
+  metalsSource?: string;
   newsLive?: boolean;
 
   newsError?: string | null;
@@ -280,6 +280,17 @@ export default function NewsMarketsPage() {
                         <span className="text-sm font-normal text-ink-muted"> / troy oz</span>
                       </p>
                       <p className="text-sm text-ink-muted mt-1">{money(m.pricePerGram)} / g</p>
+                      {m.changePct != null && (
+                        <p
+                          className={`text-xs mt-1.5 flex items-center gap-1 ${
+                            m.changePct >= 0 ? "text-emerald-400" : "text-accent-rose"
+                          }`}
+                        >
+                          {m.changePct >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                          {m.changePct >= 0 ? "+" : ""}
+                          {m.changePct.toFixed(2)}% today
+                        </p>
+                      )}
                       {m.derived && (
                         <div className="mt-4 pt-3 border-t border-white/10 grid grid-cols-2 gap-x-4 gap-y-1.5">
                           {m.derived.map((d) => (
@@ -298,7 +309,19 @@ export default function NewsMarketsPage() {
                   ))}
 
                 </div>
-
+                <p className="text-xs text-ink-muted mt-2">
+                  Spot prices via{" "}
+                  <a
+                    href="https://metalmetric.com/developers"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sky-300 hover:underline"
+                  >
+                    MetalMetric
+                  </a>
+                  {" "}
+                  (COMEX/LBMA reference, ~60s refresh)
+                </p>
               </div>
 
 
@@ -540,7 +563,10 @@ export default function NewsMarketsPage() {
 
                 Last updated {new Date(data.updatedAt).toLocaleTimeString("en-US")} ·{" "}
 
-                {data.metalsLive ? "Live spot prices" : "Indicative metal prices"} ·{" "}
+                {data.metalsLive
+                  ? `Live spot · ${data.metalsSource ?? "MetalMetric"}`
+                  : "Indicative metal prices"}{" "}
+                ·{" "}
 
                 {data.newsLive || data.sportsLive || data.politicsLive ? "Live headlines" : "Curated headlines"}
 

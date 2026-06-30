@@ -11,28 +11,7 @@ import {
 import { buildEmailVoiceScript, getVoiceEmails } from "@/lib/voice/email-data";
 import { buildTasksVoiceScript } from "@/lib/voice/tool-helpers";
 import { getAssistantSalesSummary } from "@/lib/assistant/sales-data";
-
-const TROY_OUNCE_GRAMS = 31.1035;
-const KARAT_PURITY: Record<string, number> = {
-  "24K": 1,
-  "22K": 0.9167,
-  "18K": 0.75,
-  "14K": 0.5833,
-};
-
-async function fetchSpot(symbol: string): Promise<number | null> {
-  try {
-    const res = await fetch(`https://api.gold-api.com/price/${symbol}`, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { price?: number };
-    return typeof data.price === "number" ? data.price : null;
-  } catch {
-    return null;
-  }
-}
+import { fetchMetalMetricSpot, KARAT_PURITY, TROY_OUNCE_GRAMS } from "@/lib/markets/metalmetric";
 
 export interface MarketRatesSummary {
   gold22PerGram: number;
@@ -43,9 +22,10 @@ export interface MarketRatesSummary {
 }
 
 export async function getMarketRatesSummary(): Promise<MarketRatesSummary> {
-  const goldOz = (await fetchSpot("XAU")) ?? 4332;
-  const silverOz = (await fetchSpot("XAG")) ?? 70;
-  const live = (await fetchSpot("XAU")) != null;
+  const spot = await fetchMetalMetricSpot();
+  const goldOz = spot?.goldPerOz ?? 4332;
+  const silverOz = spot?.silverPerOz ?? 70;
+  const live = spot?.live ?? false;
   const goldPerGram = goldOz / TROY_OUNCE_GRAMS;
   const gold22 = Math.round(goldPerGram * KARAT_PURITY["22K"] * 100) / 100;
   const gold24 = Math.round(goldPerGram * 100) / 100;
@@ -57,7 +37,7 @@ export async function getMarketRatesSummary(): Promise<MarketRatesSummary> {
     silverPerGram,
     live,
     spokenAnswer: live
-      ? `Live rates: 22 karat gold is about $${gold22} per gram, 24 karat is $${gold24}, and silver is $${silverPerGram} per gram. Open the Price Calculator for a full quote.`
+      ? `Live MetalMetric rates: 22 karat gold is about $${gold22} per gram, 24 karat is $${gold24}, and silver is $${silverPerGram} per gram. Open the Price Calculator for a full quote.`
       : `Indicative rates: 22 karat gold about $${gold22} per gram, silver about $${silverPerGram} per gram. Open the Price Calculator for details.`,
   };
 }
