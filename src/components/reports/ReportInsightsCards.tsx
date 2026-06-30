@@ -30,12 +30,8 @@ export function ReportInsightsCards({ summary, compact }: ReportInsightsProps) {
         )}
       </div>
 
-      {isVendor && summary.grossSales != null && (
-        <div className={`grid gap-3 ${compact ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-4"}`}>
-          <Card className="p-4">
-            <p className="text-xs text-ink-muted">Gross sales</p>
-            <p className="text-xl font-bold text-ink mt-1">{formatCurrency(summary.grossSales)}</p>
-          </Card>
+      {isVendor && (
+        <div className={`grid gap-3 ${compact ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2 md:grid-cols-3"}`}>
           <Card className="p-4">
             <p className="text-xs text-ink-muted">Net sales</p>
             <p className="text-xl font-bold text-emerald-300 mt-1">{formatCurrency(summary.totalRevenue)}</p>

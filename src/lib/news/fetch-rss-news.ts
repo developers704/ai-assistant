@@ -12,12 +12,48 @@ interface RssFeedConfig {
   /** Higher weight = more headlines kept from this feed (US-heavy politics). */
   maxItems?: number;
   region?: "US" | "World";
+  category?: string;
 }
 
 const SPORTS_FEEDS: RssFeedConfig[] = [
-  { url: "https://www.espn.com/espn/rss/news", source: "ESPN", maxItems: 6 },
-  { url: "https://feeds.bbci.co.uk/sport/rss.xml", source: "BBC Sport", maxItems: 6 },
-  { url: "https://feeds.apnews.com/apf-sports", source: "AP Sports", maxItems: 5 },
+  { url: "https://www.espn.com/espn/rss/mlb/news", source: "ESPN MLB", maxItems: 4, category: "MLB" },
+  { url: "https://www.espn.com/espn/rss/nfl/news", source: "ESPN NFL", maxItems: 4, category: "NFL" },
+  {
+    url: "https://feeds.bbci.co.uk/sport/football/teams/arsenal/rss.xml",
+    source: "BBC Sport",
+    maxItems: 4,
+    category: "Arsenal",
+  },
+  {
+    url: "https://www.theguardian.com/football/arsenal/rss",
+    source: "The Guardian",
+    maxItems: 3,
+    category: "Arsenal",
+  },
+  {
+    url: "https://feeds.bbci.co.uk/sport/cricket/rss.xml",
+    source: "BBC Cricket",
+    maxItems: 4,
+    category: "Cricket",
+  },
+  {
+    url: "https://www.espncricinfo.com/rss/content/story/feeds/0.xml",
+    source: "ESPNcricinfo",
+    maxItems: 4,
+    category: "Cricket",
+  },
+  {
+    url: "https://www.espncricinfo.com/rss/content/story/feeds/7.xml",
+    source: "ESPNcricinfo Pakistan",
+    maxItems: 4,
+    category: "Pakistan Cricket",
+  },
+  {
+    url: "https://www.tribune.com.pk/feed/sports",
+    source: "Express Tribune",
+    maxItems: 3,
+    category: "Pakistan Cricket",
+  },
 ];
 
 /** US-heavy politics plus world coverage. */
@@ -38,15 +74,36 @@ const POLITICS_FEEDS: RssFeedConfig[] = [
 
 const FALLBACK_SPORTS: NewsItem[] = [
   {
-    category: "Sports",
-    title: "Major league and international sports coverage updates throughout the day",
+    category: "MLB",
+    title: "Major League Baseball headlines from ESPN",
     source: "Sports briefing",
     time: "Today",
     live: false,
   },
   {
-    category: "Sports",
-    title: "NFL, NBA, MLB, and college sports headlines from ESPN and AP",
+    category: "NFL",
+    title: "National Football League news and game updates",
+    source: "Sports briefing",
+    time: "Today",
+    live: false,
+  },
+  {
+    category: "Arsenal",
+    title: "Arsenal FC news — transfers, fixtures, and Premier League",
+    source: "Sports briefing",
+    time: "Today",
+    live: false,
+  },
+  {
+    category: "Cricket",
+    title: "International cricket news from BBC and ESPNcricinfo",
+    source: "Sports briefing",
+    time: "Today",
+    live: false,
+  },
+  {
+    category: "Pakistan Cricket",
+    title: "Pakistan cricket team news, PCB updates, and match coverage",
     source: "Sports briefing",
     time: "Today",
     live: false,
@@ -122,7 +179,9 @@ async function fetchSingleFeed(
       const url = entry.link || entry.guid;
       const publishedAt = entry.isoDate || entry.pubDate;
       const category =
-        topic === "politics" ? politicsCategory(feed.region) : "Sports";
+        topic === "politics"
+          ? politicsCategory(feed.region)
+          : feed.category ?? "Sports";
 
       items.push({
         category,
@@ -165,20 +224,74 @@ function mergeAndRank(items: NewsItem[], limit: number): NewsItem[] {
   return merged;
 }
 
+function mergeSportsWithDiversity(items: NewsItem[], limit: number): NewsItem[] {
+  const categoryOrder = ["MLB", "NFL", "Arsenal", "Cricket", "Pakistan Cricket"];
+  const byCategory = new Map<string, NewsItem[]>();
+
+  for (const item of items) {
+    const list = byCategory.get(item.category) ?? [];
+    list.push(item);
+    byCategory.set(item.category, list);
+  }
+
+  for (const list of byCategory.values()) {
+    list.sort((a, b) => {
+      const ta = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+      const tb = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      return tb - ta;
+    });
+  }
+
+  const seen = new Set<string>();
+  const merged: NewsItem[] = [];
+
+  const pushUnique = (item: NewsItem) => {
+    const key = normalizeKey(item.title);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  };
+
+  let round = 0;
+  while (merged.length < limit) {
+    let added = false;
+    for (const category of categoryOrder) {
+      const item = byCategory.get(category)?.[round];
+      if (item) {
+        pushUnique(item);
+        added = true;
+        if (merged.length >= limit) break;
+      }
+    }
+    if (!added) break;
+    round++;
+  }
+
+  if (merged.length < limit) {
+    for (const item of mergeAndRank(items, limit)) {
+      pushUnique(item);
+      if (merged.length >= limit) break;
+    }
+  }
+
+  return merged;
+}
+
 async function fetchRssTopic(topic: RssTopic, force = false): Promise<NewsFetchResult> {
   if (!force && cache[topic] && Date.now() - cache[topic]!.fetchedAt < CACHE_TTL_MS) {
     return cache[topic]!.result;
   }
 
   const feeds = topic === "sports" ? SPORTS_FEEDS : POLITICS_FEEDS;
-  const limit = topic === "sports" ? 12 : 15;
+  const limit = topic === "sports" ? 20 : 15;
   const fallback = topic === "sports" ? FALLBACK_SPORTS : FALLBACK_POLITICS;
 
   const results = await Promise.all(feeds.map((feed) => fetchSingleFeed(feed, topic)));
   const allItems = results.flatMap((r) => r.items);
   const errors = [...new Set(results.map((r) => r.error).filter(Boolean))] as string[];
 
-  const news = mergeAndRank(allItems, limit);
+  const news =
+    topic === "sports" ? mergeSportsWithDiversity(allItems, limit) : mergeAndRank(allItems, limit);
   const liveCount = news.filter((n) => n.live).length;
 
   const result: NewsFetchResult = {

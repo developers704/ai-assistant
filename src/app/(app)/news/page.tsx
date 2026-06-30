@@ -15,31 +15,19 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
 import { MarketLiveChart } from "@/components/markets/MarketLiveChart";
-
-import { METAL_LIVE_CHARTS } from "@/components/markets/market-charts";
+import { StockTickerTape } from "@/components/markets/StockTickerTape";
+import { STOCK_LIVE_CHARTS } from "@/components/markets/market-charts";
 
 import {
-
   Coins,
-
-  Gem,
-
   Newspaper,
-
   RefreshCw,
-
   Loader2,
-
   AlertTriangle,
-
   TrendingUp,
-
   LineChart,
-
   Trophy,
-
   Landmark,
-
 } from "lucide-react";
 
 
@@ -61,18 +49,6 @@ interface MetalPrice {
   live: boolean;
 
   derived?: { label: string; pricePerGram: number }[];
-
-}
-
-interface Gem {
-
-  name: string;
-
-  detail: string;
-
-  pricePerCarat: number;
-
-  live: boolean;
 
 }
 
@@ -104,8 +80,6 @@ interface MarketData {
 
   metals: MetalPrice[];
 
-  gems: Gem[];
-
   news: NewsItem[];
 
   sportsNews?: NewsItem[];
@@ -127,6 +101,10 @@ interface MarketData {
 const money = (n: number) =>
 
   n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+
+
+
+const TROY_OUNCE_GRAMS = 31.1035;
 
 
 
@@ -209,7 +187,7 @@ export default function NewsMarketsPage() {
 
             title="News & Markets"
 
-            subtitle="Live metal prices, industry news, US & world politics, and sports headlines"
+            subtitle="Live metal & stock prices, industry news, US & world politics, and sports headlines"
 
             action={
 
@@ -298,33 +276,21 @@ export default function NewsMarketsPage() {
                       </CardHeader>
 
                       <p className="text-2xl font-bold text-ink">
-
-                        {money(m.pricePerGram)}
-
-                        <span className="text-sm font-normal text-ink-muted">/g</span>
-
+                        {money(m.pricePerOunce)}
+                        <span className="text-sm font-normal text-ink-muted"> / troy oz</span>
                       </p>
-
-                      <p className="text-sm text-ink-muted mt-1">{money(m.pricePerOunce)} / troy oz</p>
-
+                      <p className="text-sm text-ink-muted mt-1">{money(m.pricePerGram)} / g</p>
                       {m.derived && (
-
                         <div className="mt-4 pt-3 border-t border-white/10 grid grid-cols-2 gap-x-4 gap-y-1.5">
-
                           {m.derived.map((d) => (
-
                             <div key={d.label} className="flex justify-between text-sm">
-
                               <span className="text-ink-secondary">{d.label}</span>
-
-                              <span className="font-medium text-ink">{money(d.pricePerGram)}/g</span>
-
+                              <span className="font-medium text-ink">
+                                {money(d.pricePerGram * TROY_OUNCE_GRAMS)}/oz
+                              </span>
                             </div>
-
                           ))}
-
                         </div>
-
                       )}
 
                     </Card>
@@ -337,7 +303,7 @@ export default function NewsMarketsPage() {
 
 
 
-              {/* Live charts — sits between spot cards and diamonds */}
+              {/* Stock market */}
 
               <div>
 
@@ -349,89 +315,37 @@ export default function NewsMarketsPage() {
 
                   </span>
 
-                  Live Charts
+                  Stock Market
 
                   <Badge variant="success" className="ml-1">
 
-                    Real-time
+                    Live
 
                   </Badge>
 
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="space-y-4">
 
-                  {METAL_LIVE_CHARTS.map((chart) => (
+                  <StockTickerTape />
 
-                    <MarketLiveChart key={chart.symbol} config={chart} dateRange="1M" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
-                  ))}
+                    {STOCK_LIVE_CHARTS.map((chart) => (
 
-                </div>
+                      <MarketLiveChart key={chart.symbol} config={chart} dateRange="1M" />
 
-                <p className="text-xs text-ink-muted mt-2">
+                    ))}
 
-                  Streaming charts via TradingView — gold, silver, and platinum spot. Tap a chart to open the full
-
-                  view on TradingView.
-
-                </p>
-
-              </div>
-
-
-
-              {/* Diamonds */}
-
-              <div>
-
-                <h3 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
-
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/20 ring-1 ring-sky-400/20">
-
-                    <Gem size={14} className="text-sky-300" />
-
-                  </span>
-
-                  Diamonds (per carat, indicative reference)
-
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                  {data.gems.map((g) => (
-
-                    <Card key={g.name}>
-
-                      <CardHeader>
-
-                        <CardTitle className="text-sm">{g.name}</CardTitle>
-
-                        <Badge variant="warning">Indicative</Badge>
-
-                      </CardHeader>
-
-                      <p className="text-2xl font-bold text-ink">
-
-                        {money(g.pricePerCarat)}
-
-                        <span className="text-sm font-normal text-ink-muted">/ct</span>
-
-                      </p>
-
-                      <p className="text-sm text-ink-muted mt-1">{g.detail}</p>
-
-                    </Card>
-
-                  ))}
+                  </div>
 
                 </div>
 
                 <p className="text-xs text-ink-muted mt-2">
 
-                  No public live diamond index exists — values above are indicative reference points for retail
+                  Streaming prices via TradingView — major US indices, Signet Jewelers, and large-cap stocks. Tap a
 
-                  pricing, not exchange charts.
+                  chart to open the full view on TradingView.
 
                 </p>
 
@@ -591,9 +505,7 @@ export default function NewsMarketsPage() {
                     <div className="flex items-center gap-2 mb-3">
 
                       <p className="text-xs text-ink-muted">
-
-                        ESPN, BBC Sport & AP Sports
-
+                        MLB, NFL, Arsenal, cricket & Pakistan cricket
                       </p>
 
                       {data.sportsLive && <Badge variant="success">Live</Badge>}
@@ -606,7 +518,7 @@ export default function NewsMarketsPage() {
 
                       {data.sportsLive
 
-                        ? "RSS feeds — NFL, NBA, MLB, soccer, and international sports."
+                        ? "RSS feeds — MLB & NFL (ESPN), Arsenal (BBC & Guardian), cricket (BBC & ESPNcricinfo), Pakistan cricket (ESPNcricinfo & Express Tribune)."
 
                         : data.sportsError
 

@@ -220,7 +220,7 @@ export const VOICE_PILOT_TOOLS = [
   {
     type: "function",
     name: "get_sports_news",
-    description: "Top sports headlines from ESPN, BBC Sport, and AP Sports.",
+    description: "Sports headlines — MLB, NFL, Arsenal, cricket, and Pakistan cricket.",
     parameters: { type: "object", properties: {}, additionalProperties: false },
   },
   {

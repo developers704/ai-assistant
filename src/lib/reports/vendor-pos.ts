@@ -183,22 +183,35 @@ export function summarizeVendorPos(
       ? ((totalRevenue - prevRevenue) / prevRevenue) * 100
       : 0;
 
-  const topStores = rankMap(
+  const storeChange = (storeName: string, revenue: number) => {
+    const prev = compareRows
+      .filter((r) => r.storeName === storeName)
+      .reduce((sum, r) => sum + r.netRevenue, 0);
+    return prev > 0 ? ((revenue - prev) / prev) * 100 : 0;
+  };
+
+  const allStoresRanked = rankMap(
     periodRows,
     (r) => r.storeName,
     (r) => r.netRevenue,
     (r) => r.quantity,
-    10
-  ).map((s) => {
-    const prev = compareRows
-      .filter((r) => r.storeName === s.name)
-      .reduce((sum, r) => sum + r.netRevenue, 0);
-    return {
+    500
+  );
+
+  const topStores = allStoresRanked.slice(0, 10).map((s) => ({
+    name: s.name,
+    revenue: s.revenue,
+    change: storeChange(s.name, s.revenue),
+  }));
+
+  const worstStores = [...allStoresRanked]
+    .sort((a, b) => a.revenue - b.revenue)
+    .slice(0, 10)
+    .map((s) => ({
       name: s.name,
       revenue: s.revenue,
-      change: prev > 0 ? ((s.revenue - prev) / prev) * 100 : 0,
-    };
-  });
+      change: storeChange(s.name, s.revenue),
+    }));
 
   const topDepartments = rankMap(
     periodRows,
@@ -214,7 +227,7 @@ export function summarizeVendorPos(
     (r) => r.quantity
   );
 
-  const topProducts = rankProducts(periodRows, 10);
+  const topProducts = rankProducts(periodRows, 20);
 
   const underperformingStores = topStores.filter((s) => s.change < 0);
   const avgDiscountRate =
@@ -253,6 +266,7 @@ export function summarizeVendorPos(
     comparisonPreviousDay,
     comparisonPreviousWeek: 0,
     topStores,
+    worstStores,
     topProducts,
     underperformingStores,
     recommendations,

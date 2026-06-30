@@ -138,6 +138,7 @@ function buildSummaryForDate(rows: NormalizedRow[], date: string, prevDate: stri
     .map(([name, stats]) => ({ name, ...stats }))
     .sort((a, b) => b.revenue - a.revenue || b.units - a.units);
 
+  const worstStores = [...topStores].sort((a, b) => a.revenue - b.revenue).slice(0, 10);
   const underperformingStores = topStores.filter((s) => s.change < 0);
   const totalUnits = todayData.reduce((s, r) => s + r.quantity, 0);
 
@@ -161,6 +162,7 @@ function buildSummaryForDate(rows: NormalizedRow[], date: string, prevDate: stri
     comparisonPreviousDay,
     comparisonPreviousWeek: 0,
     topStores,
+    worstStores,
     topProducts,
     underperformingStores,
     recommendations,
@@ -216,6 +218,7 @@ function summarizeGeneric(
     const topStores = Array.from(storeMap.entries())
       .map(([name, revenue]) => ({ name, revenue, change: 0 }))
       .sort((a, b) => b.revenue - a.revenue);
+    const worstStores = [...topStores].sort((a, b) => a.revenue - b.revenue).slice(0, 10);
     const productMap = new Map<string, { revenue: number; units: number }>();
     rows.forEach((r) => {
       const ex = productMap.get(r.productName) || { revenue: 0, units: 0 };
@@ -235,6 +238,7 @@ function summarizeGeneric(
       comparisonPreviousDay: 0,
       comparisonPreviousWeek: 0,
       topStores,
+      worstStores,
       topProducts,
       underperformingStores: [],
       recommendations: [`${opts.period} sales report loaded with ${rows.length.toLocaleString()} rows.`],

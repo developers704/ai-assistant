@@ -491,6 +491,7 @@ export function computeSalesSummary(data: SalesData[], targetDate?: string): imp
     .map(([name, stats]) => ({ name, ...stats }))
     .sort((a, b) => b.revenue - a.revenue);
 
+  const worstStores = [...topStores].sort((a, b) => a.revenue - b.revenue).slice(0, 10);
   const underperformingStores = topStores.filter((s) => s.change < 0);
 
   const recommendations: string[] = [];
@@ -514,6 +515,7 @@ export function computeSalesSummary(data: SalesData[], targetDate?: string): imp
     comparisonPreviousDay,
     comparisonPreviousWeek: 8.4,
     topStores,
+    worstStores,
     topProducts,
     underperformingStores,
     recommendations,

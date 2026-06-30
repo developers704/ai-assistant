@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { MetalChartConfig } from "./market-charts";
+import type { MarketChartConfig } from "./market-charts";
 
 const SCRIPT_SRC = "https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js";
 
 interface MarketLiveChartProps {
-  config: MetalChartConfig;
+  config: MarketChartConfig;
   dateRange?: "1D" | "5D" | "1M" | "3M" | "12M" | "60M" | "ALL";
 }
 
@@ -55,7 +55,9 @@ export function MarketLiveChart({ config, dateRange = "1M" }: MarketLiveChartPro
     <div className="glass-panel rounded-2xl ring-1 ring-white/10 overflow-hidden flex flex-col">
       <div className="px-4 py-2.5 border-b border-white/10 shrink-0">
         <p className="text-sm font-semibold text-ink">{config.label}</p>
-        <p className="text-[11px] text-ink-muted">{config.symbol.replace("OANDA:", "")} · live chart</p>
+        <p className="text-[11px] text-ink-muted">
+          {config.sublabel ?? config.symbol.replace(/^[^:]+:/, "")} · live chart
+        </p>
       </div>
       <div ref={containerRef} className="tradingview-widget-container h-[220px] w-full min-h-[220px]" />
     </div>
