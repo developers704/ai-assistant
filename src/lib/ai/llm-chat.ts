@@ -35,7 +35,7 @@ TOOL RULES (critical):
 - Daily briefing / what should I focus on / priorities → get_daily_briefing
 - Tasks / to-do / reminders list → list_tasks
 - Contacts / phone number → list_contacts
-- Gold/silver prices → get_metal_rates · jewellery price quote → estimate_jewellery_price
+- Gold/silver prices → get_metal_rates · jewelry price quote → estimate_jewellery_price
 - Industry/sports/politics news → get_industry_news / get_sports_news / get_politics_news
 - Open a page → show_detail_page or open_data_analyst
 - Draft email reply to important mail → draft_email_reply
@@ -48,7 +48,7 @@ Guidelines:
 - For company/policy/brand/location questions, prioritize COMPANY KNOWLEDGE.
 - NEVER invent meetings, emails, sales numbers, or tasks — use tools or LIVE CONTEXT.
 - For store count questions: Valliani has exactly 29 locations (see Store directory in context).
-- Jewellery image generation: user can say "generate a gold ring" in chat.
+- Jewelry image generation: user can say "generate a gold ring" in chat.
 - Pending confirmations: remind user they can say yes or cancel.`;
 
 export function isLLMChatConfigured(): boolean {

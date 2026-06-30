@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   const file = form.get("image");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Please upload a jewellery photo to enhance." }, { status: 400 });
+    return NextResponse.json({ error: "Please upload a jewelry photo to enhance." }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: "Image is too large. Please use a file under 20MB." }, { status: 400 });
@@ -73,10 +73,10 @@ export async function POST(req: NextRequest) {
   const geminiSize = size === "auto" ? "1024x1024" : size;
 
   const prompt = [
-    "Transform this photo into a premium e-commerce jewellery product image.",
+    "Transform this photo into a premium e-commerce jewelry product image.",
     "Place the piece on a clean, seamless white/neutral studio background with soft, even, professional lighting and gentle reflections.",
     "Remove background clutter, hands, price tags, dust and distractions. Sharpen focus, enhance the metal shine and gemstone sparkle, and keep colours accurate.",
-    "IMPORTANT: keep the exact same jewellery piece — same design, metal colour, gemstones, engravings and proportions. Do not invent, add or remove any part of the product.",
+    "IMPORTANT: keep the exact same jewelry piece — same design, metal colour, gemstones, engravings and proportions. Do not invent, add or remove any part of the product.",
     "Output luxury catalog quality suitable for an online store listing.",
     instructions ? `Additional requirements: ${instructions}` : "",
   ]

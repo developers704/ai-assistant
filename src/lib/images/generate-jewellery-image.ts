@@ -3,7 +3,7 @@ import { isGeminiConfigured } from "@/lib/gemini/config";
 import { generateGeminiImage } from "@/lib/gemini/image";
 
 const JEWELLERY_PREFIX =
-  "Professional high-end jewellery product photography. Studio lighting, sharp focus, fine detail on metal and gemstones, elegant clean background, photorealistic, luxury catalog quality.";
+  "Professional high-end jewelry product photography. Studio lighting, sharp focus, fine detail on metal and gemstones, elegant clean background, photorealistic, luxury catalog quality.";
 
 function buildFullPrompt(prompt: string): string {
   return `${JEWELLERY_PREFIX} ${prompt.trim()}.`;

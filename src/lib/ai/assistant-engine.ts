@@ -267,7 +267,7 @@ export function processMessage(message: string, state: AppState): AIResponse {
 • **Reminders** — Set tasks, recurring reminders, daily briefings
 • **Sales Reports** — Daily/weekly sales, store & product analysis
 • **Documents** — Summarize PDFs, contracts, Excel reports
-• **Images** — Generate jewellery product photos, analyze screenshots and dashboards
+• **Images** — Generate jewelry product photos, analyze screenshots and dashboards
 • **WhatsApp & Calls** — Draft messages and prepare calls (always with confirmation)
 
 Try: "What do I need to focus on today?" or "Summarize my inbox."`,

@@ -121,7 +121,7 @@ export default function CalculatorPage() {
         <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
           <PageHeader
             title="Price Calculator"
-            subtitle="Estimate retail prices for gold and diamond jewellery using live metal rates"
+            subtitle="Estimate retail prices for gold and diamond jewelry using live metal rates"
             action={
               <div className="flex items-center gap-2">
                 {rates.live && (

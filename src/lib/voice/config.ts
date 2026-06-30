@@ -34,12 +34,12 @@ TOOL RULES (critical — always follow):
 - Health / steps / heart rate / sleep / BMI → call get_health_briefing.
 - Gold price / silver price / metal rates → call get_metal_rates.
 - Price quote / how much for X grams gold → call estimate_jewellery_price with weight_grams and karat.
-- Industry news / jewellery news → call get_industry_news.
+- Industry news / jewelry news → call get_industry_news.
 - Sports news / scores / game headlines → call get_sports_news.
 - Politics news / US politics / world news → call get_politics_news.
 - Data analyst / analyze sales data / CSV → call open_data_analyst (user uploads file on that page).
 - Scan document / invoice / receipt → call open_document_scanner.
-- Generate jewellery image / create product photo → call generate_jewellery_image with prompt.
+- Generate jewelry image / create product photo → call generate_jewellery_image with prompt.
 - Open any app section → call show_detail_page (dashboard, sales, calendar, email, chat, contacts, images, news, health, analyst, calculator, scan, settings).
 
 DATA RULES:
@@ -197,7 +197,7 @@ export const VOICE_PILOT_TOOLS = [
   {
     type: "function",
     name: "estimate_jewellery_price",
-    description: "Estimate jewellery price from weight in grams, karat, and optional making/tax percent.",
+    description: "Estimate jewelry price from weight in grams, karat, and optional making/tax percent.",
     parameters: {
       type: "object",
       properties: {
@@ -214,7 +214,7 @@ export const VOICE_PILOT_TOOLS = [
   {
     type: "function",
     name: "get_industry_news",
-    description: "Top jewellery, watch, and metals industry headlines.",
+    description: "Top jewelry, watch, and metals industry headlines.",
     parameters: { type: "object", properties: {}, additionalProperties: false },
   },
   {
@@ -248,7 +248,7 @@ export const VOICE_PILOT_TOOLS = [
     parameters: {
       type: "object",
       properties: {
-        prompt: { type: "string", description: "Jewellery description to generate" },
+        prompt: { type: "string", description: "Jewelry description to generate" },
       },
       required: ["prompt"],
       additionalProperties: false,

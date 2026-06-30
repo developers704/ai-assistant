@@ -72,7 +72,7 @@ export const ASSISTANT_CHAT_TOOLS: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "estimate_jewellery_price",
-      description: "Estimate jewellery price from weight, karat, and optional making/tax percent.",
+      description: "Estimate jewelry price from weight, karat, and optional making/tax percent.",
       parameters: {
         type: "object",
         properties: {
@@ -90,7 +90,7 @@ export const ASSISTANT_CHAT_TOOLS: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "get_industry_news",
-      description: "Top jewellery, watch, and metals industry headlines.",
+      description: "Top jewelry, watch, and metals industry headlines.",
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },

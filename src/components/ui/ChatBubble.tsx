@@ -89,7 +89,7 @@ export function ChatBubble({ message, onConfirm, onReject }: ChatBubbleProps) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={message.imageUrl}
-                alt="Generated jewellery"
+                alt="Generated jewelry"
                 className="rounded-xl max-w-full max-h-80 object-contain border border-white/20"
               />
             </div>

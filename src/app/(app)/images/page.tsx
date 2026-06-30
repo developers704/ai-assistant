@@ -193,7 +193,7 @@ export default function ImageGenerationPage() {
   const download = (img: GeneratedImage) => {
     const a = document.createElement("a");
     a.href = img.src;
-    a.download = `jewellery-${img.id.slice(0, 8)}.png`;
+    a.download = `jewelry-${img.id.slice(0, 8)}.png`;
     a.click();
   };
 
@@ -248,7 +248,7 @@ export default function ImageGenerationPage() {
       <div className="glass-panel-strong rounded-3xl ring-1 ring-white/10 overflow-hidden">
         <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
           <PageHeader
-            title="Jewellery Image Generation"
+            title="Jewelry Image Generation"
             subtitle="Generate photorealistic product images from text, or enhance a raw photo into an e-commerce shot"
           />
         </div>
@@ -365,7 +365,7 @@ export default function ImageGenerationPage() {
                       <Upload size={26} className="text-fuchsia-300" />
                     </span>
                     <div>
-                      <p className="text-sm font-medium text-ink">Upload a jewellery photo</p>
+                      <p className="text-sm font-medium text-ink">Upload a jewelry photo</p>
                       <p className="text-xs text-ink-muted mt-1">Drag &amp; drop or click — PNG, JPG, WEBP up to 20MB</p>
                     </div>
                   </button>
@@ -462,7 +462,7 @@ export default function ImageGenerationPage() {
             <div className="glass-panel rounded-2xl flex flex-col items-center justify-center py-14 text-center ring-1 ring-white/10">
               <Loader2 size={32} className="text-fuchsia-300 animate-spin mb-3" />
               <p className="text-sm text-ink-secondary">
-                {mode === "enhance" ? "Enhancing your photo..." : "Creating your jewellery image..."}
+                {mode === "enhance" ? "Enhancing your photo..." : "Creating your jewelry image..."}
               </p>
               <p className="text-xs text-ink-muted mt-1">This can take 10–30 seconds.</p>
             </div>
@@ -538,7 +538,7 @@ export default function ImageGenerationPage() {
         open={showCamera}
         onClose={() => setShowCamera(false)}
         onCapture={pickFile}
-        title="Capture jewellery photo"
+        title="Capture jewelry photo"
       />
 
       {/* Full-view lightbox */}

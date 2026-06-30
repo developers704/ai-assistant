@@ -449,7 +449,7 @@ export default function NewsMarketsPage() {
 
                       <p className="text-xs text-ink-muted">
 
-                        Jewellery, metals, diamonds & luxury watches
+                        Jewelry, metals, diamonds & luxury watches
 
                       </p>
 

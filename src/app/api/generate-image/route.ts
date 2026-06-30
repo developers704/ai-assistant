@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   const prompt = body.prompt?.trim();
   if (!prompt) {
     return NextResponse.json(
-      { error: "Please describe the jewellery piece you want to generate." },
+      { error: "Please describe the jewelry piece you want to generate." },
       { status: 400 }
     );
   }
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   const size: Size = SIZES.includes(body.size as Size) ? (body.size as Size) : "1024x1024";
   const quality = body.quality === "high" || body.quality === "low" ? body.quality : "medium";
 
-  const fullPrompt = `Professional high-end jewellery product photography. ${prompt}. Studio lighting, sharp focus, fine detail on metal and gemstones, elegant clean background, photorealistic, luxury catalog quality.`;
+  const fullPrompt = `Professional high-end jewelry product photography. ${prompt}. Studio lighting, sharp focus, fine detail on metal and gemstones, elegant clean background, photorealistic, luxury catalog quality.`;
 
   if (isGeminiConfigured()) {
     try {

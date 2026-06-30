@@ -124,7 +124,7 @@ export async function getNewsHeadlinesScript(): Promise<string> {
       : "No industry headlines available right now.";
   }
   const top = result.news.slice(0, 3);
-  return `Top jewellery industry headlines: ${top.map((n) => n.title).join(". ")}. Open News for full stories and live gold charts.`;
+  return `Top jewelry industry headlines: ${top.map((n) => n.title).join(". ")}. Open News for full stories and live gold charts.`;
 }
 
 export async function getSportsHeadlinesScript(): Promise<string> {

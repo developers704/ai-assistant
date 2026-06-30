@@ -600,12 +600,12 @@ export async function executeVoiceTool(
           output: JSON.stringify({
             success: false,
             spokenAnswer:
-              "Please describe the jewellery piece you want to generate, for example a gold bridal necklace with rubies.",
+              "Please describe the jewelry piece you want to generate, for example a gold bridal necklace with rubies.",
           }),
           uiAction: { type: "navigate", path: "/images" },
         };
       }
-      const fullPrompt = `Professional high-end jewellery product photography. ${prompt}. Studio lighting, sharp focus, fine detail on metal and gemstones, elegant clean background, photorealistic, luxury catalog quality.`;
+      const fullPrompt = `Professional high-end jewelry product photography. ${prompt}. Studio lighting, sharp focus, fine detail on metal and gemstones, elegant clean background, photorealistic, luxury catalog quality.`;
       try {
         const { image, model } = await generateGeminiImage(fullPrompt, "1024x1024", "high");
         setState((s) => ({
@@ -619,7 +619,7 @@ export async function executeVoiceTool(
         return {
           output: JSON.stringify({
             success: true,
-            spokenAnswer: `Your jewellery image is ready on the Images page. I created it using ${model}.`,
+            spokenAnswer: `Your jewelry image is ready on the Images page. I created it using ${model}.`,
             model,
           }),
           uiAction: { type: "navigate", path: "/images" },

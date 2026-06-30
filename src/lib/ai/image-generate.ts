@@ -20,7 +20,7 @@ export async function processImageGenerate(message: string): Promise<AIResponse>
     return {
       intent: "image_generate",
       message:
-        "Please describe the jewellery piece you'd like me to generate — for example, *a 22K gold bridal ring with diamonds*.",
+        "Please describe the jewelry piece you'd like me to generate — for example, *a 22K gold bridal ring with diamonds*.",
       speak: true,
     };
   }
@@ -29,7 +29,7 @@ export async function processImageGenerate(message: string): Promise<AIResponse>
     const { image, provider, model } = await generateJewelleryImage(prompt);
     return {
       intent: "image_generate",
-      message: `Here's your generated jewellery image:\n\n**${prompt}**\n\n_Generated with ${provider} (${model}). You can also refine designs on the Image Generation page._`,
+      message: `Here's your generated jewelry image:\n\n**${prompt}**\n\n_Generated with ${provider} (${model}). You can also refine designs on the Image Generation page._`,
       speak: true,
       data: { generatedImage: image, prompt, provider, model },
     };
