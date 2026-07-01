@@ -14,14 +14,14 @@ const TIER_LABELS: Record<ManagerTier, string> = {
   m: "Manager (M)",
 };
 
-const WATCH_DISCOUNTS: Record<string, number> = {
-  ROLEX: 62,
-  GUCCI: 15,
-  RADO: 18,
-  LONGINES: 18,
-  MOVADO: 25,
-  BULOVA: 25,
-  "MICHAEL KO": 25,
+const WATCH_DISCOUNTS: Record<string, Record<ManagerTier, number>> = {
+  ROLEX: { dm: 62, cm: 60, m: 60 },
+  GUCCI: { dm: 15, cm: 15, m: 15 },
+  RADO: { dm: 18, cm: 18, m: 18 },
+  LONGINES: { dm: 18, cm: 18, m: 18 },
+  MOVADO: { dm: 25, cm: 25, m: 25 },
+  BULOVA: { dm: 25, cm: 25, m: 25 },
+  "MICHAEL KO": { dm: 25, cm: 25, m: 25 },
 };
 
 const GOLD_DEPTS = [
@@ -69,6 +69,20 @@ function getWatchBrand(item: InventoryItem): string {
   if (dept in WATCH_DISCOUNTS) return dept;
   if (dept.startsWith("MICHAEL")) return "MICHAEL KO";
   return dept;
+}
+
+function getWatchDiscountPercents(
+  watchBrand: string,
+  item: InventoryItem
+): Record<ManagerTier, number> {
+  return (
+    WATCH_DISCOUNTS[watchBrand] ??
+    WATCH_DISCOUNTS[normalizeDept(item.department)] ?? {
+      dm: 0,
+      cm: 0,
+      m: 0,
+    }
+  );
 }
 
 function isGemstone(item: InventoryItem): boolean {
@@ -136,11 +150,7 @@ function getDiscountPercents(
   goldWeightGrams?: number
 ): Record<ManagerTier, number> {
   if (category === "watch" && watchBrand) {
-    const pct =
-      WATCH_DISCOUNTS[watchBrand] ??
-      WATCH_DISCOUNTS[normalizeDept(item.department)] ??
-      0;
-    return { dm: pct, cm: pct, m: pct };
+    return getWatchDiscountPercents(watchBrand, item);
   }
 
   if (category === "benchmark") {
@@ -167,7 +177,11 @@ function buildRulesSummary(
   discounts?: Record<ManagerTier, number>
 ): string {
   if (category === "watch" && watchBrand && discounts) {
-    return `${watchBrand} watch — ${discounts.dm}% off (DM / CM / M)`;
+    const { dm, cm, m } = discounts;
+    if (dm === cm && cm === m) {
+      return `${watchBrand} watch — ${dm}% off (DM / CM / M)`;
+    }
+    return `${watchBrand} watch — DM ${dm}%, CM ${cm}%, M ${m}% off`;
   }
   if (category === "benchmark") {
     return "Benchmark — DM 65%, CM 60%, M 55% off";
