@@ -4,7 +4,7 @@ import { formatCurrency } from "@/lib/utils";
 import type { ReportSummary } from "@/lib/reports/types";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { CreditCard, Gem, Store, Tag, Percent, Wallet, Users, Banknote } from "lucide-react";
+import { CreditCard, Gem, Store, Tag, Percent, Wallet, Banknote } from "lucide-react";
 
 interface ReportInsightsProps {
   summary: ReportSummary;
@@ -185,24 +185,6 @@ export function ReportInsightsCards({ summary, compact }: ReportInsightsProps) {
                 <div key={d.name} className="flex justify-between text-sm gap-2">
                   <span className="text-ink-secondary truncate">{d.name}</span>
                   <span className="font-medium text-ink shrink-0">{formatCurrency(d.revenue)}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {isFinancing && summary.topSalesPeople && summary.topSalesPeople.length > 0 && (
-          <Card className="p-4">
-            <CardHeader className="mb-2 p-0">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Users size={14} className="text-cyan-300" /> Top salespeople
-              </CardTitle>
-            </CardHeader>
-            <div className="space-y-2">
-              {summary.topSalesPeople.slice(0, 5).map((s) => (
-                <div key={s.name} className="flex justify-between text-sm gap-2">
-                  <span className="text-ink-secondary truncate">{s.name}</span>
-                  <span className="font-medium text-ink shrink-0">{formatCurrency(s.revenue)}</span>
                 </div>
               ))}
             </div>
