@@ -85,6 +85,27 @@ function getWatchDiscountPercents(
   );
 }
 
+const FIXED_DESIGN_DISCOUNT_PCT = 20;
+
+const FIXED_DESIGN_LABELS: Record<string, string> = {
+  LINKNLOCK: "Link N Lock",
+  LOVE: "Love",
+  OROVENTI: "Oroventi",
+};
+
+function getFixedDesignCollection(item: InventoryItem): string | null {
+  const design = item.design.trim().toUpperCase();
+  return FIXED_DESIGN_LABELS[design] ?? null;
+}
+
+function fixedDesignDiscounts(): Record<ManagerTier, number> {
+  return {
+    dm: FIXED_DESIGN_DISCOUNT_PCT,
+    cm: FIXED_DESIGN_DISCOUNT_PCT,
+    m: FIXED_DESIGN_DISCOUNT_PCT,
+  };
+}
+
 function isGemstone(item: InventoryItem): boolean {
   return /birthstone/i.test(item.subClass);
 }
@@ -104,6 +125,14 @@ export function classifyProduct(item: InventoryItem): {
       category: "watch",
       categoryLabel: "Watch",
       watchBrand: getWatchBrand(item),
+    };
+  }
+
+  const fixedDesign = getFixedDesignCollection(item);
+  if (fixedDesign) {
+    return {
+      category: "other",
+      categoryLabel: fixedDesign,
     };
   }
 
@@ -153,6 +182,10 @@ function getDiscountPercents(
     return getWatchDiscountPercents(watchBrand, item);
   }
 
+  if (getFixedDesignCollection(item)) {
+    return fixedDesignDiscounts();
+  }
+
   if (category === "benchmark") {
     return { dm: 65, cm: 60, m: 55 };
   }
@@ -171,11 +204,17 @@ function getDiscountPercents(
 }
 
 function buildRulesSummary(
+  item: InventoryItem,
   category: ProductCategory,
   watchBrand?: string,
   goldWeightGrams?: number,
   discounts?: Record<ManagerTier, number>
 ): string {
+  const fixedDesign = getFixedDesignCollection(item);
+  if (fixedDesign && discounts) {
+    return `${fixedDesign} — ${discounts.dm}% off (fixed for DM / CM / M)`;
+  }
+
   if (category === "watch" && watchBrand && discounts) {
     const { dm, cm, m } = discounts;
     if (dm === cm && cm === m) {
@@ -228,6 +267,7 @@ export function calculatePricing(item: InventoryItem): PricingResult {
     tagPrice: item.tagPrice,
     tiers,
     rulesSummary: buildRulesSummary(
+      item,
       category,
       watchBrand,
       goldWeightGrams,
