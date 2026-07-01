@@ -52,18 +52,19 @@ export type ManagerTier = "dm" | "cm" | "m";
 export type PaymentMethod =
   | "cash"
   | "credit_card"
-  | "affirm"
-  | "progressive"
-  | "acima"
-  | "uown";
+  | "financing"
+  | "lease"
+  | "affirm";
 
-export type CreditCardPlan =
-  | "no_interest"
+/** Store financing term plans (shown when payment type is Financing). */
+export type FinancingPlan =
+  | "6_months"
   | "12_months"
   | "18_months"
   | "24_months"
   | "36_months"
-  | "48_months";
+  | "48_months"
+  | "60_months";
 
 export interface TierPricing {
   tier: ManagerTier;

@@ -9,14 +9,14 @@ import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import {
   STORES,
-  type CreditCardPlan,
+  type FinancingPlan,
   type InventoryItem,
   type ManagerTier,
   type PaymentMethod,
   type PricingResult,
 } from "@/lib/inventory/types";
 import {
-  CREDIT_CARD_PLAN_LABELS,
+  FINANCING_PLAN_LABELS,
   calculateFinancedPrice,
   calculateGrandTotal,
 } from "@/lib/inventory/pricing";
@@ -66,7 +66,7 @@ export default function CalculatorPage() {
 
   const [selectedTier, setSelectedTier] = useState<ManagerTier>("m");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
-  const [creditCardPlan, setCreditCardPlan] = useState<CreditCardPlan>("no_interest");
+  const [financingPlan, setFinancingPlan] = useState<FinancingPlan>("6_months");
   const [commission, setCommission] = useState("");
   const [commissionPlus, setCommissionPlus] = useState("");
 
@@ -158,8 +158,8 @@ export default function CalculatorPage() {
   }, [result, selectedTier]);
 
   const financing = useMemo(
-    () => calculateFinancedPrice(selectedCashPrice, paymentMethod, creditCardPlan),
-    [selectedCashPrice, paymentMethod, creditCardPlan]
+    () => calculateFinancedPrice(selectedCashPrice, paymentMethod, financingPlan),
+    [selectedCashPrice, paymentMethod, financingPlan]
   );
 
   const grandTotal = useMemo(
@@ -382,30 +382,31 @@ export default function CalculatorPage() {
                         className={selectClass}
                       >
                         <option value="cash">Cash</option>
-                        <option value="credit_card">Credit Card</option>
-                        <option value="affirm">Affirm</option>
-                        <option value="progressive">Progressive</option>
-                        <option value="acima">Acima</option>
-                        <option value="uown">UOwn</option>
+                        <option value="credit_card">Credit Card — 3.5%</option>
+                        <option value="financing">Financing</option>
+                        <option value="lease">
+                          Progressive / Acima / UOwn / Kefene — 5%
+                        </option>
+                        <option value="affirm">Affirm — 12%</option>
                       </select>
                     </div>
 
-                    {paymentMethod === "credit_card" && (
+                    {paymentMethod === "financing" && (
                       <div>
                         <label className="block text-sm font-medium text-ink-secondary mb-1.5">
-                          Credit card plan
+                          Financing term
                         </label>
                         <select
-                          value={creditCardPlan}
+                          value={financingPlan}
                           onChange={(e) =>
-                            setCreditCardPlan(e.target.value as CreditCardPlan)
+                            setFinancingPlan(e.target.value as FinancingPlan)
                           }
                           className={selectClass}
                         >
-                          {(Object.keys(CREDIT_CARD_PLAN_LABELS) as CreditCardPlan[]).map(
+                          {(Object.keys(FINANCING_PLAN_LABELS) as FinancingPlan[]).map(
                             (plan) => (
                               <option key={plan} value={plan}>
-                                {CREDIT_CARD_PLAN_LABELS[plan]}
+                                {FINANCING_PLAN_LABELS[plan]}
                               </option>
                             )
                           )}

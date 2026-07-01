@@ -1,5 +1,5 @@
 import type {
-  CreditCardPlan,
+  FinancingPlan,
   InventoryItem,
   ManagerTier,
   PaymentMethod,
@@ -276,48 +276,51 @@ export function calculatePricing(item: InventoryItem): PricingResult {
   };
 }
 
-export const CREDIT_CARD_SURCHARGES: Record<CreditCardPlan, number> = {
-  no_interest: 3.5,
+export const CREDIT_CARD_SURCHARGE_PERCENT = 3.5;
+
+export const FINANCING_PLAN_SURCHARGES: Record<FinancingPlan, number> = {
+  "6_months": 3.5,
   "12_months": 7,
   "18_months": 12,
   "24_months": 18,
   "36_months": 22,
   "48_months": 28,
+  "60_months": 32,
 };
 
-export const CREDIT_CARD_PLAN_LABELS: Record<CreditCardPlan, string> = {
-  no_interest: "No Interest — 3.5%",
+export const FINANCING_PLAN_LABELS: Record<FinancingPlan, string> = {
+  "6_months": "06 Months No Interest — 3.5%",
   "12_months": "12 Months No Interest — 7%",
   "18_months": "18 Months No Interest — 12%",
   "24_months": "24 Months No Interest — 18%",
   "36_months": "36 Months No Interest — 22%",
   "48_months": "48 Months No Interest — 28%",
+  "60_months": "60 Months No Interest — 32%",
 };
 
-export const FINANCING_SURCHARGES: Record<
-  Exclude<PaymentMethod, "cash" | "credit_card">,
-  number
-> = {
-  affirm: 12,
-  progressive: 5,
-  acima: 5,
-  uown: 5,
-};
+/** Progressive / Acima / UOwn / Kefene — fixed 5%. */
+export const LEASE_SURCHARGE_PERCENT = 5;
+
+export const AFFIRM_SURCHARGE_PERCENT = 12;
 
 export function calculateFinancedPrice(
   cashPrice: number,
   paymentMethod: PaymentMethod,
-  creditCardPlan: CreditCardPlan
-            ): { surchargePercent: number; financedPrice: number } {
+  financingPlan: FinancingPlan
+): { surchargePercent: number; financedPrice: number } {
   if (paymentMethod === "cash") {
     return { surchargePercent: 0, financedPrice: cashPrice };
   }
 
   let surchargePercent = 0;
   if (paymentMethod === "credit_card") {
-    surchargePercent = CREDIT_CARD_SURCHARGES[creditCardPlan];
-  } else {
-    surchargePercent = FINANCING_SURCHARGES[paymentMethod];
+    surchargePercent = CREDIT_CARD_SURCHARGE_PERCENT;
+  } else if (paymentMethod === "financing") {
+    surchargePercent = FINANCING_PLAN_SURCHARGES[financingPlan];
+  } else if (paymentMethod === "lease") {
+    surchargePercent = LEASE_SURCHARGE_PERCENT;
+  } else if (paymentMethod === "affirm") {
+    surchargePercent = AFFIRM_SURCHARGE_PERCENT;
   }
 
   return {
