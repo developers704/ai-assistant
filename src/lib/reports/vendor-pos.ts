@@ -153,25 +153,29 @@ export function summarizeVendorPos(
     vendorCode?: string | null;
     reportId?: string;
     reportLabel?: string;
+    filterDate?: string;
   }
 ): { summary: ReportSummary; reportDate: string | null; columns: string[] } {
   const dated = rows.filter((r) => r.date);
   const dates = [...new Set(dated.map((r) => r.date))].sort();
   const dateFrom = dates[0] ?? null;
   const dateTo = dates[dates.length - 1] ?? null;
-  const reportDate = dateTo;
+  const reportDate = opts.filterDate ?? dateTo;
 
-  const periodRows =
-    opts.period === "daily" && dates.length === 1
-      ? rows.filter((r) => r.date === dateTo)
-      : rows;
+  let periodRows = rows;
+  let compareRows: VendorPosRow[] = [];
 
-  const compareRows =
-    opts.period === "daily" && dates.length === 2
-      ? rows.filter((r) => r.date === dates[dates.length - 2])
-      : opts.period === "daily" && dates.length > 2
-        ? []
-        : [];
+  if (opts.filterDate) {
+    periodRows = rows.filter((r) => r.date === opts.filterDate);
+    const idx = dates.indexOf(opts.filterDate);
+    if (idx > 0) {
+      compareRows = rows.filter((r) => r.date === dates[idx - 1]);
+    }
+  } else if (opts.period === "daily" && dates.length === 1) {
+    periodRows = rows.filter((r) => r.date === dateTo);
+  } else if (opts.period === "daily" && dates.length === 2) {
+    compareRows = rows.filter((r) => r.date === dates[dates.length - 2]);
+  }
 
   const totalRevenue = periodRows.reduce((s, r) => s + r.netRevenue, 0);
   const grossSales = periodRows.reduce((s, r) => s + r.grossSales, 0);
@@ -179,7 +183,7 @@ export function summarizeVendorPos(
   const totalUnits = periodRows.reduce((s, r) => s + r.quantity, 0);
   const prevRevenue = compareRows.reduce((s, r) => s + r.netRevenue, 0);
   const comparisonPreviousDay =
-    opts.period === "daily" && compareRows.length > 0 && prevRevenue > 0
+    compareRows.length > 0 && prevRevenue > 0
       ? ((totalRevenue - prevRevenue) / prevRevenue) * 100
       : 0;
 
@@ -286,7 +290,12 @@ export function summarizeVendorPos(
       grossSales,
       discountTotal,
       avgDiscountRate,
-      dateRange: dateFrom && dateTo ? { from: dateFrom, to: dateTo } : undefined,
+      dateRange:
+        opts.filterDate
+          ? { from: opts.filterDate, to: opts.filterDate }
+          : dateFrom && dateTo
+            ? { from: dateFrom, to: dateTo }
+            : undefined,
       topDepartments,
       topDesigns,
       transactionCount: periodRows.length,

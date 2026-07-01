@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { summarizeCsvText } from "./summarize-csv";
+import { summarizeCsvText, extractReportDates } from "./summarize-csv";
 import type { ReportSummary, StoredReportMeta } from "./types";
 
 const REPORTS_DIR = path.join(process.cwd(), ".data", "reports");
@@ -119,23 +119,26 @@ export function deleteReport(id: string): boolean {
   return true;
 }
 
-export function getLatestReportWithSummary(): {
+export function getLatestReportWithSummary(options?: { filterDate?: string }): {
   meta: StoredReportMeta;
   summary: ReportSummary;
   csv: string;
+  availableDates: string[];
 } | null {
   const meta = getLatestReportMeta();
   if (!meta) return null;
   const csv = readReportCsv(meta.id);
   if (!csv) return null;
+  const availableDates = extractReportDates(csv);
   const { summary } = summarizeCsvText(csv, {
     reportId: meta.id,
     reportLabel: meta.label,
     fileName: meta.fileName,
     reportPeriod: meta.reportPeriod,
     reportCategory: meta.reportCategory,
+    filterDate: options?.filterDate,
   });
-  return { meta, summary, csv };
+  return { meta, summary, csv, availableDates };
 }
 
 export function getReportSummaryForSales(): ReportSummary | null {

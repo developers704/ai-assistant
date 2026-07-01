@@ -20,18 +20,7 @@ export function ReportInsightsCards({ summary, compact }: ReportInsightsProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {summary.vendorCode && <Badge variant="info">{summary.vendorCode} vendor</Badge>}
-        {isFinancing && <Badge variant="info">Financing report</Badge>}
-        {summary.reportPeriod && (
-          <Badge variant="default">{summary.reportPeriod.replace("_", " ")} report</Badge>
-        )}
-        {summary.dateRange && (
-          <Badge variant="default">
-            {summary.dateRange.from} → {summary.dateRange.to}
-          </Badge>
-        )}
-      </div>
+      {isFinancing && <Badge variant="info">Financing report</Badge>}
 
       {isFinancing && (
         <>

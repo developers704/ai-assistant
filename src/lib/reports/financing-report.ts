@@ -177,6 +177,7 @@ export function summarizeFinancing(
     period: ReportPeriod;
     reportId?: string;
     reportLabel?: string;
+    filterDate?: string;
   }
 ): {
   summary: ReportSummary;
@@ -188,26 +189,30 @@ export function summarizeFinancing(
   }
 
   const dates = [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
-  const reportDate = dates[dates.length - 1] ?? null;
   const dateFrom = dates[0] ?? null;
-  const dateTo = reportDate;
+  const dateTo = dates[dates.length - 1] ?? null;
+  const reportDate = opts.filterDate ?? dateTo;
 
-  const latestDate = reportDate ?? dates[dates.length - 1];
-  const prevDate =
-    dates.length > 1
-      ? dates[dates.indexOf(latestDate) - 1] ?? dates[dates.length - 2]
-      : null;
+  let periodRows = rows;
+  let compareRows: FinancingRow[] = [];
 
-  const latestRows = latestDate ? rows.filter((r) => r.date === latestDate) : rows;
-  const prevRows = prevDate ? rows.filter((r) => r.date === prevDate) : [];
-
-  const periodRows = opts.period === "daily" && dates.length <= 1 ? latestRows : rows;
+  if (opts.filterDate) {
+    periodRows = rows.filter((r) => r.date === opts.filterDate);
+    const idx = dates.indexOf(opts.filterDate);
+    if (idx > 0) {
+      compareRows = rows.filter((r) => r.date === dates[idx - 1]);
+    }
+  } else if (opts.period === "daily" && dates.length <= 1) {
+    periodRows = dateTo ? rows.filter((r) => r.date === dateTo) : rows;
+  }
 
   const totalRevenue = periodRows.reduce((s, r) => s + r.netAmount, 0);
   const totalProfit = periodRows.reduce((s, r) => s + r.profit, 0);
-  const prevRevenue = prevRows.reduce((s, r) => s + r.netAmount, 0);
+  const prevRevenue = compareRows.reduce((s, r) => s + r.netAmount, 0);
   const comparisonPreviousDay =
-    prevRevenue > 0 ? ((latestRows.reduce((s, r) => s + r.netAmount, 0) - prevRevenue) / prevRevenue) * 100 : 0;
+    compareRows.length > 0 && prevRevenue > 0
+      ? ((totalRevenue - prevRevenue) / prevRevenue) * 100
+      : 0;
 
   const paymentMethods = rankBy(
     periodRows,
@@ -308,7 +313,12 @@ export function summarizeFinancing(
       schema: "financing",
       reportPeriod: opts.period,
       reportCategory: "financing",
-      dateRange: dateFrom && dateTo ? { from: dateFrom, to: dateTo } : undefined,
+      dateRange:
+        opts.filterDate
+          ? { from: opts.filterDate, to: opts.filterDate }
+          : dateFrom && dateTo
+            ? { from: dateFrom, to: dateTo }
+            : undefined,
       transactionCount: periodRows.length,
       totalProfit,
       paymentMethods,

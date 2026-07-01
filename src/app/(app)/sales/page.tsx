@@ -11,24 +11,40 @@ import type { SalesSummary } from "@/types";
 import type { ReportSummary } from "@/lib/reports/types";
 import { ReportInsightsCards } from "@/components/reports/ReportInsightsCards";
 import { TopProductsTable } from "@/components/reports/TopProductsTable";
-import { TrendingUp, TrendingDown, Package, Store } from "lucide-react";
+import {
+  formatReportDateDisplay,
+  formatReportDateRange,
+} from "@/lib/reports/date-utils";
+import { TrendingUp, TrendingDown, Package, Store, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const selectClass =
+  "select-dark px-3 py-2 rounded-xl text-sm backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400/40";
 
 export default function SalesPage() {
   const { sendChat } = useApp();
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
   const [dataSource, setDataSource] = useState<"mock" | "report">("mock");
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [filterDate, setFilterDate] = useState<string>("");
 
   useEffect(() => {
-    fetch("/api/sales")
+    const qs = filterDate ? `?date=${encodeURIComponent(filterDate)}` : "";
+    fetch(`/api/sales${qs}`)
       .then((r) => r.json())
       .then((d) => {
         setSummary(d.summary);
         setDataSource(d.source === "report" ? "report" : "mock");
-        if (d.source === "report") setReportSummary(d.summary as ReportSummary);
+        if (d.source === "report") {
+          setReportSummary(d.summary as ReportSummary);
+          setAvailableDates(d.availableDates ?? []);
+        } else {
+          setReportSummary(null);
+          setAvailableDates([]);
+        }
       });
-  }, []);
+  }, [filterDate]);
 
   if (!summary) {
     return (
@@ -48,21 +64,57 @@ export default function SalesPage() {
   const isFinancingReport =
     reportSummary?.schema === "financing" || reportSummary?.reportCategory === "financing";
 
+  const subtitleDate =
+    filterDate && reportSummary?.dateRange
+      ? formatReportDateDisplay(filterDate)
+      : reportSummary?.dateRange
+        ? formatReportDateRange(reportSummary.dateRange.from, reportSummary.dateRange.to)
+        : null;
+
+  const pageSubtitle =
+    dataSource === "report" && reportSummary?.reportLabel
+      ? subtitleDate
+        ? `${reportSummary.reportLabel} · ${subtitleDate}`
+        : reportSummary.reportLabel
+      : isFinancingReport
+        ? "Payment mix, financing programs, and store performance"
+        : "Daily performance · Valliani Jewelers";
+
   return (
     <div className="flex flex-col min-h-0">
       <div className="glass-panel-strong rounded-3xl ring-1 ring-white/10 overflow-hidden">
         <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
           <PageHeader
             title={isFinancingReport ? "Financing & Sales Reports" : "Sales Reports"}
-            subtitle={
-              dataSource === "report" && reportSummary?.reportLabel
-                ? reportSummary.reportLabel
-                : isFinancingReport
-                  ? "Payment mix, financing programs, and store performance"
-                  : "Daily performance · Valliani Jewelers"
-            }
+            subtitle={pageSubtitle}
             action={
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 justify-end">
+                {dataSource === "report" && availableDates.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <CalendarDays size={15} className="text-ink-muted shrink-0" />
+                    <select
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className={selectClass}
+                      aria-label="Filter by date"
+                    >
+                      <option value="">
+                        All dates
+                        {reportSummary?.dateRange
+                          ? ` (${formatReportDateRange(
+                              reportSummary.dateRange.from,
+                              reportSummary.dateRange.to
+                            )})`
+                          : ""}
+                      </option>
+                      {[...availableDates].reverse().map((d) => (
+                        <option key={d} value={d}>
+                          {formatReportDateDisplay(d)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {dataSource === "report" && (
                   <Badge variant="success">Live report</Badge>
                 )}

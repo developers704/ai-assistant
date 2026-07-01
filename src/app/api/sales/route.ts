@@ -1,9 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { getLatestReportWithSummary } from "@/lib/reports/store";
+import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
 
-export async function GET() {
-  const latest = getLatestReportWithSummary();
+export async function GET(req: NextRequest) {
+  const dateParam = req.nextUrl.searchParams.get("date")?.trim() ?? "";
+  const filterDate = dateParam ? parseReportFilterDate(dateParam) : undefined;
+
+  if (dateParam && (!filterDate || !isValidIsoDate(filterDate))) {
+    return NextResponse.json({ error: "Invalid date. Use MM/DD/YY or YYYY-MM-DD." }, { status: 400 });
+  }
+
+  const latest = getLatestReportWithSummary(
+    filterDate ? { filterDate } : undefined
+  );
 
   if (latest) {
     return NextResponse.json({
@@ -15,6 +25,8 @@ export async function GET() {
       reportDate: latest.summary.reportDate,
       vendorCode: latest.summary.vendorCode,
       reportPeriod: latest.summary.reportPeriod,
+      availableDates: latest.availableDates,
+      filterDate: filterDate ?? null,
     });
   }
 
@@ -23,5 +35,7 @@ export async function GET() {
     summary: { ...summary, source: "mock" },
     data: mockSalesData,
     source: "mock",
+    availableDates: [],
+    filterDate: null,
   });
 }

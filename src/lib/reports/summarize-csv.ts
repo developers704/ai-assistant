@@ -275,6 +275,8 @@ export interface SummarizeOptions {
   fileName?: string;
   reportPeriod?: ReportPeriod;
   reportCategory?: ReportCategory;
+  /** ISO date YYYY-MM-DD — show metrics for this day only. */
+  filterDate?: string;
 }
 
 export function summarizeCsvText(
@@ -319,6 +321,7 @@ export function summarizeCsvText(
       period: reportPeriod,
       reportId: meta?.reportId,
       reportLabel: meta?.reportLabel,
+      filterDate: meta?.filterDate,
     });
     return {
       rowCount: rows.length,
@@ -341,6 +344,7 @@ export function summarizeCsvText(
       vendorCode,
       reportId: meta?.reportId,
       reportLabel: meta?.reportLabel,
+      filterDate: meta?.filterDate,
     });
     return {
       rowCount: rows.length,
@@ -369,4 +373,36 @@ export function summarizeCsvText(
     reportCategory,
     vendorCode,
   };
+}
+
+/** Unique transaction dates in a report CSV (ISO YYYY-MM-DD, sorted). */
+export function extractReportDates(csvText: string): string[] {
+  try {
+    const parsed = Papa.parse<Record<string, unknown>>(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false,
+      transformHeader: (h) => h.trim(),
+    });
+    const records = parsed.data.filter((row) =>
+      Object.values(row).some((v) => v != null && String(v).trim() !== "")
+    );
+    if (records.length === 0) return [];
+
+    const columns = Object.keys(records[0]).map((c) => c.trim());
+
+    if (isFinancingReportFormat(columns)) {
+      const { rows } = parseFinancingRows(records);
+      return [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
+    }
+
+    if (isVendorPosFormat(columns)) {
+      const { rows } = parseVendorPosRows(records);
+      return [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
+    }
+
+    return [];
+  } catch {
+    return [];
+  }
 }
