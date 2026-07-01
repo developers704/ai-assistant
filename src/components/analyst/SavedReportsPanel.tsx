@@ -96,6 +96,11 @@ export function SavedReportsPanel({
                       {r.vendorCode}
                     </Badge>
                   )}
+                  {r.reportCategory === "financing" && (
+                    <Badge variant="info" className="text-[9px] px-1.5 py-0 shrink-0">
+                      Financing
+                    </Badge>
+                  )}
                   {r.reportPeriod && (
                     <Badge variant="default" className="text-[9px] px-1.5 py-0 shrink-0">
                       {periodLabel(r.reportPeriod)}

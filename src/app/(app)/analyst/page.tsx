@@ -28,6 +28,21 @@ import {
 
 function buildSuggestions(schema: TableSchema): string[] {
   const colNames = schema.columns.map((c) => c.name.toLowerCase());
+  const isFinancing =
+    colNames.some((c) => c.includes("pay method")) &&
+    colNames.some((c) => c.includes("transaction date")) &&
+    colNames.some((c) => c.includes("net amt") || c === "total");
+
+  if (isFinancing) {
+    return [
+      "Total net sales by Store",
+      "Sales by Pay Method (Cash vs Credit Card vs Financing)",
+      "Top financing programs by Pay Code",
+      "Total profit by Store",
+      "Top 10 salespeople by Net Amt",
+    ].slice(0, 5);
+  }
+
   const isVendorPos =
     colNames.includes("total") &&
     colNames.some((c) => c.includes("department")) &&

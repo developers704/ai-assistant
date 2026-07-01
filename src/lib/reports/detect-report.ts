@@ -22,6 +22,14 @@ export function detectReportCategory(fileName: string, columns: string[]): Repor
     colLower.some((c) => c.includes("department"));
 
   if (isVendorPos || /\b(mhvr|vendor)\b/.test(text)) return "vendor";
+  if (
+    /\b(financing|payment)\b/.test(text) ||
+    (colLower.some((c) => c === "pay method" || c.includes("pay method")) &&
+      colLower.some((c) => c.includes("transaction date")) &&
+      colLower.some((c) => c.includes("net amt") || c === "total"))
+  ) {
+    return "financing";
+  }
   if (/\b(inventory|stock)\b/.test(text)) return "inventory";
   return "sales";
 }

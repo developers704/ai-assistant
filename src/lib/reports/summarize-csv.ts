@@ -6,6 +6,7 @@ import {
   detectVendorCode,
 } from "./detect-report";
 import type { ReportCategory, ReportPeriod, ReportSummary } from "./types";
+import { isFinancingReportFormat, parseFinancingRows, summarizeFinancing } from "./financing-report";
 import { isVendorPosFormat, parseVendorPosRows, summarizeVendorPos } from "./vendor-pos";
 
 function parseNumber(raw: unknown): number {
@@ -287,7 +288,7 @@ export function summarizeCsvText(
   reportPeriod: ReportPeriod;
   reportCategory: ReportCategory;
   vendorCode: string | null;
-  schema: "generic" | "vendor_pos";
+  schema: "generic" | "vendor_pos" | "financing";
   dateRange?: { from: string; to: string };
 } {
   const parsed = Papa.parse<Record<string, unknown>>(csvText, {
@@ -310,6 +311,27 @@ export function summarizeCsvText(
   const reportPeriod = meta?.reportPeriod ?? detectReportPeriod(fileName, meta?.reportLabel);
   const reportCategory = meta?.reportCategory ?? detectReportCategory(fileName, columns);
   const vendorCode = detectVendorCode(fileName, records, columns);
+
+  if (isFinancingReportFormat(columns) || reportCategory === "financing") {
+    const { rows } = parseFinancingRows(records);
+    if (rows.length === 0) throw new Error("No sales rows found in financing report.");
+    const result = summarizeFinancing(rows, {
+      period: reportPeriod,
+      reportId: meta?.reportId,
+      reportLabel: meta?.reportLabel,
+    });
+    return {
+      rowCount: rows.length,
+      columns: result.columns,
+      reportDate: result.reportDate,
+      summary: result.summary,
+      reportPeriod,
+      reportCategory: "financing",
+      vendorCode: null,
+      schema: "financing",
+      dateRange: result.summary.dateRange,
+    };
+  }
 
   if (isVendorPosFormat(columns) || reportCategory === "vendor") {
     const { rows } = parseVendorPosRows(records);

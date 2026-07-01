@@ -42,14 +42,19 @@ export default function SalesPage() {
   const maxWorstRevenue = Math.max(...worstStores.map((s) => s.revenue), 1);
   const topProducts = sortTopProducts(summary.topProducts).slice(0, 20);
 
+  const isFinancingReport =
+    reportSummary?.schema === "financing" || reportSummary?.reportCategory === "financing";
+
   return (
     <div>
       <PageHeader
-        title="Sales Reports"
+        title={isFinancingReport ? "Financing & Sales Reports" : "Sales Reports"}
         subtitle={
           dataSource === "report" && reportSummary?.reportLabel
-            ? `${reportSummary.vendorCode ? reportSummary.vendorCode + " · " : ""}${reportSummary.reportLabel}`
-            : "Daily performance · Valliani Jewelers"
+            ? reportSummary.reportLabel
+            : isFinancingReport
+              ? "Payment mix, financing programs, and store performance"
+              : "Daily performance · Valliani Jewelers"
         }
         action={
           <Button size="sm" onClick={() => sendChat("Show me today's sales across all stores")}>
@@ -60,7 +65,9 @@ export default function SalesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
         <Card className="p-5">
-          <p className="text-sm text-ink-secondary">Total Revenue</p>
+          <p className="text-sm text-ink-secondary">
+            {isFinancingReport ? "Net Sales" : "Total Revenue"}
+          </p>
           <p className="text-3xl font-bold text-ink mt-1">{formatCurrency(summary.totalRevenue)}</p>
           <div className="flex items-center gap-1 mt-2 text-sm">
             {summary.comparisonPreviousDay >= 0 ? (
@@ -69,19 +76,33 @@ export default function SalesPage() {
               <TrendingDown size={14} className="text-accent-rose" />
             )}
             <span className={summary.comparisonPreviousDay >= 0 ? "text-emerald-600" : "text-accent-rose"}>
-              {summary.comparisonPreviousDay >= 0 ? "+" : ""}{summary.comparisonPreviousDay.toFixed(1)}% vs yesterday
+              {summary.comparisonPreviousDay >= 0 ? "+" : ""}{summary.comparisonPreviousDay.toFixed(1)}% vs previous day
             </span>
           </div>
         </Card>
         <Card className="p-5">
-          <p className="text-sm text-ink-secondary">Pieces Sold</p>
+          <p className="text-sm text-ink-secondary">
+            {isFinancingReport ? "Sales Transactions" : "Pieces Sold"}
+          </p>
           <p className="text-3xl font-bold text-ink mt-1">{summary.totalTransactions}</p>
-          <p className="text-sm text-ink-muted mt-2">Across reporting stores today</p>
+          <p className="text-sm text-ink-muted mt-2">
+            {isFinancingReport ? "Sales rows in report period" : "Across reporting stores today"}
+          </p>
         </Card>
         <Card className="p-5">
-          <p className="text-sm text-ink-secondary">Avg. Sale Value</p>
-          <p className="text-3xl font-bold text-ink mt-1">{formatCurrency(summary.averageOrderValue)}</p>
-          <p className="text-sm text-ink-muted mt-2">+{summary.comparisonPreviousWeek.toFixed(1)}% vs last week</p>
+          <p className="text-sm text-ink-secondary">
+            {isFinancingReport ? "Total Profit" : "Avg. Sale Value"}
+          </p>
+          <p className="text-3xl font-bold text-ink mt-1">
+            {isFinancingReport
+              ? formatCurrency(reportSummary?.totalProfit ?? 0)
+              : formatCurrency(summary.averageOrderValue)}
+          </p>
+          <p className="text-sm text-ink-muted mt-2">
+            {isFinancingReport
+              ? `Avg sale ${formatCurrency(summary.averageOrderValue)}`
+              : `+${summary.comparisonPreviousWeek.toFixed(1)}% vs last week`}
+          </p>
         </Card>
       </div>
 
@@ -126,9 +147,12 @@ export default function SalesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Package size={18} className="text-brand-600" /> Top Products
+              <Package size={18} className="text-brand-600" />{" "}
+              {isFinancingReport ? "Top Pay Programs" : "Top Products"}
             </CardTitle>
-            <span className="text-xs text-ink-muted">Highest revenue first</span>
+            <span className="text-xs text-ink-muted">
+              {isFinancingReport ? "By net sales amount" : "Highest revenue first"}
+            </span>
           </CardHeader>
           <div className="space-y-2.5">
             {topProducts.map((product, i) => (

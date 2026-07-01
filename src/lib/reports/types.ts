@@ -1,8 +1,8 @@
 import type { SalesSummary } from "@/types";
 
 export type ReportPeriod = "daily" | "monthly" | "quarterly" | "half_yearly" | "yearly" | "custom";
-export type ReportCategory = "sales" | "vendor" | "inventory" | "custom";
-export type ReportSchema = "generic" | "vendor_pos";
+export type ReportCategory = "sales" | "vendor" | "inventory" | "financing" | "custom";
+export type ReportSchema = "generic" | "vendor_pos" | "financing";
 
 export interface VendorPosRow {
   date: string;
@@ -50,6 +50,13 @@ export interface ReportSummary extends SalesSummary {
   topDepartments?: { name: string; revenue: number; units: number }[];
   topDesigns?: { name: string; revenue: number; units: number }[];
   transactionCount?: number;
+  totalProfit?: number;
+  paymentMethods?: { name: string; revenue: number; units: number; share: number }[];
+  financingProviders?: { name: string; revenue: number; units: number; share: number }[];
+  topSalesPeople?: { name: string; revenue: number; units: number }[];
+  cashRate?: number;
+  creditCardRate?: number;
+  financingRate?: number;
 }
 
 export interface ReportListResponse {
