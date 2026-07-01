@@ -5,10 +5,10 @@ import {
 } from "@/lib/google/client";
 import { saveGoogleTokens } from "@/lib/google/token-store";
 import { invalidateGoogleCache } from "@/lib/google/sync";
-import { isGoogleConfigured } from "@/lib/google/config";
+import { getAppOrigin, isGoogleConfigured } from "@/lib/google/config";
 
 export async function GET(req: NextRequest) {
-  const origin = req.nextUrl.origin;
+  const origin = getAppOrigin(req.headers) ?? req.nextUrl.origin;
 
   if (!isGoogleConfigured()) {
     return NextResponse.redirect(`${origin}/settings?google=error&reason=not_configured`);
