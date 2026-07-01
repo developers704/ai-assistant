@@ -4,6 +4,7 @@ import { isGoogleConnected, getGoogleTokens } from "./token-store";
 import { getAuthenticatedClient } from "./client";
 import { fetchGmailInbox } from "./gmail";
 import { fetchGoogleCalendarEvents } from "./calendar";
+import { fetchGoogleContacts } from "./contacts";
 import { sortEmails } from "@/lib/email-utils";
 import { filterCalendarEvents } from "@/lib/calendar-utils";
 import {
@@ -17,7 +18,7 @@ import { getRagStats } from "@/lib/rag";
 import { isNewsApiConfigured } from "@/lib/news";
 import { withTimeout } from "@/lib/async-utils";
 
-const GOOGLE_SYNC_TIMEOUT_MS = 12000;
+const GOOGLE_SYNC_TIMEOUT_MS = 18000;
 
 export { applyGoogleCacheToState, invalidateGoogleCache, getIntegrationsMeta };
 
@@ -66,6 +67,7 @@ export async function getEnrichedState(options?: {
         ...base,
         emails: cached.emails,
         events: filterCalendarEvents(cached.events),
+        contacts: cached.contacts,
         integrations: {
           ...integrations,
           google: cached.integration,
@@ -73,11 +75,12 @@ export async function getEnrichedState(options?: {
       };
     }
 
-    // Google connected but cache cold — do not leak demo mockEvents into live views
+    // Google connected but cache cold — do not leak demo mock data into live views
     return {
       ...base,
       events: [],
       emails: [],
+      contacts: [],
       integrations: { ...integrations, google: integration },
     };
   }
@@ -93,6 +96,7 @@ export async function getEnrichedState(options?: {
         ...base,
         emails: cached.emails,
         events: filterCalendarEvents(cached.events),
+        contacts: cached.contacts,
         integrations: {
           ...integrations,
           google: cached.integration,
@@ -114,24 +118,38 @@ export async function getEnrichedState(options?: {
     }
 
     const syncGoogle = async () => {
-      const [emails, events] = await Promise.all([
+      const [emails, events, contacts] = await Promise.all([
         fetchGmailInbox(client),
         fetchGoogleCalendarEvents(client, base.user?.timezone || "Asia/Karachi"),
+        fetchGoogleContacts(client),
       ]);
-      return { emails, events };
+      return { emails, events, contacts };
     };
 
     const googleResult = await withTimeout(syncGoogle(), GOOGLE_SYNC_TIMEOUT_MS, "Google sync");
 
     const sortedEmails = sortEmails(googleResult.emails);
     const filteredEvents = filterCalendarEvents(googleResult.events);
-    setGoogleCache({ emails: sortedEmails, events: filteredEvents, integration });
+    const syncedIntegration: GoogleIntegration = {
+      ...integration,
+      contactsSynced: googleResult.contacts.length,
+    };
+    setGoogleCache({
+      emails: sortedEmails,
+      events: filteredEvents,
+      contacts: googleResult.contacts,
+      integration: syncedIntegration,
+    });
 
     return {
       ...base,
       emails: sortedEmails,
       events: filteredEvents,
-      integrations,
+      contacts: googleResult.contacts,
+      integrations: {
+        ...integrations,
+        google: syncedIntegration,
+      },
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to sync Google data";

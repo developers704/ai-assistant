@@ -54,6 +54,7 @@ export async function getVoiceEmails(): Promise<{
     setGoogleCache({
       emails,
       events: cached?.events ?? [],
+      contacts: cached?.contacts ?? [],
       integration,
     });
 

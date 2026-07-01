@@ -25,7 +25,14 @@ export default function ContactsPage() {
   if (!state) return null;
 
   const selected = state.contacts.find((c) => c.id === selectedId);
+  const googleConnected = state.integrations?.google?.connected ?? false;
+  const contactsSynced = state.integrations?.google?.contactsSynced;
   const importantCount = state.contacts.filter((c) => c.isImportant).length;
+  const contactsSubtitle = googleConnected
+    ? contactsSynced != null
+      ? `${state.contacts.length} Google contacts synced · ${importantCount} starred in app`
+      : `${state.contacts.length} contacts · syncing from Google…`
+    : `${state.contacts.length} team contacts · ${importantCount} key · demo data`;
   const callMode = state.user?.preferences?.defaultCallApp ?? "magicapp";
 
   const showHint = (msg: string) => {
@@ -66,7 +73,7 @@ export default function ContactsPage() {
         <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10 shrink-0">
           <PageHeader
             title="Contacts"
-            subtitle={`${state.contacts.length} team contacts · ${importantCount} key · 29 store locations`}
+            subtitle={contactsSubtitle}
           />
         </div>
 

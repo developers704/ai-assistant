@@ -211,6 +211,7 @@ export interface AIAction {
 export interface GoogleIntegration {
   connected: boolean;
   email?: string;
+  contactsSynced?: number;
   syncError?: string;
 }
 

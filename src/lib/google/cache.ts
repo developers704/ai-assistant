@@ -1,8 +1,9 @@
-import type { AppState, CalendarEvent, Email, GoogleIntegration } from "@/types";
+import type { AppState, CalendarEvent, Contact, Email, GoogleIntegration } from "@/types";
 
 interface GoogleCacheEntry {
   emails: Email[];
   events: CalendarEvent[];
+  contacts: Contact[];
   integration: GoogleIntegration;
   fetchedAt: number;
 }
@@ -22,6 +23,7 @@ export function getGoogleCache(): GoogleCacheEntry | null {
 export function setGoogleCache(data: {
   emails: Email[];
   events: CalendarEvent[];
+  contacts: Contact[];
   integration: GoogleIntegration;
 }) {
   cache = { ...data, fetchedAt: Date.now() };
@@ -39,6 +41,7 @@ export function applyGoogleCacheToState(base: AppState): AppState {
     ...base,
     emails: cached.emails,
     events: cached.events,
+    contacts: cached.contacts,
     integrations: {
       ...base.integrations,
       google: cached.integration,

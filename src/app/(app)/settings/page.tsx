@@ -638,7 +638,7 @@ function SettingsContent() {
 
                 <div className="mt-4 pt-4 border-t border-white/10">
 
-                  <p className="text-sm font-medium text-ink mb-2">Google (Gmail + Calendar)</p>
+                  <p className="text-sm font-medium text-ink mb-2">Google (Gmail + Calendar + Contacts)</p>
 
                   {googleConnected ? (
 
@@ -664,7 +664,7 @@ function SettingsContent() {
 
                     <Button size="sm" onClick={() => { window.location.href = "/api/auth/google"; }}>
 
-                      <Link2 size={14} /> Connect Gmail & Calendar
+                      <Link2 size={14} /> Connect Gmail, Calendar & Contacts
 
                     </Button>
 
@@ -674,7 +674,7 @@ function SettingsContent() {
 
                 <p className="text-xs text-ink-muted mt-3">
 
-                  Connect Google for inbox and calendar.
+                  Connect Google for inbox, calendar, and contacts sync.
 
                 </p>
 

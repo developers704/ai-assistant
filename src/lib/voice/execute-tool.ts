@@ -90,6 +90,7 @@ async function getAllCalendarEvents(): Promise<CalendarEvent[]> {
       setGoogleCache({
         emails: cached?.emails ?? getState().emails,
         events,
+        contacts: cached?.contacts ?? getState().contacts,
         integration,
       });
       return filterCalendarEvents(events);
@@ -376,6 +377,7 @@ export async function executeVoiceTool(
           setGoogleCache({
             emails: cached?.emails ?? getState().emails,
             events: refreshed,
+            contacts: cached?.contacts ?? getState().contacts,
             integration,
           });
         } else {

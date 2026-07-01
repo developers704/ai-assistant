@@ -85,7 +85,7 @@ Business priorities:
 ${(user?.priorities ?? []).map((p) => `- ${p}`).join("\n")}
 
 ## Integrations
-Gmail/Calendar: ${googleConnected ? `connected (${state.integrations?.google?.email ?? "Google account"})` : "not connected — email/calendar data may be demo"}
+Gmail/Calendar/Contacts: ${googleConnected ? `connected (${state.integrations?.google?.email ?? "Google account"}${state.integrations?.google?.contactsSynced != null ? `, ${state.integrations.google.contactsSynced} contacts` : ""})` : "not connected — email/calendar/contacts may be demo"}
 ${state.integrations?.google?.syncError ? `Sync note: ${state.integrations.google.syncError}` : ""}
 
 ## Calendar (${todayEvents.length} today, ${tomorrowEvents.length} tomorrow)

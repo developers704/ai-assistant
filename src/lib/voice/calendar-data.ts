@@ -70,6 +70,7 @@ export async function getVoiceCalendarEvents(): Promise<{
     setGoogleCache({
       emails: cached?.emails ?? [],
       events: filtered,
+      contacts: cached?.contacts ?? [],
       integration,
     });
 
