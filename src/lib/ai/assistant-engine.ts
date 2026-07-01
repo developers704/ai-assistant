@@ -94,7 +94,7 @@ function detectIntent(message: string): IntentType {
     return "reminder_list";
   }
   if (
-    /(?:what'?s|whats|what is)\s+(?:on\s+)?(?:my\s+)?(?:calender|calendar)|(?:calender|calendar)\s+today|today('s)?\s*schedule|on my (?:calender|calendar)|my meetings|what meetings|any meetings? today/.test(
+    /(?:what'?s|whats|what is)\s+(?:on\s+)?(?:my\s+)?(?:calender|calendar)|(?:calender|calendar)\s+today|today('s)?\s*schedule|on my (?:calender|calendar)|my meetings|what meetings|any meetings? today|(?:do|have) (?:i|we) have (?:any |a )?meetings? (?:today|tomorrow)|(?:am i|do i) have (?:any |a )?meetings? (?:today|tomorrow)|meetings? (?:for )?(?:today|tomorrow)|(?:anything|something) (?:scheduled|on) (?:today|tomorrow)|events? (?:today|tomorrow)|what'?s on (?:today|tomorrow)|appointments? (?:today|tomorrow)/.test(
       lower
     )
   ) {

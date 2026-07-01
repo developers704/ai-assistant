@@ -29,35 +29,34 @@ export const maxDuration = 120;
 
 
 
-async function resolveResponse(message: string, state: Awaited<ReturnType<typeof getEnrichedState>>): Promise<AIResponse> {
+async function resolveResponse(
+  message: string,
+  state: Awaited<ReturnType<typeof getEnrichedState>>
+): Promise<{ response: AIResponse; engine: "rules" | "llm" | "llm-fallback" }> {
   if (isImageGenerateRequest(message)) {
-    return processImageGenerate(message);
+    return { response: await processImageGenerate(message), engine: "rules" };
   }
 
   if (shouldUseRuleEngine(message)) {
-    return processMessage(message, state);
+    return { response: processMessage(message, state), engine: "rules" };
   }
 
   if (isLLMChatConfigured()) {
-
     try {
-
-      return await processMessageWithLLM(message, state);
-
+      return {
+        response: await processMessageWithLLM(message, state),
+        engine: "llm",
+      };
     } catch (err) {
-
       console.error("LLM chat failed, falling back to rule engine:", err);
-
-      return processMessage(message, state);
-
+      return {
+        response: processMessage(message, state),
+        engine: "llm-fallback",
+      };
     }
-
   }
 
-
-
-  return processMessage(message, state);
-
+  return { response: processMessage(message, state), engine: "rules" };
 }
 
 
@@ -94,7 +93,7 @@ export async function POST(req: NextRequest) {
 
 
 
-  const response = await resolveResponse(trimmed, state);
+  const { response, engine } = await resolveResponse(trimmed, state);
 
   const sideEffects = executeSideEffects(response, state);
 
@@ -146,7 +145,7 @@ export async function POST(req: NextRequest) {
 
     speak: response.speak,
 
-    engine: isLLMChatConfigured() && !shouldUseRuleEngine(trimmed) ? "llm" : "rules",
+    engine,
 
   });
 
