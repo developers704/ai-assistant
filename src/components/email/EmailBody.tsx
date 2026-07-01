@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import { toPlainText } from "@/lib/email-html";
 
 interface EmailBodyProps {
@@ -10,6 +11,15 @@ interface EmailBodyProps {
 
 export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
   const plain = toPlainText(body) || toPlainText(preview ?? "");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeHeight, setIframeHeight] = useState(320);
+
+  const resizeIframe = useCallback(() => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc?.body) return;
+    const height = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight) + 24;
+    setIframeHeight(Math.max(height, 280));
+  }, []);
 
   if (bodyHtml && bodyHtml.trim()) {
     const doc = `<!DOCTYPE html>
@@ -40,12 +50,15 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
 </html>`;
 
     return (
-      <div className="mb-6 space-y-2">
+      <div className="space-y-2">
         <iframe
+          ref={iframeRef}
           title="Email content"
           sandbox=""
           srcDoc={doc}
-          className="w-full min-h-[280px] max-h-[55vh] rounded-xl border border-white/15 bg-white ring-1 ring-white/10"
+          onLoad={resizeIframe}
+          style={{ height: iframeHeight }}
+          className="w-full rounded-xl border border-white/15 bg-white ring-1 ring-white/10 block"
         />
         {plain && (
           <details className="text-xs text-ink-muted">
@@ -60,7 +73,7 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
   }
 
   return (
-    <div className="text-sm text-ink-secondary whitespace-pre-wrap mb-6 max-h-[50vh] overflow-y-auto leading-relaxed rounded-xl bg-black/15 p-4 ring-1 ring-white/5">
+    <div className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed rounded-xl bg-black/15 p-4 ring-1 ring-white/5">
       {plain || "No content."}
     </div>
   );

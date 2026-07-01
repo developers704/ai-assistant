@@ -42,10 +42,10 @@ function PendingActionCard({
   onReject?: () => void;
 }) {
   return (
-    <div className="mt-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
-      <p className="text-sm font-medium text-amber-800 mb-2">⚠️ Confirmation Required</p>
-      <p className="text-sm text-amber-900 mb-1 font-medium">{action.title}</p>
-      <p className="text-sm text-amber-800 whitespace-pre-wrap mb-3">{action.preview}</p>
+    <div className="mt-3 p-4 rounded-xl bg-amber-500/15 border border-amber-400/30 ring-1 ring-amber-400/10">
+      <p className="text-sm font-medium text-amber-200 mb-2">Confirmation required</p>
+      <p className="text-sm text-ink mb-1 font-medium">{action.title}</p>
+      <p className="text-sm text-ink-secondary whitespace-pre-wrap mb-3 max-h-40 overflow-y-auto">{action.preview}</p>
       <div className="flex gap-2">
         <Button size="sm" onClick={onConfirm} className="bg-emerald-600 hover:bg-emerald-700">
           <Check size={14} /> Confirm
