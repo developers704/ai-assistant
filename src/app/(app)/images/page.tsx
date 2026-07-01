@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PageHeader } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { CameraModal } from "@/components/CameraModal";
@@ -18,6 +17,8 @@ import {
   RefreshCw,
   Pencil,
   Camera,
+  Gem,
+  Zap,
 } from "lucide-react";
 
 type ImageKind = "generated" | "enhanced";
@@ -29,38 +30,138 @@ interface GeneratedImage {
   kind: ImageKind;
   size: string;
   quality: string;
-  /** For enhanced images, the original upload + instructions so it can be re-run. */
   sourceFile?: File;
   instructions?: string;
 }
 
 const PROMPT_IDEAS = [
-  "Gold diamond solitaire engagement ring on a white marble surface",
-  "22KT yellow gold bridal necklace set with rubies and emeralds",
-  "Pair of diamond stud earrings in white gold, macro shot",
-  "Men's gold chain bracelet, thick Cuban link, studio lighting",
-  "Pearl and diamond pendant on a black velvet background",
+  { label: "Solitaire ring", text: "Gold diamond solitaire engagement ring on a white marble surface" },
+  { label: "Bridal set", text: "22KT yellow gold bridal necklace set with rubies and emeralds" },
+  { label: "Stud earrings", text: "Pair of diamond stud earrings in white gold, macro shot" },
+  { label: "Cuban chain", text: "Men's gold chain bracelet, thick Cuban link, studio lighting" },
+  { label: "Pearl pendant", text: "Pearl and diamond pendant on a black velvet background" },
 ];
 
 const SIZES = [
-  { id: "1024x1024", label: "Square" },
-  { id: "1536x1024", label: "Landscape" },
-  { id: "1024x1536", label: "Portrait" },
+  { id: "1024x1024", label: "Square", ratio: "1:1" },
+  { id: "1536x1024", label: "Landscape", ratio: "3:2" },
+  { id: "1024x1536", label: "Portrait", ratio: "2:3" },
 ];
 
 const QUALITIES = [
-  { id: "low", label: "Draft" },
-  { id: "medium", label: "Standard" },
-  { id: "high", label: "High" },
+  { id: "low", label: "Draft", hint: "Fast" },
+  { id: "medium", label: "Standard", hint: "Balanced" },
+  { id: "high", label: "High", hint: "Best" },
 ];
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
-const textareaClass =
-  "w-full px-4 py-3 rounded-2xl border border-white/25 bg-white/10 text-sm text-ink backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-fuchsia-400/30 focus:border-fuchsia-400/40 resize-none";
+function OptionGroup<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { id: T; label: string; hint?: string }[];
+  onChange: (id: T) => void;
+}) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-2">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            className={cn(
+              "px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200",
+              value === opt.id
+                ? "bg-gradient-to-br from-violet-500/30 to-fuchsia-500/25 text-white ring-1 ring-fuchsia-400/50 shadow-[0_0_20px_rgba(192,132,252,0.15)]"
+                : "bg-white/5 text-ink-muted hover:text-ink hover:bg-white/10 ring-1 ring-white/10"
+            )}
+          >
+            {opt.label}
+            {opt.hint && value === opt.id && (
+              <span className="ml-1 opacity-70">· {opt.hint}</span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-const chipActive = "bg-fuchsia-500/20 text-ink ring-1 ring-fuchsia-400/40";
-const chipIdle = "text-ink-muted hover:text-ink";
+function ImageCard({
+  img,
+  loading,
+  featured,
+  onView,
+  onRegenerate,
+  onDownload,
+  onRemove,
+}: {
+  img: GeneratedImage;
+  loading: boolean;
+  featured?: boolean;
+  onView: () => void;
+  onRegenerate: () => void;
+  onDownload: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-2xl ring-1 ring-white/10 bg-black/20 transition-all duration-300 hover:ring-fuchsia-400/30 hover:shadow-[0_8px_40px_rgba(168,85,247,0.12)]",
+        featured ? "p-1.5" : "p-1"
+      )}
+    >
+      <div
+        className={cn("relative cursor-zoom-in overflow-hidden rounded-xl", featured ? "aspect-[4/3]" : "aspect-square")}
+        onClick={onView}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={img.src}
+          alt={img.prompt}
+          className="h-full w-full object-cover bg-white/5 transition-transform duration-500 group-hover:scale-[1.02]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <span
+          className={cn(
+            "absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide uppercase backdrop-blur-md",
+            img.kind === "enhanced"
+              ? "bg-amber-500/25 text-amber-100 ring-1 ring-amber-400/40"
+              : "bg-violet-500/25 text-violet-100 ring-1 ring-violet-400/40"
+          )}
+        >
+          {img.kind === "enhanced" ? "Enhanced" : "AI Generated"}
+        </span>
+        <span className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-medium ring-1 ring-white/20">
+          <Maximize2 size={12} /> View
+        </span>
+      </div>
+
+      {!featured && (
+        <p className="text-[11px] text-ink-muted mt-2 px-1 line-clamp-2 leading-relaxed">{img.prompt}</p>
+      )}
+
+      <div className={cn("flex gap-1.5", featured ? "mt-2 px-0.5" : "mt-2 px-0.5")}>
+        <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={onRegenerate} disabled={loading}>
+          <RefreshCw size={13} /> Redo
+        </Button>
+        <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={onDownload}>
+          <Download size={13} /> Save
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onRemove} aria-label="Remove" className="px-2.5">
+          <X size={14} />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function ImageGenerationPage() {
   const [mode, setMode] = useState<"generate" | "enhance">("generate");
@@ -71,18 +172,17 @@ export default function ImageGenerationPage() {
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<GeneratedImage[]>([]);
 
-  // Enhance state
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [instructions, setInstructions] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Camera capture
   const [showCamera, setShowCamera] = useState(false);
-
-  // Lightbox
   const [viewing, setViewing] = useState<GeneratedImage | null>(null);
+
+  const latest = images[0];
+  const history = images.slice(1);
 
   useEffect(() => {
     fetch("/api/voice/last-image")
@@ -202,335 +302,372 @@ export default function ImageGenerationPage() {
     setViewing((v) => (v?.id === id ? null : v));
   };
 
-  const aspectQuality = (
-    <div className="flex flex-wrap items-end gap-4">
-      <div>
-        <label className="block text-xs font-medium text-ink-muted mb-1.5">Aspect</label>
-        <div className="flex gap-1 p-1 glass-panel rounded-2xl">
-          {SIZES.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setSize(s.id)}
-              className={cn(
-                "px-3 py-1.5 rounded-xl text-xs font-medium transition-all",
-                size === s.id ? chipActive : chipIdle
-              )}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-muted mb-1.5">Quality</label>
-        <div className="flex gap-1 p-1 glass-panel rounded-2xl">
-          {QUALITIES.map((q) => (
-            <button
-              key={q.id}
-              type="button"
-              onClick={() => setQuality(q.id)}
-              className={cn(
-                "px-3 py-1.5 rounded-xl text-xs font-medium transition-all",
-                quality === q.id ? chipActive : chipIdle
-              )}
-            >
-              {q.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="flex flex-col min-h-0">
-      <div className="glass-panel-strong rounded-3xl ring-1 ring-white/10 overflow-hidden">
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
-          <PageHeader
-            title="Jewelry Image Generation"
-            subtitle="Generate photorealistic product images from text, or enhance a raw photo into an e-commerce shot"
-          />
+    <div className="flex flex-col h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-4rem)]">
+      <div className="glass-panel-strong rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10 relative">
+        {/* Ambient glow */}
+        <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-violet-600/10 blur-3xl" />
+
+        {/* Header */}
+        <div className="relative shrink-0 px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 shadow-[0_4px_20px_rgba(139,92,246,0.35)]">
+                  <Gem size={18} className="text-white" />
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25">
+                  <Zap size={10} /> Nano Banana 2
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-display font-bold text-gradient-title tracking-tight">
+                Jewelry Studio
+              </h1>
+              <p className="text-sm text-ink-muted mt-1 max-w-lg">
+                Create photorealistic product shots from text, or turn a raw photo into a polished e-commerce image.
+              </p>
+            </div>
+            {images.length > 0 && (
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/5 ring-1 ring-white/10">
+                <ImageIcon size={16} className="text-fuchsia-300" />
+                <div>
+                  <p className="text-sm font-semibold text-ink">{images.length}</p>
+                  <p className="text-[10px] text-ink-muted uppercase tracking-wide">Creations</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="px-5 sm:px-6 py-5 space-y-5">
-          {/* Mode tabs */}
-          <div className="flex gap-1 p-1 glass-panel rounded-2xl w-full sm:w-auto sm:inline-flex">
-            <button
-              type="button"
-              onClick={() => {
-                setShowCamera(false);
-                setMode("generate");
-                setError(null);
-              }}
-              className={cn(
-                "flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all",
-                mode === "generate" ? chipActive : chipIdle
-              )}
-            >
-              <Wand2 size={15} /> Generate
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("enhance");
-                setError(null);
-              }}
-              className={cn(
-                "flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all",
-                mode === "enhance" ? chipActive : chipIdle
-              )}
-            >
-              <Sparkles size={15} /> Enhance from photo
-            </button>
-          </div>
-
-          {mode === "generate" ? (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                generate(prompt);
-              }}
-            >
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="e.g. 18KT white gold halo ring with a 2 carat oval diamond, soft studio lighting, white background"
-                rows={3}
-                className={textareaClass}
-              />
-              <div className="flex flex-wrap items-end gap-4 mt-4">
-                {aspectQuality}
-                <Button type="submit" disabled={loading || !prompt.trim()} className="ml-auto">
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                  {loading ? "Generating..." : "Generate"}
-                </Button>
+        {/* Body: controls + canvas */}
+        <div className="relative flex-1 min-h-0 flex flex-col lg:flex-row">
+          {/* Controls panel */}
+          <div className="lg:w-[min(420px,100%)] shrink-0 border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col min-h-0">
+            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
+              {/* Mode switch */}
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-black/25 ring-1 ring-white/10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCamera(false);
+                    setMode("generate");
+                    setError(null);
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                    mode === "generate"
+                      ? "bg-gradient-to-br from-violet-600/80 to-fuchsia-600/70 text-white shadow-[0_4px_24px_rgba(139,92,246,0.25)]"
+                      : "text-ink-muted hover:text-ink hover:bg-white/5"
+                  )}
+                >
+                  <Wand2 size={16} /> Generate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("enhance");
+                    setError(null);
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                    mode === "enhance"
+                      ? "bg-gradient-to-br from-violet-600/80 to-fuchsia-600/70 text-white shadow-[0_4px_24px_rgba(139,92,246,0.25)]"
+                      : "text-ink-muted hover:text-ink hover:bg-white/5"
+                  )}
+                >
+                  <Sparkles size={16} /> Enhance
+                </button>
               </div>
 
-              <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/10">
-                {PROMPT_IDEAS.map((idea) => (
-                  <button
-                    key={idea}
-                    type="button"
-                    onClick={() => {
-                      setPrompt(idea);
-                      generate(idea);
-                    }}
-                    disabled={loading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-panel text-xs text-ink-secondary hover:bg-white/12 hover:text-ink ring-1 ring-white/10 transition-all disabled:opacity-50"
-                  >
-                    <Sparkles size={11} className="text-fuchsia-300" /> {idea}
-                  </button>
-                ))}
-              </div>
-            </form>
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                enhance();
-              }}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={(e) => pickFile(e.target.files?.[0])}
-              />
-
-              {!filePreview ? (
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragOver(true);
-                    }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDragOver(false);
-                      pickFile(e.dataTransfer.files?.[0]);
-                    }}
-                    className={cn(
-                      "w-full flex flex-col items-center justify-center gap-3 py-10 rounded-3xl border-2 border-dashed transition-all ring-1 ring-white/5",
-                      dragOver
-                        ? "border-fuchsia-400/50 bg-fuchsia-500/10"
-                        : "border-fuchsia-400/30 bg-fuchsia-500/5 hover:border-fuchsia-400/50 hover:bg-fuchsia-500/10"
-                    )}
-                  >
-                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-fuchsia-500/20 ring-1 ring-fuchsia-400/30">
-                      <Upload size={26} className="text-fuchsia-300" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-ink">Upload a jewelry photo</p>
-                      <p className="text-xs text-ink-muted mt-1">Drag &amp; drop or click — PNG, JPG, WEBP up to 20MB</p>
+              {mode === "generate" ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    generate(prompt);
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-2 block">
+                      Describe your piece
+                    </label>
+                    <div className="relative rounded-2xl ring-1 ring-white/15 focus-within:ring-fuchsia-400/40 focus-within:shadow-[0_0_30px_rgba(192,132,252,0.08)] transition-all">
+                      <textarea
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder="18KT white gold halo ring, 2ct oval diamond, soft studio lighting, white background…"
+                        rows={4}
+                        className="w-full px-4 py-3.5 rounded-2xl bg-black/30 text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none resize-none"
+                      />
+                      <span className="absolute bottom-2.5 right-3 text-[10px] text-ink-muted tabular-nums">
+                        {prompt.length}/500
+                      </span>
                     </div>
-                  </button>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-white/10" />
-                    <span className="text-xs text-ink-muted uppercase tracking-wide">or</span>
-                    <div className="flex-1 h-px bg-white/10" />
                   </div>
+
+                  <OptionGroup label="Aspect ratio" value={size} options={SIZES} onChange={setSize} />
+                  <OptionGroup label="Output quality" value={quality} options={QUALITIES} onChange={setQuality} />
 
                   <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setShowCamera(true)}
-                    disabled={loading}
+                    type="submit"
+                    disabled={loading || !prompt.trim()}
+                    className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 border-0 shadow-[0_8px_32px_rgba(139,92,246,0.35)]"
                   >
-                    <Camera size={16} /> Take photo with camera
+                    {loading ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+                    {loading ? "Creating magic…" : "Generate image"}
                   </Button>
-                  <p className="text-xs text-ink-muted text-center">
-                    Use your phone or laptop camera to capture a piece in real time.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="relative w-full sm:w-44 flex-shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={filePreview}
-                      alt="Upload preview"
-                      className="w-full rounded-2xl object-cover aspect-square bg-white/5 border border-white/15 ring-1 ring-white/10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFile(null);
-                        setFilePreview(null);
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                      }}
-                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-ink/90 text-white flex items-center justify-center shadow-elevated hover:bg-ink ring-1 ring-white/20"
-                      aria-label="Remove image"
-                    >
-                      <X size={14} />
-                    </button>
+
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-2">
+                      Quick ideas
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+                      {PROMPT_IDEAS.map((idea) => (
+                        <button
+                          key={idea.text}
+                          type="button"
+                          onClick={() => {
+                            setPrompt(idea.text);
+                            generate(idea.text);
+                          }}
+                          disabled={loading}
+                          className="shrink-0 flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-fuchsia-400/30 text-left transition-all disabled:opacity-50 max-w-[140px]"
+                        >
+                          <span className="text-xs font-medium text-ink">{idea.label}</span>
+                          <span className="text-[10px] text-ink-muted line-clamp-1">{idea.text}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-xs font-medium text-ink-muted mb-1.5">
-                      Optional instructions
-                    </label>
-                    <textarea
-                      value={instructions}
-                      onChange={(e) => setInstructions(e.target.value)}
-                      placeholder="e.g. pure white background, top-down angle, warm gold tone, add soft reflection"
-                      rows={3}
-                      className={textareaClass}
-                    />
-                    <div className="mt-2 flex flex-wrap gap-3">
+                </form>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    enhance();
+                  }}
+                  className="space-y-4"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => pickFile(e.target.files?.[0])}
+                  />
+
+                  {!filePreview ? (
+                    <div className="space-y-3">
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-xs text-ink-secondary hover:text-fuchsia-300 inline-flex items-center gap-1 transition-colors"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOver(true);
+                        }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOver(false);
+                          pickFile(e.dataTransfer.files?.[0]);
+                        }}
+                        className={cn(
+                          "w-full flex flex-col items-center justify-center gap-3 py-12 rounded-2xl border-2 border-dashed transition-all duration-200",
+                          dragOver
+                            ? "border-fuchsia-400/60 bg-fuchsia-500/15 scale-[1.01]"
+                            : "border-white/20 bg-black/20 hover:border-fuchsia-400/40 hover:bg-fuchsia-500/5"
+                        )}
                       >
-                        <Pencil size={12} /> Choose a different photo
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowCamera(true)}
-                        className="text-xs text-ink-secondary hover:text-fuchsia-300 inline-flex items-center gap-1 transition-colors"
-                      >
-                        <Camera size={12} /> Retake with camera
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-end gap-4 mt-4">
-                {aspectQuality}
-                <Button type="submit" disabled={loading || !file} className="ml-auto">
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                  {loading ? "Enhancing..." : "Enhance to e-commerce"}
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {error && (
-            <p className="text-sm text-accent-rose flex items-center gap-1.5">
-              <AlertTriangle size={14} /> {error}
-            </p>
-          )}
-
-          {loading && (
-            <div className="glass-panel rounded-2xl flex flex-col items-center justify-center py-14 text-center ring-1 ring-white/10">
-              <Loader2 size={32} className="text-fuchsia-300 animate-spin mb-3" />
-              <p className="text-sm text-ink-secondary">
-                {mode === "enhance" ? "Enhancing your photo..." : "Creating your jewelry image..."}
-              </p>
-              <p className="text-xs text-ink-muted mt-1">This can take 10–30 seconds.</p>
-            </div>
-          )}
-
-          {images.length === 0 && !loading ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 flex flex-col items-center justify-center py-16 text-center">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-fuchsia-500/20 ring-1 ring-fuchsia-400/30 mb-4">
-                <ImageIcon size={28} className="text-fuchsia-300" />
-              </span>
-              <p className="text-ink-secondary font-medium">No images yet</p>
-              <p className="text-sm text-ink-muted mt-1 max-w-sm">
-                Describe a piece, upload a photo, or capture one with your camera.
-              </p>
-            </div>
-          ) : (
-            images.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {images.map((img) => (
-                  <div key={img.id} className="glass-panel rounded-2xl p-3 ring-1 ring-white/10">
-                    <div
-                      className="relative group cursor-zoom-in"
-                      onClick={() => setViewing(img)}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={img.src}
-                        alt={img.prompt}
-                        className="w-full rounded-xl object-cover aspect-square bg-white/5"
-                      />
-                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide uppercase bg-ink/70 text-white backdrop-blur-sm ring-1 ring-white/10">
-                        {img.kind === "enhanced" ? "Enhanced" : "Generated"}
-                      </span>
-                      <div className="absolute inset-0 rounded-xl bg-ink/0 group-hover:bg-ink/25 transition-colors flex items-center justify-center">
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-panel text-ink text-xs font-medium shadow-elevated">
-                          <Maximize2 size={13} /> Full view
+                        <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 ring-1 ring-fuchsia-400/30">
+                          <Upload size={28} className="text-fuchsia-300" />
                         </span>
+                        <div className="text-center px-4">
+                          <p className="text-sm font-semibold text-ink">Drop your jewelry photo</p>
+                          <p className="text-xs text-ink-muted mt-1">PNG, JPG, WEBP · up to 20MB</p>
+                        </div>
+                      </button>
+
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-px bg-white/10" />
+                        <span className="text-[10px] text-ink-muted uppercase tracking-widest">or</span>
+                        <div className="flex-1 h-px bg-white/10" />
+                      </div>
+
+                      <Button type="button" variant="outline" className="w-full" onClick={() => setShowCamera(true)} disabled={loading}>
+                        <Camera size={16} /> Open camera
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <div className="relative w-28 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={filePreview}
+                            alt="Upload preview"
+                            className="w-full rounded-xl object-cover aspect-square ring-2 ring-fuchsia-400/30"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFile(null);
+                              setFilePreview(null);
+                              if (fileInputRef.current) fileInputRef.current.value = "";
+                            }}
+                            className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-ink text-white flex items-center justify-center ring-2 ring-white/20 hover:bg-rose-600 transition-colors"
+                            aria-label="Remove"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <label className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-1.5 block">
+                            Style notes (optional)
+                          </label>
+                          <textarea
+                            value={instructions}
+                            onChange={(e) => setInstructions(e.target.value)}
+                            placeholder="White background, warm gold tone, soft reflection…"
+                            rows={3}
+                            className="w-full px-3 py-2.5 rounded-xl bg-black/30 text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:ring-1 focus:ring-fuchsia-400/40 resize-none ring-1 ring-white/10"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-3 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-ink-muted hover:text-fuchsia-300 inline-flex items-center gap-1 transition-colors"
+                        >
+                          <Pencil size={12} /> Change photo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowCamera(true)}
+                          className="text-ink-muted hover:text-fuchsia-300 inline-flex items-center gap-1 transition-colors"
+                        >
+                          <Camera size={12} /> Retake
+                        </button>
                       </div>
                     </div>
-                    <p className="text-xs text-ink-muted mt-3 line-clamp-2">{img.prompt}</p>
-                    <div className="flex gap-2 mt-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => regenerate(img)}
-                        disabled={loading}
+                  )}
+
+                  <OptionGroup label="Aspect ratio" value={size} options={SIZES} onChange={setSize} />
+                  <OptionGroup label="Output quality" value={quality} options={QUALITIES} onChange={setQuality} />
+
+                  <Button
+                    type="submit"
+                    disabled={loading || !file}
+                    className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 border-0 shadow-[0_8px_32px_rgba(139,92,246,0.35)]"
+                  >
+                    {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                    {loading ? "Enhancing…" : "Enhance to e-commerce"}
+                  </Button>
+                </form>
+              )}
+
+              {error && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-rose-500/10 ring-1 ring-rose-400/25 text-sm text-rose-200">
+                  <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Canvas / gallery */}
+          <div className="flex-1 min-w-0 min-h-0 flex flex-col p-4 sm:p-5 overflow-y-auto">
+            {loading && (
+              <div className="flex-1 flex flex-col items-center justify-center min-h-[280px] rounded-2xl bg-black/20 ring-1 ring-white/10 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-fuchsia-500/5 to-transparent animate-pulse" />
+                <div className="relative flex flex-col items-center text-center px-6">
+                  <div className="relative mb-5">
+                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 ring-1 ring-fuchsia-400/30 flex items-center justify-center">
+                      <Loader2 size={36} className="text-fuchsia-300 animate-spin" />
+                    </div>
+                    <Sparkles size={16} className="absolute -top-1 -right-1 text-amber-300 animate-pulse" />
+                  </div>
+                  <p className="text-base font-medium text-ink">
+                    {mode === "enhance" ? "Polishing your photo…" : "Rendering your jewelry…"}
+                  </p>
+                  <p className="text-sm text-ink-muted mt-1">Usually 10–30 seconds · sit tight</p>
+                </div>
+              </div>
+            )}
+
+            {!loading && images.length === 0 && (
+              <div className="flex-1 flex flex-col items-center justify-center min-h-[280px] rounded-2xl border border-dashed border-white/15 bg-black/15 text-center px-6 relative overflow-hidden">
+                <div className="absolute inset-0 bg-dot-grid opacity-30" />
+                <div className="relative">
+                  <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500/25 to-fuchsia-600/20 ring-1 ring-fuchsia-400/25 shadow-[0_8px_40px_rgba(139,92,246,0.15)]">
+                    <ImageIcon size={36} className="text-fuchsia-300/80" />
+                  </div>
+                  <p className="text-lg font-semibold text-ink">Your canvas is ready</p>
+                  <p className="text-sm text-ink-muted mt-2 max-w-sm mx-auto leading-relaxed">
+                    Describe a piece on the left, pick a quick idea, or upload a photo to enhance.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2 mt-6">
+                    {["Rings", "Necklaces", "Earrings", "Bracelets"].map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-3 py-1 rounded-full text-xs text-ink-muted bg-white/5 ring-1 ring-white/10"
                       >
-                        <RefreshCw size={14} /> Regenerate
-                      </Button>
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => download(img)}>
-                        <Download size={14} /> Download
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => removeImage(img.id)}
-                        aria-label="Remove image"
-                        title="Remove"
-                      >
-                        <X size={14} />
-                      </Button>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!loading && latest && (
+              <div className="space-y-4">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-fuchsia-300/90 mb-1">
+                      Latest creation
+                    </p>
+                    <p className="text-sm text-ink-secondary line-clamp-2 max-w-xl">{latest.prompt}</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => download(latest)}>
+                    <Download size={14} /> Download
+                  </Button>
+                </div>
+
+                <ImageCard
+                  img={latest}
+                  loading={loading}
+                  featured
+                  onView={() => setViewing(latest)}
+                  onRegenerate={() => regenerate(latest)}
+                  onDownload={() => download(latest)}
+                  onRemove={() => removeImage(latest.id)}
+                />
+
+                {history.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-3">
+                      Previous ({history.length})
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                      {history.map((img) => (
+                        <ImageCard
+                          key={img.id}
+                          img={img}
+                          loading={loading}
+                          onView={() => setViewing(img)}
+                          onRegenerate={() => regenerate(img)}
+                          onDownload={() => download(img)}
+                          onRemove={() => removeImage(img.id)}
+                        />
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            )
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -541,33 +678,35 @@ export default function ImageGenerationPage() {
         title="Capture jewelry photo"
       />
 
-      {/* Full-view lightbox */}
       {viewing && (
         <div
-          className="fixed inset-0 z-50 bg-ink/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4"
           onClick={() => setViewing(null)}
         >
           <div
-            className="relative max-w-5xl w-full max-h-[88vh] flex flex-col items-center"
+            className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={viewing.src}
               alt={viewing.prompt}
-              className="max-h-[78vh] w-auto max-w-full rounded-2xl shadow-elevated object-contain"
+              className="max-h-[78vh] w-auto max-w-full rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] object-contain ring-1 ring-white/10"
             />
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              <p className="text-sm text-white/80 max-w-xl text-center line-clamp-2">{viewing.prompt}</p>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 max-w-2xl">
+              <p className="text-sm text-white/75 text-center line-clamp-2 flex-1 min-w-[200px]">{viewing.prompt}</p>
               <Button size="sm" onClick={() => download(viewing)}>
                 <Download size={14} /> Download
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => regenerate(viewing)} disabled={loading}>
+                <RefreshCw size={14} /> Regenerate
               </Button>
             </div>
           </div>
           <button
             onClick={() => setViewing(null)}
-            aria-label="Close full view"
-            className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            aria-label="Close"
+            className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors ring-1 ring-white/20"
           >
             <X size={22} />
           </button>
