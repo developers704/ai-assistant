@@ -528,7 +528,7 @@ export default function NewsMarketsPage() {
                     <div className="flex items-center gap-2 mb-3">
 
                       <p className="text-xs text-ink-muted">
-                        MLB, NFL, Arsenal, cricket & Pakistan cricket
+                        MLB, NFL, Arsenal & cricket
                       </p>
 
                       {data.sportsLive && <Badge variant="success">Live</Badge>}
@@ -541,7 +541,7 @@ export default function NewsMarketsPage() {
 
                       {data.sportsLive
 
-                        ? "RSS feeds — MLB & NFL (ESPN), Arsenal (BBC & Guardian), cricket (BBC & ESPNcricinfo), Pakistan cricket (ESPNcricinfo & Express Tribune)."
+                        ? "RSS feeds — MLB & NFL (ESPN), Arsenal (BBC & Guardian), cricket (BBC, ESPNcricinfo & Express Tribune)."
 
                         : data.sportsError
 

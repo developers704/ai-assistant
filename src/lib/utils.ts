@@ -22,6 +22,21 @@ export function sortTopProducts<T extends { revenue: number; units: number }>(pr
   return [...products].sort((a, b) => b.revenue - a.revenue || b.units - a.units);
 }
 
+/** Readable product line — title-case when feed is ALL CAPS. */
+export function formatProductDisplayName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "";
+  const letters = trimmed.replace(/[^A-Za-z]/g, "");
+  if (letters.length > 0 && letters === letters.toUpperCase()) {
+    return trimmed
+      .toLowerCase()
+      .split(/\s+/)
+      .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ""))
+      .join(" ");
+  }
+  return trimmed;
+}
+
 export function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString("en-US", {
     hour: "numeric",

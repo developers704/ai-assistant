@@ -13,6 +13,8 @@ interface RssFeedConfig {
   maxItems?: number;
   region?: "US" | "World";
   category?: string;
+  /** When true, only cricket-related headlines are kept (e.g. general sports RSS). */
+  cricketOnly?: boolean;
 }
 
 const SPORTS_FEEDS: RssFeedConfig[] = [
@@ -46,13 +48,14 @@ const SPORTS_FEEDS: RssFeedConfig[] = [
     url: "https://www.espncricinfo.com/rss/content/story/feeds/7.xml",
     source: "ESPNcricinfo Pakistan",
     maxItems: 4,
-    category: "Pakistan Cricket",
+    category: "Cricket",
   },
   {
     url: "https://www.tribune.com.pk/feed/sports",
     source: "Express Tribune",
     maxItems: 3,
-    category: "Pakistan Cricket",
+    category: "Cricket",
+    cricketOnly: true,
   },
 ];
 
@@ -96,14 +99,7 @@ const FALLBACK_SPORTS: NewsItem[] = [
   },
   {
     category: "Cricket",
-    title: "International cricket news from BBC and ESPNcricinfo",
-    source: "Sports briefing",
-    time: "Today",
-    live: false,
-  },
-  {
-    category: "Pakistan Cricket",
-    title: "Pakistan cricket team news, PCB updates, and match coverage",
+    title: "Cricket news — international, Pakistan, and global coverage",
     source: "Sports briefing",
     time: "Today",
     live: false,
@@ -163,6 +159,25 @@ function politicsCategory(region?: "US" | "World"): string {
   return region === "World" ? "World" : "US Politics";
 }
 
+/** Drop hockey, football, and other non-cricket stories mis-tagged from broad sports feeds. */
+const NON_CRICKET_HEADLINE =
+  /\b(hockey|phf|pakistan hockey|field hockey|football|soccer|fifa|uefa|nfl|nba|nhl|mlb|premier league|champions league|la liga|serie a|bundesliga|transfer window|dr congo)\b/i;
+
+const CRICKET_HEADLINE =
+  /\b(cricket|t20|t20i|odi|test match|wicket|wickets|batsm|bowl|bowler|pcb|psl|ipl|cricinfo|innings|century|stumps|ashes|super over|run[- ]?chase|pakistan team|babar|shaheen|rizwan|imam|faf|south africa|india vs|england vs|new zealand|west indies|australia vs)\b/i;
+
+function isCricketHeadline(title: string): boolean {
+  const t = title.trim();
+  if (!t) return false;
+  if (NON_CRICKET_HEADLINE.test(t)) return false;
+  return CRICKET_HEADLINE.test(t);
+}
+
+function shouldIncludeSportsItem(title: string, feed: RssFeedConfig): boolean {
+  if (!feed.cricketOnly) return true;
+  return isCricketHeadline(title);
+}
+
 async function fetchSingleFeed(
   feed: RssFeedConfig,
   topic: RssTopic
@@ -175,6 +190,7 @@ async function fetchSingleFeed(
     for (const entry of parsed.items ?? []) {
       const title = cleanTitle(entry.title);
       if (!title || title.length < 12) continue;
+      if (topic === "sports" && !shouldIncludeSportsItem(title, feed)) continue;
 
       const url = entry.link || entry.guid;
       const publishedAt = entry.isoDate || entry.pubDate;
@@ -225,7 +241,7 @@ function mergeAndRank(items: NewsItem[], limit: number): NewsItem[] {
 }
 
 function mergeSportsWithDiversity(items: NewsItem[], limit: number): NewsItem[] {
-  const categoryOrder = ["MLB", "NFL", "Arsenal", "Cricket", "Pakistan Cricket"];
+  const categoryOrder = ["MLB", "NFL", "Arsenal", "Cricket"];
   const byCategory = new Map<string, NewsItem[]>();
 
   for (const item of items) {

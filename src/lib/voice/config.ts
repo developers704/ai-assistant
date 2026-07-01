@@ -220,7 +220,7 @@ export const VOICE_PILOT_TOOLS = [
   {
     type: "function",
     name: "get_sports_news",
-    description: "Sports headlines — MLB, NFL, Arsenal, cricket, and Pakistan cricket.",
+    description: "Sports headlines — MLB, NFL, Arsenal, and cricket.",
     parameters: { type: "object", properties: {}, additionalProperties: false },
   },
   {
