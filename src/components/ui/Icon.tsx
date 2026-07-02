@@ -48,11 +48,17 @@ export function Icon({
 
 export interface IconBadgeProps {
   icon: LucideIcon;
-  iconBg: string;
+  iconBg?: string;
+  /** Gradient stops, e.g. `from-violet-500 to-indigo-600` — enables lush style when set. */
+  gradient?: string;
   iconColor: string;
   activeBg?: string;
+  glow?: string;
+  activeGlow?: string;
+  ringColor?: string;
   active?: boolean;
   size?: "sm" | "md" | "lg";
+  variant?: "default" | "lush";
   className?: string;
 }
 
@@ -65,25 +71,41 @@ const BADGE = {
 /** Colored icon tile used in sidebar, section headers, and widgets. */
 export function IconBadge({
   icon,
-  iconBg,
+  iconBg = "bg-white/10",
+  gradient,
   iconColor,
   activeBg,
+  glow,
+  activeGlow,
+  ringColor,
   active = false,
   size = "md",
+  variant = "default",
   className,
 }: IconBadgeProps) {
   const s = BADGE[size];
+  const isLush = variant === "lush" || !!gradient;
 
   return (
     <span
       className={cn(
-        "icon-badge flex shrink-0 items-center justify-center ring-1 ring-white/15",
+        "icon-badge flex shrink-0 items-center justify-center transition-all duration-300",
+        isLush ? "icon-badge-lush" : "ring-1 ring-white/15",
         s.box,
-        active && activeBg ? activeBg : iconBg,
+        gradient
+          ? cn(
+              "bg-gradient-to-br",
+              gradient,
+              active && "icon-badge-lush-active scale-[1.06]",
+              !active && "group-hover:scale-[1.04]"
+            )
+          : cn(active && activeBg ? activeBg : iconBg),
+        isLush && (active && activeGlow ? activeGlow : glow),
+        ringColor ? cn("ring-1", ringColor) : isLush && "ring-1 ring-white/25",
         className
       )}
     >
-      <Icon icon={icon} size={s.icon} active={active} className={iconColor} />
+      <Icon icon={icon} size={s.icon} active={active || isLush} className={iconColor} />
     </span>
   );
 }

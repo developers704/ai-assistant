@@ -2,6 +2,7 @@
 
 import type { AppState } from "@/types";
 import { cn } from "@/lib/utils";
+import { IconBadge } from "@/components/ui/Icon";
 import {
   Sparkles,
   ChevronRight,
@@ -17,50 +18,64 @@ import {
 export const CHAT_SUGGESTIONS: {
   text: string;
   icon: LucideIcon;
-  iconBg: string;
+  gradient: string;
   iconColor: string;
+  glow: string;
+  ringColor: string;
   ring: string;
 }[] = [
   {
     text: "What do I need to focus on today?",
     icon: MessageSquare,
-    iconBg: "bg-violet-500/25",
-    iconColor: "text-violet-300",
+    gradient: "from-violet-500 via-purple-500 to-indigo-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_14px_rgba(139,92,246,0.45)]",
+    ringColor: "ring-violet-300/35",
     ring: "hover:ring-violet-400/35",
   },
   {
     text: "Show me today's sales across all stores",
     icon: TrendingUp,
-    iconBg: "bg-emerald-500/25",
-    iconColor: "text-emerald-300",
+    gradient: "from-emerald-400 via-teal-500 to-emerald-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_14px_rgba(52,211,153,0.45)]",
+    ringColor: "ring-emerald-200/35",
     ring: "hover:ring-emerald-400/35",
   },
   {
     text: "Summarize my important emails",
     icon: Mail,
-    iconBg: "bg-blue-500/25",
-    iconColor: "text-blue-300",
+    gradient: "from-blue-400 via-blue-500 to-indigo-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_14px_rgba(59,130,246,0.45)]",
+    ringColor: "ring-blue-200/35",
     ring: "hover:ring-blue-400/35",
   },
   {
     text: "What's on my calendar today?",
     icon: Calendar,
-    iconBg: "bg-amber-500/25",
-    iconColor: "text-amber-300",
+    gradient: "from-amber-400 via-orange-400 to-yellow-500",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_14px_rgba(251,146,60,0.45)]",
+    ringColor: "ring-amber-200/35",
     ring: "hover:ring-amber-400/35",
   },
   {
     text: "Draft an email to the diamond supplier",
     icon: Gem,
-    iconBg: "bg-fuchsia-500/25",
-    iconColor: "text-fuchsia-300",
+    gradient: "from-fuchsia-500 via-purple-500 to-violet-700",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_14px_rgba(217,70,239,0.45)]",
+    ringColor: "ring-fuchsia-200/35",
     ring: "hover:ring-fuchsia-400/35",
   },
   {
     text: "Remind me to review Baybrook Mall lease tomorrow",
     icon: Bell,
-    iconBg: "bg-orange-500/25",
-    iconColor: "text-orange-300",
+    gradient: "from-orange-400 via-rose-500 to-red-500",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_14px_rgba(251,113,133,0.45)]",
+    ringColor: "ring-orange-200/35",
     ring: "hover:ring-orange-400/35",
   },
 ];
@@ -147,7 +162,7 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
 
       {/* Suggestions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pb-2">
-        {CHAT_SUGGESTIONS.map(({ text, icon: Icon, iconBg, iconColor, ring }) => (
+        {CHAT_SUGGESTIONS.map(({ text, icon, gradient, iconColor, glow, ringColor, ring }) => (
           <button
             key={text}
             type="button"
@@ -160,14 +175,16 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
               ring
             )}
           >
-            <span
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-white/10",
-                iconBg
-              )}
-            >
-              <Icon size={18} className={iconColor} strokeWidth={1.75} />
-            </span>
+            <IconBadge
+              icon={icon}
+              gradient={gradient}
+              iconColor={iconColor}
+              glow={glow}
+              ringColor={ringColor}
+              variant="lush"
+              size="md"
+              className="h-10 w-10"
+            />
             <span className="flex-1 min-w-0 text-[13px] sm:text-sm text-ink-secondary group-hover:text-ink leading-snug">
               {text}
             </span>

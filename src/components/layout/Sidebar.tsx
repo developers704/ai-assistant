@@ -30,9 +30,11 @@ type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  iconBg: string;
+  gradient: string;
   iconColor: string;
-  activeBg: string;
+  glow: string;
+  activeGlow: string;
+  ringColor: string;
   accent: string;
 };
 
@@ -41,99 +43,121 @@ const navItems: NavItem[] = [
     href: "/chat",
     label: "AI Chat",
     icon: MessageSquare,
-    iconBg: "bg-violet-500/20",
-    iconColor: "text-violet-300",
-    activeBg: "bg-violet-500/30",
+    gradient: "from-violet-500 via-purple-500 to-indigo-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(139,92,246,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(139,92,246,0.65)]",
+    ringColor: "ring-violet-300/40",
     accent: "bg-violet-400",
   },
   {
     href: "/dashboard",
     label: "Daily Briefing",
     icon: Sun,
-    iconBg: "bg-amber-500/20",
-    iconColor: "text-amber-300",
-    activeBg: "bg-amber-500/30",
+    gradient: "from-amber-400 via-orange-400 to-yellow-500",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(251,146,60,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(251,146,60,0.6)]",
+    ringColor: "ring-amber-200/45",
     accent: "bg-amber-400",
   },
   {
     href: "/news",
     label: "News & Markets",
     icon: Newspaper,
-    iconBg: "bg-sky-500/20",
-    iconColor: "text-sky-300",
-    activeBg: "bg-sky-500/30",
+    gradient: "from-sky-400 via-blue-500 to-indigo-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(56,189,248,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(56,189,248,0.6)]",
+    ringColor: "ring-sky-200/40",
     accent: "bg-sky-400",
   },
   {
     href: "/email",
     label: "Email",
     icon: Mail,
-    iconBg: "bg-blue-500/20",
-    iconColor: "text-blue-300",
-    activeBg: "bg-blue-500/30",
+    gradient: "from-blue-400 via-blue-500 to-indigo-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(59,130,246,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(59,130,246,0.6)]",
+    ringColor: "ring-blue-200/40",
     accent: "bg-blue-400",
   },
   {
     href: "/calendar",
     label: "Calendar & Tasks",
     icon: Calendar,
-    iconBg: "bg-rose-500/20",
-    iconColor: "text-rose-300",
-    activeBg: "bg-rose-500/30",
+    gradient: "from-rose-400 via-pink-500 to-rose-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(244,63,94,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(244,63,94,0.6)]",
+    ringColor: "ring-rose-200/40",
     accent: "bg-rose-400",
   },
   {
     href: "/sales",
     label: "Sales Dashboard",
     icon: BarChart3,
-    iconBg: "bg-emerald-500/20",
-    iconColor: "text-emerald-300",
-    activeBg: "bg-emerald-500/30",
+    gradient: "from-emerald-400 via-teal-500 to-emerald-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(52,211,153,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(52,211,153,0.6)]",
+    ringColor: "ring-emerald-200/40",
     accent: "bg-emerald-400",
   },
   {
     href: "/calculator",
     label: "Price Calculator",
     icon: Calculator,
-    iconBg: "bg-yellow-500/20",
-    iconColor: "text-yellow-300",
-    activeBg: "bg-yellow-500/30",
+    gradient: "from-yellow-400 via-amber-400 to-orange-500",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(251,191,36,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(251,191,36,0.6)]",
+    ringColor: "ring-yellow-200/45",
     accent: "bg-yellow-400",
   },
   {
     href: "/analyst",
     label: "Data Analyst",
     icon: Database,
-    iconBg: "bg-cyan-500/20",
-    iconColor: "text-cyan-300",
-    activeBg: "bg-cyan-500/30",
+    gradient: "from-cyan-400 via-teal-400 to-blue-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(34,211,238,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(34,211,238,0.6)]",
+    ringColor: "ring-cyan-200/40",
     accent: "bg-cyan-400",
   },
   {
     href: "/images",
     label: "Image Generation",
     icon: Wand2,
-    iconBg: "bg-fuchsia-500/20",
-    iconColor: "text-fuchsia-300",
-    activeBg: "bg-fuchsia-500/30",
+    gradient: "from-fuchsia-500 via-purple-500 to-violet-700",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(217,70,239,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(217,70,239,0.6)]",
+    ringColor: "ring-fuchsia-200/40",
     accent: "bg-fuchsia-400",
   },
   {
     href: "/contacts",
     label: "Contacts",
     icon: Users,
-    iconBg: "bg-indigo-500/20",
-    iconColor: "text-indigo-300",
-    activeBg: "bg-indigo-500/30",
+    gradient: "from-indigo-400 via-violet-500 to-purple-600",
+    iconColor: "text-white",
+    glow: "shadow-[0_4px_16px_rgba(129,140,248,0.45)]",
+    activeGlow: "shadow-[0_6px_24px_rgba(129,140,248,0.6)]",
+    ringColor: "ring-indigo-200/40",
     accent: "bg-indigo-400",
   },
   {
     href: "/settings",
     label: "Settings",
     icon: Settings,
-    iconBg: "bg-slate-500/25",
-    iconColor: "text-slate-300",
-    activeBg: "bg-slate-500/35",
+    gradient: "from-slate-500 via-slate-600 to-slate-700",
+    iconColor: "text-slate-100",
+    glow: "shadow-[0_4px_14px_rgba(100,116,139,0.4)]",
+    activeGlow: "shadow-[0_6px_20px_rgba(100,116,139,0.55)]",
+    ringColor: "ring-slate-300/30",
     accent: "bg-slate-400",
   },
 ];
@@ -144,7 +168,7 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       href={item.href}
       onClick={onClick}
       className={cn(
-        "relative flex items-center gap-3 px-2.5 py-2 rounded-2xl text-[13px] transition-all duration-200",
+        "group relative flex items-center gap-3 px-2.5 py-2 rounded-2xl text-[13px] transition-all duration-200",
         active
           ? "nav-pill-active text-white font-semibold"
           : "text-ink-secondary font-medium hover:text-white hover:bg-white/8"
@@ -155,10 +179,13 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       )}
       <IconBadge
         icon={item.icon}
-        iconBg={item.iconBg}
+        gradient={item.gradient}
         iconColor={item.iconColor}
-        activeBg={item.activeBg}
+        glow={item.glow}
+        activeGlow={item.activeGlow}
+        ringColor={item.ringColor}
         active={active}
+        variant="lush"
         size="md"
       />
       <span className="truncate">{item.label}</span>
@@ -175,8 +202,8 @@ export function Sidebar() {
       <div className="glass-panel-strong flex flex-col flex-1 rounded-3xl overflow-hidden text-ink">
         <div className="px-5 py-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <span className="app-logo-badge icon-badge flex h-11 w-11 items-center justify-center rounded-2xl ring-1 ring-violet-400/40 shrink-0">
-              <Icon icon={Sparkles} size="xl" className="text-amber-300" active />
+            <span className="app-logo-badge icon-badge icon-badge-lush flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 ring-1 ring-violet-300/45 shadow-[0_6px_24px_rgba(139,92,246,0.55)] shrink-0">
+              <Icon icon={Sparkles} size="xl" className="text-amber-200" active />
             </span>
             <div className="min-w-0">
               <h1 className="text-ink font-semibold text-sm tracking-wide">Alexa</h1>
@@ -235,8 +262,8 @@ export function MobileNav() {
       <header className="lg:hidden sticky top-0 z-40 glass-panel-strong text-ink safe-area-top mx-3 mt-3 rounded-2xl">
         <div className="flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="app-logo-badge icon-badge flex h-9 w-9 items-center justify-center rounded-xl shrink-0 ring-1 ring-violet-400/35">
-              <Icon icon={Sparkles} size="lg" className="text-amber-300" active />
+            <span className="app-logo-badge icon-badge icon-badge-lush flex h-9 w-9 items-center justify-center rounded-xl shrink-0 bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 ring-1 ring-violet-300/40 shadow-[0_4px_18px_rgba(139,92,246,0.5)]">
+              <Icon icon={Sparkles} size="lg" className="text-amber-200" active />
             </span>
             <div className="min-w-0">
               <p className="text-ink font-semibold text-sm leading-none">Alexa</p>
