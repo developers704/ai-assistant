@@ -81,17 +81,29 @@ function isLikelyAutomated(from: string, subject: string): boolean {
   );
 }
 
-export async function fetchGmailInbox(client: GoogleOAuth2Client, maxResults = 15): Promise<Email[]> {
+export interface GmailInboxPage {
+  emails: Email[];
+  nextPageToken?: string;
+}
+
+export async function fetchGmailInbox(
+  client: GoogleOAuth2Client,
+  options: { maxResults?: number; pageToken?: string } = {}
+): Promise<GmailInboxPage> {
+  const maxResults = options.maxResults ?? 40;
   const gmail = google.gmail({ version: "v1", auth: client });
 
   const list = await gmail.users.messages.list({
     userId: "me",
     maxResults,
+    pageToken: options.pageToken,
     q: "in:inbox",
   });
 
   const messageIds = list.data.messages ?? [];
-  if (messageIds.length === 0) return [];
+  if (messageIds.length === 0) {
+    return { emails: [], nextPageToken: list.data.nextPageToken ?? undefined };
+  }
 
   const messages = await Promise.all(
     messageIds.map(async (item) => {
@@ -146,5 +158,5 @@ export async function fetchGmailInbox(client: GoogleOAuth2Client, maxResults = 1
     });
   }
 
-  return emails;
+  return { emails, nextPageToken: list.data.nextPageToken ?? undefined };
 }

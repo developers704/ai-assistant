@@ -43,21 +43,24 @@ export async function getVoiceEmails(): Promise<{
       return { emails: [], googleConnected: true, source: "empty" };
     }
 
-    const fetched = await withTimeout(
-      fetchGmailInbox(client),
+    const page = await withTimeout(
+      fetchGmailInbox(client, { maxResults: 25 }),
       EMAIL_FETCH_TIMEOUT_MS,
       "Gmail fetch"
     );
-    const emails = sortEmails(fetched);
+    const emails = sortEmails(page.emails);
     const integration = {
       connected: true as const,
       email: getGoogleTokens()?.email,
+      gmailNextPageToken: page.nextPageToken,
+      gmailHasMore: !!page.nextPageToken,
     };
     setGoogleCache({
       emails,
       events: cached?.events ?? [],
       contacts: cached?.contacts ?? [],
       integration,
+      gmailNextPageToken: page.nextPageToken,
     });
 
     return { emails, googleConnected: true, source: "google" };

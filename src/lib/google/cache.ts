@@ -5,6 +5,7 @@ interface GoogleCacheEntry {
   events: CalendarEvent[];
   contacts: Contact[];
   integration: GoogleIntegration;
+  gmailNextPageToken?: string;
   fetchedAt: number;
 }
 
@@ -25,6 +26,7 @@ export function setGoogleCache(data: {
   events: CalendarEvent[];
   contacts: Contact[];
   integration: GoogleIntegration;
+  gmailNextPageToken?: string;
 }) {
   cache = { ...data, fetchedAt: Date.now() };
 }

@@ -1,21 +1,21 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useApp } from "@/lib/store/app-context";
 import { Sidebar, MobileNav } from "@/components/layout/Sidebar";
 import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
+import { AppSplash } from "@/components/layout/AppSplash";
 import { FuturisticBackground } from "@/components/layout/FuturisticBackground";
 import { UiContextSync } from "@/components/layout/UiContextSync";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { state, loading, refresh } = useApp();
+  const pathname = usePathname();
+  const showFloatingVoice =
+    pathname !== "/chat" && pathname !== "/email" && pathname !== "/images";
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center relative">
-        <FuturisticBackground />
-        <div className="animate-pulse text-ink-muted">Loading...</div>
-      </div>
-    );
+    return <AppSplash />;
   }
 
   if (!state) {
@@ -47,7 +47,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
-      <RealtimeVoiceButton />
+      {showFloatingVoice && <RealtimeVoiceButton />}
     </div>
   );
 }

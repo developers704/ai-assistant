@@ -4,7 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, PendingAction } from "@/types";
 import { Button } from "./Button";
-import { Bot, User, Check, X, Mic, MicOff } from "lucide-react";
+import { Bot, User, Check, X, Mic, MicOff, Send } from "lucide-react";
 import { useSpeech } from "@/lib/hooks/useSpeech";
 
 interface ChatBubbleProps {
@@ -74,7 +74,7 @@ export function ChatBubble({ message, onConfirm, onReject }: ChatBubbleProps) {
           </div>
         )}
       </div>
-      <div className={cn("max-w-[80%] space-y-1", isUser ? "items-end" : "items-start")}>
+      <div className={cn("max-w-[min(88%,36rem)] space-y-1", isUser ? "items-end" : "items-start")}>
         <div
           className={cn(
             "px-4 py-3 rounded-2xl text-sm leading-relaxed",
@@ -117,10 +117,13 @@ export function ChatInput({
   onSend,
   disabled,
   placeholder = "Ask your assistant anything...",
+  voiceControl,
 }: {
   onSend: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  /** Inline realtime voice button — keeps mobile composer aligned */
+  voiceControl?: React.ReactNode;
 }) {
   const [value, setValue] = useState("");
   const { listening, supported, toggleListening } = useSpeech((text) => {
@@ -135,24 +138,32 @@ export function ChatInput({
     }
   };
 
+  const showDictation = supported && !voiceControl;
+
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 p-4">
-      <div className="relative flex-1">
+    <form
+      onSubmit={handleSubmit}
+      className="flex items-center gap-2 px-3 py-3 sm:px-4 sm:py-4 safe-area-bottom"
+    >
+      {voiceControl}
+
+      <div className="relative flex-1 min-w-0">
         <input
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={listening ? "Listening..." : placeholder}
           disabled={disabled}
-          className="w-full pl-4 pr-12 py-3 rounded-2xl border border-white/25 bg-white/10 text-sm text-ink backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-accent-purple/40 focus:border-accent-purple/50 disabled:opacity-50 placeholder:text-ink-muted"
+          enterKeyHint="send"
+          className="w-full min-h-[44px] pl-4 pr-11 sm:pr-12 py-2.5 rounded-2xl border border-white/20 bg-white/10 text-[15px] sm:text-sm text-ink backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-violet-400/35 focus:border-violet-400/40 disabled:opacity-50 placeholder:text-ink-muted"
         />
-        {supported && (
+        {showDictation && (
           <button
             type="button"
             onClick={toggleListening}
             aria-label={listening ? "Stop voice input" : "Start voice input"}
             className={cn(
-              "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+              "absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl flex items-center justify-center transition-colors",
               listening
                 ? "bg-accent-rose text-white animate-pulse"
                 : "text-ink-muted hover:text-white hover:bg-white/10"
@@ -162,8 +173,16 @@ export function ChatInput({
           </button>
         )}
       </div>
-      <Button type="submit" disabled={disabled || !value.trim()}>
-        Send
+
+      <Button
+        type="submit"
+        disabled={disabled || !value.trim()}
+        size="icon"
+        aria-label="Send message"
+        className="h-11 w-11 sm:h-auto sm:w-auto sm:px-5 rounded-2xl sm:rounded-full shrink-0"
+      >
+        <Send size={18} className="sm:hidden" />
+        <span className="hidden sm:inline">Send</span>
       </Button>
     </form>
   );

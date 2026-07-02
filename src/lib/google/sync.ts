@@ -118,27 +118,30 @@ export async function getEnrichedState(options?: {
     }
 
     const syncGoogle = async () => {
-      const [emails, events, contacts] = await Promise.all([
-        fetchGmailInbox(client),
+      const [inbox, events, contacts] = await Promise.all([
+        fetchGmailInbox(client, { maxResults: 40 }),
         fetchGoogleCalendarEvents(client, base.user?.timezone || "Asia/Karachi"),
         fetchGoogleContacts(client),
       ]);
-      return { emails, events, contacts };
+      return { inbox, events, contacts };
     };
 
     const googleResult = await withTimeout(syncGoogle(), GOOGLE_SYNC_TIMEOUT_MS, "Google sync");
 
-    const sortedEmails = sortEmails(googleResult.emails);
+    const sortedEmails = sortEmails(googleResult.inbox.emails);
     const filteredEvents = filterCalendarEvents(googleResult.events);
     const syncedIntegration: GoogleIntegration = {
       ...integration,
       contactsSynced: googleResult.contacts.length,
+      gmailNextPageToken: googleResult.inbox.nextPageToken,
+      gmailHasMore: !!googleResult.inbox.nextPageToken,
     };
     setGoogleCache({
       emails: sortedEmails,
       events: filteredEvents,
       contacts: googleResult.contacts,
       integration: syncedIntegration,
+      gmailNextPageToken: googleResult.inbox.nextPageToken,
     });
 
     return {

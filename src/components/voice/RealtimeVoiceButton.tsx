@@ -16,7 +16,16 @@ const STATUS_LABELS: Record<string, string> = {
   error: "Tap to retry",
 };
 
-export function RealtimeVoiceButton() {
+type RealtimeVoiceButtonProps = {
+  /** floating = global FAB; inline = sits in chat composer row */
+  variant?: "floating" | "inline";
+  className?: string;
+};
+
+export function RealtimeVoiceButton({
+  variant = "floating",
+  className,
+}: RealtimeVoiceButtonProps) {
   const { state } = useApp();
   const voiceEnabled = state?.user?.preferences?.voiceEnabled ?? true;
 
@@ -34,6 +43,7 @@ export function RealtimeVoiceButton() {
   if (!supported || !voiceEnabled) return null;
 
   const panelOpen = sessionActive || status === "error";
+  const isInline = variant === "inline";
 
   const handleMicClick = () => {
     if (status === "error") {
@@ -50,17 +60,29 @@ export function RealtimeVoiceButton() {
   const isBusy = status === "connecting" || status === "thinking";
   const isSpeaking = status === "speaking";
 
+  const micSize = isInline ? "w-11 h-11" : "w-12 h-12";
+
   return (
     <div
-      className="fixed right-4 bottom-5 z-30 flex flex-col items-end gap-2"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0)" }}
+      className={cn(
+        isInline
+          ? "relative shrink-0 flex flex-col items-start"
+          : "fixed right-4 bottom-5 z-30 flex flex-col items-end gap-2 safe-area-bottom",
+        className
+      )}
+      style={isInline ? undefined : { paddingBottom: "env(safe-area-inset-bottom, 0)" }}
     >
       {panelOpen && (
-        <div className="max-w-xs w-64 glass-panel-strong shadow-elevated rounded-2xl p-3.5 animate-in fade-in slide-in-from-bottom-2">
+        <div
+          className={cn(
+            "glass-panel-strong shadow-elevated rounded-2xl p-3.5 animate-in fade-in slide-in-from-bottom-2 z-50",
+            isInline
+              ? "absolute bottom-full left-0 mb-2 w-[min(18rem,calc(100vw-2rem))]"
+              : "max-w-xs w-64"
+          )}
+        >
           <div className="mb-2">
-            <p className="text-[10px] uppercase tracking-wide text-ink-muted">
-              Voice · Realtime
-            </p>
+            <p className="text-[10px] uppercase tracking-wide text-ink-muted">Voice · Realtime</p>
             <p className="text-[10px] text-ink-muted mt-0.5">
               Speak naturally — ask follow-ups anytime. Press Exit when done.
             </p>
@@ -118,12 +140,13 @@ export function RealtimeVoiceButton() {
         aria-label={sessionActive ? "Voice session active" : "Start voice chat"}
         title={STATUS_LABELS[status] ?? "Start voice"}
         className={cn(
-          "w-12 h-12 rounded-full flex items-center justify-center shadow-elevated transition-all duration-300",
+          micSize,
+          "rounded-2xl flex items-center justify-center shadow-elevated transition-all duration-300 shrink-0",
           sessionActive && status !== "error"
-            ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white scale-105 shadow-glow-orange cursor-default"
+            ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white scale-[1.02] shadow-glow-orange cursor-default"
             : isSpeaking
-              ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white scale-105 shadow-glow"
-              : "btn-futuristic text-accent-neon hover:scale-105 hover:shadow-glow",
+              ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white scale-[1.02] shadow-glow"
+              : "btn-futuristic text-accent-neon hover:shadow-glow",
           sessionActive && status !== "error" && "animate-pulse"
         )}
       >

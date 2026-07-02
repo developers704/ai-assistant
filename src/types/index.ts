@@ -239,6 +239,8 @@ export interface GoogleIntegration {
   email?: string;
   contactsSynced?: number;
   syncError?: string;
+  gmailNextPageToken?: string;
+  gmailHasMore?: boolean;
 }
 
 export interface PlaidIntegration {

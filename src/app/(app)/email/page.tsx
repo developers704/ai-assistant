@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
@@ -17,7 +17,6 @@ import type { ChatMessage, Email } from "@/types";
 import {
   Mail,
   Reply,
-  Star,
   AlertCircle,
   Link2,
   Loader2,
@@ -25,11 +24,23 @@ import {
   X,
   Inbox,
   ChevronLeft,
+  Search,
+  ChevronDown,
 } from "lucide-react";
 
-/** Space reserved below mobile top nav + page padding */
 const MOBILE_HEIGHT =
   "max-lg:h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-4rem)]";
+
+type InboxFilter = "all" | "unread" | "reply";
+
+function dedupeEmails(emails: Email[]): Email[] {
+  const seen = new Set<string>();
+  return emails.filter((e) => {
+    if (seen.has(e.id)) return false;
+    seen.add(e.id);
+    return true;
+  });
+}
 
 export default function EmailPage() {
   const { state, sendChat, confirmAction, rejectAction, loading } = useApp();
@@ -37,6 +48,11 @@ export default function EmailPage() {
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [assistantMessage, setAssistantMessage] = useState<ChatMessage | null>(null);
   const [mobileAssistantOpen, setMobileAssistantOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<InboxFilter>("all");
+  const [extraEmails, setExtraEmails] = useState<Email[]>([]);
+  const [nextPageToken, setNextPageToken] = useState<string | undefined>();
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const showAssistant = assistantBusy || !!assistantMessage;
 
@@ -50,15 +66,61 @@ export default function EmailPage() {
     });
   }, [selectedId]);
 
+  useEffect(() => {
+    setExtraEmails([]);
+    setNextPageToken(state?.integrations?.google?.gmailNextPageToken);
+  }, [state?.integrations?.google?.gmailNextPageToken, state?.emails]);
+
+  const baseEmails = useMemo(() => {
+    if (!state) return [];
+    return sortEmails(dedupeEmails([...state.emails, ...extraEmails]));
+  }, [state, extraEmails]);
+
+  const emails = useMemo(() => {
+    let list = baseEmails;
+    if (filter === "unread") list = list.filter((e) => !e.isRead);
+    if (filter === "reply") list = list.filter((e) => e.needsReply);
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (e) =>
+          e.from.toLowerCase().includes(q) ||
+          e.subject.toLowerCase().includes(q) ||
+          e.preview.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [baseEmails, filter, query]);
+
   if (!state) return null;
 
   const googleConnected = state.integrations?.google?.connected ?? false;
-  const emails = sortEmails(state.emails);
-  const selected = emails.find((e) => e.id === selectedId);
-  const urgentCount = emails.filter((e) => e.category === "urgent").length;
-  const needsReplyCount = emails.filter((e) => e.needsReply).length;
-  const unreadCount = emails.filter((e) => !e.isRead).length;
+
+  const selected = baseEmails.find((e) => e.id === selectedId);
+  const urgentCount = baseEmails.filter((e) => e.category === "urgent").length;
+  const needsReplyCount = baseEmails.filter((e) => e.needsReply).length;
+  const unreadCount = baseEmails.filter((e) => !e.isRead).length;
   const mobileReading = !!selectedId;
+  const hasMore =
+    !!nextPageToken || state.integrations?.google?.gmailHasMore === true;
+
+  const loadMore = async () => {
+    if (!googleConnected || !hasMore || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const qs = new URLSearchParams({ maxResults: "25" });
+      if (nextPageToken) qs.set("pageToken", nextPageToken);
+      const res = await fetch(`/api/gmail?${qs}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.emails) && data.emails.length > 0) {
+        setExtraEmails((prev) => dedupeEmails([...prev, ...data.emails]));
+      }
+      setNextPageToken(data.nextPageToken ?? undefined);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const runAssistant = async (message: string) => {
     setAssistantBusy(true);
@@ -140,6 +202,12 @@ export default function EmailPage() {
     </div>
   );
 
+  const filterPills: { id: InboxFilter; label: string; count?: number }[] = [
+    { id: "all", label: "All", count: baseEmails.length },
+    { id: "unread", label: "Unread", count: unreadCount },
+    { id: "reply", label: "Need reply", count: needsReplyCount },
+  ];
+
   return (
     <div
       className={cn(
@@ -148,8 +216,7 @@ export default function EmailPage() {
       )}
     >
       <div className="glass-panel-strong rounded-2xl lg:rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10">
-        {/* ── Header ── */}
-        <div className="px-3 sm:px-6 border-b border-white/10 shrink-0 pt-2 pb-2 sm:pt-4 sm:pb-3 lg:pt-5 lg:pb-4">
+        <div className="px-3 sm:px-6 border-b border-white/10 shrink-0 pt-2 pb-3 sm:pt-4 lg:pt-5 safe-area-top">
           {mobileReading ? (
             <button
               type="button"
@@ -162,32 +229,85 @@ export default function EmailPage() {
           ) : null}
 
           {!mobileReading && (
-            <PageHeader
-              compact
-              title="Email"
-              subtitle={`${unreadCount} unread · ${urgentCount} urgent · ${needsReplyCount} need reply${
-                googleConnected ? " · Gmail" : ""
-              }`}
-              action={
-                <Button
-                  size="sm"
-                  disabled={assistantBusy}
-                  onClick={() => runAssistant("Summarize my inbox")}
-                  aria-label="Summarize inbox"
-                >
-                  {assistantBusy ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Inbox size={14} />
-                  )}
-                  <span className="hidden sm:inline ml-1">Summarize</span>
-                </Button>
-              }
-            />
+            <>
+              <PageHeader
+                compact
+                title="Email"
+                subtitle={googleConnected ? "Gmail inbox" : "Demo inbox"}
+                action={
+                  <Button
+                    size="sm"
+                    disabled={assistantBusy}
+                    onClick={() => runAssistant("Summarize my inbox")}
+                    aria-label="Summarize inbox"
+                    className="shrink-0"
+                  >
+                    {assistantBusy ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Inbox size={14} />
+                    )}
+                    <span className="hidden sm:inline ml-1">Summarize</span>
+                  </Button>
+                }
+              />
+
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium bg-blue-500/15 text-blue-200 ring-1 ring-blue-400/25">
+                  {unreadCount} unread
+                </span>
+                {urgentCount > 0 && (
+                  <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium bg-rose-500/15 text-rose-200 ring-1 ring-rose-400/25">
+                    {urgentCount} urgent
+                  </span>
+                )}
+                {needsReplyCount > 0 && (
+                  <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium bg-violet-500/15 text-violet-200 ring-1 ring-violet-400/25">
+                    {needsReplyCount} need reply
+                  </span>
+                )}
+                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium bg-white/8 text-ink-muted ring-1 ring-white/10">
+                  {baseEmails.length} loaded
+                </span>
+              </div>
+
+              <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-thin">
+                {filterPills.map((pill) => (
+                  <button
+                    key={pill.id}
+                    type="button"
+                    onClick={() => setFilter(pill.id)}
+                    className={cn(
+                      "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ring-1",
+                      filter === pill.id
+                        ? "bg-violet-500/25 text-violet-100 ring-violet-400/40"
+                        : "bg-white/5 text-ink-muted ring-white/10 hover:bg-white/10"
+                    )}
+                  >
+                    {pill.label}
+                    {pill.count !== undefined ? ` (${pill.count})` : ""}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative mt-2.5">
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none"
+                />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search sender or subject…"
+                  className="w-full min-h-[42px] pl-9 pr-3 py-2 rounded-xl border border-white/15 bg-white/8 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-violet-400/30"
+                />
+              </div>
+            </>
           )}
 
           {!googleConnected && !mobileReading && (
-            <div className="mt-2 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ring-1 ring-amber-400/20 bg-amber-500/10">
+            <div className="mt-3 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ring-1 ring-amber-400/20 bg-amber-500/10">
               <p className="text-xs sm:text-sm text-ink-secondary">Connect Gmail for your real inbox.</p>
               <Link href="/settings">
                 <Button size="sm" variant="outline" className="shrink-0">
@@ -199,86 +319,117 @@ export default function EmailPage() {
           )}
         </div>
 
-        {/* ── Body ── */}
         <div className="flex-1 min-h-0 overflow-hidden px-2 sm:px-6 py-2 sm:py-4">
-          {loading && googleConnected && emails.length === 0 ? (
+          {loading && googleConnected && baseEmails.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-ink-muted text-sm gap-3">
               <Loader2 size={24} className="animate-spin text-blue-300" />
               Loading Gmail inbox…
             </div>
-          ) : emails.length === 0 ? (
+          ) : baseEmails.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
               <Mail size={36} className="text-ink-muted mb-3" />
               <p className="text-ink-secondary font-medium">Inbox is empty</p>
               <p className="text-sm text-ink-muted mt-1">New messages will appear here.</p>
             </div>
+          ) : emails.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center px-4">
+              <Search size={32} className="text-ink-muted mb-3" />
+              <p className="text-ink-secondary font-medium">No emails match</p>
+              <p className="text-sm text-ink-muted mt-1">Try a different filter or search.</p>
+            </div>
           ) : (
             <div className="flex h-full min-h-0 lg:flex-row lg:gap-4">
-              {/* Inbox — full screen on phone when nothing selected */}
               <aside
                 className={cn(
                   "flex flex-col min-h-0",
                   mobileReading ? "hidden lg:flex lg:w-72 xl:w-80 lg:shrink-0" : "flex-1 lg:w-72 xl:w-80 lg:shrink-0"
                 )}
               >
-                <div className="flex-1 overflow-y-auto overscroll-y-contain space-y-2 pr-0.5 min-h-0">
+                <div className="flex-1 overflow-y-auto overscroll-y-contain space-y-1.5 pr-0.5 min-h-0 pb-2">
                   {emails.map((email) => (
                     <button
                       key={email.id}
                       type="button"
                       className={cn(
-                        "w-full text-left rounded-2xl p-3 transition-all active:scale-[0.99] ring-1",
+                        "w-full text-left rounded-2xl p-3 sm:p-3.5 transition-all active:scale-[0.99] ring-1",
                         selectedId === email.id
-                          ? "ring-violet-400/50 bg-white/10"
+                          ? "ring-violet-400/50 bg-violet-500/10"
                           : !email.isRead
-                            ? "ring-white/10 bg-white/[0.06]"
-                            : "ring-white/5 bg-white/[0.03] opacity-90"
+                            ? "ring-white/12 bg-white/[0.07]"
+                            : "ring-white/5 bg-white/[0.03] opacity-95"
                       )}
                       onClick={() => setSelectedId(email.id)}
                     >
-                      <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                        <span
+                      <div className="flex items-start gap-2">
+                        <div
                           className={cn(
-                            "text-sm truncate min-w-0",
-                            !email.isRead ? "font-semibold text-ink" : "font-medium text-ink-secondary"
+                            "mt-1.5 w-2 h-2 rounded-full shrink-0",
+                            !email.isRead ? "bg-blue-400" : "bg-transparent"
                           )}
-                        >
-                          {email.from}
-                        </span>
-                        <span className="text-[10px] text-ink-muted shrink-0">
-                          {formatRelativeTime(email.receivedAt)}
-                        </span>
-                      </div>
-                      <p
-                        className={cn(
-                          "text-sm line-clamp-2 leading-snug",
-                          !email.isRead ? "text-ink" : "text-ink-secondary"
-                        )}
-                      >
-                        {email.subject}
-                      </p>
-                      {email.preview && (
-                        <p className="text-xs text-ink-muted line-clamp-1 mt-1">
-                          {toEmailPreview(email.preview)}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                        {categoryBadge(email.category, true)}
-                        {email.needsReply && (
-                          <Badge variant="info" className="text-[10px] px-1.5 py-0">
-                            Reply
-                          </Badge>
-                        )}
-                        {!email.isRead && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ml-auto" />
-                        )}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                            <span
+                              className={cn(
+                                "text-[13px] sm:text-sm truncate",
+                                !email.isRead ? "font-semibold text-ink" : "font-medium text-ink-secondary"
+                              )}
+                            >
+                              {email.from}
+                            </span>
+                            <span className="text-[10px] text-ink-muted shrink-0 tabular-nums">
+                              {formatRelativeTime(email.receivedAt)}
+                            </span>
+                          </div>
+                          <p
+                            className={cn(
+                              "text-[13px] sm:text-sm line-clamp-1 leading-snug",
+                              !email.isRead ? "text-ink font-medium" : "text-ink-secondary"
+                            )}
+                          >
+                            {email.subject}
+                          </p>
+                          {email.preview && (
+                            <p className="text-xs text-ink-muted line-clamp-1 mt-0.5">
+                              {toEmailPreview(email.preview)}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                            {categoryBadge(email.category, true)}
+                            {email.needsReply && (
+                              <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                                Reply
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </button>
                   ))}
+
+                  {hasMore && filter === "all" && !query && (
+                    <button
+                      type="button"
+                      onClick={() => void loadMore()}
+                      disabled={loadingMore}
+                      className="w-full mt-2 py-3 rounded-2xl text-sm font-medium text-violet-200 bg-violet-500/10 ring-1 ring-violet-400/25 hover:bg-violet-500/15 disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          Loading…
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown size={16} />
+                          Load more emails
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </aside>
 
-              {/* Reading pane — full screen on phone when email open */}
               <section
                 className={cn(
                   "flex-1 min-w-0 flex flex-col min-h-0",
@@ -287,7 +438,6 @@ export default function EmailPage() {
               >
                 {selected ? (
                   <div className="flex flex-col flex-1 min-h-0 rounded-2xl ring-1 ring-white/10 bg-black/10 overflow-hidden">
-                    {/* Subject bar */}
                     <div className="px-3 sm:px-5 py-3 border-b border-white/10 shrink-0">
                       <h2 className="text-[15px] sm:text-lg font-semibold text-ink leading-snug break-words">
                         {selected.subject}
@@ -297,17 +447,14 @@ export default function EmailPage() {
                           <p className="text-sm text-ink-secondary truncate">{selected.from}</p>
                           <p className="text-[11px] text-ink-muted truncate">{selected.fromEmail}</p>
                         </div>
-                        <div className="flex gap-1 shrink-0">
-                          {categoryBadge(selected.category, true)}
-                        </div>
+                        <div className="flex gap-1 shrink-0">{categoryBadge(selected.category, true)}</div>
                       </div>
                       <p className="text-[11px] text-ink-muted mt-1">
                         {formatRelativeTime(selected.receivedAt)}
                       </p>
                     </div>
 
-                    {/* Scrollable body — extra bottom pad for voice FAB */}
-                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-3 pb-20 lg:pb-4">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-3 pb-4">
                       <EmailBody
                         body={selected.body}
                         bodyHtml={selected.bodyHtml}
@@ -315,10 +462,8 @@ export default function EmailPage() {
                       />
                     </div>
 
-                    {/* Sticky actions */}
                     <div
-                      className="shrink-0 px-3 sm:px-5 py-2.5 border-t border-white/10 bg-black/30 backdrop-blur-md flex gap-2"
-                      style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}
+                      className="shrink-0 px-3 sm:px-5 py-2.5 border-t border-white/10 bg-black/30 backdrop-blur-md flex gap-2 safe-area-bottom"
                     >
                       <Button
                         size="sm"
@@ -349,7 +494,6 @@ export default function EmailPage() {
                 )}
               </section>
 
-              {/* Desktop assistant sidebar */}
               {showAssistant && (
                 <aside className="hidden lg:flex lg:w-72 xl:w-80 shrink-0 flex-col min-h-0">
                   <Card className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 ring-1 ring-violet-400/20">
@@ -362,7 +506,6 @@ export default function EmailPage() {
         </div>
       </div>
 
-      {/* Mobile assistant bottom sheet */}
       {showAssistant && mobileAssistantOpen && (
         <>
           <button
@@ -372,8 +515,7 @@ export default function EmailPage() {
             onClick={() => setMobileAssistantOpen(false)}
           />
           <div
-            className="lg:hidden fixed inset-x-0 bottom-0 z-50 glass-panel-strong rounded-t-2xl ring-1 ring-violet-400/30 shadow-elevated p-4 max-h-[70vh] overflow-y-auto"
-            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+            className="lg:hidden fixed inset-x-0 bottom-0 z-50 glass-panel-strong rounded-t-2xl ring-1 ring-violet-400/30 shadow-elevated p-4 max-h-[70vh] overflow-y-auto safe-area-bottom"
           >
             {assistantPanel}
           </div>

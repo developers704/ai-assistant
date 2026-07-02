@@ -70,22 +70,22 @@ function OptionGroup<T extends string>({
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-2">{label}</p>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap">
         {options.map((opt) => (
           <button
             key={opt.id}
             type="button"
             onClick={() => onChange(opt.id)}
             className={cn(
-              "px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200",
+              "px-2 sm:px-3 py-2.5 sm:py-2 rounded-xl text-xs font-medium transition-all duration-200 text-center sm:text-left min-h-[44px] sm:min-h-0",
               value === opt.id
                 ? "bg-gradient-to-br from-violet-500/30 to-fuchsia-500/25 text-white ring-1 ring-fuchsia-400/50 shadow-[0_0_20px_rgba(192,132,252,0.15)]"
                 : "bg-white/5 text-ink-muted hover:text-ink hover:bg-white/10 ring-1 ring-white/10"
             )}
           >
-            {opt.label}
+            <span className="block truncate">{opt.label}</span>
             {opt.hint && value === opt.id && (
-              <span className="ml-1 opacity-70">· {opt.hint}</span>
+              <span className="hidden sm:inline ml-1 opacity-70">· {opt.hint}</span>
             )}
           </button>
         ))}
@@ -303,48 +303,48 @@ export default function ImageGenerationPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-4rem)]">
-      <div className="glass-panel-strong rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10 relative">
+    <div className="flex flex-col max-lg:-mx-3 max-lg:-mt-1 max-lg:-mb-3 lg:mx-0 max-lg:min-h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px))] lg:h-[calc(100dvh-4rem)]">
+      <div className="glass-panel-strong rounded-2xl lg:rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10 relative">
         {/* Ambient glow */}
         <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-violet-600/10 blur-3xl" />
 
         {/* Header */}
-        <div className="relative shrink-0 px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 shadow-[0_4px_20px_rgba(139,92,246,0.35)]">
-                  <Gem size={18} className="text-white" />
+        <div className="relative shrink-0 px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-white/10">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 shadow-[0_4px_20px_rgba(139,92,246,0.35)]">
+                  <Gem size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
                 </span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25">
                   <Zap size={10} /> Nano Banana 2
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-display font-bold text-gradient-title tracking-tight">
+              <h1 className="text-lg sm:text-2xl font-display font-bold text-gradient-title tracking-tight">
                 Jewelry Studio
               </h1>
-              <p className="text-sm text-ink-muted mt-1 max-w-lg">
-                Create photorealistic product shots from text, or turn a raw photo into a polished e-commerce image.
+              <p className="text-xs sm:text-sm text-ink-muted mt-1 max-w-lg leading-relaxed">
+                Create product shots from text, or enhance a raw photo for e-commerce.
               </p>
             </div>
             {images.length > 0 && (
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/5 ring-1 ring-white/10">
-                <ImageIcon size={16} className="text-fuchsia-300" />
+              <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-white/5 ring-1 ring-white/10 shrink-0">
+                <ImageIcon size={15} className="text-fuchsia-300" />
                 <div>
-                  <p className="text-sm font-semibold text-ink">{images.length}</p>
-                  <p className="text-[10px] text-ink-muted uppercase tracking-wide">Creations</p>
+                  <p className="text-sm font-semibold text-ink leading-none">{images.length}</p>
+                  <p className="text-[10px] text-ink-muted uppercase tracking-wide mt-0.5">Creations</p>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Body: controls + canvas */}
-        <div className="relative flex-1 min-h-0 flex flex-col lg:flex-row">
+        {/* Body: single scroll on mobile, split on desktop */}
+        <div className="relative flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
           {/* Controls panel */}
-          <div className="lg:w-[min(420px,100%)] shrink-0 border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col min-h-0">
-            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
+          <div className="lg:w-[min(420px,100%)] shrink-0 border-b lg:border-b-0 lg:border-r border-white/10 lg:overflow-y-auto lg:min-h-0">
+            <div className="p-3 sm:p-5 space-y-4 lg:max-h-full safe-area-bottom">
               {/* Mode switch */}
               <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-black/25 ring-1 ring-white/10">
                 <button
@@ -355,7 +355,7 @@ export default function ImageGenerationPage() {
                     setError(null);
                   }}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                    "flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl text-sm font-medium transition-all duration-200 min-h-[44px]",
                     mode === "generate"
                       ? "bg-gradient-to-br from-violet-600/80 to-fuchsia-600/70 text-white shadow-[0_4px_24px_rgba(139,92,246,0.25)]"
                       : "text-ink-muted hover:text-ink hover:bg-white/5"
@@ -370,7 +370,7 @@ export default function ImageGenerationPage() {
                     setError(null);
                   }}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                    "flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl text-sm font-medium transition-all duration-200 min-h-[44px]",
                     mode === "enhance"
                       ? "bg-gradient-to-br from-violet-600/80 to-fuchsia-600/70 text-white shadow-[0_4px_24px_rgba(139,92,246,0.25)]"
                       : "text-ink-muted hover:text-ink hover:bg-white/5"
@@ -422,7 +422,7 @@ export default function ImageGenerationPage() {
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-2">
                       Quick ideas
                     </p>
-                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin snap-x snap-mandatory">
                       {PROMPT_IDEAS.map((idea) => (
                         <button
                           key={idea.text}
@@ -432,7 +432,7 @@ export default function ImageGenerationPage() {
                             generate(idea.text);
                           }}
                           disabled={loading}
-                          className="shrink-0 flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-fuchsia-400/30 text-left transition-all disabled:opacity-50 max-w-[140px]"
+                          className="snap-start shrink-0 flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-fuchsia-400/30 text-left transition-all disabled:opacity-50 w-[min(44vw,160px)] min-h-[64px]"
                         >
                           <span className="text-xs font-medium text-ink">{idea.label}</span>
                           <span className="text-[10px] text-ink-muted line-clamp-1">{idea.text}</span>
@@ -473,7 +473,7 @@ export default function ImageGenerationPage() {
                           pickFile(e.dataTransfer.files?.[0]);
                         }}
                         className={cn(
-                          "w-full flex flex-col items-center justify-center gap-3 py-12 rounded-2xl border-2 border-dashed transition-all duration-200",
+                          "w-full flex flex-col items-center justify-center gap-3 py-8 sm:py-12 rounded-2xl border-2 border-dashed transition-all duration-200",
                           dragOver
                             ? "border-fuchsia-400/60 bg-fuchsia-500/15 scale-[1.01]"
                             : "border-white/20 bg-black/20 hover:border-fuchsia-400/40 hover:bg-fuchsia-500/5"
@@ -576,10 +576,16 @@ export default function ImageGenerationPage() {
             </div>
           </div>
 
-          {/* Canvas / gallery */}
-          <div className="flex-1 min-w-0 min-h-0 flex flex-col p-4 sm:p-5 overflow-y-auto">
+          {/* Canvas / gallery — hidden empty state on mobile; full panel on desktop */}
+          <div
+            className={cn(
+              "flex-1 min-w-0 flex flex-col p-3 sm:p-5",
+              "lg:overflow-y-auto lg:min-h-0",
+              !loading && images.length === 0 && "hidden lg:flex"
+            )}
+          >
             {loading && (
-              <div className="flex-1 flex flex-col items-center justify-center min-h-[280px] rounded-2xl bg-black/20 ring-1 ring-white/10 relative overflow-hidden">
+              <div className="flex flex-col items-center justify-center min-h-[220px] sm:min-h-[280px] rounded-2xl bg-black/20 ring-1 ring-white/10 relative overflow-hidden my-2 lg:my-0 lg:flex-1">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-fuchsia-500/5 to-transparent animate-pulse" />
                 <div className="relative flex flex-col items-center text-center px-6">
                   <div className="relative mb-5">
@@ -597,7 +603,7 @@ export default function ImageGenerationPage() {
             )}
 
             {!loading && images.length === 0 && (
-              <div className="flex-1 flex flex-col items-center justify-center min-h-[280px] rounded-2xl border border-dashed border-white/15 bg-black/15 text-center px-6 relative overflow-hidden">
+              <div className="hidden lg:flex flex-1 flex-col items-center justify-center min-h-[280px] rounded-2xl border border-dashed border-white/15 bg-black/15 text-center px-6 relative overflow-hidden">
                 <div className="absolute inset-0 bg-dot-grid opacity-30" />
                 <div className="relative">
                   <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500/25 to-fuchsia-600/20 ring-1 ring-fuchsia-400/25 shadow-[0_8px_40px_rgba(139,92,246,0.15)]">
@@ -622,15 +628,15 @@ export default function ImageGenerationPage() {
             )}
 
             {!loading && latest && (
-              <div className="space-y-4">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
+              <div className="space-y-4 pb-4 lg:pb-0">
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 sm:gap-3">
+                  <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-fuchsia-300/90 mb-1">
                       Latest creation
                     </p>
-                    <p className="text-sm text-ink-secondary line-clamp-2 max-w-xl">{latest.prompt}</p>
+                    <p className="text-sm text-ink-secondary line-clamp-2">{latest.prompt}</p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => download(latest)}>
+                  <Button size="sm" variant="outline" onClick={() => download(latest)} className="shrink-0 w-full sm:w-auto">
                     <Download size={14} /> Download
                   </Button>
                 </div>
