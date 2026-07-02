@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
@@ -8,18 +8,40 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ChatBubble } from "@/components/ui/ChatBubble";
-import { formatRelativeTime } from "@/lib/utils";
+import { formatRelativeTime, cn } from "@/lib/utils";
 import { sortEmails } from "@/lib/email-utils";
 import { toEmailPreview } from "@/lib/email-html";
 import { EmailBody } from "@/components/email/EmailBody";
 import type { ChatMessage, Email } from "@/types";
-import { Mail, Reply, Star, AlertCircle, Link2, Loader2, Bot, X, Inbox } from "lucide-react";
+import {
+  Mail,
+  Reply,
+  Star,
+  AlertCircle,
+  Link2,
+  Loader2,
+  Bot,
+  X,
+  Inbox,
+  ChevronLeft,
+} from "lucide-react";
+
+/** Space reserved below mobile top nav + page padding */
+const MOBILE_HEIGHT =
+  "max-lg:h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-4rem)]";
 
 export default function EmailPage() {
   const { state, sendChat, confirmAction, rejectAction, loading } = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [assistantMessage, setAssistantMessage] = useState<ChatMessage | null>(null);
+  const [mobileAssistantOpen, setMobileAssistantOpen] = useState(false);
+
+  const showAssistant = assistantBusy || !!assistantMessage;
+
+  useEffect(() => {
+    if (showAssistant) setMobileAssistantOpen(true);
+  }, [showAssistant]);
 
   if (!state) return null;
 
@@ -29,11 +51,12 @@ export default function EmailPage() {
   const urgentCount = emails.filter((e) => e.category === "urgent").length;
   const needsReplyCount = emails.filter((e) => e.needsReply).length;
   const unreadCount = emails.filter((e) => !e.isRead).length;
-  const showAssistant = assistantBusy || !!assistantMessage;
+  const mobileReading = !!selectedId;
 
   const runAssistant = async (message: string) => {
     setAssistantBusy(true);
     setAssistantMessage(null);
+    setMobileAssistantOpen(true);
     try {
       const result = await sendChat(message);
       if (result) setAssistantMessage(result);
@@ -50,42 +73,44 @@ export default function EmailPage() {
     await runAssistant(`Create a follow-up reminder for email from ${email.from}`);
   };
 
-  const categoryBadge = (cat: string) => {
+  const categoryBadge = (cat: string, small?: boolean) => {
+    const size = small ? "text-[10px] px-1.5 py-0" : undefined;
     switch (cat) {
       case "urgent":
-        return <Badge variant="danger">Urgent</Badge>;
+        return <Badge variant="danger" className={size}>Urgent</Badge>;
       case "important":
-        return <Badge variant="warning">Important</Badge>;
+        return <Badge variant="warning" className={size}>Important</Badge>;
       case "promotional":
-        return <Badge variant="default">Promo</Badge>;
+        return <Badge variant="default" className={size}>Promo</Badge>;
       default:
         return null;
     }
   };
 
   const assistantPanel = (
-    <div className="flex flex-col min-h-0 h-full">
-      <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
+    <div className="flex flex-col min-h-0">
+      <div className="flex items-center justify-between gap-2 mb-2 shrink-0">
         <p className="text-sm font-semibold text-ink flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/25">
             <Bot size={14} className="text-violet-300" />
           </span>
           Assistant
         </p>
-        {assistantMessage && !assistantBusy && (
-          <button
-            type="button"
-            onClick={() => setAssistantMessage(null)}
-            className="text-ink-muted hover:text-ink p-1 rounded-lg hover:bg-white/10"
-            aria-label="Dismiss"
-          >
-            <X size={16} />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            setAssistantMessage(null);
+            setMobileAssistantOpen(false);
+          }}
+          className="text-ink-muted hover:text-ink p-1.5 rounded-lg hover:bg-white/10"
+          aria-label="Dismiss assistant"
+        >
+          <X size={16} />
+        </button>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto pr-0.5">
+      <div className="overflow-y-auto max-h-[40vh] lg:max-h-none">
         {assistantBusy ? (
-          <p className="text-sm text-ink-muted flex items-center gap-2">
+          <p className="text-sm text-ink-muted flex items-center gap-2 py-2">
             <Loader2 size={16} className="animate-spin text-violet-300 shrink-0" />
             Working on your request…
           </p>
@@ -95,10 +120,12 @@ export default function EmailPage() {
             onConfirm={async () => {
               await confirmAction();
               setAssistantMessage(null);
+              setMobileAssistantOpen(false);
             }}
             onReject={async () => {
               await rejectAction();
               setAssistantMessage(null);
+              setMobileAssistantOpen(false);
             }}
           />
         ) : null}
@@ -107,186 +134,244 @@ export default function EmailPage() {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-4rem)]">
-      <div className="glass-panel-strong rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10">
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10 shrink-0">
-          <PageHeader
-            title="Email Assistant"
-            subtitle={
-              googleConnected
-                ? `${unreadCount} unread · ${urgentCount} urgent · ${needsReplyCount} need reply · Gmail connected`
-                : `${urgentCount} urgent · ${needsReplyCount} need reply · demo inbox`
-            }
-            action={
-              <div className="flex items-center gap-2">
-                {googleConnected && (
-                  <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-500/15 px-2.5 py-1 rounded-full ring-1 ring-emerald-400/25">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Live
-                  </span>
-                )}
-                <Button size="sm" disabled={assistantBusy} onClick={() => runAssistant("Summarize my inbox")}>
-                  {assistantBusy ? <Loader2 size={14} className="animate-spin" /> : <Inbox size={14} />}
-                  Summarize Inbox
-                </Button>
-              </div>
-            }
-          />
+    <div
+      className={cn(
+        "flex flex-col max-lg:-mx-3 max-lg:-mt-1 max-lg:-mb-3 lg:mx-0",
+        MOBILE_HEIGHT
+      )}
+    >
+      <div className="glass-panel-strong rounded-2xl lg:rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10">
+        {/* ── Header ── */}
+        <div className="px-3 sm:px-6 border-b border-white/10 shrink-0 pt-2 pb-2 sm:pt-4 sm:pb-3 lg:pt-5 lg:pb-4">
+          {mobileReading ? (
+            <button
+              type="button"
+              onClick={() => setSelectedId(null)}
+              className="lg:hidden flex items-center gap-0.5 text-sm text-violet-300 font-medium py-1 -ml-1 mb-1 active:opacity-70"
+            >
+              <ChevronLeft size={22} />
+              Inbox
+            </button>
+          ) : null}
 
-          {!googleConnected && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 ring-1 ring-amber-400/20 bg-amber-500/10">
-              <p className="text-sm text-ink-secondary">
-                Connect Gmail in Settings to see your real inbox instead of demo emails.
-              </p>
+          {!mobileReading && (
+            <PageHeader
+              compact
+              title="Email"
+              subtitle={`${unreadCount} unread · ${urgentCount} urgent · ${needsReplyCount} need reply${
+                googleConnected ? " · Gmail" : ""
+              }`}
+              action={
+                <Button
+                  size="sm"
+                  disabled={assistantBusy}
+                  onClick={() => runAssistant("Summarize my inbox")}
+                  aria-label="Summarize inbox"
+                >
+                  {assistantBusy ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Inbox size={14} />
+                  )}
+                  <span className="hidden sm:inline ml-1">Summarize</span>
+                </Button>
+              }
+            />
+          )}
+
+          {!googleConnected && !mobileReading && (
+            <div className="mt-2 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ring-1 ring-amber-400/20 bg-amber-500/10">
+              <p className="text-xs sm:text-sm text-ink-secondary">Connect Gmail for your real inbox.</p>
               <Link href="/settings">
-                <Button size="sm" variant="outline">
-                  <Link2 size={14} /> Connect Gmail
+                <Button size="sm" variant="outline" className="shrink-0">
+                  <Link2 size={14} />
+                  <span className="hidden sm:inline ml-1">Connect</span>
                 </Button>
               </Link>
             </div>
           )}
         </div>
 
-        <div className="flex-1 min-h-0 px-5 sm:px-6 py-4">
+        {/* ── Body ── */}
+        <div className="flex-1 min-h-0 overflow-hidden px-2 sm:px-6 py-2 sm:py-4">
           {loading && googleConnected && emails.length === 0 ? (
-            <Card className="h-full flex flex-col items-center justify-center text-ink-muted text-sm gap-3">
+            <div className="h-full flex flex-col items-center justify-center text-ink-muted text-sm gap-3">
               <Loader2 size={24} className="animate-spin text-blue-300" />
               Loading Gmail inbox…
-            </Card>
+            </div>
           ) : emails.length === 0 ? (
-            <Card className="h-full flex flex-col items-center justify-center text-center">
-              <Mail size={40} className="text-ink-muted mb-3" />
-              <p className="text-ink-secondary">Inbox is empty</p>
-              <p className="text-sm text-ink-muted mt-1">New messages will appear here when they arrive.</p>
-            </Card>
+            <div className="h-full flex flex-col items-center justify-center text-center px-4">
+              <Mail size={36} className="text-ink-muted mb-3" />
+              <p className="text-ink-secondary font-medium">Inbox is empty</p>
+              <p className="text-sm text-ink-muted mt-1">New messages will appear here.</p>
+            </div>
           ) : (
-            <div className="flex flex-col lg:flex-row gap-4 h-full min-h-0">
-              <aside className="lg:w-72 xl:w-80 shrink-0 flex flex-col min-h-0 max-h-[34vh] lg:max-h-none">
-                <p className="text-xs text-ink-muted px-1 mb-2 shrink-0">
-                  Sorted: unread & important first, then newest
-                </p>
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
+            <div className="flex h-full min-h-0 lg:flex-row lg:gap-4">
+              {/* Inbox — full screen on phone when nothing selected */}
+              <aside
+                className={cn(
+                  "flex flex-col min-h-0",
+                  mobileReading ? "hidden lg:flex lg:w-72 xl:w-80 lg:shrink-0" : "flex-1 lg:w-72 xl:w-80 lg:shrink-0"
+                )}
+              >
+                <div className="flex-1 overflow-y-auto overscroll-y-contain space-y-2 pr-0.5 min-h-0">
                   {emails.map((email) => (
-                    <Card
+                    <button
                       key={email.id}
-                      hover
-                      className={`p-3.5 cursor-pointer transition-all ${
+                      type="button"
+                      className={cn(
+                        "w-full text-left rounded-2xl p-3 transition-all active:scale-[0.99] ring-1",
                         selectedId === email.id
-                          ? "ring-2 ring-violet-400/50 bg-white/10"
+                          ? "ring-violet-400/50 bg-white/10"
                           : !email.isRead
-                            ? "bg-white/6 ring-1 ring-white/10"
-                            : "opacity-90"
-                      }`}
+                            ? "ring-white/10 bg-white/[0.06]"
+                            : "ring-white/5 bg-white/[0.03] opacity-90"
+                      )}
                       onClick={() => setSelectedId(email.id)}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <p
-                          className={`text-sm truncate ${!email.isRead ? "font-semibold text-ink" : "font-medium text-ink-secondary"}`}
+                      <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                        <span
+                          className={cn(
+                            "text-sm truncate min-w-0",
+                            !email.isRead ? "font-semibold text-ink" : "font-medium text-ink-secondary"
+                          )}
                         >
                           {email.from}
-                        </p>
-                        <span className="text-[11px] text-ink-muted flex-shrink-0">
+                        </span>
+                        <span className="text-[10px] text-ink-muted shrink-0">
                           {formatRelativeTime(email.receivedAt)}
                         </span>
                       </div>
-                      <p className={`text-sm truncate mb-1 ${!email.isRead ? "text-ink" : "text-ink-secondary"}`}>
+                      <p
+                        className={cn(
+                          "text-sm line-clamp-2 leading-snug",
+                          !email.isRead ? "text-ink" : "text-ink-secondary"
+                        )}
+                      >
                         {email.subject}
                       </p>
                       {email.preview && (
-                        <p className="text-xs text-ink-muted line-clamp-1 mb-2">
+                        <p className="text-xs text-ink-muted line-clamp-1 mt-1">
                           {toEmailPreview(email.preview)}
                         </p>
                       )}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {categoryBadge(email.category)}
-                        {email.needsReply && <Badge variant="info">Needs Reply</Badge>}
-                        {email.isImportant && !email.needsReply && email.category !== "important" && (
-                          <Star size={13} className="text-amber-400" />
+                      <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                        {categoryBadge(email.category, true)}
+                        {email.needsReply && (
+                          <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                            Reply
+                          </Badge>
                         )}
                         {!email.isRead && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ml-auto" title="Unread" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ml-auto" />
                         )}
                       </div>
-                    </Card>
+                    </button>
                   ))}
                 </div>
               </aside>
 
-              <div className="flex-1 min-w-0 flex flex-col lg:flex-row gap-4 min-h-0">
-                <section className="flex-1 min-w-0 flex flex-col min-h-0">
-                  {selected ? (
-                    <Card className="flex-1 flex flex-col min-h-0 overflow-hidden p-0">
-                      <div className="px-5 pt-5 pb-4 border-b border-white/10 shrink-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h2 className="text-lg font-semibold text-ink leading-snug">{selected.subject}</h2>
-                            <p className="text-sm text-ink-secondary mt-1 truncate">
-                              {selected.from} &lt;{selected.fromEmail}&gt;
-                            </p>
-                            <p className="text-xs text-ink-muted mt-1">{formatRelativeTime(selected.receivedAt)}</p>
-                          </div>
-                          <div className="flex flex-wrap gap-1.5 justify-end shrink-0">
-                            {categoryBadge(selected.category)}
-                            {selected.needsReply && <Badge variant="info">Needs Reply</Badge>}
-                          </div>
+              {/* Reading pane — full screen on phone when email open */}
+              <section
+                className={cn(
+                  "flex-1 min-w-0 flex flex-col min-h-0",
+                  !mobileReading && "hidden lg:flex"
+                )}
+              >
+                {selected ? (
+                  <div className="flex flex-col flex-1 min-h-0 rounded-2xl ring-1 ring-white/10 bg-black/10 overflow-hidden">
+                    {/* Subject bar */}
+                    <div className="px-3 sm:px-5 py-3 border-b border-white/10 shrink-0">
+                      <h2 className="text-[15px] sm:text-lg font-semibold text-ink leading-snug break-words">
+                        {selected.subject}
+                      </h2>
+                      <div className="flex items-center justify-between gap-2 mt-1.5">
+                        <div className="min-w-0">
+                          <p className="text-sm text-ink-secondary truncate">{selected.from}</p>
+                          <p className="text-[11px] text-ink-muted truncate">{selected.fromEmail}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {categoryBadge(selected.category, true)}
                         </div>
                       </div>
-
-                      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
-                        <EmailBody
-                          body={selected.body}
-                          bodyHtml={selected.bodyHtml}
-                          preview={selected.preview}
-                        />
-                      </div>
-
-                      <div className="px-5 py-4 border-t border-white/10 flex gap-2 flex-wrap shrink-0 bg-black/10">
-                        <Button size="sm" disabled={assistantBusy} onClick={() => handleDraftReply(selected)}>
-                          <Reply size={14} /> Draft Reply
-                        </Button>
-                        {selected.needsReply && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={assistantBusy}
-                            onClick={() => handleFollowUp(selected)}
-                          >
-                            <AlertCircle size={14} /> Set Follow-up
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
-                  ) : (
-                    <Card className="flex-1 flex flex-col items-center justify-center text-center min-h-[240px]">
-                      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/20 ring-1 ring-blue-400/25 mb-4">
-                        <Mail size={28} className="text-blue-300" />
-                      </span>
-                      <p className="text-ink font-medium">Select an email to view details</p>
-                      <p className="text-sm text-ink-muted mt-1 max-w-xs">
-                        Or use Summarize Inbox to get an overview of what needs attention.
+                      <p className="text-[11px] text-ink-muted mt-1">
+                        {formatRelativeTime(selected.receivedAt)}
                       </p>
-                    </Card>
-                  )}
+                    </div>
 
-                  {showAssistant && (
-                    <Card className="lg:hidden mt-4 p-4 ring-1 ring-violet-400/20 max-h-[38vh] shrink-0">
-                      {assistantPanel}
-                    </Card>
-                  )}
-                </section>
+                    {/* Scrollable body — extra bottom pad for voice FAB */}
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-3 pb-20 lg:pb-4">
+                      <EmailBody
+                        body={selected.body}
+                        bodyHtml={selected.bodyHtml}
+                        preview={selected.preview}
+                      />
+                    </div>
 
-                {showAssistant && (
-                  <aside className="hidden lg:flex lg:w-72 xl:w-80 shrink-0 flex-col min-h-0">
-                    <Card className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 ring-1 ring-violet-400/20">
-                      {assistantPanel}
-                    </Card>
-                  </aside>
+                    {/* Sticky actions */}
+                    <div
+                      className="shrink-0 px-3 sm:px-5 py-2.5 border-t border-white/10 bg-black/30 backdrop-blur-md flex gap-2"
+                      style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}
+                    >
+                      <Button
+                        size="sm"
+                        disabled={assistantBusy}
+                        onClick={() => handleDraftReply(selected)}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <Reply size={14} /> Reply
+                      </Button>
+                      {selected.needsReply && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={assistantBusy}
+                          onClick={() => handleFollowUp(selected)}
+                        >
+                          <AlertCircle size={14} />
+                          <span className="hidden sm:inline ml-1">Follow-up</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center">
+                    <Mail size={28} className="text-blue-300 mb-3" />
+                    <p className="text-ink font-medium">Select an email</p>
+                  </div>
                 )}
-              </div>
+              </section>
+
+              {/* Desktop assistant sidebar */}
+              {showAssistant && (
+                <aside className="hidden lg:flex lg:w-72 xl:w-80 shrink-0 flex-col min-h-0">
+                  <Card className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 ring-1 ring-violet-400/20">
+                    {assistantPanel}
+                  </Card>
+                </aside>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Mobile assistant bottom sheet */}
+      {showAssistant && mobileAssistantOpen && (
+        <>
+          <button
+            type="button"
+            className="lg:hidden fixed inset-0 z-40 bg-black/40"
+            aria-label="Close assistant"
+            onClick={() => setMobileAssistantOpen(false)}
+          />
+          <div
+            className="lg:hidden fixed inset-x-0 bottom-0 z-50 glass-panel-strong rounded-t-2xl ring-1 ring-violet-400/30 shadow-elevated p-4 max-h-[70vh] overflow-y-auto"
+            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+          >
+            {assistantPanel}
+          </div>
+        </>
+      )}
     </div>
   );
 }
