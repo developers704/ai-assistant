@@ -1,4 +1,4 @@
-import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
+import { getAssistantSalesSummary } from "@/lib/assistant/sales-data";
 import {
   buildCalendarVoiceScript,
   getVoiceCalendarEvents,
@@ -6,6 +6,7 @@ import {
 import { buildEmailVoiceScript, getVoiceEmails } from "@/lib/voice/email-data";
 import { buildTasksVoiceScript } from "@/lib/voice/tool-helpers";
 import { getState } from "@/lib/store/server-store";
+import { formatCurrency } from "@/lib/utils";
 
 /**
  * Compact live snapshot injected into every Realtime voice session.
@@ -15,7 +16,12 @@ export async function buildVoiceLiveContext(): Promise<string> {
     getVoiceCalendarEvents(),
     getVoiceEmails(),
   ]);
-  const sales = computeSalesSummary(mockSalesData);
+  const { summary: sales, source: salesSource, label: salesLabel } =
+    getAssistantSalesSummary();
+  const salesLine =
+    salesSource === "report"
+      ? `SALES (${salesLabel ?? "uploaded report"}): ${formatCurrency(sales.totalRevenue)} net, ${sales.totalTransactions.toLocaleString()} units.`
+      : `SALES (demo until CSV upload): ${formatCurrency(sales.totalRevenue)} today, ${sales.totalTransactions.toLocaleString()} transactions.`;
   const calendarScript = buildCalendarVoiceScript(calendar.events, calendar.tz);
   const emailScript = buildEmailVoiceScript(inbox.emails);
   const state = getState();
@@ -35,7 +41,7 @@ ${emailScript}
 TASKS — ${state.reminders.filter((r) => !r.completed).length} pending:
 ${tasksScript}
 
-SALES (demo POS): $${sales.totalRevenue.toLocaleString()} today.
+${salesLine}
 ${pendingDraft ? `\nEMAIL DRAFT READY: ${pendingDraft.title} — user can review on AI Chat.` : ""}
 
 CRITICAL: Use tools for writes (add/delete task, add/delete meeting, draft email). Never invent data. Email questions → inbox only. Calendar → calendar only.

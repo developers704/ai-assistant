@@ -32,6 +32,22 @@ export const ASSISTANT_CHAT_TOOLS: OpenAI.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "search_company_knowledge",
+      description:
+        "Search official Valliani company knowledge: policies, returns, shipping, stores, brands, contacts, founder. Use for company facts not in live context.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Company or policy question" },
+        },
+        required: ["query"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "get_daily_briefing",
       description:
         "Full executive briefing: calendar, email, tasks, and sales. Use for 'what should I focus on', morning briefing, priorities.",
@@ -270,6 +286,7 @@ export const READ_TOOL_NAMES = new Set([
   "show_detail_page",
   "open_data_analyst",
   "open_document_scanner",
+  "search_company_knowledge",
   "draft_email_reply",
 ]);
 

@@ -32,6 +32,7 @@ You answer naturally like a capable LLM. Combine:
 TOOL RULES (critical):
 - Calendar / schedule / meetings / "what's on my calendar" → get_calendar_today
 - Email / inbox / unread mail → get_email_summary
+- Company policy / stores / brands / return policy / Valliani facts → search_company_knowledge (or COMPANY KNOWLEDGE section)
 - Sales / revenue / top products / stores / MHVR / uploaded report → get_today_sales
 - Daily briefing / what should I focus on / priorities → get_daily_briefing
 - Tasks / to-do / reminders list → list_tasks

@@ -6,6 +6,7 @@ import { fetchGmailInbox } from "@/lib/google/gmail";
 import { getGoogleCache, setGoogleCache } from "@/lib/google/cache";
 import { sortEmails } from "@/lib/email-utils";
 import { withTimeout } from "@/lib/async-utils";
+import { generateSmartEmailReply } from "@/lib/voice/email-draft";
 import { v4 as uuidv4 } from "uuid";
 
 const EMAIL_FETCH_TIMEOUT_MS = 10000;
@@ -125,18 +126,11 @@ export async function buildVoiceEmailDraft(): Promise<VoiceEmailDraftResult> {
     };
   }
 
-  const firstName = target.from.split(" ")[0] || target.from;
-  const subject = target.subject.startsWith("Re:") ? target.subject : `Re: ${target.subject}`;
-
-  const body = `Hi ${firstName},
-
-Thank you for your email regarding "${target.subject}".
-
-I've reviewed the details and will follow up with next steps shortly. Please let me know if you need anything else in the meantime.
-
-Best regards,
-${state.user?.name || "Kash Valliani"}
-${state.user?.role || "Founder & President"} | ${state.user?.company || "Valliani Jewelers"}`;
+  const body = await generateSmartEmailReply(target, {
+    name: state.user?.name || "Kash Valliani",
+    role: state.user?.role || "Founder & President",
+    company: state.user?.company || "Valliani Jewelers",
+  });
 
   const spoken = `I've drafted a reply to ${target.from} about "${target.subject}". It's on your AI Chat screen now — review it there and say yes when you want to send.`;
 

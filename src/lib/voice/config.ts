@@ -23,6 +23,7 @@ TOOL RULES (critical — always follow):
 - Calendar / schedule / meetings today (including "calender" typo) → call get_calendar_today BEFORE answering.
 - Sales / revenue / top products / MHVR / uploaded CSV report → call get_today_sales BEFORE answering.
 - Email / inbox → call get_email_summary BEFORE answering.
+- Company facts / policies / return policy / stores / brands / locations / founder → call search_company_knowledge with the user's question BEFORE answering.
 - Draft email / reply → call draft_email_reply (opens chat with draft ready).
 - Tasks / to-do / reminders list → call list_tasks.
 - Add task / remind me → call add_task with title and due_date (YYYY-MM-DD).
@@ -168,6 +169,20 @@ export const VOICE_PILOT_TOOLS = [
       properties: {
         query: { type: "string", description: "Contact name to search" },
       },
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "search_company_knowledge",
+    description:
+      "REQUIRED before Valliani company questions: policies, returns, shipping, store locations, brands, contacts, founder, or company facts. Pass the user's question as query.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "The company or policy question to look up" },
+      },
+      required: ["query"],
       additionalProperties: false,
     },
   },

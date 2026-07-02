@@ -38,6 +38,7 @@ import {
   getSportsHeadlinesScript,
 } from "@/lib/voice/section-tools";
 import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
+import { buildCompanyKnowledgeVoiceAnswer } from "@/lib/voice/rag-tool";
 import { sortTopProducts } from "@/lib/utils";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
 
@@ -485,6 +486,19 @@ export async function executeVoiceTool(
           })),
         }),
         uiAction: { type: "navigate", path: "/contacts" },
+      };
+    }
+
+    case "search_company_knowledge": {
+      const query = String(args.query ?? "").trim();
+      const result = buildCompanyKnowledgeVoiceAnswer(query);
+      return {
+        output: JSON.stringify({
+          spokenAnswer: result.spokenAnswer,
+          available: result.available,
+          chunkCount: result.chunkCount,
+          context: result.context,
+        }),
       };
     }
 

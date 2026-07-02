@@ -28,6 +28,7 @@ export function intentForTool(name: string): IntentType {
     open_data_analyst: "general",
     open_document_scanner: "general",
     draft_email_reply: "email_draft",
+    search_company_knowledge: "general",
   };
   return map[name] ?? "general";
 }
@@ -87,6 +88,13 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
 
     case "estimate_jewellery_price":
       return `**Price estimate:** ${formatCurrency(Number(data.estimatedTotal ?? 0))}`;
+
+    case "search_company_knowledge": {
+      const context = String(data.context ?? "");
+      const spoken = String(data.spokenAnswer ?? "No company knowledge found.");
+      if (!context) return spoken;
+      return `${spoken}\n\n**Company knowledge**\n\n${context}`;
+    }
 
     case "get_industry_news":
     case "get_sports_news":
