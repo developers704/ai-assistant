@@ -9,7 +9,6 @@ import {
   buildEmailVoiceScript,
   buildVoiceEmailDraft,
   getVoiceEmails,
-  saveVoiceEmailDraftPending,
 } from "@/lib/voice/email-data";
 import {
   buildTasksVoiceScript,
@@ -498,15 +497,14 @@ export async function executeVoiceTool(
     }
 
     case "draft_email_reply": {
-      const draft = await buildVoiceEmailDraft();
-      if (draft.targetEmail) {
-        saveVoiceEmailDraftPending(draft);
-      }
+      const userMessage = args.user_message ? String(args.user_message) : undefined;
+      const draft = await buildVoiceEmailDraft({ userMessage });
       return {
         output: JSON.stringify({
           success: Boolean(draft.targetEmail),
           spokenAnswer: draft.script,
           targetEmail: draft.targetEmail,
+          draftPreview: draft.draftPreview,
         }),
         uiAction: { type: "navigate", path: draft.targetEmail ? "/chat" : "/email" },
       };

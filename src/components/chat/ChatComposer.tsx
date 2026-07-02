@@ -75,13 +75,13 @@ export function ChatComposer({ onSend, disabled, voiceControl }: ChatComposerPro
               disabled={disabled || !value.trim()}
               aria-label="Send message"
               className={cn(
-                "flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl sm:rounded-full transition-all duration-200",
+                "flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-full transition-all duration-200",
                 value.trim() && !disabled
-                  ? "bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-[0_4px_20px_rgba(139,92,246,0.45)] hover:from-violet-400 hover:to-fuchsia-500 scale-100"
+                  ? "bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-[0_4px_16px_rgba(139,92,246,0.35)] hover:from-violet-400 hover:to-fuchsia-500"
                   : "bg-white/8 text-ink-muted ring-1 ring-white/10"
               )}
             >
-              <Send size={18} strokeWidth={2} />
+              <Send size={20} strokeWidth={2} />
             </button>
           </div>
         </div>

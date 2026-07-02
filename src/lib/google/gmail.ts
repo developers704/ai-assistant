@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import type { GoogleOAuth2Client } from "./client";
+import { getAuthenticatedClient } from "./client";
 import type { Email } from "@/types";
 import { htmlToPlainText, toEmailPreview, toPlainText } from "@/lib/email-html";
 
@@ -159,4 +160,53 @@ export async function fetchGmailInbox(
   }
 
   return { emails, nextPageToken: list.data.nextPageToken ?? undefined };
+}
+
+export async function sendGmailMessage(params: {
+  to: string;
+  subject: string;
+  body: string;
+  threadId?: string;
+}): Promise<{ ok: boolean; error?: string; messageId?: string }> {
+  const client = await getAuthenticatedClient();
+  if (!client) {
+    return {
+      ok: false,
+      error: "Gmail is not connected. Open Settings and connect your Google account first.",
+    };
+  }
+
+  try {
+    const gmail = google.gmail({ version: "v1", auth: client });
+    const raw = [
+      `To: ${params.to}`,
+      `Subject: ${params.subject}`,
+      'Content-Type: text/plain; charset="UTF-8"',
+      "MIME-Version: 1.0",
+      "",
+      params.body,
+    ].join("\r\n");
+
+    const encoded = Buffer.from(raw)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    const { data } = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: {
+        raw: encoded,
+        threadId: params.threadId,
+      },
+    });
+
+    return { ok: true, messageId: data.id ?? undefined };
+  } catch (err) {
+    console.error("Gmail send failed:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to send email via Gmail.",
+    };
+  }
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/store/app-context";
-import { ChatBubble } from "@/components/ui/ChatBubble";
+import { ChatBubble, PendingActionCard } from "@/components/ui/ChatBubble";
 import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
 import { ChatWelcome } from "@/components/chat/ChatWelcome";
 import { ChatComposer } from "@/components/chat/ChatComposer";
@@ -16,6 +16,9 @@ export default function ChatPage() {
 
   const messages = state?.chatHistory ?? [];
   const showWelcome = messages.length === 0 && !pendingText;
+  const pendingEmail = state?.pendingActions.find((a) => a.type === "email");
+  const messageShowsPending = messages.some((m) => m.pendingAction?.type === "email");
+  const showOrphanPending = pendingEmail && !messageShowsPending;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -129,6 +132,16 @@ export default function ChatPage() {
                   Thinking…
                 </div>
               </div>
+            </div>
+          )}
+
+          {showOrphanPending && pendingEmail && (
+            <div className="max-w-3xl mx-auto w-full mb-4">
+              <PendingActionCard
+                action={pendingEmail}
+                onConfirm={confirmAction}
+                onReject={rejectAction}
+              />
             </div>
           )}
 

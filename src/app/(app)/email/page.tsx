@@ -184,7 +184,12 @@ export default function EmailPage() {
           </p>
         ) : assistantMessage ? (
           <ChatBubble
-            message={assistantMessage}
+            message={{
+              ...assistantMessage,
+              pendingAction:
+                assistantMessage.pendingAction ??
+                state.pendingActions.find((a) => a.type === "email"),
+            }}
             onConfirm={async () => {
               await confirmAction();
               setAssistantMessage(null);

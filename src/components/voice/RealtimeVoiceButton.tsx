@@ -61,7 +61,7 @@ export function RealtimeVoiceButton({
   const isBusy = status === "connecting" || status === "thinking";
   const isSpeaking = status === "speaking";
 
-  const micSize = isComposer ? "w-10 h-10" : isInline ? "w-11 h-11" : "w-12 h-12";
+  const micSize = isComposer ? "w-11 h-11" : isInline ? "w-11 h-11" : "w-12 h-12";
 
   return (
     <div
@@ -144,7 +144,7 @@ export function RealtimeVoiceButton({
           micSize,
           "flex items-center justify-center transition-all duration-300 shrink-0",
           isComposer
-            ? "rounded-xl bg-white/8 ring-1 ring-white/15 text-ink-secondary hover:text-ink hover:bg-white/12"
+            ? "rounded-xl bg-gradient-to-br from-violet-500/25 to-cyan-500/20 ring-1 ring-violet-400/30 text-violet-200 hover:text-white hover:from-violet-500/35 hover:to-cyan-500/25"
             : "rounded-2xl shadow-elevated",
           !isComposer &&
             (sessionActive && status !== "error"

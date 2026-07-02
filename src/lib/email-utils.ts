@@ -56,3 +56,42 @@ export function findEmailByContext(
 
   return undefined;
 }
+
+/** Parse "draft a reply to X about Y" from user chat text. */
+export function parseReplyTargetFromMessage(message: string): {
+  from?: string;
+  subject?: string;
+} {
+  const replyMatch = message.match(
+    /(?:draft a reply to|reply to|draft.*?to)\s+(.+?)(?:\s+about\s+(.+))?$/i
+  );
+  if (replyMatch) {
+    return {
+      from: replyMatch[1]?.replace(/["']/g, "").trim(),
+      subject: replyMatch[2]?.replace(/["']/g, "").trim(),
+    };
+  }
+
+  const toMatch = message.match(/(?:email|to)\s+([A-Za-z\s]+?)(?:\s+about|\s+regarding|$)/i);
+  return { from: toMatch?.[1]?.trim() };
+}
+
+export function formatEmailDraftChatMessage(pending: {
+  title: string;
+  preview: string;
+  payload: Record<string, unknown>;
+}): string {
+  const toName = String(pending.payload.to_name ?? pending.payload.to ?? "recipient");
+  const to = String(pending.payload.to ?? "");
+  const subject = String(pending.payload.subject ?? "");
+  return `I've drafted a reply for your review.
+
+**To:** ${toName}${to ? ` (${to})` : ""}
+**Subject:** ${subject}
+
+---
+${pending.preview}
+---
+
+Tap **Send email** below to send, or say **yes** in chat.`;
+}

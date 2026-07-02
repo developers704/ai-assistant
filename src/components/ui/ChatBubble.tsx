@@ -32,7 +32,7 @@ function renderMarkdown(text: string) {
   });
 }
 
-function PendingActionCard({
+export function PendingActionCard({
   action,
   onConfirm,
   onReject,
@@ -41,14 +41,28 @@ function PendingActionCard({
   onConfirm?: () => void;
   onReject?: () => void;
 }) {
+  const isEmail = action.type === "email";
+  const toName = isEmail ? String(action.payload.to_name ?? action.payload.to ?? "") : "";
+  const subject = isEmail ? String(action.payload.subject ?? "") : "";
+
   return (
-    <div className="mt-3 p-4 rounded-xl bg-amber-500/15 border border-amber-400/30 ring-1 ring-amber-400/10">
-      <p className="text-sm font-medium text-amber-200 mb-2">Confirmation required</p>
+    <div className="mt-3 p-4 rounded-xl bg-amber-500/12 border border-amber-400/25 ring-1 ring-amber-400/10">
+      <p className="text-sm font-medium text-amber-200 mb-2">
+        {isEmail ? "Email draft — review before sending" : "Confirmation required"}
+      </p>
       <p className="text-sm text-ink mb-1 font-medium">{action.title}</p>
-      <p className="text-sm text-ink-secondary whitespace-pre-wrap mb-3 max-h-40 overflow-y-auto">{action.preview}</p>
+      {isEmail && (
+        <div className="text-xs text-ink-muted mb-2 space-y-0.5">
+          {toName && <p>To: {toName}</p>}
+          {subject && <p>Subject: {subject}</p>}
+        </div>
+      )}
+      <p className="text-sm text-ink-secondary whitespace-pre-wrap mb-3 max-h-48 overflow-y-auto rounded-lg bg-black/20 p-3 ring-1 ring-white/8">
+        {action.preview}
+      </p>
       <div className="flex gap-2">
         <Button size="sm" onClick={onConfirm} className="bg-emerald-600 hover:bg-emerald-700">
-          <Check size={14} /> Confirm
+          <Check size={14} /> {isEmail ? "Send email" : "Confirm"}
         </Button>
         <Button size="sm" variant="outline" onClick={onReject}>
           <X size={14} /> Cancel
@@ -65,12 +79,12 @@ export function ChatBubble({ message, onConfirm, onReject }: ChatBubbleProps) {
     <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
       <div className="flex-shrink-0 mt-1">
         {isUser ? (
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center ring-1 ring-white/30">
-            <User size={16} className="text-white" />
+          <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center ring-1 ring-white/30">
+            <User size={18} className="text-white" />
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-glow">
-            <Bot size={16} className="text-white" />
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-[0_2px_12px_rgba(139,92,246,0.35)]">
+            <Bot size={18} className="text-white" />
           </div>
         )}
       </div>

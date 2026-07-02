@@ -1,14 +1,16 @@
 import type { Email } from "@/types";
-import { getState, setState } from "@/lib/store/server-store";
+import { getState } from "@/lib/store/server-store";
 import { getUiContext } from "@/lib/store/ui-context";
 import { isGoogleConnected, getGoogleTokens } from "@/lib/google/token-store";
 import { getAuthenticatedClient } from "@/lib/google/client";
 import { fetchGmailInbox } from "@/lib/google/gmail";
 import { getGoogleCache, setGoogleCache } from "@/lib/google/cache";
 import { sortEmails } from "@/lib/email-utils";
+import { findEmailByContext, parseReplyTargetFromMessage } from "@/lib/email-utils";
 import { withTimeout } from "@/lib/async-utils";
 import { generateSmartEmailReply } from "@/lib/voice/email-draft";
-import { v4 as uuidv4 } from "uuid";
+import { createPendingAction, savePendingAction } from "@/lib/actions/confirmation";
+import type { PendingAction } from "@/types";
 
 const EMAIL_FETCH_TIMEOUT_MS = 10000;
 
@@ -118,20 +120,46 @@ function pickEmailForDraft(emails: Email[]): Email | undefined {
 
 export interface VoiceEmailDraftResult {
   script: string;
-  targetEmail?: { from: string; subject: string; to: string };
+  targetEmail?: {
+    id: string;
+    from: string;
+    subject: string;
+    to: string;
+    threadId?: string;
+  };
   draftPreview?: string;
+  pendingAction?: PendingAction;
 }
 
-/** Draft reply to the most relevant inbox email (for voice). */
-export async function buildVoiceEmailDraft(): Promise<VoiceEmailDraftResult> {
+/** Draft reply to the most relevant inbox email (voice + chat). */
+export async function buildVoiceEmailDraft(hints?: {
+  userMessage?: string;
+  fromHint?: string;
+  subjectHint?: string;
+  source?: "voice" | "chat";
+}): Promise<VoiceEmailDraftResult> {
   const { emails } = await getVoiceEmails();
   const state = getState();
-  const target = pickEmailForDraft(emails);
+
+  let target = pickEmailForDraft(emails);
+
+  if (hints?.userMessage) {
+    const parsed = parseReplyTargetFromMessage(hints.userMessage);
+    const matched = findEmailByContext(
+      emails,
+      hints.fromHint ?? parsed.from,
+      hints.subjectHint ?? parsed.subject
+    );
+    if (matched) target = matched;
+  } else if (hints?.fromHint || hints?.subjectHint) {
+    const matched = findEmailByContext(emails, hints.fromHint, hints.subjectHint);
+    if (matched) target = matched;
+  }
 
   if (!target) {
     return {
       script:
-        "I couldn't find an email to draft from. Open your Email page first, then ask me to draft a reply.",
+        "I couldn't find an email to draft from. Open your Email page, select the message, then ask me to draft a reply.",
     };
   }
 
@@ -141,44 +169,67 @@ export async function buildVoiceEmailDraft(): Promise<VoiceEmailDraftResult> {
     company: state.user?.company || "Valliani Jewelers",
   });
 
-  const spoken = `I've drafted a reply to ${target.from} about "${target.subject}". It's on your AI Chat screen now — review it there and say yes when you want to send.`;
+  const pending = saveVoiceEmailDraftPending(
+    {
+      script: "",
+      targetEmail: {
+        id: target.id,
+        from: target.from,
+        subject: target.subject,
+        to: target.fromEmail,
+      },
+      draftPreview: body,
+    },
+    hints?.source ?? "chat"
+  );
+
+  const script = pending
+    ? `I've drafted a reply to **${target.from}** about "${target.subject}". Review the draft below and tap **Send email** when you're ready.`
+    : `I couldn't save the draft. Please try again from the Email page.`;
 
   return {
-    script: spoken,
+    script,
     targetEmail: {
+      id: target.id,
       from: target.from,
       subject: target.subject,
       to: target.fromEmail,
     },
     draftPreview: body,
+    pendingAction: pending ?? undefined,
   };
 }
 
-export function saveVoiceEmailDraftPending(draft: VoiceEmailDraftResult): void {
-  if (!draft.targetEmail || !draft.draftPreview) return;
+export function saveVoiceEmailDraftPending(
+  draft: VoiceEmailDraftResult,
+  source: "voice" | "chat" = "chat"
+): PendingAction | null {
+  if (!draft.targetEmail || !draft.draftPreview) return null;
 
-  const id = uuidv4();
   const subject = draft.targetEmail.subject.startsWith("Re:")
     ? draft.targetEmail.subject
     : `Re: ${draft.targetEmail.subject}`;
 
-  setState((s) => ({
-    ...s,
-    pendingActions: [
-      {
-        id,
-        type: "email",
-        title: `Reply to ${draft.targetEmail!.from}`,
-        preview: draft.draftPreview!,
-        payload: {
-          to: draft.targetEmail!.to,
-          subject,
-          body: draft.draftPreview,
-          to_name: draft.targetEmail!.from,
-        },
-        createdAt: new Date().toISOString(),
-      },
-    ],
-  }));
+  const pending = createPendingAction({
+    type: "email",
+    title: `Reply to ${draft.targetEmail.from}`,
+    summary: `Reply to ${draft.targetEmail.from} about "${draft.targetEmail.subject}"`,
+    preview: draft.draftPreview,
+    payload: {
+      to: draft.targetEmail.to,
+      subject,
+      body: draft.draftPreview,
+      to_name: draft.targetEmail.from,
+      inReplyTo: draft.targetEmail.id,
+      threadId: draft.targetEmail.threadId,
+    },
+    toolName: "send_email_reply",
+    source,
+    riskLevel: "confirmation_required",
+    confirmText: "Send email",
+  });
+
+  savePendingAction(pending);
+  return pending;
 }
 

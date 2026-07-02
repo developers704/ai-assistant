@@ -120,7 +120,11 @@ export async function tryRoutedResponse(
   }
 
   if (routed === "email.draft") {
-    const result = await executeTool("draft_email_reply", {}, { source: "chat" });
+    const result = await executeTool(
+      "draft_email_reply",
+      { user_message: message },
+      { source: "chat" }
+    );
     return toolResultToAIResponse("draft_email_reply", result);
   }
 

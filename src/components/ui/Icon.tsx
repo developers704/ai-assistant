@@ -64,7 +64,7 @@ export interface IconBadgeProps {
 
 const BADGE = {
   sm: { box: "h-8 w-8 rounded-lg", icon: "sm" as const },
-  md: { box: "h-9 w-9 rounded-xl", icon: "md" as const },
+  md: { box: "h-10 w-10 rounded-xl", icon: "md" as const },
   lg: { box: "h-11 w-11 rounded-2xl", icon: "lg" as const },
 } as const;
 

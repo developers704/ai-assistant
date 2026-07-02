@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
-import {
-  buildVoiceEmailDraft,
-  saveVoiceEmailDraftPending,
-} from "@/lib/voice/email-data";
+import { buildVoiceEmailDraft } from "@/lib/voice/email-data";
 
 export const runtime = "nodejs";
 
 export async function POST() {
   try {
-    const draft = await buildVoiceEmailDraft();
-    if (draft.targetEmail) {
-      saveVoiceEmailDraftPending(draft);
-    }
+    const draft = await buildVoiceEmailDraft({ source: "voice" });
     return NextResponse.json({
       script: draft.script,
       targetEmail: draft.targetEmail,

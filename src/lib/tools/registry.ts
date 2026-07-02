@@ -50,6 +50,19 @@ export function mapLegacyResult(toolName: string, legacy: VoiceToolResult): Tool
   };
 }
 
+function attachDraftPending(result: ToolResult): ToolResult {
+  if (result.toolName !== "draft_email_reply" || !result.ok) return result;
+  const pending = getActivePendingAction();
+  if (!pending || pending.type !== "email") return result;
+  return {
+    ...result,
+    status: "needs_confirmation",
+    pendingAction: pending,
+    textAnswer: `I've drafted a reply to **${pending.payload.to_name ?? pending.title}** about "${String(pending.payload.subject ?? "")}". Review the draft below and tap **Send email** to send.`,
+    spokenAnswer: `I've drafted a reply to ${pending.payload.to_name ?? pending.title}. Review it and tap Send email to confirm.`,
+  };
+}
+
 function buildExecutionContext(ctx?: Partial<ToolExecutionContext>): ToolExecutionContext {
   const state = getState();
   const ui = state.uiContext;
@@ -125,7 +138,7 @@ export async function executeTool(
   }
 
   const legacy = await executeVoiceTool(name, args);
-  return mapLegacyResult(name, legacy);
+  return attachDraftPending(mapLegacyResult(name, legacy));
 }
 
 /** Execute a confirmed pending action (after user says yes). */
@@ -134,6 +147,36 @@ export async function executeConfirmedPending(
 ): Promise<ToolResult | null> {
   const pending = getActivePendingAction();
   if (!pending) return null;
+
+  if (pending.type === "email" || pending.toolName === "send_email_reply") {
+    const { sendGmailMessage } = await import("@/lib/google/gmail");
+    const sent = await sendGmailMessage({
+      to: String(pending.payload.to ?? ""),
+      subject: String(pending.payload.subject ?? ""),
+      body: String(pending.payload.body ?? pending.preview ?? ""),
+      threadId: pending.payload.threadId ? String(pending.payload.threadId) : undefined,
+    });
+
+    if (sent.ok) {
+      const { clearPendingActions } = await import("@/lib/actions/confirmation");
+      clearPendingActions();
+    }
+
+    const recipient = String(pending.payload.to_name ?? pending.payload.to ?? "recipient");
+    return {
+      ok: sent.ok,
+      toolName: "send_email_reply",
+      status: sent.ok ? "success" : "failed",
+      confidence: 1,
+      spokenAnswer: sent.ok
+        ? `Email sent to ${recipient}.`
+        : sent.error ?? "Could not send the email.",
+      textAnswer: sent.ok
+        ? `✅ Email sent to **${recipient}**.`
+        : `❌ ${sent.error ?? "Could not send the email."}`,
+      error: sent.error,
+    };
+  }
 
   const toolName =
     pending.toolName ||
