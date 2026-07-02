@@ -139,6 +139,36 @@
     color: transparent;
   }
 
+  .text-gradient-accent {
+    background: linear-gradient(90deg, #c084fc 0%, #f472b6 45%, #fb923c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .chat-orb-glow {
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.55) 0%, transparent 70%);
+  }
+
+  .chat-composer-shell {
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(167, 139, 250, 0.28);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+      0 8px 32px rgba(0, 0, 0, 0.25),
+      0 0 24px rgba(139, 92, 246, 0.12);
+  }
+
+  .chat-composer-shell:focus-within {
+    border-color: rgba(192, 132, 252, 0.45);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+      0 8px 36px rgba(0, 0, 0, 0.28),
+      0 0 32px rgba(139, 92, 246, 0.2);
+  }
+
   /* Crisp vector icons — sharper on retina / scaled UI */
   svg.lucide,
   .icon-crisp {

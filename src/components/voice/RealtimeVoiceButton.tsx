@@ -18,7 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 type RealtimeVoiceButtonProps = {
   /** floating = global FAB; inline = sits in chat composer row */
-  variant?: "floating" | "inline";
+  variant?: "floating" | "inline" | "composer";
   className?: string;
 };
 
@@ -43,7 +43,8 @@ export function RealtimeVoiceButton({
   if (!supported || !voiceEnabled) return null;
 
   const panelOpen = sessionActive || status === "error";
-  const isInline = variant === "inline";
+  const isInline = variant === "inline" || variant === "composer";
+  const isComposer = variant === "composer";
 
   const handleMicClick = () => {
     if (status === "error") {
@@ -60,7 +61,7 @@ export function RealtimeVoiceButton({
   const isBusy = status === "connecting" || status === "thinking";
   const isSpeaking = status === "speaking";
 
-  const micSize = isInline ? "w-11 h-11" : "w-12 h-12";
+  const micSize = isComposer ? "w-10 h-10" : isInline ? "w-11 h-11" : "w-12 h-12";
 
   return (
     <div
@@ -141,13 +142,18 @@ export function RealtimeVoiceButton({
         title={STATUS_LABELS[status] ?? "Start voice"}
         className={cn(
           micSize,
-          "rounded-2xl flex items-center justify-center shadow-elevated transition-all duration-300 shrink-0",
-          sessionActive && status !== "error"
-            ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white scale-[1.02] shadow-glow-orange cursor-default"
-            : isSpeaking
-              ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white scale-[1.02] shadow-glow"
-              : "btn-futuristic text-accent-neon hover:shadow-glow",
-          sessionActive && status !== "error" && "animate-pulse"
+          "flex items-center justify-center transition-all duration-300 shrink-0",
+          isComposer
+            ? "rounded-xl bg-white/8 ring-1 ring-white/15 text-ink-secondary hover:text-ink hover:bg-white/12"
+            : "rounded-2xl shadow-elevated",
+          !isComposer &&
+            (sessionActive && status !== "error"
+              ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white scale-[1.02] shadow-glow-orange cursor-default"
+              : isSpeaking
+                ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white scale-[1.02] shadow-glow"
+                : "btn-futuristic text-accent-neon hover:shadow-glow"),
+          !isComposer && sessionActive && status !== "error" && "animate-pulse",
+          isComposer && sessionActive && status !== "error" && "ring-rose-400/50 text-rose-200 animate-pulse"
         )}
       >
         {isBusy ? (
