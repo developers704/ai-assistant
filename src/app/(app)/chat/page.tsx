@@ -34,7 +34,13 @@ export default function ChatPage() {
     }
   };
 
-  if (!state) return null;
+  if (!state) {
+    return (
+      <div className="flex flex-col h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px))] lg:h-[calc(100dvh-4rem)] items-center justify-center">
+        <div className="animate-pulse text-ink-muted text-sm">Loading chat…</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px))] lg:h-[calc(100dvh-4rem)] max-lg:-mx-0.5">
