@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store/app-context";
-import { AppSplash } from "@/components/layout/AppSplash";
 
 export default function HomePage() {
   const { loading } = useApp();
@@ -15,5 +14,5 @@ export default function HomePage() {
     }
   }, [loading, router]);
 
-  return <AppSplash />;
+  return null;
 }

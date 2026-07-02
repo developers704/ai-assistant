@@ -42,7 +42,7 @@ function dedupeEmails(emails: Email[]): Email[] {
 }
 
 export default function EmailPage() {
-  const { state, sendChat, confirmAction, rejectAction, loading } = useApp();
+  const { state, sendChat, confirmAction, rejectAction, updatePendingDraft, loading } = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [assistantMessage, setAssistantMessage] = useState<ChatMessage | null>(null);
@@ -187,8 +187,8 @@ export default function EmailPage() {
             message={{
               ...assistantMessage,
               pendingAction:
-                assistantMessage.pendingAction ??
-                state.pendingActions.find((a) => a.type === "email"),
+                state.pendingActions.find((a) => a.type === "email") ??
+                assistantMessage.pendingAction,
             }}
             onConfirm={async () => {
               await confirmAction();
@@ -200,6 +200,7 @@ export default function EmailPage() {
               setAssistantMessage(null);
               setMobileAssistantOpen(false);
             }}
+            onEdit={updatePendingDraft}
           />
         ) : null}
       </div>

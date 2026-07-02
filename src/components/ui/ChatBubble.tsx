@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, PendingAction } from "@/types";
 import { Button } from "./Button";
-import { Bot, User, Check, X, Mic, MicOff, Send } from "lucide-react";
+import { Bot, User, Check, X, Mic, MicOff, Send, Pencil } from "lucide-react";
 import { useSpeech } from "@/lib/hooks/useSpeech";
 
 interface ChatBubbleProps {
   message: ChatMessage;
   onConfirm?: () => void;
   onReject?: () => void;
+  onEdit?: (updates: { preview: string; subject?: string }) => Promise<boolean> | boolean;
 }
 
 function renderMarkdown(text: string) {
@@ -36,14 +37,50 @@ export function PendingActionCard({
   action,
   onConfirm,
   onReject,
+  onEdit,
 }: {
   action: PendingAction;
   onConfirm?: () => void;
   onReject?: () => void;
+  onEdit?: (updates: { preview: string; subject?: string }) => Promise<boolean> | boolean;
 }) {
   const isEmail = action.type === "email";
   const toName = isEmail ? String(action.payload.to_name ?? action.payload.to ?? "") : "";
   const subject = isEmail ? String(action.payload.subject ?? "") : "";
+  const [editing, setEditing] = useState(false);
+  const [draftBody, setDraftBody] = useState(action.preview);
+  const [draftSubject, setDraftSubject] = useState(subject);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editing) {
+      setDraftBody(action.preview);
+      setDraftSubject(subject);
+    }
+  }, [action.preview, subject, editing]);
+
+  const startEdit = () => {
+    setDraftBody(action.preview);
+    setDraftSubject(subject);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!onEdit) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const ok = await onEdit({
+        preview: draftBody.trim(),
+        subject: draftSubject.trim() || subject,
+      });
+      if (ok) setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="mt-3 p-4 rounded-xl bg-amber-500/12 border border-amber-400/25 ring-1 ring-amber-400/10">
@@ -51,28 +88,69 @@ export function PendingActionCard({
         {isEmail ? "Email draft — review before sending" : "Confirmation required"}
       </p>
       <p className="text-sm text-ink mb-1 font-medium">{action.title}</p>
-      {isEmail && (
+      {isEmail && !editing && (
         <div className="text-xs text-ink-muted mb-2 space-y-0.5">
           {toName && <p>To: {toName}</p>}
           {subject && <p>Subject: {subject}</p>}
         </div>
       )}
-      <p className="text-sm text-ink-secondary whitespace-pre-wrap mb-3 max-h-48 overflow-y-auto rounded-lg bg-black/20 p-3 ring-1 ring-white/8">
-        {action.preview}
-      </p>
-      <div className="flex gap-2">
-        <Button size="sm" onClick={onConfirm} className="bg-emerald-600 hover:bg-emerald-700">
-          <Check size={14} /> {isEmail ? "Send email" : "Confirm"}
-        </Button>
-        <Button size="sm" variant="outline" onClick={onReject}>
-          <X size={14} /> Cancel
-        </Button>
+      {isEmail && editing ? (
+        <div className="space-y-2 mb-3">
+          <label className="block text-xs text-ink-muted">
+            Subject
+            <input
+              type="text"
+              value={draftSubject}
+              onChange={(e) => setDraftSubject(e.target.value)}
+              className="input-dark mt-1 w-full min-h-[40px] px-3 py-2 rounded-xl text-sm text-ink"
+            />
+          </label>
+          <label className="block text-xs text-ink-muted">
+            Message
+            <textarea
+              value={draftBody}
+              onChange={(e) => setDraftBody(e.target.value)}
+              rows={8}
+              className="input-dark mt-1 w-full px-3 py-2 rounded-xl text-sm text-ink resize-y min-h-[140px]"
+            />
+          </label>
+        </div>
+      ) : (
+        <p className="text-sm text-ink-secondary whitespace-pre-wrap mb-3 max-h-48 overflow-y-auto rounded-lg bg-black/20 p-3 ring-1 ring-white/8">
+          {action.preview}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {editing ? (
+          <>
+            <Button size="sm" onClick={() => void saveEdit()} disabled={saving || !draftBody.trim()}>
+              <Check size={14} /> {saving ? "Saving…" : "Save edits"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
+              <X size={14} /> Cancel edit
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button size="sm" onClick={onConfirm} className="bg-emerald-600 hover:bg-emerald-700">
+              <Check size={14} /> {isEmail ? "Send email" : "Confirm"}
+            </Button>
+            {isEmail && onEdit && (
+              <Button size="sm" variant="outline" onClick={startEdit}>
+                <Pencil size={14} /> Edit
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={onReject}>
+              <X size={14} /> Cancel
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-export function ChatBubble({ message, onConfirm, onReject }: ChatBubbleProps) {
+export function ChatBubble({ message, onConfirm, onReject, onEdit }: ChatBubbleProps) {
   const isUser = message.role === "user";
 
   return (
@@ -114,6 +192,7 @@ export function ChatBubble({ message, onConfirm, onReject }: ChatBubbleProps) {
             action={message.pendingAction}
             onConfirm={onConfirm}
             onReject={onReject}
+            onEdit={onEdit}
           />
         )}
         <p className="text-xs text-ink-muted px-1">

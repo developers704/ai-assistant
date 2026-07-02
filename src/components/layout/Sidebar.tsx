@@ -30,9 +30,9 @@ type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  iconBg: string;
+  gradient: string;
+  activeGradient: string;
   iconColor: string;
-  activeBg: string;
   ringColor: string;
   accent: string;
 };
@@ -42,111 +42,111 @@ const navItems: NavItem[] = [
     href: "/chat",
     label: "AI Chat",
     icon: MessageSquare,
-    iconBg: "bg-violet-500/18",
-    iconColor: "text-violet-300",
-    activeBg: "bg-violet-500/28",
-    ringColor: "ring-violet-500/18",
-    accent: "bg-violet-400/80",
+    gradient: "from-violet-600/78 to-indigo-700/72",
+    activeGradient: "from-violet-500/88 to-indigo-600/82",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-violet-400/85",
   },
   {
     href: "/dashboard",
     label: "Daily Briefing",
     icon: Sun,
-    iconBg: "bg-amber-500/18",
-    iconColor: "text-amber-300",
-    activeBg: "bg-amber-500/28",
-    ringColor: "ring-amber-500/18",
-    accent: "bg-amber-400/80",
+    gradient: "from-amber-600/75 to-orange-700/70",
+    activeGradient: "from-amber-500/85 to-orange-600/78",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-amber-400/85",
   },
   {
     href: "/news",
     label: "News & Markets",
     icon: Newspaper,
-    iconBg: "bg-sky-500/18",
-    iconColor: "text-sky-300",
-    activeBg: "bg-sky-500/28",
-    ringColor: "ring-sky-500/18",
-    accent: "bg-sky-400/80",
+    gradient: "from-sky-600/75 to-blue-700/70",
+    activeGradient: "from-sky-500/85 to-blue-600/78",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-sky-400/85",
   },
   {
     href: "/email",
     label: "Email",
     icon: Mail,
-    iconBg: "bg-blue-500/18",
-    iconColor: "text-blue-300",
-    activeBg: "bg-blue-500/28",
-    ringColor: "ring-blue-500/18",
-    accent: "bg-blue-400/80",
+    gradient: "from-blue-600/75 to-indigo-700/70",
+    activeGradient: "from-blue-500/85 to-indigo-600/78",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-blue-400/85",
   },
   {
     href: "/calendar",
     label: "Calendar & Tasks",
     icon: Calendar,
-    iconBg: "bg-rose-500/18",
-    iconColor: "text-rose-300",
-    activeBg: "bg-rose-500/28",
-    ringColor: "ring-rose-500/18",
-    accent: "bg-rose-400/80",
+    gradient: "from-rose-600/75 to-pink-700/70",
+    activeGradient: "from-rose-500/85 to-pink-600/78",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-rose-400/85",
   },
   {
     href: "/sales",
     label: "Sales Dashboard",
     icon: BarChart3,
-    iconBg: "bg-emerald-500/18",
-    iconColor: "text-emerald-300",
-    activeBg: "bg-emerald-500/28",
-    ringColor: "ring-emerald-500/18",
-    accent: "bg-emerald-400/80",
+    gradient: "from-emerald-600/75 to-teal-700/70",
+    activeGradient: "from-emerald-500/85 to-teal-600/78",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-emerald-400/85",
   },
   {
     href: "/calculator",
     label: "Price Calculator",
     icon: Calculator,
-    iconBg: "bg-yellow-500/18",
-    iconColor: "text-yellow-300",
-    activeBg: "bg-yellow-500/28",
-    ringColor: "ring-yellow-500/18",
-    accent: "bg-yellow-400/80",
+    gradient: "from-yellow-600/72 to-amber-700/68",
+    activeGradient: "from-yellow-500/82 to-amber-600/75",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-yellow-400/85",
   },
   {
     href: "/analyst",
     label: "Data Analyst",
     icon: Database,
-    iconBg: "bg-cyan-500/18",
-    iconColor: "text-cyan-300",
-    activeBg: "bg-cyan-500/28",
-    ringColor: "ring-cyan-500/18",
-    accent: "bg-cyan-400/80",
+    gradient: "from-cyan-600/75 to-teal-700/70",
+    activeGradient: "from-cyan-500/85 to-teal-600/78",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-cyan-400/85",
   },
   {
     href: "/images",
     label: "Image Generation",
     icon: Wand2,
-    iconBg: "bg-fuchsia-500/18",
-    iconColor: "text-fuchsia-300",
-    activeBg: "bg-fuchsia-500/28",
-    ringColor: "ring-fuchsia-500/18",
-    accent: "bg-fuchsia-400/80",
+    gradient: "from-fuchsia-600/75 to-purple-700/70",
+    activeGradient: "from-fuchsia-500/85 to-purple-600/78",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-fuchsia-400/85",
   },
   {
     href: "/contacts",
     label: "Contacts",
     icon: Users,
-    iconBg: "bg-indigo-500/18",
-    iconColor: "text-indigo-300",
-    activeBg: "bg-indigo-500/28",
-    ringColor: "ring-indigo-500/18",
-    accent: "bg-indigo-400/80",
+    gradient: "from-indigo-600/75 to-violet-700/70",
+    activeGradient: "from-indigo-500/85 to-violet-600/78",
+    iconColor: "text-white/92",
+    ringColor: "ring-white/12",
+    accent: "bg-indigo-400/85",
   },
   {
     href: "/settings",
     label: "Settings",
     icon: Settings,
-    iconBg: "bg-slate-500/16",
-    iconColor: "text-slate-300",
-    activeBg: "bg-slate-500/24",
-    ringColor: "ring-slate-400/15",
-    accent: "bg-slate-400/70",
+    gradient: "from-slate-600/72 to-slate-700/68",
+    activeGradient: "from-slate-500/82 to-slate-600/75",
+    iconColor: "text-white/90",
+    ringColor: "ring-white/10",
+    accent: "bg-slate-400/75",
   },
 ];
 
@@ -156,7 +156,7 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       href={item.href}
       onClick={onClick}
       className={cn(
-        "group relative flex items-center gap-3 px-2.5 py-2 rounded-2xl text-[13px] transition-all duration-200",
+        "group relative flex items-center gap-3.5 px-3 py-2.5 rounded-2xl text-[13.5px] transition-all duration-200",
         active
           ? "nav-pill-active text-white font-semibold"
           : "text-ink-secondary font-medium hover:text-white hover:bg-white/8"
@@ -167,14 +167,15 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       )}
       <IconBadge
         icon={item.icon}
-        iconBg={item.iconBg}
+        gradient={item.gradient}
+        activeGradient={item.activeGradient}
         iconColor={item.iconColor}
-        activeBg={item.activeBg}
         ringColor={item.ringColor}
         active={active}
+        variant="soft"
         size="md"
       />
-      <span className="truncate">{item.label}</span>
+      <span className="truncate leading-snug">{item.label}</span>
     </Link>
   );
 }
@@ -184,36 +185,38 @@ export function Sidebar() {
   const { state, logout } = useApp();
 
   return (
-    <aside className="hidden lg:flex flex-col w-[15.5rem] shrink-0 p-3 h-screen sticky top-0">
+    <aside className="hidden lg:flex flex-col w-[19rem] shrink-0 p-3 h-screen sticky top-0">
       <div className="glass-panel-strong flex flex-col flex-1 rounded-3xl overflow-hidden text-ink">
-        <div className="px-5 py-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <span className="app-logo-badge icon-badge flex h-11 w-11 items-center justify-center rounded-2xl ring-1 ring-violet-400/25 shrink-0">
-              <Icon icon={Sparkles} size="xl" className="text-amber-300/90" active />
+        <div className="px-5 py-5 border-b border-white/10">
+          <div className="flex items-center gap-3.5">
+            <span className="app-logo-badge icon-badge icon-badge-soft flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/85 to-indigo-700/80 ring-1 ring-white/15 shrink-0">
+              <Icon icon={Sparkles} size="xl" className="text-amber-200/95" active />
             </span>
             <div className="min-w-0">
-              <h1 className="text-ink font-semibold text-sm tracking-wide">Alexa</h1>
-              <p className="text-ink-muted text-[11px] tracking-wide">executive assistance</p>
+              <h1 className="text-ink font-semibold text-[15px] tracking-wide">Alexa</h1>
+              <p className="text-ink-muted text-[11px] tracking-wide leading-snug">executive assistance</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
+        <nav className="flex-1 px-2.5 py-3 overflow-y-auto space-y-1">
           {navItems.map((item) => (
             <NavLink key={item.href} item={item} active={pathname === item.href} />
           ))}
         </nav>
 
-        <div className="p-3 m-2 mt-0 rounded-2xl bg-black/20 ring-1 ring-white/10">
-          <div className="flex items-center gap-2.5 px-1 py-0.5">
+        <div className="p-3.5 m-2.5 mt-0 rounded-2xl bg-black/25 ring-1 ring-white/10">
+          <div className="flex items-start gap-3 px-0.5 py-0.5">
             <Avatar name={state?.user?.name || "Kash"} size="sm" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-ink truncate">Kash</p>
-              <p className="text-[11px] text-ink-muted truncate">{state?.user?.role}</p>
+            <div className="flex-1 min-w-0 pr-1">
+              <p className="text-sm font-medium text-ink leading-tight">{state?.user?.name || "Kash"}</p>
+              <p className="text-[10.5px] text-ink-muted leading-snug mt-1">
+                {state?.user?.role || "Founder & President"}
+              </p>
             </div>
             <button
               onClick={logout}
-              className="text-ink-muted hover:text-rose-300 transition-colors p-1"
+              className="text-ink-muted hover:text-rose-300 transition-colors p-1 shrink-0 mt-0.5"
               title="Logout"
             >
               <Icon icon={LogOut} size="sm" className="text-current" />
@@ -245,15 +248,15 @@ export function MobileNav() {
 
   return (
     <>
-      <header className="lg:hidden sticky top-0 z-40 glass-panel-strong text-ink safe-area-top mx-3 mt-3 rounded-2xl">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="app-logo-badge icon-badge flex h-9 w-9 items-center justify-center rounded-xl shrink-0 ring-1 ring-violet-400/25">
-              <Icon icon={Sparkles} size="lg" className="text-amber-300/90" active />
+      <header className="lg:hidden sticky top-0 z-40 safe-area-top px-3 pt-2 pb-1.5">
+        <div className="mobile-ios-bar flex items-center justify-between gap-3 px-3.5 h-[3.35rem]">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <span className="icon-badge icon-badge-soft flex h-10 w-10 items-center justify-center rounded-[0.85rem] bg-gradient-to-br from-violet-600/85 to-indigo-700/80 ring-1 ring-white/15 shrink-0 shadow-sm">
+              <Icon icon={Sparkles} size="lg" className="text-amber-200/95" active />
             </span>
-            <div className="min-w-0">
-              <p className="text-ink font-semibold text-sm leading-none">Alexa</p>
-              <p className="text-ink-muted text-[11px] truncate leading-tight mt-0.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-ink font-semibold text-[15px] leading-tight tracking-tight">Alexa</p>
+              <p className="text-ink-muted text-xs truncate leading-tight mt-0.5 font-medium">
                 {active?.label ?? "executive assistance"}
               </p>
             </div>
@@ -261,9 +264,9 @@ export function MobileNav() {
           <button
             onClick={() => setOpen(true)}
             aria-label="Open menu"
-            className="p-2 -mr-2 text-ink-secondary hover:text-white transition-colors"
+            className="mobile-ios-menu-btn flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
           >
-            <Icon icon={Menu} size="lg" />
+            <Icon icon={Menu} size="lg" className="text-ink-secondary" />
           </button>
         </div>
       </header>
@@ -277,7 +280,7 @@ export function MobileNav() {
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
         <aside
           className={cn(
-            "absolute top-0 right-0 h-full w-[85%] max-w-xs glass-panel-strong text-ink flex flex-col shadow-elevated transition-transform duration-300 safe-area-top",
+            "absolute top-0 right-0 h-full w-[min(20rem,92vw)] glass-panel-strong text-ink flex flex-col shadow-elevated transition-transform duration-300 safe-area-top",
             open ? "translate-x-0" : "translate-x-full"
           )}
         >
@@ -294,12 +297,14 @@ export function MobileNav() {
             ))}
           </nav>
 
-          <div className="p-3 border-t border-white/10 flex-shrink-0 safe-area-bottom">
-            <div className="flex items-center gap-2.5">
+          <div className="p-3.5 border-t border-white/10 flex-shrink-0 safe-area-bottom">
+            <div className="flex items-start gap-3">
               <Avatar name={state?.user?.name || "Kash"} size="sm" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-ink truncate">Kash</p>
-                <p className="text-[11px] text-ink-muted truncate">{state?.user?.role}</p>
+                <p className="text-sm font-medium text-ink leading-tight">{state?.user?.name || "Kash"}</p>
+                <p className="text-[10.5px] text-ink-muted leading-snug mt-1">
+                  {state?.user?.role || "Founder & President"}
+                </p>
               </div>
               <button onClick={logout} className="text-ink-muted hover:text-rose-300" title="Logout">
                 <Icon icon={LogOut} size="sm" className="text-current" />

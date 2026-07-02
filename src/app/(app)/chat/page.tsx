@@ -9,7 +9,7 @@ import { ChatComposer } from "@/components/chat/ChatComposer";
 import { Bot, Loader2, MessageSquarePlus } from "lucide-react";
 
 export default function ChatPage() {
-  const { state, sendChat, clearChat, confirmAction, rejectAction } = useApp();
+  const { state, sendChat, clearChat, confirmAction, rejectAction, updatePendingDraft } = useApp();
   const [sending, setSending] = useState(false);
   const [pendingText, setPendingText] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -105,9 +105,16 @@ export default function ChatPage() {
               {messages.map((msg) => (
                 <ChatBubble
                   key={msg.id}
-                  message={msg}
+                  message={{
+                    ...msg,
+                    pendingAction:
+                      msg.pendingAction?.type === "email" && pendingEmail
+                        ? pendingEmail
+                        : msg.pendingAction,
+                  }}
                   onConfirm={confirmAction}
                   onReject={rejectAction}
+                  onEdit={updatePendingDraft}
                 />
               ))}
             </div>
@@ -141,6 +148,7 @@ export default function ChatPage() {
                 action={pendingEmail}
                 onConfirm={confirmAction}
                 onReject={rejectAction}
+                onEdit={updatePendingDraft}
               />
             </div>
           )}

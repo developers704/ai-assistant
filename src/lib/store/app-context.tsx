@@ -20,6 +20,7 @@ interface AppContextType {
   uploadImage: (file: File) => Promise<ImageAnalysis | null>;
   confirmAction: () => Promise<void>;
   rejectAction: () => Promise<void>;
+  updatePendingDraft: (updates: { preview?: string; subject?: string }) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -189,6 +190,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await sendChat("no, cancel");
   };
 
+  const updatePendingDraft = async (updates: {
+    preview?: string;
+    subject?: string;
+  }): Promise<boolean> => {
+    const res = await fetch("/api/pending-action", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (data.state) setState(data.state);
+    return true;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -208,6 +224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         uploadImage,
         confirmAction,
         rejectAction,
+        updatePendingDraft,
       }}
     >
       {children}

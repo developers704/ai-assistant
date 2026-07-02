@@ -4,7 +4,6 @@ import { usePathname } from "next/navigation";
 import { useApp } from "@/lib/store/app-context";
 import { Sidebar, MobileNav } from "@/components/layout/Sidebar";
 import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
-import { AppSplash } from "@/components/layout/AppSplash";
 import { FuturisticBackground } from "@/components/layout/FuturisticBackground";
 import { UiContextSync } from "@/components/layout/UiContextSync";
 
@@ -15,7 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname !== "/chat" && pathname !== "/email" && pathname !== "/images";
 
   if (loading) {
-    return <AppSplash />;
+    return null;
   }
 
   if (!state) {

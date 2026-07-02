@@ -2,23 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { AppSplash } from "@/components/layout/AppSplash";
+import { useApp } from "@/lib/store/app-context";
 import { cn } from "@/lib/utils";
 
+const MIN_SPLASH_MS = 600;
+
 /**
- * React-managed launch overlay — never call el.remove() on body children
- * (that breaks React reconciliation and causes removeChild errors on navigation).
+ * Single launch splash — stays until app data is ready (no double splash).
  */
 export function SplashOverlay() {
+  const { loading } = useApp();
   const [phase, setPhase] = useState<"visible" | "hiding" | "hidden">("visible");
+  const [minElapsed, setMinElapsed] = useState(false);
 
   useEffect(() => {
-    const hideTimer = window.setTimeout(() => setPhase("hiding"), 80);
-    const doneTimer = window.setTimeout(() => setPhase("hidden"), 450);
-    return () => {
-      window.clearTimeout(hideTimer);
-      window.clearTimeout(doneTimer);
-    };
+    const timer = window.setTimeout(() => setMinElapsed(true), MIN_SPLASH_MS);
+    return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!loading && minElapsed && phase === "visible") {
+      setPhase("hiding");
+      const done = window.setTimeout(() => setPhase("hidden"), 320);
+      return () => window.clearTimeout(done);
+    }
+  }, [loading, minElapsed, phase]);
 
   if (phase === "hidden") return null;
 
@@ -29,6 +37,7 @@ export function SplashOverlay() {
         phase === "hiding" ? "opacity-0 pointer-events-none" : "opacity-100"
       )}
       aria-hidden={phase === "hiding"}
+      aria-busy={loading}
     >
       <AppSplash />
     </div>

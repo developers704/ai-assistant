@@ -86,6 +86,30 @@ export function clearPendingActions(): void {
   setState((s) => ({ ...s, pendingActions: [] }));
 }
 
+export function updatePendingEmailDraft(updates: {
+  preview?: string;
+  subject?: string;
+}): PendingAction | null {
+  const pending = getActivePendingAction();
+  if (!pending || pending.type !== "email") return null;
+
+  const preview = updates.preview ?? pending.preview;
+  const subject = updates.subject ?? String(pending.payload.subject ?? "");
+
+  const next: PendingAction = {
+    ...pending,
+    preview,
+    payload: {
+      ...pending.payload,
+      body: preview,
+      subject,
+    },
+  };
+
+  savePendingAction(next);
+  return next;
+}
+
 /** Stage delete_task before execution */
 export async function stageDeleteTask(
   args: Record<string, unknown>,
