@@ -169,6 +169,27 @@
       0 0 32px rgba(139, 92, 246, 0.2);
   }
 
+  /* Dark inputs — avoids iOS painting type=search bright white */
+  .input-dark {
+    -webkit-appearance: none;
+    appearance: none;
+    color-scheme: dark;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .input-dark::placeholder {
+    color: rgba(148, 163, 184, 0.72);
+  }
+
+  .input-dark:focus {
+    outline: none;
+    border-color: rgba(167, 139, 250, 0.4);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  }
+
   /* Crisp vector icons — sharper on retina / scaled UI */
   svg.lucide,
   .icon-crisp {

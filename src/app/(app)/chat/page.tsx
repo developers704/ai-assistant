@@ -45,20 +45,19 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px))] lg:h-[calc(100dvh-4rem)] max-lg:-mx-0.5">
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden rounded-2xl sm:rounded-3xl ring-1 ring-white/10 glass-panel-strong relative">
-        {/* Subtle inner glow */}
         <div
-          className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[min(100%,480px)] h-48 bg-gradient-to-b from-violet-500/10 to-transparent"
+          className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[min(100%,480px)] h-40 sm:h-48 bg-gradient-to-b from-violet-500/12 to-transparent"
           aria-hidden
         />
 
-        {/* Header */}
-        <header className="relative shrink-0 px-4 sm:px-6 pt-3 sm:pt-5 pb-3 border-b border-white/8">
+        {/* Desktop header only — mobile uses top nav "Alexa / AI Chat" */}
+        <header className="relative shrink-0 hidden sm:block px-5 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-white/8">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-display font-semibold text-ink tracking-tight">
+              <h1 className="text-xl font-display font-semibold text-ink tracking-tight">
                 AI Chat
               </h1>
-              <p className="text-xs sm:text-sm text-ink-muted mt-0.5 hidden sm:block">
+              <p className="text-sm text-ink-muted mt-0.5">
                 Your executive assistant — ask anything
               </p>
             </div>
@@ -72,22 +71,37 @@ export default function ChatPage() {
                   title="New conversation"
                 >
                   <MessageSquarePlus size={14} />
-                  <span className="hidden sm:inline">New</span>
+                  New
                 </button>
               )}
-              <WeatherWidget className="hidden sm:flex max-lg:py-1.5 max-lg:px-2.5" />
+              <WeatherWidget />
             </div>
-          </div>
-
-          <div className="sm:hidden mt-2.5">
-            <WeatherWidget className="w-full" />
           </div>
         </header>
 
-        {/* Messages */}
-        <div className="relative flex-1 overflow-y-auto overscroll-y-contain px-4 sm:px-6 py-4 sm:py-5">
+        {/* Mobile: new chat only */}
+        {messages.length > 0 && (
+          <div className="sm:hidden shrink-0 flex justify-end px-4 pt-2">
+            <button
+              type="button"
+              onClick={() => void clearChat()}
+              disabled={sending}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-xl bg-white/5 ring-1 ring-white/10 text-ink-secondary"
+            >
+              <MessageSquarePlus size={14} />
+              New chat
+            </button>
+          </div>
+        )}
+
+        <div className="relative flex-1 overflow-y-auto overscroll-y-contain px-4 sm:px-6 py-3 sm:py-5 pb-2">
           {showWelcome && (
-            <ChatWelcome state={state} disabled={sending} onSuggestion={handleSend} />
+            <>
+              <div className="sm:hidden mb-4 max-w-3xl mx-auto w-full">
+                <WeatherWidget variant="banner" className="w-full" />
+              </div>
+              <ChatWelcome state={state} disabled={sending} onSuggestion={handleSend} />
+            </>
           )}
 
           {messages.length > 0 && (
@@ -125,11 +139,10 @@ export default function ChatPage() {
             </div>
           )}
 
-          <div ref={bottomRef} className="h-1" />
+          <div ref={bottomRef} className="h-2" />
         </div>
 
-        {/* Composer */}
-        <div className="shrink-0 border-t border-white/8 bg-gradient-to-t from-black/30 to-transparent backdrop-blur-xl">
+        <div className="shrink-0 border-t border-white/8 bg-gradient-to-t from-[#1a2230]/95 to-transparent backdrop-blur-xl">
           <ChatComposer
             onSend={handleSend}
             disabled={sending}

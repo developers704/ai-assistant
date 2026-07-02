@@ -123,15 +123,15 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
   return (
     <div className="w-full max-w-3xl mx-auto">
       {/* Hero */}
-      <div className="text-center pt-2 pb-6 sm:pt-4 sm:pb-8">
-        <div className="relative mx-auto mb-5 sm:mb-6 w-fit">
-          <div className="chat-orb-glow absolute inset-0 -m-6 rounded-full blur-2xl opacity-80" aria-hidden />
-          <div className="relative flex h-[4.5rem] w-[4.5rem] sm:h-20 sm:w-20 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 via-indigo-600 to-fuchsia-700 ring-1 ring-violet-300/40 shadow-[0_0_40px_rgba(139,92,246,0.45)]">
-            <Sparkles className="h-9 w-9 sm:h-10 sm:w-10 text-amber-300" strokeWidth={1.5} />
+      <div className="text-center pt-1 pb-5 sm:pt-4 sm:pb-8 max-lg:pt-0">
+        <div className="relative mx-auto mb-4 sm:mb-6 w-fit">
+          <div className="chat-orb-glow absolute inset-0 -m-5 sm:-m-6 rounded-full blur-2xl opacity-70" aria-hidden />
+          <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 via-indigo-600 to-fuchsia-700 ring-1 ring-violet-300/40 shadow-[0_0_32px_rgba(139,92,246,0.4)]">
+            <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-amber-300" strokeWidth={1.5} />
           </div>
         </div>
 
-        <h2 className="text-2xl sm:text-3xl lg:text-[2rem] font-display font-semibold text-ink tracking-tight leading-tight px-2">
+        <h2 className="text-[1.65rem] sm:text-3xl lg:text-[2rem] font-display font-semibold text-ink tracking-tight leading-tight px-2">
           How can I{" "}
           <span className="text-gradient-accent">help</span> you today?
         </h2>
@@ -146,7 +146,7 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
       </div>
 
       {/* Suggestions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pb-2">
         {CHAT_SUGGESTIONS.map(({ text, icon: Icon, iconBg, iconColor, ring }) => (
           <button
             key={text}
@@ -154,8 +154,8 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
             disabled={disabled}
             onClick={() => onSuggestion(text)}
             className={cn(
-              "group flex items-center gap-3 w-full text-left px-3.5 py-3.5 sm:px-4 sm:py-3.5 rounded-2xl",
-              "glass-panel ring-1 ring-white/10 transition-all duration-200",
+              "group flex items-center gap-3 w-full text-left px-3 py-3 sm:px-4 sm:py-3.5 rounded-2xl",
+              "bg-white/[0.04] ring-1 ring-white/10 transition-all duration-200",
               "hover:bg-white/[0.08] active:scale-[0.99] disabled:opacity-50",
               ring
             )}

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
-import { PageHeader } from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -230,48 +229,32 @@ export default function EmailPage() {
 
           {!mobileReading && (
             <>
-              <PageHeader
-                compact
-                title="Email"
-                subtitle={googleConnected ? "Gmail inbox" : "Demo inbox"}
-                action={
-                  <Button
-                    size="sm"
-                    disabled={assistantBusy}
-                    onClick={() => runAssistant("Summarize my inbox")}
-                    aria-label="Summarize inbox"
-                    className="shrink-0"
-                  >
-                    {assistantBusy ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Inbox size={14} />
-                    )}
-                    <span className="hidden sm:inline ml-1">Summarize</span>
-                  </Button>
-                }
-              />
-
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium bg-blue-500/15 text-blue-200 ring-1 ring-blue-400/25">
-                  {unreadCount} unread
-                </span>
-                {urgentCount > 0 && (
-                  <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium bg-rose-500/15 text-rose-200 ring-1 ring-rose-400/25">
-                    {urgentCount} urgent
-                  </span>
-                )}
-                {needsReplyCount > 0 && (
-                  <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium bg-violet-500/15 text-violet-200 ring-1 ring-violet-400/25">
-                    {needsReplyCount} need reply
-                  </span>
-                )}
-                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium bg-white/8 text-ink-muted ring-1 ring-white/10">
-                  {baseEmails.length} loaded
-                </span>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-display font-semibold text-ink tracking-tight">
+                    Email
+                  </h1>
+                  <p className="text-xs sm:text-sm text-ink-muted mt-0.5">
+                    {googleConnected ? "Gmail inbox" : "Demo inbox"}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={assistantBusy}
+                  onClick={() => runAssistant("Summarize my inbox")}
+                  aria-label="Summarize inbox"
+                  className="shrink-0 mt-0.5"
+                >
+                  {assistantBusy ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Inbox size={14} />
+                  )}
+                  <span className="hidden sm:inline ml-1">Summarize</span>
+                </Button>
               </div>
 
-              <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-thin">
+              <div className="flex gap-1.5 mt-3 overflow-x-auto pb-0.5 scrollbar-thin -mx-0.5 px-0.5">
                 {filterPills.map((pill) => (
                   <button
                     key={pill.id}
@@ -290,18 +273,31 @@ export default function EmailPage() {
                 ))}
               </div>
 
-              <div className="relative mt-2.5">
+              <div className="relative mt-3">
                 <Search
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none"
+                  size={17}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted/80 pointer-events-none z-10"
                 />
                 <input
-                  type="search"
+                  type="text"
+                  inputMode="search"
+                  enterKeyHint="search"
+                  autoComplete="off"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search sender or subject…"
-                  className="w-full min-h-[42px] pl-9 pr-3 py-2 rounded-xl border border-white/15 bg-white/8 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-violet-400/30"
+                  className="input-dark w-full min-h-[44px] pl-10 pr-10 py-2.5 rounded-2xl text-sm text-ink"
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    aria-label="Clear search"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-lg text-ink-muted hover:text-ink hover:bg-white/10"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
               </div>
             </>
           )}

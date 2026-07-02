@@ -60,7 +60,13 @@ async function fetchWeather(lat: number, lon: number, fallbackCity?: string): Pr
   };
 }
 
-export function WeatherWidget({ className = "" }: { className?: string }) {
+export function WeatherWidget({
+  className = "",
+  variant = "chip",
+}: {
+  className?: string;
+  variant?: "chip" | "banner";
+}) {
   const [weather, setWeather] = useState<Weather | null>(null);
   const [error, setError] = useState(false);
 
@@ -96,6 +102,26 @@ export function WeatherWidget({ className = "" }: { className?: string }) {
   }
 
   const { label, Icon: WeatherIcon } = describe(weather.code);
+
+  if (variant === "banner") {
+    return (
+      <div
+        className={`flex items-center gap-3 px-4 py-3 rounded-2xl glass-panel ring-1 ring-sky-400/15 bg-sky-500/5 ${className}`}
+      >
+        <IconBadge icon={WeatherIcon} iconBg="bg-sky-500/25" iconColor="text-sky-300" size="md" />
+        <div className="leading-tight min-w-0">
+          <p className="text-sm font-semibold text-ink">
+            {weather.tempC}°C <span className="font-normal text-ink-secondary">· {label}</span>
+          </p>
+          {weather.city && (
+            <p className="text-[11px] text-ink-muted flex items-center gap-0.5 mt-0.5">
+              <AppIcon icon={MapPin} size="xs" /> {weather.city}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
