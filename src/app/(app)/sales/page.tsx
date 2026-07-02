@@ -296,7 +296,7 @@ export default function SalesPage() {
               </div>
             </Card>
 
-            <Card className="p-0 overflow-hidden">
+            <Card className="p-0 overflow-hidden xl:col-span-2">
               <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Package size={17} className="text-sky-300" />
