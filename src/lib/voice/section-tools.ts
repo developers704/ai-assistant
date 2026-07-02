@@ -74,48 +74,6 @@ export function estimateJewelleryPrice(args: {
   };
 }
 
-export interface HealthSnapshot {
-  weightLb: number;
-  heightIn: number;
-  steps: number;
-  stepGoal: number;
-  caloriesBurned: number;
-  restingHeartRate: number;
-  sleepHours: number;
-  waterCups: number;
-  waterGoal: number;
-}
-
-export const DEFAULT_HEALTH: HealthSnapshot = {
-  weightLb: 170,
-  heightIn: 70,
-  steps: 6500,
-  stepGoal: 10000,
-  caloriesBurned: 420,
-  restingHeartRate: 62,
-  sleepHours: 6.5,
-  waterCups: 5,
-  waterGoal: 8,
-};
-
-function computeBmi(weightLb: number, heightIn: number): number {
-  if (!heightIn) return 0;
-  return Math.round((weightLb / (heightIn * heightIn)) * 703 * 10) / 10;
-}
-
-export function buildHealthBriefing(data: HealthSnapshot = DEFAULT_HEALTH): string {
-  const bmi = computeBmi(data.weightLb, data.heightIn);
-  const stepPct = Math.round((data.steps / data.stepGoal) * 100);
-  const waterPct = Math.round((data.waterCups / data.waterGoal) * 100);
-
-  let bmiLabel = "healthy range";
-  if (bmi < 18.5) bmiLabel = "underweight range";
-  else if (bmi >= 25 && bmi < 30) bmiLabel = "overweight range";
-  else if (bmi >= 30) bmiLabel = "obese range";
-
-  return `Health briefing: BMI ${bmi}, ${bmiLabel}. Steps ${data.steps.toLocaleString()} of ${data.stepGoal.toLocaleString()} goal, ${stepPct} percent. Resting heart rate ${data.restingHeartRate}. Sleep ${data.sleepHours} hours. Water ${data.waterCups} of ${data.waterGoal} cups, ${waterPct} percent. Sync Apple Watch on the Health page for your latest numbers.`;
-}
-
 export async function getNewsHeadlinesScript(): Promise<string> {
   const result = await fetchLiveNews(false);
   if (!result.news.length) {

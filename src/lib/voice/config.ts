@@ -33,16 +33,14 @@ TOOL RULES (critical — always follow):
 - Cancel / remove meeting → call delete_meeting with title.
 - Contacts / call someone / phone number → call list_contacts with query (person name).
 - Daily briefing / what should I focus on → call get_daily_briefing.
-- Health / steps / heart rate / sleep / BMI → call get_health_briefing.
 - Gold price / silver price / metal rates → call get_metal_rates.
 - Price quote / how much for X grams gold → call estimate_jewellery_price with weight_grams and karat.
 - Industry news / jewelry news → call get_industry_news.
 - Sports news / scores / game headlines → call get_sports_news.
 - Politics news / US politics / world news → call get_politics_news.
 - Data analyst / analyze sales data / CSV → call open_data_analyst (user uploads file on that page).
-- Scan document / invoice / receipt → call open_document_scanner.
 - Generate jewelry image / create product photo → call generate_jewellery_image with prompt.
-- Open any app section → call show_detail_page (dashboard, sales, calendar, email, chat, contacts, images, news, health, analyst, calculator, scan, settings).
+- Open any app section → call show_detail_page (dashboard, sales, calendar, email, chat, contacts, images, news, analyst, calculator, settings).
 
 DATA RULES:
 - NEVER invent meetings, emails, sales, or task numbers.
@@ -56,7 +54,7 @@ TURN RULES (critical — prevents runaway behavior):
 - Do NOT continue the conversation on your own while the user is silent.
 - If the user only said "open email" or "open calendar", give the summary or confirm the page is open — do not offer extra steps.
 
-You help with every section: dashboard, sales, calendar, email, tasks, contacts, news, health, calculator, data analyst, document scan, image generation, and settings.`;
+You help with every section: dashboard, sales, calendar, email, tasks, contacts, news, calculator, data analyst, image generation, and settings.`;
 
 export const VOICE_PILOT_TOOLS = [
   {
@@ -200,12 +198,6 @@ export const VOICE_PILOT_TOOLS = [
   },
   {
     type: "function",
-    name: "get_health_briefing",
-    description: "Health summary: steps, heart rate, sleep, water, BMI. Opens Health page.",
-    parameters: { type: "object", properties: {}, additionalProperties: false },
-  },
-  {
-    type: "function",
     name: "get_metal_rates",
     description: "Live or indicative gold and silver prices per gram. Opens Price Calculator.",
     parameters: { type: "object", properties: {}, additionalProperties: false },
@@ -253,12 +245,6 @@ export const VOICE_PILOT_TOOLS = [
   },
   {
     type: "function",
-    name: "open_document_scanner",
-    description: "Open document scan for invoices, receipts, or OCR.",
-    parameters: { type: "object", properties: {}, additionalProperties: false },
-  },
-  {
-    type: "function",
     name: "generate_jewellery_image",
     description: "Generate an AI product image from a text description. Opens Images page when ready.",
     parameters: {
@@ -288,10 +274,8 @@ export const VOICE_PILOT_TOOLS = [
             "contacts",
             "images",
             "news",
-            "health",
             "analyst",
             "calculator",
-            "scan",
             "settings",
           ],
         },

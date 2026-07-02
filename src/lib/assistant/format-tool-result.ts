@@ -26,7 +26,6 @@ export function intentForTool(name: string): IntentType {
     get_politics_news: "general",
     show_detail_page: "general",
     open_data_analyst: "general",
-    open_document_scanner: "general",
     draft_email_reply: "email_draft",
     search_company_knowledge: "general",
   };
@@ -100,7 +99,6 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
     case "get_sports_news":
     case "get_politics_news":
     case "open_data_analyst":
-    case "open_document_scanner":
     case "draft_email_reply":
     case "show_detail_page":
       return String(data.spokenAnswer ?? data.message ?? "Done.");

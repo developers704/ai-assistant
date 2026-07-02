@@ -287,15 +287,6 @@ export function useRealtimeVoice(enabled: boolean) {
         }
       }
 
-      if (intent === "health") {
-        try {
-          await runTool("get_health_briefing", {}, "The user asked about HEALTH. Say exactly this:");
-          return;
-        } catch {
-          // fall through
-        }
-      }
-
       if (intent === "sports_news") {
         try {
           await runTool("get_sports_news", {}, "The user asked for SPORTS NEWS. Say exactly this:", 280);
@@ -366,15 +357,6 @@ export function useRealtimeVoice(enabled: boolean) {
       if (intent === "analyst") {
         try {
           await runTool("open_data_analyst", {}, "The user asked about DATA ANALYST. Say exactly this:");
-          return;
-        } catch {
-          // fall through
-        }
-      }
-
-      if (intent === "scan") {
-        try {
-          await runTool("open_document_scanner", {}, "The user asked to SCAN A DOCUMENT. Say exactly this:");
           return;
         } catch {
           // fall through

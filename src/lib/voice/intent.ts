@@ -8,15 +8,13 @@ export type VoicePrefetchIntent =
   | "task_complete"
   | "contacts"
   | "daily_briefing"
-  | "health"
   | "news"
   | "sports_news"
   | "politics_news"
   | "metal_rates"
   | "price_estimate"
   | "image_generate"
-  | "analyst"
-  | "scan";
+  | "analyst";
 
 /** Fix common Realtime speech-to-text mishearings before intent detection. */
 export function normalizeVoiceTranscript(text: string): string {
@@ -109,10 +107,6 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
     return "image_generate";
   }
 
-  if (/health|my steps|heart rate|sleep|bmi|apple watch|fitness/i.test(lower)) {
-    return "health";
-  }
-
   if (
     /sports news|sports headlines|latest sports|(?:nfl|nba|mlb|soccer|football)\s+(?:news|headlines)|what(?:'s| is) (?:the )?(?:sports|game)/i.test(
       lower
@@ -154,10 +148,6 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
 
   if (/data analyst|analyze (?:my )?data|sales csv|upload csv|analyst page/i.test(lower)) {
     return "analyst";
-  }
-
-  if (/scan (?:a )?(?:document|invoice|receipt)|document scan|ocr/i.test(lower)) {
-    return "scan";
   }
 
   if (

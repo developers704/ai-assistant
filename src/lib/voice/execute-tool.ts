@@ -30,7 +30,6 @@ import { userTimezone } from "@/lib/calendar-dates";
 import { generateGeminiImage } from "@/lib/gemini/image";
 import {
   buildDailyBriefingScript,
-  buildHealthBriefing,
   estimateJewelleryPrice,
   getMarketRatesSummary,
   getNewsHeadlinesScript,
@@ -61,10 +60,8 @@ const PAGE_PATHS: Record<string, string> = {
   contacts: "/contacts",
   images: "/images",
   news: "/news",
-  health: "/health",
   analyst: "/analyst",
   calculator: "/calculator",
-  scan: "/scan",
   settings: "/settings",
 };
 
@@ -525,14 +522,6 @@ export async function executeVoiceTool(
       };
     }
 
-    case "get_health_briefing": {
-      const script = buildHealthBriefing();
-      return {
-        output: JSON.stringify({ spokenAnswer: script }),
-        uiAction: { type: "navigate", path: "/health" },
-      };
-    }
-
     case "get_metal_rates": {
       const rates = await getMarketRatesSummary();
       return {
@@ -596,16 +585,6 @@ export async function executeVoiceTool(
             "Opening the Data Analyst. Upload your sales CSV file there, then ask questions like top products or monthly trends. I can guide you on the Analyst page.",
         }),
         uiAction: { type: "navigate", path: "/analyst" },
-      };
-    }
-
-    case "open_document_scanner": {
-      return {
-        output: JSON.stringify({
-          spokenAnswer:
-            "Opening document scan. Upload or photograph an invoice or receipt to extract the details.",
-        }),
-        uiAction: { type: "navigate", path: "/scan" },
       };
     }
 

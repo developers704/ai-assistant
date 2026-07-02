@@ -145,10 +145,8 @@ export const ASSISTANT_CHAT_TOOLS: OpenAI.ChatCompletionTool[] = [
               "contacts",
               "images",
               "news",
-              "health",
               "analyst",
               "calculator",
-              "scan",
               "settings",
             ],
           },
@@ -285,7 +283,6 @@ export const READ_TOOL_NAMES = new Set([
   "get_politics_news",
   "show_detail_page",
   "open_data_analyst",
-  "open_document_scanner",
   "search_company_knowledge",
   "draft_email_reply",
 ]);
