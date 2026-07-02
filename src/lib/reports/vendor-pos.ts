@@ -86,17 +86,19 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
     const store = storeCol ? String(rec[storeCol] ?? "").trim() : "";
     const department = deptCol ? String(rec[deptCol] ?? "").trim() : "";
     const date = dateCol ? normalizeDate(rec[dateCol]) : null;
+    const txnId = txnCol ? String(rec[txnCol] ?? "").trim() : "";
     const sku = skuCol ? String(rec[skuCol] ?? "").trim() : itemCol ? String(rec[itemCol] ?? "").trim() : "";
     const margin = net - inventoryCost;
 
     if (!store && !department && net === 0 && qty === 0) continue;
+    if (!date && !txnId && !store) continue;
     if (typeCol && String(rec[typeCol] ?? "").toLowerCase() === "return" && net < 0) {
       // keep returns — real business data
     }
 
     rows.push({
       date: date ?? "",
-      transactionId: txnCol ? String(rec[txnCol] ?? "").trim() : "",
+      transactionId: txnId,
       storeName: store || "Unknown store",
       department: department || "Uncategorized",
       design: designCol ? String(rec[designCol] ?? "").trim() || "—" : "—",

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/store/app-context";
 import { ChatBubble } from "@/components/ui/ChatBubble";
-import { WeatherWidget } from "@/components/ui/WeatherWidget";
 import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
 import { ChatWelcome } from "@/components/chat/ChatWelcome";
 import { ChatComposer } from "@/components/chat/ChatComposer";
@@ -74,7 +73,6 @@ export default function ChatPage() {
                   New
                 </button>
               )}
-              <WeatherWidget />
             </div>
           </div>
         </header>
@@ -96,12 +94,7 @@ export default function ChatPage() {
 
         <div className="relative flex-1 overflow-y-auto overscroll-y-contain px-4 sm:px-6 py-3 sm:py-5 pb-2">
           {showWelcome && (
-            <>
-              <div className="sm:hidden mb-4 max-w-3xl mx-auto w-full">
-                <WeatherWidget variant="banner" className="w-full" />
-              </div>
-              <ChatWelcome state={state} disabled={sending} onSuggestion={handleSend} />
-            </>
+            <ChatWelcome state={state} disabled={sending} onSuggestion={handleSend} />
           )}
 
           {messages.length > 0 && (

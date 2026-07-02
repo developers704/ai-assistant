@@ -6,7 +6,43 @@ import type { ReportSummary, StoredReportMeta } from "./types";
 
 const REPORTS_DIR = path.join(process.cwd(), ".data", "reports");
 const INDEX_FILE = path.join(REPORTS_DIR, "index.json");
-const SEED_CSV = path.join(process.cwd(), "data", "reports", "SALES-LATEST.csv");
+
+const SEED_CANDIDATES: {
+  fileName: string;
+  path: string;
+  label: string;
+  reportPeriod: import("./types").ReportPeriod;
+}[] = [
+  {
+    fileName: "Sales-Report.csv",
+    path: path.join(process.cwd(), "data", "reports", "Sales-Report.csv"),
+    label: "Sales Report",
+    reportPeriod: "custom",
+  },
+  {
+    fileName: "SALES-LATEST.csv",
+    path: path.join(process.cwd(), "data", "reports", "SALES-LATEST.csv"),
+    label: "SALES-LATEST",
+    reportPeriod: "daily",
+  },
+];
+
+function isBundledSalesReport(meta: StoredReportMeta): boolean {
+  return meta.fileName === "Sales-Report.csv" || meta.fileName === "SALES-LATEST.csv";
+}
+
+function readSeedCsv():
+  | { fileName: string; csvText: string; label: string; reportPeriod: import("./types").ReportPeriod }
+  | null {
+  for (const seed of SEED_CANDIDATES) {
+    if (!fs.existsSync(seed.path)) continue;
+    const csvText = fs.readFileSync(seed.path, "utf-8");
+    if (csvText.trim()) {
+      return { fileName: seed.fileName, csvText, label: seed.label, reportPeriod: seed.reportPeriod };
+    }
+  }
+  return null;
+}
 
 function ensureDir() {
   if (!fs.existsSync(REPORTS_DIR)) {
@@ -14,16 +50,28 @@ function ensureDir() {
   }
 }
 
-/** Load bundled store sales CSV when no reports exist yet. */
+/** Load bundled store sales CSV when no reports exist yet, or refresh when seed file changes. */
 function ensureSeedReport() {
-  if (readIndex().length > 0) return;
-  if (!fs.existsSync(SEED_CSV)) return;
+  const seed = readSeedCsv();
+  if (!seed) return;
+
+  const index = readIndex();
+  const bundled = index.filter(isBundledSalesReport);
+  const existingBundled =
+    bundled.find((r) => r.fileName === seed.fileName) ?? bundled[0] ?? null;
+
+  if (existingBundled) {
+    const existingCsv = readReportCsv(existingBundled.id);
+    if (existingCsv === seed.csvText) return;
+    for (const report of bundled) {
+      deleteReport(report.id);
+    }
+  }
+
   try {
-    const csvText = fs.readFileSync(SEED_CSV, "utf-8");
-    if (!csvText.trim()) return;
-    saveReport("SALES-LATEST.csv", csvText, {
-      label: "SALES-LATEST",
-      reportPeriod: "daily",
+    saveReport(seed.fileName, seed.csvText, {
+      label: seed.label,
+      reportPeriod: seed.reportPeriod,
       reportCategory: "sales",
     });
   } catch (err) {
@@ -59,7 +107,15 @@ export function listReports(): StoredReportMeta[] {
 
 export function getLatestReportMeta(): StoredReportMeta | null {
   const list = listReports();
-  return list[0] ?? null;
+  const bundledSales = list.find(
+    (r) =>
+      isBundledSalesReport(r) &&
+      (r.schema === "store_sales" || r.reportCategory === "sales")
+  );
+  if (bundledSales) return bundledSales;
+
+  const storeSales = list.find((r) => r.schema === "store_sales" || r.reportCategory === "sales");
+  return storeSales ?? list[0] ?? null;
 }
 
 export function getReportMeta(id: string): StoredReportMeta | null {

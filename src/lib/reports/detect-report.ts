@@ -27,7 +27,7 @@ export function detectReportCategory(fileName: string, columns: string[]): Repor
   const text = fileName.toLowerCase();
   const colLower = columns.map((c) => c.toLowerCase().trim());
 
-  if (isStoreSalesFormat(columns) || /\b(sales-latest|store.?sales|company.?sales)\b/.test(text)) {
+  if (isStoreSalesFormat(columns) || /\b(sales-latest|sales-report|store.?sales|company.?sales)\b/.test(text)) {
     return "sales";
   }
 

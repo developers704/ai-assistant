@@ -6,7 +6,6 @@ import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Icon, IconBadge } from "@/components/ui/Icon";
-import { WeatherWidget } from "@/components/ui/WeatherWidget";
 import { Badge } from "@/components/ui/Badge";
 import {
   formatCurrency,
@@ -71,7 +70,6 @@ export default function DashboardPage() {
       <PageHeader
         title={`${getGreeting()}, ${firstName}`}
         subtitle={formatLongDate()}
-        action={<WeatherWidget />}
       />
 
       <Card className="mb-6">
