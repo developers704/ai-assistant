@@ -18,65 +18,58 @@ import {
 export const CHAT_SUGGESTIONS: {
   text: string;
   icon: LucideIcon;
-  gradient: string;
+  iconBg: string;
   iconColor: string;
-  glow: string;
   ringColor: string;
   ring: string;
 }[] = [
   {
     text: "What do I need to focus on today?",
     icon: MessageSquare,
-    gradient: "from-violet-500 via-purple-500 to-indigo-600",
-    iconColor: "text-white",
-    glow: "shadow-[0_4px_14px_rgba(139,92,246,0.45)]",
-    ringColor: "ring-violet-300/35",
-    ring: "hover:ring-violet-400/35",
+    iconBg: "bg-violet-500/14",
+    iconColor: "text-violet-300",
+    ringColor: "ring-violet-500/18",
+    ring: "hover:ring-violet-400/25",
   },
   {
     text: "Show me today's sales across all stores",
     icon: TrendingUp,
-    gradient: "from-emerald-400 via-teal-500 to-emerald-600",
-    iconColor: "text-white",
-    glow: "shadow-[0_4px_14px_rgba(52,211,153,0.45)]",
-    ringColor: "ring-emerald-200/35",
-    ring: "hover:ring-emerald-400/35",
+    iconBg: "bg-emerald-500/14",
+    iconColor: "text-emerald-300",
+    ringColor: "ring-emerald-500/18",
+    ring: "hover:ring-emerald-400/25",
   },
   {
     text: "Summarize my important emails",
     icon: Mail,
-    gradient: "from-blue-400 via-blue-500 to-indigo-600",
-    iconColor: "text-white",
-    glow: "shadow-[0_4px_14px_rgba(59,130,246,0.45)]",
-    ringColor: "ring-blue-200/35",
-    ring: "hover:ring-blue-400/35",
+    iconBg: "bg-blue-500/14",
+    iconColor: "text-blue-300",
+    ringColor: "ring-blue-500/18",
+    ring: "hover:ring-blue-400/25",
   },
   {
     text: "What's on my calendar today?",
     icon: Calendar,
-    gradient: "from-amber-400 via-orange-400 to-yellow-500",
-    iconColor: "text-white",
-    glow: "shadow-[0_4px_14px_rgba(251,146,60,0.45)]",
-    ringColor: "ring-amber-200/35",
-    ring: "hover:ring-amber-400/35",
+    iconBg: "bg-amber-500/14",
+    iconColor: "text-amber-300",
+    ringColor: "ring-amber-500/18",
+    ring: "hover:ring-amber-400/25",
   },
   {
     text: "Draft an email to the diamond supplier",
     icon: Gem,
-    gradient: "from-fuchsia-500 via-purple-500 to-violet-700",
-    iconColor: "text-white",
-    glow: "shadow-[0_4px_14px_rgba(217,70,239,0.45)]",
-    ringColor: "ring-fuchsia-200/35",
-    ring: "hover:ring-fuchsia-400/35",
+    iconBg: "bg-fuchsia-500/14",
+    iconColor: "text-fuchsia-300",
+    ringColor: "ring-fuchsia-500/18",
+    ring: "hover:ring-fuchsia-400/25",
   },
   {
     text: "Remind me to review Baybrook Mall lease tomorrow",
     icon: Bell,
-    gradient: "from-orange-400 via-rose-500 to-red-500",
-    iconColor: "text-white",
-    glow: "shadow-[0_4px_14px_rgba(251,113,133,0.45)]",
-    ringColor: "ring-orange-200/35",
-    ring: "hover:ring-orange-400/35",
+    iconBg: "bg-orange-500/14",
+    iconColor: "text-orange-300",
+    ringColor: "ring-orange-500/18",
+    ring: "hover:ring-orange-400/25",
   },
 ];
 
@@ -162,7 +155,7 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
 
       {/* Suggestions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pb-2">
-        {CHAT_SUGGESTIONS.map(({ text, icon, gradient, iconColor, glow, ringColor, ring }) => (
+        {CHAT_SUGGESTIONS.map(({ text, icon, iconBg, iconColor, ringColor, ring }) => (
           <button
             key={text}
             type="button"
@@ -177,11 +170,9 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
           >
             <IconBadge
               icon={icon}
-              gradient={gradient}
+              iconBg={iconBg}
               iconColor={iconColor}
-              glow={glow}
               ringColor={ringColor}
-              variant="lush"
               size="md"
               className="h-10 w-10"
             />

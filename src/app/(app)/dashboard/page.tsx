@@ -100,11 +100,9 @@ export default function DashboardPage() {
             <CardTitle className="flex items-center gap-2.5">
               <IconBadge
                 icon={TrendingUp}
-                gradient="from-emerald-400 via-teal-500 to-emerald-600"
-                iconColor="text-white"
-                glow="shadow-[0_4px_14px_rgba(52,211,153,0.45)]"
-                ringColor="ring-emerald-200/40"
-                variant="lush"
+                iconBg="bg-emerald-500/14"
+                iconColor="text-emerald-300"
+                ringColor="ring-emerald-500/18"
                 size="md"
               />
               {salesSource === "report" ? "Latest Report Sales" : "Today&apos;s Sales"}
@@ -154,11 +152,9 @@ export default function DashboardPage() {
             <CardTitle className="flex items-center gap-2.5">
               <IconBadge
                 icon={Calendar}
-                gradient="from-rose-400 via-pink-500 to-rose-600"
-                iconColor="text-white"
-                glow="shadow-[0_4px_14px_rgba(244,63,94,0.45)]"
-                ringColor="ring-rose-200/40"
-                variant="lush"
+                iconBg="bg-rose-500/14"
+                iconColor="text-rose-300"
+                ringColor="ring-rose-500/18"
                 size="md"
               />
               Schedule
@@ -192,11 +188,9 @@ export default function DashboardPage() {
             <CardTitle className="flex items-center gap-2.5">
               <IconBadge
                 icon={CheckSquare}
-                gradient="from-amber-400 via-orange-400 to-yellow-500"
-                iconColor="text-white"
-                glow="shadow-[0_4px_14px_rgba(251,146,60,0.45)]"
-                ringColor="ring-amber-200/40"
-                variant="lush"
+                iconBg="bg-amber-500/14"
+                iconColor="text-amber-300"
+                ringColor="ring-amber-500/18"
                 size="md"
               />
               Tasks

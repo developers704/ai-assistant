@@ -90,22 +90,18 @@ export function IconBadge({
     <span
       className={cn(
         "icon-badge flex shrink-0 items-center justify-center transition-all duration-300",
-        isLush ? "icon-badge-lush" : "ring-1 ring-white/15",
+        isLush ? "icon-badge-lush" : "ring-1",
         s.box,
         gradient
-          ? cn(
-              "bg-gradient-to-br",
-              gradient,
-              active && "icon-badge-lush-active scale-[1.06]",
-              !active && "group-hover:scale-[1.04]"
-            )
+          ? cn("bg-gradient-to-br", gradient, active && "icon-badge-lush-active")
           : cn(active && activeBg ? activeBg : iconBg),
-        isLush && (active && activeGlow ? activeGlow : glow),
-        ringColor ? cn("ring-1", ringColor) : isLush && "ring-1 ring-white/25",
+        ringColor ? cn("ring-1", ringColor) : !isLush && "ring-white/12",
+        isLush && glow && !active && glow,
+        isLush && active && activeGlow && activeGlow,
         className
       )}
     >
-      <Icon icon={icon} size={s.icon} active={active || isLush} className={iconColor} />
+      <Icon icon={icon} size={s.icon} active={active} className={iconColor} />
     </span>
   );
 }
