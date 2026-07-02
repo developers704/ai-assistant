@@ -6,10 +6,28 @@ import type { ReportSummary, StoredReportMeta } from "./types";
 
 const REPORTS_DIR = path.join(process.cwd(), ".data", "reports");
 const INDEX_FILE = path.join(REPORTS_DIR, "index.json");
+const SEED_CSV = path.join(process.cwd(), "data", "reports", "SALES-LATEST.csv");
 
 function ensureDir() {
   if (!fs.existsSync(REPORTS_DIR)) {
     fs.mkdirSync(REPORTS_DIR, { recursive: true });
+  }
+}
+
+/** Load bundled store sales CSV when no reports exist yet. */
+function ensureSeedReport() {
+  if (readIndex().length > 0) return;
+  if (!fs.existsSync(SEED_CSV)) return;
+  try {
+    const csvText = fs.readFileSync(SEED_CSV, "utf-8");
+    if (!csvText.trim()) return;
+    saveReport("SALES-LATEST.csv", csvText, {
+      label: "SALES-LATEST",
+      reportPeriod: "daily",
+      reportCategory: "sales",
+    });
+  } catch (err) {
+    console.warn("Could not seed default sales report:", err);
   }
 }
 
@@ -33,6 +51,7 @@ function csvPath(id: string) {
 }
 
 export function listReports(): StoredReportMeta[] {
+  ensureSeedReport();
   return readIndex().sort(
     (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
   );
@@ -125,6 +144,7 @@ export function getLatestReportWithSummary(options?: { filterDate?: string }): {
   csv: string;
   availableDates: string[];
 } | null {
+  ensureSeedReport();
   const meta = getLatestReportMeta();
   if (!meta) return null;
   const csv = readReportCsv(meta.id);

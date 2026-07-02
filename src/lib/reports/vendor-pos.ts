@@ -40,6 +40,16 @@ export function isVendorPosFormat(columns: string[]): boolean {
   );
 }
 
+export function isStoreSalesCsv(columns: string[]): boolean {
+  const lower = columns.map((c) => c.trim().toLowerCase());
+  return (
+    lower.some((c) => c.includes("transaction") && c.includes("#")) &&
+    lower.some((c) => c.includes("sku")) &&
+    lower.some((c) => c === "store") &&
+    lower.some((c) => c === "total")
+  );
+}
+
 export function parseVendorPosRows(records: Record<string, unknown>[]): {
   rows: VendorPosRow[];
   columns: string[];
@@ -52,13 +62,19 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   const deptCol = findCol(columns, [/^department$/]);
   const designCol = findCol(columns, [/^design$/]);
   const descCol = findCol(columns, [/^description$/]);
-  const itemCol = findCol(columns, [/^item\s*#?$/, /^item number$/]);
+  const itemCol = findCol(columns, [/^item\s*#?$/, /^item number$/, /^sku\s*#?$/]);
+  const skuCol = findCol(columns, [/^sku\s*#?$/]);
+  const styleCol = findCol(columns, [/^style\s*#?$/]);
+  const txnCol = findCol(columns, [/transaction\s*#/, /^transaction id$/]);
   const qtyCol = findCol(columns, [/^qty$/, /quantity/]);
   const grossCol = findCol(columns, [/sales amount/]);
   const discCol = findCol(columns, [/disc amt/, /discount amt/]);
   const netCol = findCol(columns, [/^total$/]);
+  const invCostCol = findCol(columns, [/inventory cost/]);
+  const classCol = findCol(columns, [/^class$/]);
+  const subClassCol = findCol(columns, [/sub-class/, /sub class/]);
   const discRateCol = findCol(columns, [/disc rate/, /discount rate/]);
-  const vendorCol = findCol(columns, [/^vendor\s*#?$/, /^vendor$/]);
+  const vendorCol = findCol(columns, [/^vendor\s*name$/, /^vendor\s*#?$/, /^vendor$/]);
   const typeCol = findCol(columns, [/^type$/]);
 
   const rows: VendorPosRow[] = [];
@@ -66,9 +82,12 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
     const net = netCol ? parseNumber(rec[netCol]) : 0;
     const gross = grossCol ? parseNumber(rec[grossCol]) : net;
     const qty = qtyCol ? parseNumber(rec[qtyCol]) : 1;
+    const inventoryCost = invCostCol ? parseNumber(rec[invCostCol]) : 0;
     const store = storeCol ? String(rec[storeCol] ?? "").trim() : "";
     const department = deptCol ? String(rec[deptCol] ?? "").trim() : "";
     const date = dateCol ? normalizeDate(rec[dateCol]) : null;
+    const sku = skuCol ? String(rec[skuCol] ?? "").trim() : itemCol ? String(rec[itemCol] ?? "").trim() : "";
+    const margin = net - inventoryCost;
 
     if (!store && !department && net === 0 && qty === 0) continue;
     if (typeCol && String(rec[typeCol] ?? "").toLowerCase() === "return" && net < 0) {
@@ -77,16 +96,23 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
 
     rows.push({
       date: date ?? "",
+      transactionId: txnCol ? String(rec[txnCol] ?? "").trim() : "",
       storeName: store || "Unknown store",
       department: department || "Uncategorized",
       design: designCol ? String(rec[designCol] ?? "").trim() || "—" : "—",
-      itemNumber: itemCol ? String(rec[itemCol] ?? "").trim() : "",
+      itemNumber: itemCol ? String(rec[itemCol] ?? "").trim() : sku,
+      sku,
+      style: styleCol ? String(rec[styleCol] ?? "").trim() : "",
       description: descCol ? String(rec[descCol] ?? "").trim() || department : department,
       vendor: vendorCol ? String(rec[vendorCol] ?? "").trim().toUpperCase() : "",
+      productClass: classCol ? String(rec[classCol] ?? "").trim() || "—" : "—",
+      subClass: subClassCol ? String(rec[subClassCol] ?? "").trim() || "—" : "—",
       quantity: qty || 1,
+      inventoryCost,
       grossSales: gross,
       discountAmount: discCol ? parseNumber(rec[discCol]) : Math.max(0, gross - net),
       netRevenue: netCol ? net : gross,
+      margin,
       discountRate: discRateCol ? parseNumber(rec[discRateCol]) : 0,
     });
   }
@@ -122,7 +148,7 @@ function rankProducts(rows: VendorPosRow[], limit = 10) {
 
   for (const r of rows) {
     const label = r.description?.trim();
-    const itemNumber = r.itemNumber?.trim();
+    const itemNumber = r.sku?.trim() || r.itemNumber?.trim();
     if (!label && !itemNumber) continue;
 
     const key = itemNumber ? `item:${itemNumber}` : `desc:${label}`;
@@ -154,6 +180,8 @@ export function summarizeVendorPos(
     reportId?: string;
     reportLabel?: string;
     filterDate?: string;
+    schema?: "vendor_pos" | "store_sales";
+    reportCategory?: import("./types").ReportCategory;
   }
 ): { summary: ReportSummary; reportDate: string | null; columns: string[] } {
   const dated = rows.filter((r) => r.date);
@@ -181,6 +209,12 @@ export function summarizeVendorPos(
   const grossSales = periodRows.reduce((s, r) => s + r.grossSales, 0);
   const discountTotal = periodRows.reduce((s, r) => s + r.discountAmount, 0);
   const totalUnits = periodRows.reduce((s, r) => s + r.quantity, 0);
+  const totalInventoryCost = periodRows.reduce((s, r) => s + r.inventoryCost, 0);
+  const totalMargin = periodRows.reduce((s, r) => s + r.margin, 0);
+  const marginRate = totalRevenue > 0 ? totalMargin / totalRevenue : 0;
+  const uniqueTransactions = new Set(
+    periodRows.map((r) => r.transactionId).filter(Boolean)
+  ).size;
   const prevRevenue = compareRows.reduce((s, r) => s + r.netRevenue, 0);
   const comparisonPreviousDay =
     compareRows.length > 0 && prevRevenue > 0
@@ -231,6 +265,27 @@ export function summarizeVendorPos(
     (r) => r.quantity
   );
 
+  const topVendors = rankMap(
+    periodRows,
+    (r) => r.vendor,
+    (r) => r.netRevenue,
+    (r) => r.quantity
+  );
+
+  const topClasses = rankMap(
+    periodRows,
+    (r) => r.productClass,
+    (r) => r.netRevenue,
+    (r) => r.quantity
+  );
+
+  const topSubClasses = rankMap(
+    periodRows,
+    (r) => r.subClass,
+    (r) => r.netRevenue,
+    (r) => r.quantity
+  );
+
   const topProducts = rankProducts(periodRows, 20);
 
   const underperformingStores = topStores.filter((s) => s.change < 0);
@@ -241,18 +296,34 @@ export function summarizeVendorPos(
       : 0;
 
   const recommendations: string[] = [];
+  const isStoreSales = opts.schema === "store_sales" || opts.reportCategory === "sales";
   const vendor = opts.vendorCode || periodRows.find((r) => r.vendor)?.vendor || "Vendor";
 
-  if (opts.period !== "daily" || dates.length <= 1) {
+  if (isStoreSales) {
+    recommendations.push(
+      `Store sales: ${formatMoney(totalRevenue)} net across ${uniqueTransactions || periodRows.length} transactions, ${totalUnits.toLocaleString()} units.`
+    );
+    if (totalMargin > 0) {
+      recommendations.push(
+        `Estimated margin: ${formatMoney(totalMargin)} (${(marginRate * 100).toFixed(1)}% of net sales).`
+      );
+    }
+  } else if (opts.period !== "daily" || dates.length <= 1) {
     recommendations.push(
       `${periodLabel(opts.period)} ${vendor} report: ${totalUnits.toLocaleString()} units, ${formatMoney(totalRevenue)} net across ${dates.length || 1} day(s).`
     );
+  }
+  if (topStores[0]) {
+    recommendations.push(`Top store: ${topStores[0].name} at ${formatMoney(topStores[0].revenue)} net.`);
   }
   if (topDesigns[0]) {
     recommendations.push(`${topDesigns[0].name} leads design lines at ${formatMoney(topDesigns[0].revenue)} net.`);
   }
   if (topDepartments[0]) {
     recommendations.push(`Top department: ${topDepartments[0].name} (${formatMoney(topDepartments[0].revenue)}).`);
+  }
+  if (topVendors[0] && isStoreSales) {
+    recommendations.push(`Top vendor: ${topVendors[0].name} (${formatMoney(topVendors[0].revenue)}).`);
   }
   if (discountTotal > 0) {
     recommendations.push(
@@ -276,6 +347,9 @@ export function summarizeVendorPos(
     recommendations,
   };
 
+  const schema = opts.schema ?? "vendor_pos";
+  const category = opts.reportCategory ?? (schema === "store_sales" ? "sales" : "vendor");
+
   return {
     summary: {
       ...base,
@@ -283,13 +357,17 @@ export function summarizeVendorPos(
       reportId: opts.reportId,
       reportLabel: opts.reportLabel,
       reportDate,
-      schema: "vendor_pos",
+      schema,
       reportPeriod: opts.period,
-      reportCategory: "vendor",
-      vendorCode: vendor,
+      reportCategory: category,
+      vendorCode: isStoreSales ? undefined : vendor,
       grossSales,
       discountTotal,
       avgDiscountRate,
+      totalInventoryCost,
+      totalMargin,
+      marginRate,
+      uniqueTransactions: uniqueTransactions || periodRows.length,
       dateRange:
         opts.filterDate
           ? { from: opts.filterDate, to: opts.filterDate }
@@ -298,21 +376,43 @@ export function summarizeVendorPos(
             : undefined,
       topDepartments,
       topDesigns,
+      topVendors,
+      topClasses,
+      topSubClasses,
       transactionCount: periodRows.length,
     },
     reportDate,
-    columns: [
-      "Transaction Date",
-      "Store",
-      "Department",
-      "Design",
-      "Description",
-      "Qty",
-      "Sales Amount",
-      "Disc Amt",
-      "Total",
-      "Vendor #",
-    ],
+    columns: isStoreSales
+      ? [
+          "Transaction #",
+          "Transaction Date",
+          "SKU #",
+          "Style #",
+          "Description",
+          "Vendor Name",
+          "Store",
+          "Department",
+          "Design",
+          "Class",
+          "Sub-Class",
+          "Qty",
+          "Inventory Cost",
+          "Sales Amount",
+          "Disc Amt",
+          "Total",
+        ]
+      : [
+          "Transaction Date",
+          "Store",
+          "Department",
+          "Design",
+          "Description",
+          "Qty",
+          "Sales Amount",
+          "Disc Amt",
+          "Total",
+          "Vendor #",
+        ],
   };
 }
 

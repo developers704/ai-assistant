@@ -64,6 +64,9 @@ export default function SalesPage() {
   const isFinancingReport =
     reportSummary?.schema === "financing" || reportSummary?.reportCategory === "financing";
 
+  const isStoreSalesReport =
+    reportSummary?.schema === "store_sales" || reportSummary?.reportCategory === "sales";
+
   const subtitleDate =
     filterDate && reportSummary?.dateRange
       ? formatReportDateDisplay(filterDate)
@@ -78,14 +81,24 @@ export default function SalesPage() {
         : reportSummary.reportLabel
       : isFinancingReport
         ? "Payment mix, financing programs, and store performance"
-        : "Daily performance · Valliani Jewelers";
+        : isStoreSalesReport
+          ? "Company-wide store sales · departments, vendors & margin"
+          : "Daily performance · Valliani Jewelers";
+
+  const maxTopStoreRevenue = Math.max(...summary.topStores.map((s) => s.revenue), 1);
 
   return (
     <div className="flex flex-col min-h-0">
       <div className="glass-panel-strong rounded-3xl ring-1 ring-white/10 overflow-hidden">
         <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
           <PageHeader
-            title={isFinancingReport ? "Financing & Sales Reports" : "Sales Reports"}
+            title={
+              isFinancingReport
+                ? "Financing & Sales Reports"
+                : isStoreSalesReport
+                  ? "Store Sales Dashboard"
+                  : "Sales Reports"
+            }
             subtitle={pageSubtitle}
             action={
               <div className="flex flex-wrap items-center gap-2 justify-end">
@@ -129,7 +142,7 @@ export default function SalesPage() {
         <div className="px-5 sm:px-6 py-5 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <MetricCard
-              label={isFinancingReport ? "Net Sales" : "Total Revenue"}
+              label={isFinancingReport || isStoreSalesReport ? "Net Sales" : "Total Revenue"}
               value={formatCurrency(summary.totalRevenue)}
               footer={
                 <div className="flex items-center gap-1.5">
@@ -151,28 +164,46 @@ export default function SalesPage() {
               }
             />
             <MetricCard
-              label={isFinancingReport ? "Sales Transactions" : "Pieces Sold"}
+              label={
+                isFinancingReport
+                  ? "Sales Transactions"
+                  : isStoreSalesReport
+                    ? "Units Sold"
+                    : "Pieces Sold"
+              }
               value={summary.totalTransactions.toLocaleString()}
               footer={
                 <p className="text-sm text-ink-muted">
                   {isFinancingReport
                     ? "Sales rows in report period"
-                    : "Across reporting stores today"}
+                    : isStoreSalesReport && reportSummary?.uniqueTransactions
+                      ? `${reportSummary.uniqueTransactions.toLocaleString()} unique transactions`
+                      : "Across reporting stores today"}
                 </p>
               }
             />
             <MetricCard
-              label={isFinancingReport ? "Total Profit" : "Avg. Sale Value"}
+              label={
+                isFinancingReport
+                  ? "Total Profit"
+                  : isStoreSalesReport
+                    ? "Est. Margin"
+                    : "Avg. Sale Value"
+              }
               value={
                 isFinancingReport
                   ? formatCurrency(reportSummary?.totalProfit ?? 0)
-                  : formatCurrency(summary.averageOrderValue)
+                  : isStoreSalesReport
+                    ? formatCurrency(reportSummary?.totalMargin ?? 0)
+                    : formatCurrency(summary.averageOrderValue)
               }
               footer={
                 <p className="text-sm text-ink-muted">
                   {isFinancingReport
                     ? `Avg sale ${formatCurrency(summary.averageOrderValue)}`
-                    : `+${summary.comparisonPreviousWeek.toFixed(1)}% vs last week`}
+                    : isStoreSalesReport && reportSummary?.marginRate
+                      ? `${(reportSummary.marginRate * 100).toFixed(1)}% margin rate · avg ${formatCurrency(summary.averageOrderValue)}`
+                      : `+${summary.comparisonPreviousWeek.toFixed(1)}% vs last week`}
                 </p>
               }
             />
@@ -183,11 +214,53 @@ export default function SalesPage() {
           )}
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            {isStoreSalesReport && summary.topStores.length > 0 && (
+              <Card className="p-0 overflow-hidden xl:col-span-2">
+                <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Store size={17} className="text-emerald-300" />
+                    Top Performing Stores
+                  </CardTitle>
+                  <span className="text-xs text-ink-muted">Highest net sales in this report</span>
+                </CardHeader>
+                <div className="max-h-[min(24rem,50vh)] overflow-y-auto p-4 space-y-3">
+                  {summary.topStores.slice(0, 12).map((store, i) => (
+                    <div key={store.name} className="grid grid-cols-[1.5rem_1fr_auto] gap-x-3 items-center">
+                      <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
+                      <div className="min-w-0">
+                        <div className="flex justify-between gap-3 mb-1.5">
+                          <span className="text-sm font-medium text-ink truncate">{store.name}</span>
+                          <span className="text-sm font-semibold text-ink tabular-nums shrink-0">
+                            {formatCurrency(store.revenue)}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-400/80 rounded-full transition-all"
+                            style={{ width: `${(store.revenue / maxTopStoreRevenue) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span
+                        className={cn(
+                          "text-xs font-medium tabular-nums w-12 text-right",
+                          store.change >= 0 ? "text-emerald-400" : "text-accent-rose"
+                        )}
+                      >
+                        {store.change >= 0 ? "+" : ""}
+                        {store.change.toFixed(1)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             <Card className="p-0 overflow-hidden">
               <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Store size={17} className="text-accent-rose" />
-                  Worst Performing Stores
+                  {isStoreSalesReport ? "Lowest Revenue Stores" : "Worst Performing Stores"}
                 </CardTitle>
                 <span className="text-xs text-ink-muted">Lowest revenue in report</span>
               </CardHeader>

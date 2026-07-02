@@ -2,20 +2,27 @@ import type { SalesSummary } from "@/types";
 
 export type ReportPeriod = "daily" | "monthly" | "quarterly" | "half_yearly" | "yearly" | "custom";
 export type ReportCategory = "sales" | "vendor" | "inventory" | "financing" | "custom";
-export type ReportSchema = "generic" | "vendor_pos" | "financing";
+export type ReportSchema = "generic" | "vendor_pos" | "store_sales" | "financing";
 
 export interface VendorPosRow {
   date: string;
+  transactionId: string;
   storeName: string;
   department: string;
   design: string;
   itemNumber: string;
+  sku: string;
+  style: string;
   description: string;
   vendor: string;
+  productClass: string;
+  subClass: string;
   quantity: number;
+  inventoryCost: number;
   grossSales: number;
   discountAmount: number;
   netRevenue: number;
+  margin: number;
   discountRate: number;
 }
 
@@ -49,7 +56,14 @@ export interface ReportSummary extends SalesSummary {
   dateRange?: { from: string; to: string };
   topDepartments?: { name: string; revenue: number; units: number }[];
   topDesigns?: { name: string; revenue: number; units: number }[];
+  topVendors?: { name: string; revenue: number; units: number }[];
+  topClasses?: { name: string; revenue: number; units: number }[];
+  topSubClasses?: { name: string; revenue: number; units: number }[];
+  totalInventoryCost?: number;
+  totalMargin?: number;
+  marginRate?: number;
   transactionCount?: number;
+  uniqueTransactions?: number;
   totalProfit?: number;
   paymentMethods?: { name: string; revenue: number; units: number; share: number }[];
   financingProviders?: { name: string; revenue: number; units: number; share: number }[];

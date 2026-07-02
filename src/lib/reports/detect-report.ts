@@ -12,9 +12,24 @@ export function detectReportPeriod(fileName: string, label?: string): ReportPeri
   return "custom";
 }
 
+export function isStoreSalesFormat(columns: string[]): boolean {
+  const lower = columns.map((c) => c.trim().toLowerCase());
+  return (
+    lower.some((c) => c.includes("transaction") && c.includes("#")) &&
+    lower.some((c) => c.includes("sku")) &&
+    lower.some((c) => c === "store") &&
+    lower.some((c) => c === "total") &&
+    lower.some((c) => c.includes("vendor name") || c === "vendor name")
+  );
+}
+
 export function detectReportCategory(fileName: string, columns: string[]): ReportCategory {
   const text = fileName.toLowerCase();
   const colLower = columns.map((c) => c.toLowerCase().trim());
+
+  if (isStoreSalesFormat(columns) || /\b(sales-latest|store.?sales|company.?sales)\b/.test(text)) {
+    return "sales";
+  }
 
   const isVendorPos =
     colLower.some((c) => c === "vendor #" || c === "vendor" || c.startsWith("vendor")) &&
@@ -43,11 +58,13 @@ export function detectVendorCode(
   if (fromName) return fromName;
 
   const vendorCol = columns.find((c) => /^vendor\s*#?$/i.test(c.trim()) || /^vendor$/i.test(c.trim()));
-  if (!vendorCol) return null;
+  const vendorNameCol = columns.find((c) => /^vendor\s*name$/i.test(c.trim()));
+  const useCol = vendorNameCol ?? vendorCol;
+  if (!useCol) return null;
 
   const counts = new Map<string, number>();
   for (const row of records) {
-    const v = String(row[vendorCol] ?? "").trim().toUpperCase();
+    const v = String(row[useCol] ?? "").trim().toUpperCase();
     if (v) counts.set(v, (counts.get(v) || 0) + 1);
   }
   if (counts.size === 0) return null;

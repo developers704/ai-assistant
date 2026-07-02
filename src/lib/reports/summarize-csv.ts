@@ -7,7 +7,8 @@ import {
 } from "./detect-report";
 import type { ReportCategory, ReportPeriod, ReportSummary } from "./types";
 import { isFinancingReportFormat, parseFinancingRows, summarizeFinancing } from "./financing-report";
-import { isVendorPosFormat, parseVendorPosRows, summarizeVendorPos } from "./vendor-pos";
+import { isStoreSalesFormat } from "./detect-report";
+import { isStoreSalesCsv, isVendorPosFormat, parseVendorPosRows, summarizeVendorPos } from "./vendor-pos";
 
 function parseNumber(raw: unknown): number {
   if (raw == null || raw === "") return 0;
@@ -290,7 +291,7 @@ export function summarizeCsvText(
   reportPeriod: ReportPeriod;
   reportCategory: ReportCategory;
   vendorCode: string | null;
-  schema: "generic" | "vendor_pos" | "financing";
+  schema: "generic" | "vendor_pos" | "store_sales" | "financing";
   dateRange?: { from: string; to: string };
 } {
   const parsed = Papa.parse<Record<string, unknown>>(csvText, {
@@ -336,6 +337,31 @@ export function summarizeCsvText(
     };
   }
 
+  if (isStoreSalesCsv(columns) || isStoreSalesFormat(columns) || reportCategory === "sales") {
+    const { rows } = parseVendorPosRows(records);
+    if (rows.length === 0) throw new Error("No usable store sales rows found in the CSV.");
+    const result = summarizeVendorPos(rows, {
+      period: reportPeriod,
+      vendorCode: null,
+      reportId: meta?.reportId,
+      reportLabel: meta?.reportLabel,
+      filterDate: meta?.filterDate,
+      schema: "store_sales",
+      reportCategory: "sales",
+    });
+    return {
+      rowCount: rows.length,
+      columns: result.columns,
+      reportDate: result.reportDate,
+      summary: result.summary,
+      reportPeriod,
+      reportCategory: "sales",
+      vendorCode: null,
+      schema: "store_sales",
+      dateRange: result.summary.dateRange,
+    };
+  }
+
   if (isVendorPosFormat(columns) || reportCategory === "vendor") {
     const { rows } = parseVendorPosRows(records);
     if (rows.length === 0) throw new Error("No usable vendor sales rows found in the CSV.");
@@ -345,6 +371,8 @@ export function summarizeCsvText(
       reportId: meta?.reportId,
       reportLabel: meta?.reportLabel,
       filterDate: meta?.filterDate,
+      schema: "vendor_pos",
+      reportCategory: "vendor",
     });
     return {
       rowCount: rows.length,
@@ -393,6 +421,11 @@ export function extractReportDates(csvText: string): string[] {
 
     if (isFinancingReportFormat(columns)) {
       const { rows } = parseFinancingRows(records);
+      return [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
+    }
+
+    if (isStoreSalesCsv(columns) || isStoreSalesFormat(columns)) {
+      const { rows } = parseVendorPosRows(records);
       return [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
     }
 

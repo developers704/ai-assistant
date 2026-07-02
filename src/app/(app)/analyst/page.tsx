@@ -28,6 +28,22 @@ import {
 
 function buildSuggestions(schema: TableSchema): string[] {
   const colNames = schema.columns.map((c) => c.name.toLowerCase());
+  const isStoreSales =
+    colNames.some((c) => c.includes("transaction") && c.includes("#")) &&
+    colNames.some((c) => c.includes("sku")) &&
+    colNames.some((c) => c.includes("vendor name")) &&
+    colNames.some((c) => c === "total");
+
+  if (isStoreSales) {
+    return [
+      "Top 10 stores by net sales (Total)",
+      "Sales by Department",
+      "Top vendors by revenue (Vendor Name)",
+      "Total margin: SUM(Total) minus SUM(Inventory Cost)",
+      "Daily net sales trend by Transaction Date",
+    ].slice(0, 5);
+  }
+
   const isFinancing =
     colNames.some((c) => c.includes("pay method")) &&
     colNames.some((c) => c.includes("transaction date")) &&
@@ -101,7 +117,7 @@ export default function AnalystPage() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [saveToServer, setSaveToServer] = useState(true);
   const [reportPeriod, setReportPeriod] = useState<ReportPeriod>("daily");
-  const [reportCategory, setReportCategory] = useState<ReportCategory>("vendor");
+  const [reportCategory, setReportCategory] = useState<ReportCategory>("sales");
   const [savedReports, setSavedReports] = useState<StoredReportMeta[]>([]);
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
@@ -439,8 +455,8 @@ export default function AnalystPage() {
                       onChange={(e) => setReportCategory(e.target.value as ReportCategory)}
                       className="select-dark"
                     >
+                      <option value="sales">Store sales (SALES-LATEST)</option>
                       <option value="vendor">Vendor report (MHVR)</option>
-                      <option value="sales">Company sales</option>
                       <option value="inventory">Inventory</option>
                       <option value="custom">Other</option>
                     </select>
