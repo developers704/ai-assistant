@@ -20,6 +20,7 @@ import {
   intentForTool,
 } from "@/lib/assistant/format-tool-result";
 import { executeVoiceTool } from "@/lib/voice/execute-tool";
+import { OPENAI_CHAT_MODEL } from "@/lib/openai/config";
 
 const SYSTEM_PROMPT = `You are the Executive AI Assistant for Valliani Jewelers — a premium, proactive chief-of-staff style assistant for the business owner.
 
@@ -278,7 +279,7 @@ ${formatRetrievedContext(retrieved)}`;
   ];
 
   const completion = await client.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: OPENAI_CHAT_MODEL,
     temperature: 0.35,
     max_tokens: 1200,
     messages,
