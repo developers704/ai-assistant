@@ -16,42 +16,12 @@ import {
   mapToolNameForExecutor,
 } from "@/lib/assistant/tool-definitions";
 import {
-  formatToolResultForChat,
   intentForTool,
 } from "@/lib/assistant/format-tool-result";
-import { executeVoiceTool } from "@/lib/voice/execute-tool";
+import { executeTool } from "@/lib/tools/registry";
+import { loadChatSystemPrompt } from "@/lib/prompts/loader";
+import { buildDynamicContext } from "./dynamic-context";
 import { OPENAI_CHAT_MODEL } from "@/lib/openai/config";
-
-const SYSTEM_PROMPT = `You are the Executive AI Assistant for Valliani Jewelers — a premium, proactive chief-of-staff style assistant for the business owner.
-
-You answer naturally like a capable LLM. Combine:
-1) LIVE CONTEXT — emails, calendar, tasks, sales, contacts (real-time)
-2) COMPANY KNOWLEDGE — retrieved official Valliani sources (policies, brands, locations, contacts)
-3) TOOLS — call the right tool BEFORE answering when live data is needed
-
-TOOL RULES (critical):
-- Calendar / schedule / meetings / "what's on my calendar" → get_calendar_today
-- Email / inbox / unread mail → get_email_summary
-- Company policy / stores / brands / return policy / Valliani facts → search_company_knowledge (or COMPANY KNOWLEDGE section)
-- Sales / revenue / top products / stores / MHVR / uploaded report → get_today_sales
-- Daily briefing / what should I focus on / priorities → get_daily_briefing
-- Tasks / to-do / reminders list → list_tasks
-- Contacts / phone number → list_contacts
-- Gold/silver prices → get_metal_rates · jewelry price quote → estimate_jewellery_price
-- Industry/sports/politics news → get_industry_news / get_sports_news / get_politics_news
-- Open a page → show_detail_page or open_data_analyst
-- Draft email reply to important mail → draft_email_reply
-- ADD task → create_reminder · REMOVE task → delete_task · COMPLETE task → complete_task
-- Send email / WhatsApp / schedule meeting → propose_send_email / propose_whatsapp / propose_schedule_meeting (needs user confirm)
-
-Guidelines:
-- Be concise but complete. Use markdown: **bold**, bullet lists, short sections.
-- Direct answer first, then supporting detail.
-- For company/policy/brand/location questions, prioritize COMPANY KNOWLEDGE.
-- NEVER invent meetings, emails, sales numbers, or tasks — use tools or LIVE CONTEXT.
-- For store count questions: Valliani has exactly 29 locations (see Store directory in context).
-- Jewelry image generation: user can say "generate a gold ring" in chat.
-- Pending confirmations: remind user they can say yes or cancel.`;
 
 export function isLLMChatConfigured(): boolean {
   const key = process.env.OPENAI_API_KEY;
@@ -224,14 +194,15 @@ async function handleToolCall(
 
   if (READ_TOOL_NAMES.has(name) || name === "draft_email_reply") {
     const executorName = mapToolNameForExecutor(name);
-    const result = await executeVoiceTool(executorName, args);
-    const formatted = formatToolResultForChat(name, result);
+    const result = await executeTool(executorName, args, { source: "chat" });
+    const formatted = result.textAnswer ?? result.spokenAnswer ?? "Done.";
     const prefix = assistantText ? `${assistantText}\n\n` : "";
     return {
       intent: intentForTool(name),
       message: prefix + formatted,
       speak: true,
-      data: result.uiAction?.path ? { navigate: result.uiAction.path } : undefined,
+      pendingAction: result.pendingAction,
+      data: result.navigateTo ? { navigate: result.navigateTo } : undefined,
     };
   }
 
@@ -250,6 +221,7 @@ export async function processMessageWithLLM(
   const client = new OpenAI({ apiKey });
 
   const context = buildAssistantContext(state);
+  const dynamic = await buildDynamicContext(state, message);
   const ragSection = isRagAvailable()
     ? (() => {
         const retrieved = retrieveKnowledge(message);
@@ -273,7 +245,7 @@ ${formatRetrievedContext(retrieved)}`;
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: `${SYSTEM_PROMPT}\n\n---\nLIVE CONTEXT (real-time app data):\n\n${context}${ragSection}`,
+      content: `${loadChatSystemPrompt()}\n\n---\nLIVE CONTEXT (real-time app data):\n\n${context}\n\n---\nDYNAMIC CONTEXT:\n${dynamic.textBlock}${ragSection}`,
     },
     ...history.filter((h) => h.role === "user" || h.role === "assistant"),
     { role: "user", content: message },

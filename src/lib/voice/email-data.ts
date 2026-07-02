@@ -1,5 +1,6 @@
 import type { Email } from "@/types";
 import { getState, setState } from "@/lib/store/server-store";
+import { getUiContext } from "@/lib/store/ui-context";
 import { isGoogleConnected, getGoogleTokens } from "@/lib/google/token-store";
 import { getAuthenticatedClient } from "@/lib/google/client";
 import { fetchGmailInbox } from "@/lib/google/gmail";
@@ -99,6 +100,11 @@ export function buildEmailVoiceScript(emails: Email[]): string {
 }
 
 function pickEmailForDraft(emails: Email[]): Email | undefined {
+  const selectedId = getUiContext().selectedEmailId;
+  if (selectedId) {
+    const selected = emails.find((e) => e.id === selectedId);
+    if (selected) return selected;
+  }
   return (
     emails.find((e) => e.needsReply) ||
     emails.find((e) => !e.isRead && (e.isImportant || e.category === "important")) ||

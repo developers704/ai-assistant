@@ -20,6 +20,8 @@ import { isLLMChatConfigured, processMessageWithLLM } from "@/lib/ai/llm-chat";
 import { isImageGenerateRequest } from "@/lib/images/generate-jewellery-image";
 import { processImageGenerate } from "@/lib/ai/image-generate";
 
+import { tryRoutedResponse } from "@/lib/ai/routed-handler";
+import { appendConversationSummary } from "@/lib/memory/store";
 import type { AIResponse, ChatMessage } from "@/types";
 
 
@@ -32,7 +34,12 @@ export const maxDuration = 120;
 async function resolveResponse(
   message: string,
   state: Awaited<ReturnType<typeof getEnrichedState>>
-): Promise<{ response: AIResponse; engine: "rules" | "llm" | "llm-fallback" }> {
+): Promise<{ response: AIResponse; engine: "rules" | "llm" | "llm-fallback" | "router" }> {
+  const routed = await tryRoutedResponse(message, state);
+  if (routed) {
+    return { response: routed, engine: "router" };
+  }
+
   if (isImageGenerateRequest(message)) {
     return { response: await processImageGenerate(message), engine: "rules" };
   }
@@ -114,14 +121,19 @@ export async function POST(req: NextRequest) {
 
 
   setState((s) => ({
-
     ...s,
-
     ...sideEffects,
-
     chatHistory: [...s.chatHistory, userMessage, assistantMessage],
-
   }));
+
+  const turnCount = getState().chatHistory.length;
+  if (turnCount > 0 && turnCount % 15 === 0) {
+    const recent = getState()
+      .chatHistory.slice(-6)
+      .map((m) => `${m.role}: ${m.content.slice(0, 120)}`)
+      .join(" | ");
+    appendConversationSummary(recent);
+  }
 
 
 

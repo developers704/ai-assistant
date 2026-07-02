@@ -2,21 +2,24 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import {
   isVoicePilotConfigured,
-  VOICE_PILOT_INSTRUCTIONS,
-  VOICE_PILOT_TOOLS,
   VOICE_REALTIME_MODEL_FALLBACKS,
 } from "@/lib/voice/config";
-
-import { buildVoiceLiveContext } from "@/lib/voice/context";
+import { buildDynamicContext } from "@/lib/ai/dynamic-context";
+import { getState } from "@/lib/store/server-store";
+import { loadVoiceInstructions } from "@/lib/prompts/loader";
+import { getVoiceOpenAITools } from "@/lib/tools/registry";
 
 export const runtime = "nodejs";
 
 async function buildSessionConfig(model: string) {
-  const liveContext = await buildVoiceLiveContext();
+  const state = getState();
+  const dynamic = await buildDynamicContext(state);
+  const liveContext = dynamic.textBlock;
+  const instructions = `${loadVoiceInstructions()}\n\n---\nLIVE CONTEXT (authoritative for this session):\n${liveContext}`;
   return {
     type: "realtime" as const,
     model,
-    instructions: `${VOICE_PILOT_INSTRUCTIONS}\n\n---\nLIVE CONTEXT (authoritative for this session):\n${liveContext}`,
+    instructions,
     max_output_tokens: 350,
     tool_choice: "auto" as const,
     audio: {
@@ -32,7 +35,7 @@ async function buildSessionConfig(model: string) {
       },
       output: { voice: "marin" },
     },
-    tools: [...VOICE_PILOT_TOOLS],
+    tools: [...getVoiceOpenAITools()],
   };
 }
 

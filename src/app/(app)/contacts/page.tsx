@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
+import { syncUiSelection } from "@/components/layout/UiContextSync";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
@@ -21,6 +22,12 @@ export default function ContactsPage() {
   const { state, sendChat } = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [actionHint, setActionHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    void syncUiSelection({
+      selectedContactId: selectedId ?? undefined,
+    });
+  }, [selectedId]);
 
   if (!state) return null;
 

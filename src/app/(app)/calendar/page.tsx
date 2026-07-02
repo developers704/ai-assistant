@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
+import { syncUiSelection } from "@/components/layout/UiContextSync";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -45,6 +46,13 @@ export default function CalendarTasksPage() {
     dueTime: "",
     priority: "medium" as "low" | "medium" | "high",
   });
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void syncUiSelection({
+      selectedMeetingId: selectedMeetingId ?? undefined,
+    });
+  }, [selectedMeetingId]);
 
   if (!state) return null;
 
@@ -93,8 +101,15 @@ export default function CalendarTasksPage() {
 
   const EventCard = ({ event, showDate = false }: { event: (typeof events)[0]; showDate?: boolean }) => {
     const loc = event.location ? formatEventLocation(event.location) : null;
+    const selected = selectedMeetingId === event.id;
     return (
-      <Card className="p-4 ring-1 ring-white/5">
+      <Card
+        className={cn(
+          "p-4 ring-1 cursor-pointer transition-colors",
+          selected ? "ring-amber-400/50 bg-amber-500/10" : "ring-white/5 hover:bg-white/5"
+        )}
+        onClick={() => setSelectedMeetingId(event.id)}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-medium text-ink leading-snug">{event.title}</p>

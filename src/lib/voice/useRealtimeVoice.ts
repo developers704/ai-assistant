@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { VoiceUiAction } from "@/lib/voice/execute-tool";
-import { VOICE_MAX_TURNS, VOICE_SESSION_MAX_MS } from "@/lib/voice/config";
+import type { VoiceUiAction } from "@/lib/voice/types";
+import { VOICE_MAX_TURNS, VOICE_SESSION_MAX_MS } from "@/lib/voice/constants";
 import { detectVoiceIntent, extractCompleteTaskQuery, extractContactQuery, extractImagePrompt, extractPriceEstimate, extractTaskQuery, normalizeVoiceTranscript } from "@/lib/voice/intent";
+import { isConfirmMessage, isRejectMessage } from "@/lib/actions/confirmation-messages";
 
 export type RealtimeVoiceStatus =
   | "idle"
@@ -109,6 +110,35 @@ export function useRealtimeVoice(enabled: boolean) {
       sendEvent(dc, { type: "response.cancel" });
 
       const normalized = normalizeVoiceTranscript(transcript);
+
+      if (isConfirmMessage(normalized) || isRejectMessage(normalized)) {
+        try {
+          const res = await fetch("/api/voice/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: isRejectMessage(normalized) ? "reject" : "confirm" }),
+          });
+          const data = await res.json();
+          const script = String(data.spokenAnswer ?? data.script ?? "Done.");
+          if (data.navigateTo) {
+            applyUiAction({ type: "navigate", path: String(data.navigateTo) });
+          }
+          setAssistantTranscript(script);
+          setStatus("thinking");
+          disableMic();
+          sendEvent(dc, {
+            type: "response.create",
+            response: {
+              instructions: `${STOP_INSTRUCTION}\n\n${script}`,
+              max_output_tokens: 200,
+            },
+          });
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
       const intent = detectVoiceIntent(normalized);
 
       const runTool = async (

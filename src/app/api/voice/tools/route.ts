@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { executeVoiceTool } from "@/lib/voice/execute-tool";
+import { executeTool } from "@/lib/tools/registry";
 import { isVoicePilotConfigured } from "@/lib/voice/config";
 
 export const runtime = "nodejs";
@@ -21,8 +21,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await executeVoiceTool(name, args);
-    return NextResponse.json(result);
+    const result = await executeTool(name, args, { source: "voice" });
+  return NextResponse.json({
+    output: JSON.stringify({
+      success: result.ok,
+      spokenAnswer: result.spokenAnswer,
+      ...result.data,
+    }),
+    uiAction: result.navigateTo ? { type: "navigate", path: result.navigateTo } : undefined,
+  });
   } catch (err) {
     console.error("Voice tool error:", err);
     const message = err instanceof Error ? err.message : "Tool execution failed";

@@ -41,10 +41,8 @@ import { buildCompanyKnowledgeVoiceAnswer } from "@/lib/voice/rag-tool";
 import { sortTopProducts } from "@/lib/utils";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
 
-export interface VoiceUiAction {
-  type: "navigate";
-  path: string;
-}
+import type { VoiceUiAction } from "@/lib/voice/types";
+export type { VoiceUiAction } from "@/lib/voice/types";
 
 export interface VoiceToolResult {
   output: string;

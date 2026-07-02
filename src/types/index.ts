@@ -183,11 +183,37 @@ export interface CallLog {
 
 export interface PendingAction {
   id: string;
-  type: "email" | "whatsapp" | "call" | "meeting_create" | "meeting_update" | "meeting_cancel" | "document_share";
+  type:
+    | "email"
+    | "whatsapp"
+    | "call"
+    | "meeting_create"
+    | "meeting_update"
+    | "meeting_cancel"
+    | "task_delete"
+    | "document_share";
   title: string;
   preview: string;
   payload: Record<string, unknown>;
   createdAt: string;
+  summary?: string;
+  riskLevel?: "safe" | "confirmation_required" | "dangerous";
+  expiresAt?: string;
+  confirmText?: string;
+  cancelText?: string;
+  source?: "voice" | "chat";
+  toolName?: string;
+}
+
+export interface UiContext {
+  currentPath: string;
+  selectedEmailId?: string;
+  selectedMeetingId?: string;
+  selectedReportId?: string;
+  selectedContactId?: string;
+  lastOpenedPage?: string;
+  lastUserIntent?: string;
+  updatedAt: string;
 }
 
 export interface ChatMessage {
@@ -263,6 +289,7 @@ export interface AppState {
   integrations?: AppIntegrations;
   portfolio?: PortfolioSnapshot;
   voiceLastImage?: { prompt: string; src: string; createdAt: string };
+  uiContext?: UiContext;
 }
 
 export type IntentType =

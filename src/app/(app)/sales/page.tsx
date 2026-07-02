@@ -11,6 +11,7 @@ import type { SalesSummary } from "@/types";
 import type { ReportSummary } from "@/lib/reports/types";
 import { ReportInsightsCards } from "@/components/reports/ReportInsightsCards";
 import { TopProductsTable } from "@/components/reports/TopProductsTable";
+import { syncUiSelection } from "@/components/layout/UiContextSync";
 import {
   formatReportDateDisplay,
   formatReportDateRange,
@@ -28,6 +29,7 @@ export default function SalesPage() {
   const [dataSource, setDataSource] = useState<"mock" | "report">("mock");
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [filterDate, setFilterDate] = useState<string>("");
+  const [reportId, setReportId] = useState<string | undefined>();
 
   useEffect(() => {
     const qs = filterDate ? `?date=${encodeURIComponent(filterDate)}` : "";
@@ -39,12 +41,20 @@ export default function SalesPage() {
         if (d.source === "report") {
           setReportSummary(d.summary as ReportSummary);
           setAvailableDates(d.availableDates ?? []);
+          setReportId(d.report?.id ?? filterDate ?? d.reportDate ?? "latest");
         } else {
           setReportSummary(null);
           setAvailableDates([]);
+          setReportId(undefined);
         }
       });
   }, [filterDate]);
+
+  useEffect(() => {
+    void syncUiSelection({
+      selectedReportId: dataSource === "report" ? reportId : undefined,
+    });
+  }, [dataSource, reportId]);
 
   if (!summary) {
     return (

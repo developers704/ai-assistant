@@ -12,6 +12,7 @@ import { formatRelativeTime, cn } from "@/lib/utils";
 import { sortEmails } from "@/lib/email-utils";
 import { toEmailPreview } from "@/lib/email-html";
 import { EmailBody } from "@/components/email/EmailBody";
+import { syncUiSelection } from "@/components/layout/UiContextSync";
 import type { ChatMessage, Email } from "@/types";
 import {
   Mail,
@@ -42,6 +43,12 @@ export default function EmailPage() {
   useEffect(() => {
     if (showAssistant) setMobileAssistantOpen(true);
   }, [showAssistant]);
+
+  useEffect(() => {
+    void syncUiSelection({
+      selectedEmailId: selectedId ?? undefined,
+    });
+  }, [selectedId]);
 
   if (!state) return null;
 

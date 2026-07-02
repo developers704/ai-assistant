@@ -1,0 +1,189 @@
+import type OpenAI from "openai";
+import {
+  executeVoiceTool,
+  type VoiceToolResult,
+} from "@/lib/voice/execute-tool";
+import { TOOL_BY_NAME } from "@/lib/tools/metadata";
+import type { ToolExecutionContext, ToolResult } from "@/lib/tools/types";
+import {
+  confirmationResult,
+  getActivePendingAction,
+  isConfirmationEnforced,
+  savePendingAction,
+  stageAddMeeting,
+  stageDeleteMeeting,
+  stageDeleteTask,
+} from "@/lib/actions/confirmation";
+import { getState } from "@/lib/store/server-store";
+
+function parseLegacyOutput(output: string): Record<string, unknown> {
+  try {
+    return JSON.parse(output) as Record<string, unknown>;
+  } catch {
+    return { spokenAnswer: output };
+  }
+}
+
+/** Map legacy VoiceToolResult → standard ToolResult (backward compatible). */
+export function mapLegacyResult(toolName: string, legacy: VoiceToolResult): ToolResult {
+  const data = parseLegacyOutput(legacy.output);
+  const success = data.success !== false;
+  const spoken =
+    typeof data.spokenAnswer === "string"
+      ? data.spokenAnswer
+      : typeof data.script === "string"
+        ? data.script
+        : typeof data.message === "string"
+          ? data.message
+          : "Done.";
+
+  return {
+    ok: success,
+    toolName,
+    status: success ? "success" : "failed",
+    confidence: success ? 0.95 : 0.5,
+    spokenAnswer: spoken,
+    textAnswer: typeof data.markdown === "string" ? data.markdown : spoken,
+    data,
+    navigateTo: legacy.uiAction?.path,
+    error: success ? undefined : spoken,
+  };
+}
+
+function buildExecutionContext(ctx?: Partial<ToolExecutionContext>): ToolExecutionContext {
+  const state = getState();
+  const ui = state.uiContext;
+  return {
+    source: ctx?.source ?? "chat",
+    currentPath: ctx?.currentPath ?? ui?.currentPath,
+    selectedEmailId: ctx?.selectedEmailId ?? ui?.selectedEmailId,
+    selectedMeetingId: ctx?.selectedMeetingId ?? ui?.selectedMeetingId,
+    selectedReportId: ctx?.selectedReportId ?? ui?.selectedReportId,
+    selectedContactId: ctx?.selectedContactId ?? ui?.selectedContactId,
+    confirmed: ctx?.confirmed,
+    pendingActionId: ctx?.pendingActionId,
+  };
+}
+
+/**
+ * Central tool executor — wraps legacy executeVoiceTool with confirmation gating.
+ * Single source of truth for Voice + Chat tool execution.
+ */
+export async function executeTool(
+  name: string,
+  args: Record<string, unknown> = {},
+  ctx?: Partial<ToolExecutionContext>
+): Promise<ToolResult> {
+  const def = TOOL_BY_NAME.get(name);
+  if (!def) {
+    return {
+      ok: false,
+      toolName: name,
+      status: "not_found",
+      confidence: 0,
+      error: `Unknown tool: ${name}`,
+      spokenAnswer: `I don't have a tool called ${name}.`,
+    };
+  }
+
+  const context = buildExecutionContext(ctx);
+  const prefs = getState().user?.preferences;
+
+  if (!context.confirmed && isConfirmationEnforced(name, prefs)) {
+    let staged = null as Awaited<ReturnType<typeof stageDeleteTask>> | null;
+
+    if (name === "delete_task") {
+      staged = await stageDeleteTask(args, context);
+      if (!staged) {
+        return {
+          ok: false,
+          toolName: name,
+          status: "failed",
+          confidence: 0.4,
+          spokenAnswer: "I couldn't find that task. Say the exact task name.",
+        };
+      }
+    } else if (name === "delete_meeting") {
+      staged = await stageDeleteMeeting(args, context);
+      if (!staged) {
+        return {
+          ok: false,
+          toolName: name,
+          status: "failed",
+          confidence: 0.4,
+          spokenAnswer: "I couldn't find that meeting. Try the exact title or open your calendar.",
+        };
+      }
+    } else if (name === "add_meeting") {
+      staged = stageAddMeeting(args, context);
+    }
+
+    if (staged) {
+      savePendingAction(staged.pending);
+      return confirmationResult(name, staged.pending, "Got it.");
+    }
+  }
+
+  const legacy = await executeVoiceTool(name, args);
+  return mapLegacyResult(name, legacy);
+}
+
+/** Execute a confirmed pending action (after user says yes). */
+export async function executeConfirmedPending(
+  ctx?: Partial<ToolExecutionContext>
+): Promise<ToolResult | null> {
+  const pending = getActivePendingAction();
+  if (!pending) return null;
+
+  const toolName =
+    pending.toolName ||
+    (typeof pending.payload.action === "string" ? pending.payload.action : undefined);
+  const stagedArgs =
+    (pending.payload.stagedArgs as Record<string, unknown> | undefined) ?? pending.payload;
+
+  if (!toolName) return null;
+
+  const result = await executeTool(toolName, stagedArgs, {
+    ...ctx,
+    confirmed: true,
+    pendingActionId: pending.id,
+  });
+
+  if (result.ok) {
+    const { clearPendingActions } = await import("@/lib/actions/confirmation");
+    clearPendingActions();
+  }
+
+  return result;
+}
+
+export function getChatOpenAITools(): OpenAI.ChatCompletionTool[] {
+  return Array.from(TOOL_BY_NAME.values())
+    .filter((t) => t.allowedInChat)
+    .map((t) => ({
+      type: "function" as const,
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters,
+      },
+    }));
+}
+
+export function getVoiceOpenAITools(): Array<{
+  type: "function";
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}> {
+  return Array.from(TOOL_BY_NAME.values())
+    .filter((t) => t.allowedInVoice)
+    .map((t) => ({
+      type: "function" as const,
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters,
+    }));
+}
+
+export { TOOL_BY_NAME, TOOL_DEFINITIONS } from "@/lib/tools/metadata";

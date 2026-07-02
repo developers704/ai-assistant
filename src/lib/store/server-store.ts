@@ -23,6 +23,10 @@ let serverState: AppState = {
   chatHistory: [],
   recentActions: [...mockRecentActions],
   imageAnalyses: [],
+  uiContext: {
+    currentPath: "/chat",
+    updatedAt: new Date().toISOString(),
+  },
 };
 
 export function getState(): AppState {
@@ -49,6 +53,10 @@ export function resetState(): void {
     chatHistory: [],
     recentActions: [...mockRecentActions],
     imageAnalyses: [],
+    uiContext: {
+      currentPath: "/chat",
+      updatedAt: new Date().toISOString(),
+    },
   };
 }
 
