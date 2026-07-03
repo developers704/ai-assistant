@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { CameraModal } from "@/components/CameraModal";
+import { ReferenceComposer, type ReferenceItem } from "@/components/images/ReferenceComposer";
+import { GEMINI_IMAGE_MODEL_LABEL } from "@/lib/gemini/config";
 import {
   Wand2,
   Sparkles,
@@ -19,9 +21,10 @@ import {
   Camera,
   Gem,
   Zap,
+  Layers,
 } from "lucide-react";
 
-type ImageKind = "generated" | "enhanced";
+type ImageKind = "generated" | "enhanced" | "composed";
 
 interface GeneratedImage {
   id: string;
@@ -32,6 +35,7 @@ interface GeneratedImage {
   quality: string;
   sourceFile?: File;
   instructions?: string;
+  composeRefs?: File[];
 }
 
 const PROMPT_IDEAS = [
@@ -44,6 +48,7 @@ const PROMPT_IDEAS = [
 
 const SIZES = [
   { id: "1024x1024", label: "Square", ratio: "1:1" },
+  { id: "1792x1024", label: "Wide", ratio: "16:9" },
   { id: "1536x1024", label: "Landscape", ratio: "3:2" },
   { id: "1024x1536", label: "Portrait", ratio: "2:3" },
 ];
@@ -134,10 +139,12 @@ function ImageCard({
             "absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide uppercase backdrop-blur-md",
             img.kind === "enhanced"
               ? "bg-amber-500/25 text-amber-100 ring-1 ring-amber-400/40"
-              : "bg-violet-500/25 text-violet-100 ring-1 ring-violet-400/40"
+              : img.kind === "composed"
+                ? "bg-emerald-500/25 text-emerald-100 ring-1 ring-emerald-400/40"
+                : "bg-violet-500/25 text-violet-100 ring-1 ring-violet-400/40"
           )}
         >
-          {img.kind === "enhanced" ? "Enhanced" : "AI Generated"}
+          {img.kind === "enhanced" ? "Enhanced" : img.kind === "composed" ? "Composed" : "AI Generated"}
         </span>
         <span className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-medium ring-1 ring-white/20">
           <Maximize2 size={12} /> View
@@ -164,9 +171,9 @@ function ImageCard({
 }
 
 export default function ImageGenerationPage() {
-  const [mode, setMode] = useState<"generate" | "enhance">("generate");
+  const [mode, setMode] = useState<"generate" | "enhance" | "compose">("compose");
   const [prompt, setPrompt] = useState("");
-  const [size, setSize] = useState("1024x1024");
+  const [size, setSize] = useState("1792x1024");
   const [quality, setQuality] = useState("high");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -206,6 +213,39 @@ export default function ImageGenerationPage() {
       })
       .catch(() => {});
   }, []);
+
+  const compose = async (text: string, refItems: ReferenceItem[]) => {
+    if (!text.trim() || refItems.length === 0 || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("prompt", text.trim());
+      fd.append("size", size);
+      fd.append("quality", quality);
+      refItems.forEach((r) => fd.append("images", r.file));
+      const res = await fetch("/api/compose-image", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Compose failed");
+      const refFiles = refItems.map((r) => r.file);
+      setImages((prev) => [
+        {
+          id: crypto.randomUUID(),
+          prompt: text.trim(),
+          src: data.image,
+          kind: "composed",
+          size,
+          quality,
+          composeRefs: refFiles,
+        },
+        ...prev,
+      ]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const generate = async (text: string) => {
     if (!text.trim() || loading) return;
@@ -285,6 +325,15 @@ export default function ImageGenerationPage() {
     setQuality(img.quality);
     if (img.kind === "generated") {
       generate(img.prompt);
+    } else if (img.kind === "composed" && img.composeRefs?.length) {
+      compose(
+        img.prompt,
+        img.composeRefs.map((f) => ({
+          id: f.name,
+          file: f,
+          preview: URL.createObjectURL(f),
+        }))
+      );
     } else if (img.sourceFile) {
       enhance(img.sourceFile, img.instructions);
     }
@@ -318,14 +367,14 @@ export default function ImageGenerationPage() {
                   <Gem size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
                 </span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25">
-                  <Zap size={10} /> Nano Banana 2
+                  <Zap size={10} /> {GEMINI_IMAGE_MODEL_LABEL}
                 </span>
               </div>
               <h1 className="text-lg sm:text-2xl font-display font-bold text-gradient-title tracking-tight">
                 Jewelry Studio
               </h1>
               <p className="text-xs sm:text-sm text-ink-muted mt-1 max-w-lg leading-relaxed">
-                Create product shots from text, or enhance a raw photo for e-commerce.
+                Compose from multiple references, generate from text, or enhance a photo.
               </p>
             </div>
             {images.length > 0 && (
@@ -346,7 +395,23 @@ export default function ImageGenerationPage() {
           <div className="lg:w-[min(420px,100%)] shrink-0 border-b lg:border-b-0 lg:border-r border-white/10 lg:overflow-y-auto lg:min-h-0">
             <div className="p-3 sm:p-5 space-y-4 lg:max-h-full safe-area-bottom">
               {/* Mode switch */}
-              <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-black/25 ring-1 ring-white/10">
+              <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-black/25 ring-1 ring-white/10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCamera(false);
+                    setMode("compose");
+                    setError(null);
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 min-h-[44px]",
+                    mode === "compose"
+                      ? "bg-gradient-to-br from-violet-600/80 to-fuchsia-600/70 text-white shadow-[0_4px_24px_rgba(139,92,246,0.25)]"
+                      : "text-ink-muted hover:text-ink hover:bg-white/5"
+                  )}
+                >
+                  <Layers size={15} /> Compose
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -355,13 +420,13 @@ export default function ImageGenerationPage() {
                     setError(null);
                   }}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl text-sm font-medium transition-all duration-200 min-h-[44px]",
+                    "flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 min-h-[44px]",
                     mode === "generate"
                       ? "bg-gradient-to-br from-violet-600/80 to-fuchsia-600/70 text-white shadow-[0_4px_24px_rgba(139,92,246,0.25)]"
                       : "text-ink-muted hover:text-ink hover:bg-white/5"
                   )}
                 >
-                  <Wand2 size={16} /> Generate
+                  <Wand2 size={15} /> Generate
                 </button>
                 <button
                   type="button"
@@ -370,17 +435,28 @@ export default function ImageGenerationPage() {
                     setError(null);
                   }}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl text-sm font-medium transition-all duration-200 min-h-[44px]",
+                    "flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 min-h-[44px]",
                     mode === "enhance"
                       ? "bg-gradient-to-br from-violet-600/80 to-fuchsia-600/70 text-white shadow-[0_4px_24px_rgba(139,92,246,0.25)]"
                       : "text-ink-muted hover:text-ink hover:bg-white/5"
                   )}
                 >
-                  <Sparkles size={16} /> Enhance
+                  <Sparkles size={15} /> Enhance
                 </button>
               </div>
 
-              {mode === "generate" ? (
+              {mode === "compose" ? (
+                <ReferenceComposer
+                  size={size}
+                  quality={quality}
+                  loading={loading}
+                  onSizeChange={setSize}
+                  onQualityChange={setQuality}
+                  onCompose={compose}
+                  sizes={SIZES.map((s) => ({ id: s.id, label: s.label, hint: s.ratio }))}
+                  qualities={QUALITIES}
+                />
+              ) : mode === "generate" ? (
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -595,7 +671,11 @@ export default function ImageGenerationPage() {
                     <Sparkles size={16} className="absolute -top-1 -right-1 text-amber-300 animate-pulse" />
                   </div>
                   <p className="text-base font-medium text-ink">
-                    {mode === "enhance" ? "Polishing your photo…" : "Rendering your jewelry…"}
+                    {mode === "enhance"
+                      ? "Polishing your photo…"
+                      : mode === "compose"
+                        ? "Composing from references…"
+                        : "Rendering your jewelry…"}
                   </p>
                   <p className="text-sm text-ink-muted mt-1">Usually 10–30 seconds · sit tight</p>
                 </div>
@@ -611,7 +691,7 @@ export default function ImageGenerationPage() {
                   </div>
                   <p className="text-lg font-semibold text-ink">Your canvas is ready</p>
                   <p className="text-sm text-ink-muted mt-2 max-w-sm mx-auto leading-relaxed">
-                    Describe a piece on the left, pick a quick idea, or upload a photo to enhance.
+                    Upload references and use @img1 @img2 in your prompt, generate from text, or enhance a photo.
                   </p>
                   <div className="flex flex-wrap justify-center gap-2 mt-6">
                     {["Rings", "Necklaces", "Earrings", "Bracelets"].map((tag) => (

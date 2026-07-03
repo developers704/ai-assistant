@@ -6,7 +6,7 @@ import { editGeminiImage } from "@/lib/gemini/image";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-const SIZES = ["1024x1024", "1536x1024", "1024x1536", "auto"] as const;
+const SIZES = ["1024x1024", "1536x1024", "1024x1536", "1792x1024", "auto"] as const;
 type Size = (typeof SIZES)[number];
 
 const MAX_BYTES = 20 * 1024 * 1024;

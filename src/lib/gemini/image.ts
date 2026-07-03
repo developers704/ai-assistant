@@ -7,6 +7,8 @@ import {
   sizeToAspectRatio,
 } from "@/lib/gemini/config";
 
+import { buildComposeInstruction } from "@/lib/gemini/compose-prompt";
+
 function getClient(): GoogleGenAI {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
@@ -54,6 +56,56 @@ async function generateWithModel(
     throw new Error("Gemini did not return an image.");
   }
   return image;
+}
+
+export interface ComposeImageInput {
+  buffer: Buffer;
+  mimeType: string;
+}
+
+export async function composeGeminiImage(
+  userPrompt: string,
+  references: ComposeImageInput[],
+  size = "1792x1024",
+  quality: ImageQuality = "high"
+): Promise<{ image: string; model: string; imageSize: string }> {
+  if (!isGeminiConfigured()) {
+    throw new Error("GEMINI_API_KEY is not configured.");
+  }
+  if (references.length === 0) {
+    throw new Error("At least one reference image is required.");
+  }
+
+  const instruction = buildComposeInstruction(userPrompt, references.length);
+  const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
+
+  references.forEach((ref, i) => {
+    parts.push({ text: `Reference image ${i + 1} (@img${i + 1}):` });
+    parts.push({
+      inlineData: {
+        mimeType: ref.mimeType || "image/png",
+        data: ref.buffer.toString("base64"),
+      },
+    });
+  });
+  parts.push({ text: instruction });
+
+  const aspectRatio = sizeToAspectRatio(size);
+  const imageSize = resolveImageSize(quality);
+  let lastError: unknown;
+
+  for (const model of GEMINI_IMAGE_MODEL_FALLBACKS) {
+    try {
+      const image = await generateWithModel(model, parts, aspectRatio, imageSize);
+      return { image, model, imageSize };
+    } catch (err) {
+      lastError = err;
+      console.warn(`Gemini compose failed for model ${model}:`, err);
+    }
+  }
+
+  const message = lastError instanceof Error ? lastError.message : "Unknown error";
+  throw new Error(`Gemini image compose failed: ${message}`);
 }
 
 export async function generateGeminiImage(
