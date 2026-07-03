@@ -5,6 +5,7 @@ export type RoutedIntent =
   | "email.summary"
   | "email.draft"
   | "sales.read"
+  | "sales.top_store"
   | "sales.analysis"
   | "contacts.search"
   | "task.create"
@@ -14,6 +15,7 @@ export type RoutedIntent =
   | "image.generate"
   | "knowledge.search"
   | "navigation"
+  | "affirmative.open"
   | "complex_planner"
   | "confirm"
   | "reject"
@@ -24,6 +26,7 @@ export interface IntentRouteInput {
   currentPath?: string;
   selectedEmailId?: string;
   selectedMeetingId?: string;
+  hasPendingAction?: boolean;
 }
 
 const COMPLEX_TRIGGERS =
@@ -32,19 +35,47 @@ const COMPLEX_TRIGGERS =
 const MULTI_ACTION =
   /\b(and|aur|then|phir)\b.+\b(email|meeting|calendar|sales|task|draft|schedule|delete)\b/i;
 
+const EMAIL_DRAFT =
+  /\b(send|write|draft|compose|reply)\b[\s\S]{0,40}\b(email|mail|message)\b[\s\S]{0,30}\b(to|for)\b/i;
+
+const EMAIL_DRAFT_ALT =
+  /\b(email|mail)\s+to\s+[a-z]/i;
+
+const MEETING_CREATE =
+  /\b(set|schedule|book|create|add|plan)\b[\s\S]{0,30}\b(meeting|appointment|call)\b/i;
+
+const MEETING_WITH =
+  /\bmeeting\s+with\b/i;
+
+const TOP_STORE =
+  /\b(best|top|highest|leading|#1|number\s*one)\b.*\b(store|location)\b/i;
+
+const ONE_TOP_STORE =
+  /\b(one|single)\s+store\b.*\b(top|sales|best|highest)\b/i;
+
+const FULL_SALES_REPORT =
+  /\b(full|complete|entire|detailed|breakdown|all stores|all products)\b.*\b(report|sales|summary)\b/i;
+
 /**
- * Deterministic intent router — no OpenAI cost for basic routing.
- * Planner runs ONLY when this returns complex_planner.
+ * Deterministic intent router — priority-ordered; no blanket "yes" → confirm.
  */
 export function routeIntent(input: IntentRouteInput): RoutedIntent {
   const lower = input.message.toLowerCase().trim();
   const path = input.currentPath ?? "";
 
-  if (/^(yes|confirm|go ahead|send it|proceed|approved?|do it)\b/i.test(lower)) {
-    return "confirm";
-  }
   if (/^(no|cancel|reject|don't|stop|nevermind|never mind)\b/i.test(lower)) {
     return "reject";
+  }
+
+  if (
+    /^(yes|yeah|yep|sure|ok|okay|alright|please|pls)\b/i.test(lower) &&
+    (/\b(open|show|go to|view|read|more|news|market|sales|email|calendar)\b/i.test(lower))
+  ) {
+    return "affirmative.open";
+  }
+
+  if (/^(yes|confirm|go ahead|send it|proceed|approved?|do it)\b/i.test(lower)) {
+    return input.hasPendingAction ? "confirm" : "affirmative.open";
   }
 
   if (COMPLEX_TRIGGERS.test(lower) || MULTI_ACTION.test(lower)) {
@@ -67,26 +98,47 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "calendar.delete";
   }
 
+  if (EMAIL_DRAFT.test(lower) || EMAIL_DRAFT_ALT.test(lower)) {
+    return "email.draft";
+  }
+
+  if (MEETING_CREATE.test(lower) || (MEETING_WITH.test(lower) && /\b(tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\s*(am|pm))\b/i.test(lower))) {
+    if (/\b(delete|cancel|remove)\b/i.test(lower)) return "calendar.delete";
+    return "calendar.create";
+  }
+
+  if (TOP_STORE.test(lower) || ONE_TOP_STORE.test(lower) || /\bwhich\s+store\b.*\b(sales|revenue|best|top)\b/i.test(lower)) {
+    return "sales.top_store";
+  }
+
   if (/\b(gold|silver|metal)\b.*\b(price|rate)\b/i.test(lower) || /\bkitne ka gold\b/i.test(lower)) {
     return "news.gold";
   }
+
   if (/\b(calendar|meeting|schedule|appointment|aaj.*meeting)\b/i.test(lower)) {
     if (/\b(delete|cancel|remove)\b/i.test(lower)) return "calendar.delete";
-    if (/\b(add|schedule|book|create)\b/i.test(lower)) return "calendar.create";
+    if (/\b(add|schedule|book|create|set|plan)\b/i.test(lower)) return "calendar.create";
     return "calendar.read";
   }
+
   if (/\b(email|inbox|mail|unread)\b/i.test(lower)) {
-    if (/\b(draft|reply|write)\b/i.test(lower)) return "email.draft";
+    if (/\b(draft|reply|write|send)\b/i.test(lower)) return "email.draft";
     return "email.summary";
   }
+
   if (/\b(sales|revenue|top product|mhvr|csv report)\b/i.test(lower)) {
     if (/\b(analyze|trend|forecast|compare)\b/i.test(lower)) return "sales.analysis";
+    if (FULL_SALES_REPORT.test(lower)) return "sales.read";
+    if (/\b(store|location)\b/i.test(lower)) return "sales.top_store";
     return "sales.read";
   }
+
   if (/\b(contact|phone number|call )\b/i.test(lower)) return "contacts.search";
   if (/\b(remind|add task|create task|to-do)\b/i.test(lower)) return "task.create";
   if (/\b(delete task|remove task|cancel task)\b/i.test(lower)) return "task.delete";
-  if (/\b(industry|jewelry|jewellery) news\b/i.test(lower)) return "news.industry";
+  if (/\b(industry|jewelry|jewellery|market)\b.*\bnews\b/i.test(lower) || /\bnews\b.*\b(market|industry|jewelry|jewellery)\b/i.test(lower)) {
+    return "news.industry";
+  }
   if (/\b(generate|create).*\b(image|photo|ring|necklace)\b/i.test(lower)) return "image.generate";
   if (/\b(policy|return|store count|brand|founder|valliani)\b/i.test(lower)) return "knowledge.search";
   if (/\b(open|go to|show)\b.*\b(page|dashboard|sales|email|calendar|analyst|images|news)\b/i.test(lower)) {
@@ -104,6 +156,7 @@ export function intentToTool(intent: RoutedIntent): string | null {
     "email.summary": "get_email_summary",
     "email.draft": "draft_email_reply",
     "sales.read": "get_today_sales",
+    "sales.top_store": "get_today_sales",
     "sales.analysis": "open_data_analyst",
     "contacts.search": "list_contacts",
     "task.create": "add_task",

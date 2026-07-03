@@ -22,6 +22,8 @@ import { executeTool } from "@/lib/tools/registry";
 import { loadChatSystemPrompt } from "@/lib/prompts/loader";
 import { buildDynamicContext } from "./dynamic-context";
 import { OPENAI_CHAT_MODEL } from "@/lib/openai/config";
+import { synthesizeToolResponse } from "@/lib/ai/response-synthesizer";
+import { savePendingAction } from "@/lib/actions/confirmation";
 
 export function isLLMChatConfigured(): boolean {
   const key = process.env.OPENAI_API_KEY;
@@ -195,14 +197,24 @@ async function handleToolCall(
   if (READ_TOOL_NAMES.has(name) || name === "draft_email_reply") {
     const executorName = mapToolNameForExecutor(name);
     const result = await executeTool(executorName, args, { source: "chat" });
-    const formatted = result.textAnswer ?? result.spokenAnswer ?? "Done.";
+    const synthesized = synthesizeToolResponse({
+      toolName: executorName,
+      result,
+      userMessage,
+    });
+    if (synthesized.pendingOffer && !result.pendingAction) {
+      savePendingAction(synthesized.pendingOffer);
+    }
     const prefix = assistantText ? `${assistantText}\n\n` : "";
     return {
       intent: intentForTool(name),
-      message: prefix + formatted,
+      message: prefix + synthesized.message,
       speak: true,
-      pendingAction: result.pendingAction,
-      data: result.navigateTo ? { navigate: result.navigateTo } : undefined,
+      pendingAction: result.pendingAction ?? synthesized.pendingOffer,
+      data:
+        synthesized.navigateTo ?? result.navigateTo
+          ? { navigate: synthesized.navigateTo ?? result.navigateTo }
+          : undefined,
     };
   }
 

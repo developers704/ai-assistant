@@ -60,7 +60,11 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
     }
 
     case "get_today_sales":
-      return typeof data.markdown === "string" ? data.markdown : formatSalesReportMarkdown();
+      return typeof data.synthesizedAnswer === "string"
+        ? data.synthesizedAnswer
+        : typeof data.markdown === "string"
+          ? data.markdown
+          : formatSalesReportMarkdown();
 
     case "get_daily_briefing":
       return String(data.spokenAnswer ?? data.markdown ?? "Daily briefing loaded.");

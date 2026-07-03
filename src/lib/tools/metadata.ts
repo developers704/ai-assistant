@@ -20,7 +20,18 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     whenNotToUse: "Never guess sales numbers from memory.",
     examplePhrases: ["how are sales today", "top products", "revenue this week"],
     costNotes: "No LLM — reads local report.",
-    parameters: emptyParams,
+    parameters: {
+      type: "object",
+      properties: {
+        focus: {
+          type: "string",
+          enum: ["top_store", "summary", "full_report"],
+          description: "top_store = best store only; summary = brief; full_report = complete breakdown",
+        },
+        user_message: { type: "string", description: "Original user question for focus inference" },
+      },
+      additionalProperties: false,
+    },
   },
   {
     name: "get_email_summary",

@@ -191,7 +191,8 @@ export interface PendingAction {
     | "meeting_update"
     | "meeting_cancel"
     | "task_delete"
-    | "document_share";
+    | "document_share"
+    | "assistant_offer";
   title: string;
   preview: string;
   payload: Record<string, unknown>;

@@ -129,19 +129,35 @@ export async function executeVoiceTool(
 ): Promise<VoiceToolResult> {
   switch (name) {
     case "get_today_sales": {
+      const focusArg = String(args.focus ?? "summary");
+      const userMessage = args.user_message ? String(args.user_message) : "";
+      const { detectSalesFocus } = await import("@/lib/ai/sales-focus");
+      const { formatSalesByFocus } = await import("@/lib/assistant/sales-data");
+      const focus = (
+        focusArg === "top_store" || focusArg === "summary" || focusArg === "full_report"
+          ? focusArg
+          : detectSalesFocus(userMessage || focusArg)
+      ) as "top_store" | "summary" | "full_report";
+
       const { summary, source, label, vendorCode } = getAssistantSalesSummary();
       const topStores = summary.topStores.slice(0, 5);
       const topProducts = sortTopProducts(summary.topProducts).slice(0, 5);
+      const synthesizedAnswer = formatSalesByFocus(focus);
+
       const spoken =
-        source === "report"
-          ? `Latest report${label ? ` ${label}` : ""}: ${summary.totalRevenue.toLocaleString()} dollars net across ${summary.totalTransactions.toLocaleString()} units.`
-          : `Today's sales are $${summary.totalRevenue.toLocaleString()} across ${summary.totalTransactions} transactions. Demo data until a CSV is uploaded.`;
+        focus === "top_store" && topStores[0]
+          ? `Your top store is ${topStores[0].name} at ${topStores[0].revenue.toLocaleString()} dollars net.`
+          : source === "report"
+            ? `Latest report${label ? ` ${label}` : ""}: ${summary.totalRevenue.toLocaleString()} dollars net across ${summary.totalTransactions.toLocaleString()} units.`
+            : `Today's sales are $${summary.totalRevenue.toLocaleString()} across ${summary.totalTransactions} transactions. Demo data until a CSV is uploaded.`;
 
       return {
         output: JSON.stringify({
           source,
           reportLabel: label,
           vendorCode,
+          focus,
+          synthesizedAnswer,
           totalRevenue: summary.totalRevenue,
           totalTransactions: summary.totalTransactions,
           averageOrderValue: Math.round(summary.averageOrderValue),
@@ -156,7 +172,8 @@ export async function executeVoiceTool(
             units: p.units,
           })),
           spokenAnswer: spoken,
-          markdown: formatSalesReportMarkdown(),
+          markdown:
+            focus === "full_report" ? formatSalesReportMarkdown() : synthesizedAnswer,
           note:
             source === "report"
               ? `From uploaded report${vendorCode ? ` (${vendorCode})` : ""}.`

@@ -1,17 +1,33 @@
 import type { AIResponse, AppState } from "@/types";
-import { routeIntent, intentToTool } from "@/lib/ai/intent-router";
+import { routeIntent, intentToTool, type RoutedIntent } from "@/lib/ai/intent-router";
 import { buildDynamicContext } from "@/lib/ai/dynamic-context";
 import { runPlanner } from "@/lib/ai/planner";
 import { validateToolResult } from "@/lib/ai/validator";
 import { executeTool, executeConfirmedPending } from "@/lib/tools/registry";
 import {
   clearPendingActions,
+  getActivePendingAction,
+  savePendingAction,
+} from "@/lib/actions/confirmation";
+import {
   isConfirmMessage,
   isRejectMessage,
-} from "@/lib/actions/confirmation";
+  isStrictConfirmMessage,
+} from "@/lib/actions/confirmation-messages";
 import { extractFactsFromMessage } from "@/lib/memory/extract";
 import { updateUiContext } from "@/lib/store/ui-context";
 import { intentForTool } from "@/lib/assistant/format-tool-result";
+import { detectSalesFocus } from "@/lib/ai/sales-focus";
+import { parseMeetingFromMessage } from "@/lib/ai/meeting-parse";
+import {
+  resolveOpenTargetFromMessage,
+  type OfferTarget,
+} from "@/lib/actions/pending-offer";
+import {
+  synthesizeOfferExecution,
+  synthesizeToolResponse,
+} from "@/lib/ai/response-synthesizer";
+import type { ToolResult } from "@/lib/tools/types";
 
 const FAST_READ_TOOLS = new Set([
   "get_calendar_today",
@@ -27,26 +43,82 @@ const FAST_READ_TOOLS = new Set([
   "search_company_knowledge",
 ]);
 
-function toolResultToAIResponse(
+function buildSalesToolArgs(message: string, routed: RoutedIntent): Record<string, unknown> {
+  const focus =
+    routed === "sales.top_store"
+      ? "top_store"
+      : detectSalesFocus(message, routed);
+  return {
+    focus,
+    user_message: message,
+  };
+}
+
+function finalizeResponse(
   toolName: string,
-  result: Awaited<ReturnType<typeof executeTool>>,
-  prefix?: string
+  result: ToolResult,
+  message: string,
+  routed: RoutedIntent
 ): AIResponse {
-  const message =
-    (prefix ? `${prefix}\n\n` : "") +
-    (result.textAnswer ?? result.spokenAnswer ?? "Done.");
+  const synthesized = synthesizeToolResponse({
+    toolName,
+    result,
+    userMessage: message,
+    routedIntent: routed,
+  });
+
+  if (synthesized.pendingOffer && !result.pendingAction) {
+    savePendingAction(synthesized.pendingOffer);
+  }
+
   return {
     intent: intentForTool(toolName),
-    message,
+    message: synthesized.message,
     speak: true,
-    pendingAction: result.pendingAction,
-    data: result.navigateTo ? { navigate: result.navigateTo } : undefined,
+    pendingAction: result.pendingAction ?? synthesized.pendingOffer,
+    data:
+      synthesized.navigateTo ?? result.navigateTo
+        ? { navigate: synthesized.navigateTo ?? result.navigateTo }
+        : undefined,
+  };
+}
+
+async function executeOpenOffer(
+  message: string,
+  target?: OfferTarget | null
+): Promise<AIResponse | null> {
+  const pending = getActivePendingAction();
+
+  if (pending) {
+    const result = await executeConfirmedPending({ source: "chat" });
+    if (result) {
+      const synth = synthesizeOfferExecution(
+        (pending.payload.target as OfferTarget) ?? "news",
+        result
+      );
+      return {
+        intent: "general",
+        message: synth.message,
+        speak: true,
+        data: synth.navigateTo ? { navigate: synth.navigateTo } : undefined,
+      };
+    }
+  }
+
+  const openTarget = target ?? resolveOpenTargetFromMessage(message);
+  if (!openTarget) return null;
+
+  const synth = synthesizeOfferExecution(openTarget);
+  return {
+    intent: "general",
+    message: synth.message,
+    speak: true,
+    data: synth.navigateTo ? { navigate: synth.navigateTo } : undefined,
   };
 }
 
 /**
- * Deterministic pre-LLM handler — saves OpenAI cost on confirm/reject/simple reads.
- * Planner gated to complex_planner only.
+ * Deterministic pre-LLM handler — routes with priority; synthesizes focused answers.
  */
 export async function tryRoutedResponse(
   message: string,
@@ -55,26 +127,17 @@ export async function tryRoutedResponse(
   extractFactsFromMessage(message);
 
   const ui = state.uiContext;
+  const hasPending = !!getActivePendingAction();
+
   const routed = routeIntent({
     message,
     currentPath: ui?.currentPath,
     selectedEmailId: ui?.selectedEmailId,
     selectedMeetingId: ui?.selectedMeetingId,
+    hasPendingAction: hasPending,
   });
 
   updateUiContext({ lastUserIntent: routed });
-
-  if (isConfirmMessage(message) || routed === "confirm") {
-    const result = await executeConfirmedPending({ source: "chat" });
-    if (result) {
-      return toolResultToAIResponse(result.toolName, result, "Confirmed.");
-    }
-    return {
-      intent: "confirm_action",
-      message: "There's nothing pending confirmation right now.",
-      speak: true,
-    };
-  }
 
   if (isRejectMessage(message) || routed === "reject") {
     clearPendingActions();
@@ -83,6 +146,26 @@ export async function tryRoutedResponse(
       message: "Cancelled. What would you like to do next?",
       speak: true,
     };
+  }
+
+  if (routed === "affirmative.open") {
+    const opened = await executeOpenOffer(message);
+    if (opened) return opened;
+    if (!hasPending) return null;
+  }
+
+  if (
+    (routed === "confirm" || isStrictConfirmMessage(message)) &&
+    hasPending
+  ) {
+    const result = await executeConfirmedPending({ source: "chat" });
+    if (result) {
+      return finalizeResponse(result.toolName, result, message, routed);
+    }
+  }
+
+  if (isConfirmMessage(message) && !hasPending) {
+    return null;
   }
 
   if (routed === "complex_planner") {
@@ -97,7 +180,7 @@ export async function tryRoutedResponse(
         });
         validateToolResult(result);
         if (result.status === "needs_confirmation" && result.pendingAction) {
-          return toolResultToAIResponse(step.tool, result);
+          return finalizeResponse(step.tool, result, message, routed);
         }
         lines.push(`- ${step.reason}: ${result.spokenAnswer ?? result.textAnswer ?? "done"}`);
         if (!result.ok) break;
@@ -111,12 +194,17 @@ export async function tryRoutedResponse(
   }
 
   const toolName = intentToTool(routed);
+
   if (toolName && FAST_READ_TOOLS.has(toolName)) {
     const args =
-      toolName === "search_company_knowledge" ? { query: message } : {};
+      toolName === "search_company_knowledge"
+        ? { query: message }
+        : toolName === "get_today_sales"
+          ? buildSalesToolArgs(message, routed)
+          : { user_message: message };
     const result = await executeTool(toolName, args, { source: "chat" });
     validateToolResult(result);
-    return toolResultToAIResponse(toolName, result);
+    return finalizeResponse(toolName, result, message, routed);
   }
 
   if (routed === "email.draft") {
@@ -125,7 +213,22 @@ export async function tryRoutedResponse(
       { user_message: message },
       { source: "chat" }
     );
-    return toolResultToAIResponse("draft_email_reply", result);
+    return finalizeResponse("draft_email_reply", result, message, routed);
+  }
+
+  if (routed === "calendar.create") {
+    const meeting = parseMeetingFromMessage(message, state);
+    const result = await executeTool(
+      "add_meeting",
+      {
+        title: meeting.title,
+        start: meeting.start,
+        attendees: meeting.attendees,
+        user_message: message,
+      },
+      { source: "chat" }
+    );
+    return finalizeResponse("add_meeting", result, message, routed);
   }
 
   if (routed === "calendar.delete") {
@@ -134,7 +237,14 @@ export async function tryRoutedResponse(
       ui?.selectedMeetingId ? { event_id: ui.selectedMeetingId } : {},
       { source: "chat" }
     );
-    return toolResultToAIResponse("delete_meeting", result);
+    return finalizeResponse("delete_meeting", result, message, routed);
+  }
+
+  if (routed === "navigation") {
+    const target = resolveOpenTargetFromMessage(message);
+    if (target) {
+      return executeOpenOffer(message, target);
+    }
   }
 
   return null;

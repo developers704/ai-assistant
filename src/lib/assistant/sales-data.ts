@@ -3,6 +3,7 @@ import { getLatestReportWithSummary } from "@/lib/reports/store";
 import type { ReportSummary } from "@/lib/reports/types";
 import type { SalesSummary } from "@/types";
 import { formatCurrency, formatPieceCount, sortTopProducts } from "@/lib/utils";
+import type { SalesFocus } from "@/lib/ai/sales-focus";
 
 export function getAssistantSalesSummary(): {
   summary: SalesSummary | ReportSummary;
@@ -20,6 +21,67 @@ export function getAssistantSalesSummary(): {
     };
   }
   return { summary: computeSalesSummary(mockSalesData), source: "mock" };
+}
+
+export function formatTopStoreAnswer(): string {
+  const { summary, source, label } = getAssistantSalesSummary();
+  const top = summary.topStores[0];
+  if (!top) {
+    return "I don't have store-level sales data right now. Upload a sales report in Data Analyst or open the Sales Dashboard.";
+  }
+
+  const share =
+    summary.totalRevenue > 0
+      ? ((top.revenue / summary.totalRevenue) * 100).toFixed(1)
+      : null;
+
+  const period =
+    source === "report" ? (label ? ` (${label})` : " (latest report)") : " (demo data)";
+
+  let answer = `Your **top-performing store** is **${top.name}** with **${formatCurrency(top.revenue)}** net sales${period}.`;
+  if (share) {
+    answer += ` That's **${share}%** of total net revenue (${formatCurrency(summary.totalRevenue)}).`;
+  }
+  if (summary.topStores.length > 1) {
+    const runner = summary.topStores[1];
+    answer += `\n\nNext: **${runner.name}** at ${formatCurrency(runner.revenue)}.`;
+  }
+  answer += "\n\nSay **full sales report** if you want the complete breakdown.";
+  return answer;
+}
+
+export function formatSalesSummaryBrief(): string {
+  const { summary, source, label, vendorCode } = getAssistantSalesSummary();
+  const changeIcon = summary.comparisonPreviousDay >= 0 ? "↑" : "↓";
+  const top = summary.topStores[0];
+  const header =
+    source === "report"
+      ? `**Sales** — ${vendorCode ? `${vendorCode} · ` : ""}${label ?? "latest report"}`
+      : "**Sales** _(demo data)_";
+
+  let md = `${header}
+
+**Net revenue:** ${formatCurrency(summary.totalRevenue)} (${changeIcon} ${Math.abs(summary.comparisonPreviousDay).toFixed(1)}% vs prior period)
+**Transactions:** ${summary.totalTransactions.toLocaleString()} · **AOV:** ${formatCurrency(summary.averageOrderValue)}`;
+
+  if (top) {
+    md += `\n**Top store:** ${top.name} — ${formatCurrency(top.revenue)}`;
+  }
+
+  md += "\n\nAsk for **full report** or **best store** for more detail.";
+  return md;
+}
+
+export function formatSalesByFocus(focus: SalesFocus): string {
+  switch (focus) {
+    case "top_store":
+      return formatTopStoreAnswer();
+    case "summary":
+      return formatSalesSummaryBrief();
+    case "full_report":
+    default:
+      return formatSalesReportMarkdown();
+  }
 }
 
 export function formatSalesReportMarkdown(): string {

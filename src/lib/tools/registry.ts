@@ -43,7 +43,12 @@ export function mapLegacyResult(toolName: string, legacy: VoiceToolResult): Tool
     status: success ? "success" : "failed",
     confidence: success ? 0.95 : 0.5,
     spokenAnswer: spoken,
-    textAnswer: typeof data.markdown === "string" ? data.markdown : spoken,
+    textAnswer:
+      typeof data.synthesizedAnswer === "string"
+        ? data.synthesizedAnswer
+        : typeof data.markdown === "string"
+          ? data.markdown
+          : spoken,
     data,
     navigateTo: legacy.uiAction?.path,
     error: success ? undefined : spoken,
@@ -147,6 +152,42 @@ export async function executeConfirmedPending(
 ): Promise<ToolResult | null> {
   const pending = getActivePendingAction();
   if (!pending) return null;
+
+  if (pending.type === "assistant_offer") {
+    const path = String(pending.payload.path ?? "/");
+    const offerTool =
+      typeof pending.payload.toolName === "string"
+        ? pending.payload.toolName
+        : pending.toolName;
+    const toolArgs =
+      (pending.payload.toolArgs as Record<string, unknown> | undefined) ?? {};
+
+    const { clearPendingActions } = await import("@/lib/actions/confirmation");
+
+    if (offerTool && offerTool !== "show_detail_page") {
+      const result = await executeTool(offerTool, toolArgs, {
+        ...ctx,
+        confirmed: true,
+        pendingActionId: pending.id,
+      });
+      clearPendingActions();
+      return {
+        ...result,
+        navigateTo: result.navigateTo ?? path,
+      };
+    }
+
+    clearPendingActions();
+    return {
+      ok: true,
+      toolName: "show_detail_page",
+      status: "success",
+      confidence: 1,
+      spokenAnswer: `Opening ${pending.preview}.`,
+      textAnswer: `Opening **${pending.preview}** for you.`,
+      navigateTo: path,
+    };
+  }
 
   if (pending.type === "email" || pending.toolName === "send_email_reply") {
     const { sendGmailMessage } = await import("@/lib/google/gmail");
