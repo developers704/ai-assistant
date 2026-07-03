@@ -3,17 +3,8 @@ import { routeIntent, intentToTool, type RoutedIntent } from "@/lib/ai/intent-ro
 import { buildDynamicContext } from "@/lib/ai/dynamic-context";
 import { runPlanner } from "@/lib/ai/planner";
 import { validateToolResult } from "@/lib/ai/validator";
-import { executeTool, executeConfirmedPending } from "@/lib/tools/registry";
-import {
-  clearPendingActions,
-  getActivePendingAction,
-  savePendingAction,
-} from "@/lib/actions/confirmation";
-import {
-  isConfirmMessage,
-  isRejectMessage,
-  isStrictConfirmMessage,
-} from "@/lib/actions/confirmation-messages";
+import { executeTool } from "@/lib/tools/registry";
+import { getActivePendingAction, savePendingAction } from "@/lib/actions/confirmation";
 import { extractFactsFromMessage } from "@/lib/memory/extract";
 import { updateUiContext } from "@/lib/store/ui-context";
 import { intentForTool } from "@/lib/assistant/format-tool-result";
@@ -26,7 +17,19 @@ import {
 import {
   synthesizeOfferExecution,
   synthesizeToolResponse,
+  type AlexaChannel,
 } from "@/lib/ai/response-synthesizer";
+import { recordToolIntelligence } from "@/lib/ai/app-intelligence";
+import {
+  isComposeEmailToPerson,
+  composeEmailHasBody,
+  buildComposeEmailPrompt,
+} from "@/lib/ai/email-compose";
+import {
+  meetingRequestNeedsTime,
+  buildMeetingTimeClarify,
+} from "@/lib/ai/meeting-clarify";
+import { recordNavigationOffer, recordToolRun } from "@/lib/memory/working-memory";
 import type { ToolResult } from "@/lib/tools/types";
 
 const FAST_READ_TOOLS = new Set([
@@ -58,28 +61,40 @@ function finalizeResponse(
   toolName: string,
   result: ToolResult,
   message: string,
-  routed: RoutedIntent
+  routed: RoutedIntent,
+  channel: AlexaChannel
 ): AIResponse {
   const synthesized = synthesizeToolResponse({
     toolName,
     result,
     userMessage: message,
     routedIntent: routed,
+    channel,
   });
 
   if (synthesized.pendingOffer && !result.pendingAction) {
     savePendingAction(synthesized.pendingOffer);
   }
 
+  const nav = synthesized.navigateTo ?? result.navigateTo;
+  recordToolRun({
+    toolName,
+    summary: synthesized.message.slice(0, 120),
+    intent: routed,
+    navigateTo: nav,
+  });
+  if (nav) {
+    recordNavigationOffer(nav, toolName);
+  }
+
+  recordToolIntelligence(toolName, synthesized.message.slice(0, 120));
+
   return {
     intent: intentForTool(toolName),
     message: synthesized.message,
     speak: true,
     pendingAction: result.pendingAction ?? synthesized.pendingOffer,
-    data:
-      synthesized.navigateTo ?? result.navigateTo
-        ? { navigate: synthesized.navigateTo ?? result.navigateTo }
-        : undefined,
+    data: nav ? { navigate: nav } : undefined,
   };
 }
 
@@ -87,28 +102,11 @@ async function executeOpenOffer(
   message: string,
   target?: OfferTarget | null
 ): Promise<AIResponse | null> {
-  const pending = getActivePendingAction();
-
-  if (pending) {
-    const result = await executeConfirmedPending({ source: "chat" });
-    if (result) {
-      const synth = synthesizeOfferExecution(
-        (pending.payload.target as OfferTarget) ?? "news",
-        result
-      );
-      return {
-        intent: "general",
-        message: synth.message,
-        speak: true,
-        data: synth.navigateTo ? { navigate: synth.navigateTo } : undefined,
-      };
-    }
-  }
-
   const openTarget = target ?? resolveOpenTargetFromMessage(message);
   if (!openTarget) return null;
 
   const synth = synthesizeOfferExecution(openTarget);
+  recordNavigationOffer(synth.navigateTo ?? "/", openTarget);
   return {
     intent: "general",
     message: synth.message,
@@ -119,10 +117,12 @@ async function executeOpenOffer(
 
 /**
  * Deterministic pre-LLM handler — routes with priority; synthesizes focused answers.
+ * Confirm/reject/open follow-ups are handled upstream in processAlexaMessage.
  */
 export async function tryRoutedResponse(
   message: string,
-  state: AppState
+  state: AppState,
+  channel: AlexaChannel = "chat"
 ): Promise<AIResponse | null> {
   extractFactsFromMessage(message);
 
@@ -139,33 +139,9 @@ export async function tryRoutedResponse(
 
   updateUiContext({ lastUserIntent: routed });
 
-  if (isRejectMessage(message) || routed === "reject") {
-    clearPendingActions();
-    return {
-      intent: "reject_action",
-      message: "Cancelled. What would you like to do next?",
-      speak: true,
-    };
-  }
-
   if (routed === "affirmative.open") {
     const opened = await executeOpenOffer(message);
     if (opened) return opened;
-    if (!hasPending) return null;
-  }
-
-  if (
-    (routed === "confirm" || isStrictConfirmMessage(message)) &&
-    hasPending
-  ) {
-    const result = await executeConfirmedPending({ source: "chat" });
-    if (result) {
-      return finalizeResponse(result.toolName, result, message, routed);
-    }
-  }
-
-  if (isConfirmMessage(message) && !hasPending) {
-    return null;
   }
 
   if (routed === "complex_planner") {
@@ -175,12 +151,12 @@ export async function tryRoutedResponse(
       const lines: string[] = [`**${plan.goal}**`, ""];
       for (const step of plan.steps) {
         const result = await executeTool(step.tool, step.args ?? {}, {
-          source: "chat",
+          source: channel,
           confirmed: !step.requiresConfirmation,
         });
         validateToolResult(result);
         if (result.status === "needs_confirmation" && result.pendingAction) {
-          return finalizeResponse(step.tool, result, message, routed);
+          return finalizeResponse(step.tool, result, message, routed, channel);
         }
         lines.push(`- ${step.reason}: ${result.spokenAnswer ?? result.textAnswer ?? "done"}`);
         if (!result.ok) break;
@@ -193,6 +169,35 @@ export async function tryRoutedResponse(
     }
   }
 
+  if (
+    routed === "email.draft" &&
+    isComposeEmailToPerson(message) &&
+    !composeEmailHasBody(message) &&
+    !ui?.selectedEmailId
+  ) {
+    const prompt = buildComposeEmailPrompt(message, state);
+    recordNavigationOffer("/email", "compose email");
+    return {
+      intent: "email_draft",
+      message: prompt,
+      speak: true,
+    };
+  }
+
+  if (routed === "calendar.create" && meetingRequestNeedsTime(message)) {
+    const clarify = buildMeetingTimeClarify(message, state);
+    recordToolRun({
+      toolName: "add_meeting",
+      summary: clarify,
+      intent: "calendar.create",
+    });
+    return {
+      intent: "schedule_meeting",
+      message: clarify,
+      speak: true,
+    };
+  }
+
   const toolName = intentToTool(routed);
 
   if (toolName && FAST_READ_TOOLS.has(toolName)) {
@@ -202,18 +207,18 @@ export async function tryRoutedResponse(
         : toolName === "get_today_sales"
           ? buildSalesToolArgs(message, routed)
           : { user_message: message };
-    const result = await executeTool(toolName, args, { source: "chat" });
+    const result = await executeTool(toolName, args, { source: channel });
     validateToolResult(result);
-    return finalizeResponse(toolName, result, message, routed);
+    return finalizeResponse(toolName, result, message, routed, channel);
   }
 
   if (routed === "email.draft") {
     const result = await executeTool(
       "draft_email_reply",
       { user_message: message },
-      { source: "chat" }
+      { source: channel }
     );
-    return finalizeResponse("draft_email_reply", result, message, routed);
+    return finalizeResponse("draft_email_reply", result, message, routed, channel);
   }
 
   if (routed === "calendar.create") {
@@ -226,18 +231,23 @@ export async function tryRoutedResponse(
         attendees: meeting.attendees,
         user_message: message,
       },
-      { source: "chat" }
+      { source: channel }
     );
-    return finalizeResponse("add_meeting", result, message, routed);
+    return finalizeResponse("add_meeting", result, message, routed, channel);
   }
 
   if (routed === "calendar.delete") {
     const result = await executeTool(
       "delete_meeting",
-      ui?.selectedMeetingId ? { event_id: ui.selectedMeetingId } : {},
-      { source: "chat" }
+      ui?.selectedMeetingId ? { event_id: ui.selectedMeetingId } : { user_message: message },
+      { source: channel }
     );
-    return finalizeResponse("delete_meeting", result, message, routed);
+    return finalizeResponse("delete_meeting", result, message, routed, channel);
+  }
+
+  if (routed === "calendar.delete_all") {
+    const result = await executeTool("delete_all_meetings", {}, { source: channel });
+    return finalizeResponse("delete_all_meetings", result, message, routed, channel);
   }
 
   if (routed === "navigation") {

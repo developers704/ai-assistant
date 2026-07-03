@@ -2,6 +2,7 @@ export type RoutedIntent =
   | "calendar.read"
   | "calendar.create"
   | "calendar.delete"
+  | "calendar.delete_all"
   | "email.summary"
   | "email.draft"
   | "sales.read"
@@ -28,6 +29,14 @@ export interface IntentRouteInput {
   selectedMeetingId?: string;
   hasPendingAction?: boolean;
 }
+
+const DELETE_ALL_CALENDAR =
+  /\b(remove|delete|clear|wipe|empty)\b[\s\S]{0,40}\b(all|everything|every)\b[\s\S]{0,40}\b(calender|calendar|meetings?|schedule|events?)\b/i;
+
+const DELETE_ALL_MEETINGS =
+  /\b(remove|delete|clear)\b[\s\S]{0,30}\b(all|every|everything)\b[\s\S]{0,30}\bmeeting/i;
+
+const CALENDAR_TYPO = /\b(calender|calendar)\b/i;
 
 const COMPLEX_TRIGGERS =
   /\b(analyze|analyse|compare|forecast|strategy|recommend|plan my day|executive briefing|summarize everything|sales performance|why did sales|multiple|and then)\b/i;
@@ -78,6 +87,10 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return input.hasPendingAction ? "confirm" : "affirmative.open";
   }
 
+  if (DELETE_ALL_CALENDAR.test(lower) || DELETE_ALL_MEETINGS.test(lower)) {
+    return "calendar.delete_all";
+  }
+
   if (COMPLEX_TRIGGERS.test(lower) || MULTI_ACTION.test(lower)) {
     return "complex_planner";
   }
@@ -115,7 +128,7 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "news.gold";
   }
 
-  if (/\b(calendar|meeting|schedule|appointment|aaj.*meeting)\b/i.test(lower)) {
+  if (CALENDAR_TYPO.test(lower) || /\b(calendar|meeting|schedule|appointment|aaj.*meeting)\b/i.test(lower)) {
     if (/\b(delete|cancel|remove)\b/i.test(lower)) return "calendar.delete";
     if (/\b(add|schedule|book|create|set|plan)\b/i.test(lower)) return "calendar.create";
     return "calendar.read";
@@ -139,6 +152,12 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   if (/\b(industry|jewelry|jewellery|market)\b.*\bnews\b/i.test(lower) || /\bnews\b.*\b(market|industry|jewelry|jewellery)\b/i.test(lower)) {
     return "news.industry";
   }
+  if (/\b(news|market|headlines|gold news)\b/i.test(lower) && /\b(what|about|tell|show|latest)\b/i.test(lower)) {
+    return "news.industry";
+  }
+  if (/\b(news|market)\b/i.test(lower) && !/\b(email|inbox|mail)\b/i.test(lower)) {
+    return "news.industry";
+  }
   if (/\b(generate|create).*\b(image|photo|ring|necklace)\b/i.test(lower)) return "image.generate";
   if (/\b(policy|return|store count|brand|founder|valliani)\b/i.test(lower)) return "knowledge.search";
   if (/\b(open|go to|show)\b.*\b(page|dashboard|sales|email|calendar|analyst|images|news)\b/i.test(lower)) {
@@ -153,6 +172,7 @@ export function intentToTool(intent: RoutedIntent): string | null {
     "calendar.read": "get_calendar_today",
     "calendar.create": "add_meeting",
     "calendar.delete": "delete_meeting",
+    "calendar.delete_all": "delete_all_meetings",
     "email.summary": "get_email_summary",
     "email.draft": "draft_email_reply",
     "sales.read": "get_today_sales",

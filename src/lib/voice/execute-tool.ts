@@ -433,6 +433,56 @@ export async function executeVoiceTool(
       };
     }
 
+    case "delete_all_meetings": {
+      const eventIds = Array.isArray(args.event_ids)
+        ? args.event_ids.map(String)
+        : [];
+      const events = await getAllCalendarEvents();
+      const toDelete =
+        eventIds.length > 0
+          ? events.filter((e) => eventIds.includes(e.id))
+          : events;
+
+      if (toDelete.length === 0) {
+        return {
+          output: JSON.stringify({
+            success: false,
+            spokenAnswer: "There are no meetings on your calendar to delete.",
+          }),
+        };
+      }
+
+      if (isGoogleConnected()) {
+        const client = await getAuthenticatedClient();
+        if (client) {
+          for (const event of toDelete) {
+            try {
+              await deleteGoogleCalendarEvent(client, event.id);
+            } catch {
+              /* continue with remaining */
+            }
+          }
+          invalidateGoogleCache();
+        }
+      }
+
+      const removeIds = new Set(toDelete.map((e) => e.id));
+      setState((s) => ({
+        ...s,
+        events: s.events.filter((e) => !removeIds.has(e.id)),
+      }));
+
+      const count = toDelete.length;
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: `Removed ${count} meeting${count !== 1 ? "s" : ""} from your calendar.`,
+          removedCount: count,
+        }),
+        uiAction: { type: "navigate", path: "/calendar" },
+      };
+    }
+
     case "delete_meeting": {
       const titleQuery = String(args.title ?? args.event_title ?? "");
       const eventId = args.event_id ? String(args.event_id) : undefined;

@@ -8,6 +8,7 @@ import { retrieveRelevantMemories } from "@/lib/memory/retrieve";
 import { loadConversationSummaries } from "@/lib/memory/store";
 import { getUiContext } from "@/lib/store/ui-context";
 import { userTimezone } from "@/lib/calendar-dates";
+import { buildSectionContextBlock, buildSectionRuntimeContext } from "@/lib/ai/section-context";
 
 export interface CompactDynamicContext {
   currentTime: string;
@@ -92,10 +93,14 @@ export async function buildDynamicContext(
     textBlock: "",
   };
 
+  const sectionCtx = buildSectionRuntimeContext(state);
+  const sectionBlock = buildSectionContextBlock(sectionCtx);
+
   const lines = [
     `TIME: ${ctx.currentTime} (${ctx.timezone})`,
     `USER: ${ctx.userProfile}`,
     `PAGE: ${ctx.currentPage}`,
+    sectionBlock,
     ctx.selectedEmail ? `SELECTED EMAIL: ${ctx.selectedEmail}` : "",
     ctx.selectedMeeting ? `SELECTED MEETING: ${ctx.selectedMeeting}` : "",
     ctx.selectedReport ? `REPORT: ${ctx.selectedReport}` : "",

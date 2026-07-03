@@ -113,3 +113,43 @@ export function buildCalendarVoiceScript(
   const rest = sorted.length > 4 ? ` and ${sorted.length - 4} more` : "";
   return `You have ${sorted.length} events today: ${parts.join("; ")}${rest}.`;
 }
+
+/** All non-cancelled calendar events (today + upcoming) for bulk actions. */
+export async function getUpcomingCalendarEvents(): Promise<CalendarEvent[]> {
+  const state = getState();
+  const tz = userTimezone(state);
+  const googleConnected = isGoogleConnected();
+
+  if (googleConnected) {
+    const cached = getGoogleCache();
+    if (cached?.events?.length) {
+      return filterCalendarEvents(cached.events).filter((e) => e.status !== "cancelled");
+    }
+
+    try {
+      const client = await getAuthenticatedClient();
+      if (client) {
+        const fetched = await withTimeout(
+          fetchGoogleCalendarEvents(client, tz),
+          CALENDAR_FETCH_TIMEOUT_MS,
+          "Google calendar fetch"
+        );
+        const filtered = filterCalendarEvents(fetched).filter((e) => e.status !== "cancelled");
+        setGoogleCache({
+          emails: cached?.emails ?? [],
+          events: filtered,
+          contacts: cached?.contacts ?? [],
+          integration: {
+            connected: true as const,
+            email: getGoogleTokens()?.email,
+          },
+        });
+        return filtered;
+      }
+    } catch (err) {
+      console.warn("Upcoming calendar fetch failed:", err);
+    }
+  }
+
+  return filterCalendarEvents(state.events).filter((e) => e.status !== "cancelled");
+}

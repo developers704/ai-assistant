@@ -12,6 +12,7 @@ import {
   savePendingAction,
   stageAddMeeting,
   stageDeleteMeeting,
+  stageDeleteAllMeetings,
   stageDeleteTask,
 } from "@/lib/actions/confirmation";
 import { getState } from "@/lib/store/server-store";
@@ -130,6 +131,17 @@ export async function executeTool(
           status: "failed",
           confidence: 0.4,
           spokenAnswer: "I couldn't find that meeting. Try the exact title or open your calendar.",
+        };
+      }
+    } else if (name === "delete_all_meetings") {
+      staged = await stageDeleteAllMeetings(context);
+      if (!staged) {
+        return {
+          ok: false,
+          toolName: name,
+          status: "failed",
+          confidence: 0.4,
+          spokenAnswer: "There are no meetings on your calendar to delete.",
         };
       }
     } else if (name === "add_meeting") {

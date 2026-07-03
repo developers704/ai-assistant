@@ -24,6 +24,7 @@ import {
   Loader2,
   BarChart3,
   Save,
+  ChevronDown,
 } from "lucide-react";
 
 function buildSuggestions(schema: TableSchema): string[] {
@@ -122,11 +123,27 @@ export default function AnalystPage() {
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
+  const [metaExpanded, setMetaExpanded] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const hasResults = messages.some((m) => m.result || m.forecastData);
 
   const scrollDown = () =>
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 80);
+
+  useEffect(() => {
+    if (hasResults && typeof window !== "undefined" && window.innerWidth < 1024) {
+      setMetaExpanded(false);
+    }
+  }, [hasResults]);
 
   const welcomeMessage = (fileName: string, rowCount: number, colCount: number, saved?: boolean) =>
     `Loaded "${fileName}" — ${rowCount.toLocaleString()} rows and ${colCount} columns.${
@@ -495,14 +512,19 @@ export default function AnalystPage() {
   const suggestions = buildSuggestions(schema);
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-4rem)]">
-      <div className="glass-panel-strong rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10">
-        <div className="px-5 sm:px-6 pt-5 pb-3 border-b border-white/10 shrink-0">
+    <div className="-mx-3 sm:mx-0 flex flex-col h-[calc(100dvh-3.35rem-1.25rem)] lg:h-[calc(100dvh-5rem)]">
+      <div className="glass-panel-strong rounded-none sm:rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10">
+        <div className="px-3 sm:px-6 pt-3 sm:pt-5 pb-2 border-b border-white/10 shrink-0">
           <PageHeader
+            compact
             title="Data Analyst"
-            subtitle="Ask questions about your data — every number computed by the engine"
+            subtitle={
+              <span className="hidden sm:inline">
+                Ask questions about your data — every number computed by the engine
+              </span>
+            }
             action={
-              <>
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <input
                   ref={fileRef}
                   type="file"
@@ -515,7 +537,7 @@ export default function AnalystPage() {
                 />
                 {savedReports.length > 1 && (
                   <select
-                    className="select-dark text-xs max-w-[140px]"
+                    className="select-dark text-[11px] sm:text-xs max-w-[7.5rem] sm:max-w-[140px]"
                     defaultValue=""
                     onChange={(e) => {
                       if (e.target.value) loadSavedReport(e.target.value);
@@ -531,42 +553,79 @@ export default function AnalystPage() {
                   </select>
                 )}
                 <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={loadingFile}>
-                  <Upload size={15} /> {loadingFile ? "Loading…" : "Upload CSV"}
+                  <Upload size={15} />
+                  <span className="hidden sm:inline ml-1">{loadingFile ? "Loading…" : "Upload"}</span>
                 </Button>
-              </>
+              </div>
             }
           />
         </div>
 
-        <div className="px-5 sm:px-6 pt-4 pb-2 shrink-0 space-y-3">
-          <SavedReportsPanel
-            reports={savedReports}
-            activeId={activeReportId}
-            loading={loadingFile}
-            deletingId={deletingReportId}
-            onOpen={loadSavedReport}
-            onDelete={removeReport}
-            compact
-          />
-          <DataPreview schema={schema} />
+        <div className="shrink-0 border-b border-white/5">
+          {!metaExpanded && (
+            <button
+              type="button"
+              onClick={() => setMetaExpanded(true)}
+              className="lg:hidden w-full px-3 py-2 flex items-center justify-between text-left text-xs text-ink-secondary hover:bg-white/5"
+            >
+              <span className="truncate">
+                {schema.fileName} · {schema.rowCount.toLocaleString()} rows
+              </span>
+              <ChevronDown size={14} className="shrink-0 text-ink-muted" />
+            </button>
+          )}
+          <div
+            className={`px-3 sm:px-6 pt-2 pb-2 space-y-2 ${
+              metaExpanded ? "block" : "hidden lg:block"
+            }`}
+          >
+            <SavedReportsPanel
+              reports={savedReports}
+              activeId={activeReportId}
+              loading={loadingFile}
+              deletingId={deletingReportId}
+              onOpen={loadSavedReport}
+              onDelete={removeReport}
+              compact
+              collapsible
+              defaultCollapsed={hasResults}
+            />
+            <DataPreview schema={schema} />
+            {metaExpanded && (
+              <button
+                type="button"
+                onClick={() => setMetaExpanded(false)}
+                className="lg:hidden w-full py-1.5 text-[11px] text-ink-muted hover:text-ink"
+              >
+                Hide data source
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 sm:px-6 space-y-4 min-h-0">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 py-3 space-y-3 sm:space-y-4 min-h-0 overscroll-contain pb-4"
+        >
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
+            <div
+              key={msg.id}
+              className={`flex gap-2 sm:gap-3 w-full ${msg.role === "user" ? "justify-end" : ""}`}
+            >
               {msg.role === "assistant" && (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-600 to-indigo-800 flex items-center justify-center shrink-0 mt-1 shadow-glow">
-                  <Bot size={16} className="text-white" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-cyan-600 to-indigo-800 flex items-center justify-center shrink-0 mt-1 shadow-glow">
+                  <Bot size={14} className="text-white sm:hidden" />
+                  <Bot size={16} className="text-white hidden sm:block" />
                 </div>
               )}
               <div
                 className={
                   msg.role === "user"
-                    ? "btn-futuristic text-white rounded-2xl rounded-br-md px-4 py-2.5 max-w-xl text-sm"
-                    : "glass-panel rounded-2xl rounded-bl-md px-4 py-3 flex-1 max-w-4xl text-sm"
+                    ? "btn-futuristic text-white rounded-2xl rounded-br-md px-3.5 sm:px-4 py-2 sm:py-2.5 max-w-[88%] sm:max-w-xl text-sm"
+                    : "glass-panel rounded-2xl rounded-bl-md px-3 sm:px-4 py-2.5 sm:py-3 flex-1 min-w-0 w-full max-w-none text-sm"
                 }
               >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                <p className="whitespace-pre-wrap text-[13px] sm:text-sm leading-relaxed">{msg.content}</p>
 
                 {msg.error && (
                   <p className="mt-2 text-xs text-rose-300 flex items-start gap-1.5">
@@ -586,25 +645,26 @@ export default function AnalystPage() {
                 {msg.plan?.sql && (
                   <details className="mt-2.5">
                     <summary className="text-[11px] text-ink-muted cursor-pointer inline-flex items-center gap-1 hover:text-ink">
-                      <Code2 size={11} /> View SQL used (computed from {schema.rowCount.toLocaleString()} rows)
+                      <Code2 size={11} /> View SQL
                     </summary>
-                    <pre className="mt-1.5 text-[11px] bg-black/25 rounded-lg p-2.5 overflow-x-auto text-ink-secondary whitespace-pre-wrap ring-1 ring-white/5">
+                    <pre className="mt-1.5 text-[10px] sm:text-[11px] bg-black/25 rounded-lg p-2.5 overflow-x-auto text-ink-secondary whitespace-pre-wrap ring-1 ring-white/5">
                       {msg.plan.sql}
                     </pre>
                   </details>
                 )}
               </div>
               {msg.role === "user" && (
-                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0 mt-1 ring-1 ring-white/20">
-                  <User size={16} className="text-white" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0 mt-1 ring-1 ring-white/20">
+                  <User size={14} className="text-white sm:hidden" />
+                  <User size={16} className="text-white hidden sm:block" />
                 </div>
               )}
             </div>
           ))}
 
           {analyzing && (
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-600 to-indigo-800 flex items-center justify-center shrink-0">
+            <div className="flex gap-2 sm:gap-3">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-cyan-600 to-indigo-800 flex items-center justify-center shrink-0">
                 <Bot size={16} className="text-white" />
               </div>
               <div className="glass-panel rounded-2xl rounded-bl-md px-4 py-3">
@@ -614,17 +674,17 @@ export default function AnalystPage() {
               </div>
             </div>
           )}
-          <div ref={bottomRef} />
+          <div ref={bottomRef} className="h-1 shrink-0" aria-hidden />
         </div>
 
         {messages.length <= 1 && (
-          <div className="flex flex-wrap gap-2 px-5 sm:px-6 py-2 shrink-0">
+          <div className="flex gap-2 px-3 sm:px-6 py-2 shrink-0 overflow-x-auto scrollbar-none">
             {suggestions.map((s) => (
               <button
                 key={s}
                 onClick={() => ask(s)}
                 disabled={analyzing}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl glass-panel text-xs text-ink-secondary hover:bg-white/12 hover:text-ink ring-1 ring-white/10 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl glass-panel text-xs text-ink-secondary hover:bg-white/12 hover:text-ink ring-1 ring-white/10 transition-all disabled:opacity-50 whitespace-nowrap shrink-0"
               >
                 <Sparkles size={11} className="text-cyan-300" /> {s}
               </button>
@@ -633,7 +693,7 @@ export default function AnalystPage() {
         )}
 
         <form
-          className="flex gap-2 p-4 border-t border-white/10 shrink-0 bg-black/10"
+          className="flex gap-2 p-3 sm:p-4 border-t border-white/10 shrink-0 bg-black/20 backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))]"
           onSubmit={(e) => {
             e.preventDefault();
             ask(input);
@@ -642,12 +702,12 @@ export default function AnalystPage() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder='Ask anything — e.g. "Top 10 products by revenue"'
-            className="flex-1 px-4 py-2.5 rounded-2xl border border-white/25 bg-white/10 text-sm text-ink placeholder:text-ink-muted backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-cyan-400/30 focus:border-cyan-400/40"
+            placeholder='Ask anything — e.g. "Top 10 stores by sales"'
+            className="flex-1 min-w-0 px-3.5 sm:px-4 py-2.5 rounded-2xl border border-white/25 bg-white/10 text-sm text-ink placeholder:text-ink-muted backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-cyan-400/30 focus:border-cyan-400/40"
             disabled={analyzing}
           />
-          <Button type="submit" disabled={analyzing || !input.trim()}>
-            <Send size={15} /> Ask
+          <Button type="submit" disabled={analyzing || !input.trim()} className="shrink-0">
+            <Send size={15} /> <span className="hidden sm:inline">Ask</span>
           </Button>
         </form>
       </div>

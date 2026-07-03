@@ -890,11 +890,12 @@ export function getMessageIntent(message: string): IntentType {
   return detectIntent(message);
 }
 
-export function shouldUseRuleEngine(message: string): boolean {
+export function shouldUseRuleEngine(message: string, state?: { pendingActions?: unknown[] }): boolean {
   const intent = detectIntent(message);
+  if (intent === "confirm_action" || intent === "reject_action") {
+    return !!(state?.pendingActions?.length);
+  }
   return (
-    intent === "confirm_action" ||
-    intent === "reject_action" ||
     intent === "acknowledgment" ||
     intent === "sales_report" ||
     intent === "calendar_today" ||

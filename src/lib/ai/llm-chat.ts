@@ -24,6 +24,7 @@ import { buildDynamicContext } from "./dynamic-context";
 import { OPENAI_CHAT_MODEL } from "@/lib/openai/config";
 import { synthesizeToolResponse } from "@/lib/ai/response-synthesizer";
 import { savePendingAction } from "@/lib/actions/confirmation";
+import { buildAppMapPromptBlock } from "@/lib/ai/app-intelligence";
 
 export function isLLMChatConfigured(): boolean {
   const key = process.env.OPENAI_API_KEY;
@@ -257,7 +258,7 @@ ${formatRetrievedContext(retrieved)}`;
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: `${loadChatSystemPrompt()}\n\n---\nLIVE CONTEXT (real-time app data):\n\n${context}\n\n---\nDYNAMIC CONTEXT:\n${dynamic.textBlock}${ragSection}`,
+      content: `${loadChatSystemPrompt()}\n\n${buildAppMapPromptBlock()}\n\n---\nLIVE CONTEXT (real-time app data):\n\n${context}\n\n---\nDYNAMIC CONTEXT:\n${dynamic.textBlock}${ragSection}`,
     },
     ...history.filter((h) => h.role === "user" || h.role === "assistant"),
     { role: "user", content: message },

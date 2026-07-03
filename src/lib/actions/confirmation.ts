@@ -25,7 +25,7 @@ export function isConfirmationEnforced(
   if (!def?.requiresConfirmation) return false;
   if (!prefs) return def.riskLevel === "dangerous";
 
-  if (toolName === "delete_task" || toolName === "delete_meeting") {
+  if (toolName === "delete_task" || toolName === "delete_meeting" || toolName === "delete_all_meetings") {
     return prefs.confirmBeforeMeeting || def.riskLevel === "dangerous";
   }
   if (toolName === "add_meeting") {
@@ -137,6 +137,41 @@ export async function stageDeleteTask(
   });
 
   return { pending: pendingAction, toolName: "delete_task", args: { task_id: target.id } };
+}
+
+/** Stage bulk delete of all upcoming calendar meetings. */
+export async function stageDeleteAllMeetings(
+  ctx: ToolExecutionContext
+): Promise<StagedConfirmation | null> {
+  const { getUpcomingCalendarEvents } = await import("@/lib/voice/calendar-data");
+  const events = await getUpcomingCalendarEvents();
+  if (events.length === 0) return null;
+
+  const eventIds = events.map((e) => e.id);
+  const pendingAction = createPendingAction({
+    type: "meeting_cancel",
+    title: "Delete all calendar meetings",
+    summary: `Delete all **${events.length}** meeting${events.length !== 1 ? "s" : ""} on your calendar (including today and upcoming)? Say **yes** to confirm.`,
+    preview: events
+      .slice(0, 6)
+      .map((e) => e.title)
+      .join(", "),
+    payload: {
+      stagedArgs: { delete_all: true, event_ids: eventIds },
+      action: "delete_all_meetings",
+      event_ids: eventIds,
+      count: events.length,
+    },
+    toolName: "delete_all_meetings",
+    source: ctx.source,
+    riskLevel: "dangerous",
+  });
+
+  return {
+    pending: pendingAction,
+    toolName: "delete_all_meetings",
+    args: { delete_all: true, event_ids: eventIds },
+  };
 }
 
 /** Stage delete_meeting before execution */

@@ -318,6 +318,27 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
+    name: "delete_all_meetings",
+    description: "Remove all meetings from the calendar. Requires explicit confirmation.",
+    category: "calendar",
+    riskLevel: "dangerous",
+    requiresConfirmation: true,
+    allowedInVoice: true,
+    allowedInChat: true,
+    opensPage: "/calendar",
+    whenToUse: "User wants to clear/delete/remove all calendar events or everything from calendar.",
+    whenNotToUse: "Single meeting delete — use delete_meeting.",
+    examplePhrases: ["remove everything from calendar", "delete all meetings"],
+    parameters: {
+      type: "object",
+      properties: {
+        delete_all: { type: "boolean" },
+        event_ids: { type: "array", items: { type: "string" } },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "draft_email_reply",
     description: "Draft email reply to important inbox email.",
     category: "email",

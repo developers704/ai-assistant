@@ -49,7 +49,7 @@ export function ResultTable({ result, title }: { result: QueryResult; title?: st
           <Download size={13} /> Download CSV
         </button>
       </div>
-      <div className="overflow-auto max-h-96 rounded-xl border border-white/10 bg-black/15">
+      <div className="overflow-auto max-h-56 sm:max-h-96 rounded-xl border border-white/10 bg-black/15">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-white/5">
             <tr>

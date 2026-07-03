@@ -214,6 +214,28 @@ export interface UiContext {
   selectedContactId?: string;
   lastOpenedPage?: string;
   lastUserIntent?: string;
+  /** Last section/topic discussed — for "open it" follow-ups */
+  lastTopic?: string;
+  /** Route Alexa last suggested opening */
+  lastSuggestedRoute?: string;
+  /** Short summary of last tool execution */
+  lastToolResult?: string;
+  updatedAt: string;
+}
+
+/** Shared server-side memory for Chat + Voice — survives navigation and rerenders. */
+export interface WorkingMemory {
+  currentPage: string;
+  lastTopic?: string;
+  lastIntent?: string;
+  lastToolResultSummary?: string;
+  pendingNavigation?: string;
+  lastOfferedAction?: string;
+  selectedEmailId?: string;
+  selectedMeetingId?: string;
+  selectedReportId?: string;
+  selectedContactId?: string;
+  selectedStore?: string;
   updatedAt: string;
 }
 
@@ -293,6 +315,7 @@ export interface AppState {
   portfolio?: PortfolioSnapshot;
   voiceLastImage?: { prompt: string; src: string; createdAt: string };
   uiContext?: UiContext;
+  workingMemory?: WorkingMemory;
 }
 
 export type IntentType =

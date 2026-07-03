@@ -118,16 +118,17 @@ export function ResultChart({ plan, result }: { plan: AnalystPlan; result: Query
       </Wrapper>
     );
   } else {
+    const bottomMargin = data.length > 5 ? 72 : 24;
     chart = (
-      <BarChart data={data} margin={{ top: 5, right: 16, bottom: 5, left: 0 }}>
+      <BarChart data={data} margin={{ top: 8, right: 8, bottom: bottomMargin, left: 4 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e8dcc8" vertical={false} />
         <XAxis
           dataKey={xKey}
-          tick={{ fontSize: 10, fill: "#6b5b4f" }}
+          tick={{ fontSize: 9, fill: "#6b5b4f" }}
           interval={0}
-          angle={data.length > 8 ? -35 : 0}
-          textAnchor={data.length > 8 ? "end" : "middle"}
-          height={data.length > 8 ? 70 : 30}
+          angle={data.length > 4 ? -40 : 0}
+          textAnchor={data.length > 4 ? "end" : "middle"}
+          height={data.length > 4 ? 72 : 28}
         />
         <YAxis tick={{ fontSize: 11, fill: "#6b5b4f" }} tickFormatter={compactNumber} />
         <Tooltip contentStyle={tooltipStyle} formatter={(v) => Number(v).toLocaleString("en-US")} />
@@ -140,9 +141,9 @@ export function ResultChart({ plan, result }: { plan: AnalystPlan; result: Query
   }
 
   return (
-    <div className="mt-3">
-      <div className="h-72 w-full">
-        <ResponsiveContainer width="100%" height="100%">
+    <div className="mt-3 w-full">
+      <div className="min-h-[260px] h-[clamp(260px,48dvh,400px)] w-full overflow-x-auto -mx-1 px-1 sm:mx-0 sm:px-0">
+        <ResponsiveContainer width="100%" height="100%" minWidth={280}>
           {chart as React.ReactElement}
         </ResponsiveContainer>
       </div>
@@ -157,8 +158,8 @@ export function ResultChart({ plan, result }: { plan: AnalystPlan; result: Query
 
 export function ForecastChart({ data }: { data: ForecastPoint[] }) {
   return (
-    <div className="mt-3 h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="mt-3 min-h-[240px] h-[clamp(240px,42dvh,360px)] w-full overflow-x-auto">
+      <ResponsiveContainer width="100%" height="100%" minWidth={280}>
         <ComposedChart data={data} margin={{ top: 5, right: 16, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e8dcc8" />
           <XAxis dataKey="period" tick={{ fontSize: 11, fill: "#6b5b4f" }} />

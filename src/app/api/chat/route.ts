@@ -20,7 +20,7 @@ import { isLLMChatConfigured, processMessageWithLLM } from "@/lib/ai/llm-chat";
 import { isImageGenerateRequest } from "@/lib/images/generate-jewellery-image";
 import { processImageGenerate } from "@/lib/ai/image-generate";
 
-import { tryRoutedResponse } from "@/lib/ai/routed-handler";
+import { processAlexaMessage } from "@/lib/ai/process-message";
 import { appendConversationSummary } from "@/lib/memory/store";
 import type { AIResponse, ChatMessage } from "@/types";
 
@@ -35,7 +35,7 @@ async function resolveResponse(
   message: string,
   state: Awaited<ReturnType<typeof getEnrichedState>>
 ): Promise<{ response: AIResponse; engine: "rules" | "llm" | "llm-fallback" | "router" }> {
-  const routed = await tryRoutedResponse(message, state);
+  const routed = await processAlexaMessage(message, state);
   if (routed) {
     return { response: routed, engine: "router" };
   }
@@ -44,7 +44,7 @@ async function resolveResponse(
     return { response: await processImageGenerate(message), engine: "rules" };
   }
 
-  if (shouldUseRuleEngine(message)) {
+  if (shouldUseRuleEngine(message, state)) {
     return { response: processMessage(message, state), engine: "rules" };
   }
 

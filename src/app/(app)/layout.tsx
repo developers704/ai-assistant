@@ -11,7 +11,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { state, loading, refresh } = useApp();
   const pathname = usePathname();
   const showFloatingVoice =
-    pathname !== "/chat" && pathname !== "/email" && pathname !== "/images";
+    pathname !== "/chat" &&
+    pathname !== "/email" &&
+    pathname !== "/images" &&
+    pathname !== "/analyst";
 
   if (loading) {
     return null;

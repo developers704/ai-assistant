@@ -1,3 +1,6 @@
+import type { PendingAction } from "@/types";
+import type { AIResponse } from "@/types";
+import type { ToolResult } from "@/lib/tools/types";
 import type { RoutedIntent } from "@/lib/ai/intent-router";
 import { detectSalesFocus } from "@/lib/ai/sales-focus";
 import {
@@ -8,14 +11,15 @@ import {
   createAssistantOffer,
   type OfferTarget,
 } from "@/lib/actions/pending-offer";
-import type { PendingAction } from "@/types";
-import type { ToolResult } from "@/lib/tools/types";
+
+export type AlexaChannel = "chat" | "voice";
 
 export interface SynthesizeInput {
   toolName: string;
   result: ToolResult;
   userMessage: string;
   routedIntent?: RoutedIntent;
+  channel?: AlexaChannel;
 }
 
 export interface SynthesizedResponse {
@@ -31,26 +35,65 @@ function parseToolData(result: ToolResult): Record<string, unknown> {
   return {};
 }
 
-function newsOffer(summary: string): SynthesizedResponse {
+function newsOffer(summary: string, channel: AlexaChannel): SynthesizedResponse {
+  const suffix =
+    channel === "voice"
+      ? " Say open news for the full page."
+      : "\n\nSay **yes** or **open news** for the full News & Markets page.";
   return {
-    message: `${summary}\n\nSay **yes** or **open news** for the full News & Markets page.`,
+    message: `${summary}${suffix}`,
     pendingOffer: createAssistantOffer({
       target: "news",
       summary: "Open News & Markets for full headlines and live charts.",
       toolName: "get_industry_news",
     }),
-    navigateTo: undefined,
+    navigateTo: "/news",
+  };
+}
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^[-*]\s+/gm, "")
+    .replace(/\n+/g, " ")
+    .trim();
+}
+
+function limitVoiceSentences(text: string, max = 3): string {
+  const plain = stripMarkdown(text);
+  const parts = plain.split(/(?<=[.!?])\s+/).filter(Boolean);
+  return parts.slice(0, max).join(" ");
+}
+
+/** Format assistant response for chat vs voice channel. */
+export function formatResponseForChannel(
+  response: AIResponse,
+  channel: AlexaChannel
+): AIResponse {
+  if (channel === "chat") return response;
+  return {
+    ...response,
+    message: limitVoiceSentences(response.message),
   };
 }
 
 /** Convert tool output into a short answer that matches the user's request. */
 export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedResponse {
-  const { toolName, result, userMessage, routedIntent } = input;
+  const { toolName, result, userMessage, routedIntent, channel = "chat" } = input;
   const data = parseToolData(result);
 
   if (result.pendingAction) {
     return {
       message: result.textAnswer ?? result.spokenAnswer ?? "Please review and confirm.",
+      pendingOffer: result.pendingAction,
+    };
+  }
+
+  if (toolName === "delete_all_meetings" && result.status === "needs_confirmation") {
+    return {
+      message: result.textAnswer ?? result.spokenAnswer ?? "Please confirm to delete all meetings.",
       pendingOffer: result.pendingAction,
     };
   }
@@ -100,7 +143,7 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
     const spoken = String(data.spokenAnswer ?? result.spokenAnswer ?? "");
     const short =
       spoken.length > 420 ? `${spoken.slice(0, 400).trim()}…` : spoken;
-    return newsOffer(short || "Here are the latest jewelry industry headlines.");
+    return newsOffer(short || "Here are the latest jewelry industry headlines.", channel);
   }
 
   if (toolName === "draft_email_reply") {

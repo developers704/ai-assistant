@@ -38,15 +38,11 @@ export function formatTopStoreAnswer(): string {
   const period =
     source === "report" ? (label ? ` (${label})` : " (latest report)") : " (demo data)";
 
-  let answer = `Your **top-performing store** is **${top.name}** with **${formatCurrency(top.revenue)}** net sales${period}.`;
+  let answer = `Top store is **${top.name}** with **${formatCurrency(top.revenue)}** net sales`;
   if (share) {
-    answer += ` That's **${share}%** of total net revenue (${formatCurrency(summary.totalRevenue)}).`;
+    answer += `, about **${share}%** of total net sales`;
   }
-  if (summary.topStores.length > 1) {
-    const runner = summary.topStores[1];
-    answer += `\n\nNext: **${runner.name}** at ${formatCurrency(runner.revenue)}.`;
-  }
-  answer += "\n\nSay **full sales report** if you want the complete breakdown.";
+  answer += `${period}. Want full store breakdown?`;
   return answer;
 }
 

@@ -28,9 +28,17 @@ export function isConfirmMessage(text: string): boolean {
 export function isAffirmativeWithOpenIntent(text: string): boolean {
   const trimmed = text.trim();
   if (!AFFIRMATIVE_PREFIX.test(trimmed)) return false;
+  if (/\b(remove|delete|cancel|clear|wipe|send|schedule)\b/i.test(trimmed)) return false;
+  if (
+    /\b(yes|yeah|yep|sure|ok|okay|alright|please|pls)\b[\s\S]{0,24}\b(all|every)\b[\s\S]{0,24}\b(meeting|calendar|event)/i.test(
+      trimmed
+    )
+  ) {
+    return false;
+  }
   return (
     OPEN_VERBS.test(trimmed) ||
-    /\b(more|details|full|news|market|sales|email|calendar|dashboard)\b/i.test(trimmed)
+    /\b(more|details|full|news|market)\b/i.test(trimmed)
   );
 }
 

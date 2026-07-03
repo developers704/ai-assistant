@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import type { StoredReportMeta } from "@/lib/reports/types";
 import { periodLabel } from "@/lib/reports/detect-report";
-import { FolderOpen, Trash2, Loader2 } from "lucide-react";
+import { FolderOpen, Trash2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 
 function formatReportDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -21,6 +22,9 @@ interface SavedReportsPanelProps {
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   compact?: boolean;
+  /** Mobile: collapse to a single row to save vertical space */
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
 }
 
 export function SavedReportsPanel({
@@ -31,7 +35,11 @@ export function SavedReportsPanel({
   onOpen,
   onDelete,
   compact,
+  collapsible,
+  defaultCollapsed = false,
 }: SavedReportsPanelProps) {
+  const [open, setOpen] = useState(!defaultCollapsed);
+
   if (reports.length === 0) {
     return (
       <div
@@ -51,6 +59,27 @@ export function SavedReportsPanel({
     );
   }
 
+  const activeReport = reports.find((r) => r.id === activeId) ?? reports[0];
+
+  if (collapsible && !open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full glass-panel rounded-xl ring-1 ring-white/10 px-3 py-2.5 flex items-center justify-between gap-2 text-left lg:hidden"
+      >
+        <span className="text-xs font-medium text-ink flex items-center gap-2 min-w-0">
+          <FolderOpen size={14} className="text-cyan-300 shrink-0" />
+          <span className="truncate">
+            {activeReport?.label ?? "Saved reports"} · {reports.length} file
+            {reports.length !== 1 ? "s" : ""}
+          </span>
+        </span>
+        <ChevronDown size={16} className="text-ink-muted shrink-0" />
+      </button>
+    );
+  }
+
   return (
     <div
       className={`glass-panel rounded-2xl ring-1 ring-white/10 ${
@@ -62,10 +91,22 @@ export function SavedReportsPanel({
           <FolderOpen size={16} className="text-cyan-300" />
           Saved reports
         </p>
-        <span className="text-xs text-ink-muted">{reports.length} file{reports.length !== 1 ? "s" : ""}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-ink-muted">{reports.length} file{reports.length !== 1 ? "s" : ""}</span>
+          {collapsible && (
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="lg:hidden p-1 rounded-lg text-ink-muted hover:text-ink hover:bg-white/10"
+              aria-label="Collapse saved reports"
+            >
+              <ChevronUp size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className={`space-y-1.5 ${compact ? "max-h-32" : "max-h-48"} overflow-y-auto`}>
+      <div className={`space-y-1.5 ${compact ? "max-h-28 sm:max-h-32" : "max-h-48"} overflow-y-auto`}>
         {reports.map((r, index) => {
           const isActive = activeId === r.id;
           const isDeleting = deletingId === r.id;
@@ -140,7 +181,7 @@ export function SavedReportsPanel({
         })}
       </div>
 
-      <p className="text-[11px] text-ink-muted mt-3 leading-relaxed">
+      <p className="text-[11px] text-ink-muted mt-3 leading-relaxed hidden sm:block">
         Latest report powers the Dashboard. Remove old store exports you no longer need.
       </p>
     </div>

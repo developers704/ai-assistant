@@ -26,23 +26,23 @@ export function DataPreview({ schema }: { schema: TableSchema }) {
   const failures = converted.reduce((a, c) => a + (c.conversionFailures ?? 0), 0);
 
   return (
-    <Card className="p-4 ring-1 ring-white/5">
-      <button className="w-full flex items-center justify-between text-left" onClick={() => setOpen((o) => !o)}>
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/20 ring-1 ring-cyan-400/20 shrink-0">
-            <Table2 size={16} className="text-cyan-300" />
+    <Card className="p-3 sm:p-4 ring-1 ring-white/5">
+      <button className="w-full flex items-center justify-between text-left gap-2" onClick={() => setOpen((o) => !o)}>
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-cyan-500/20 ring-1 ring-cyan-400/20 shrink-0">
+            <Table2 size={15} className="text-cyan-300" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-ink truncate">{schema.fileName}</p>
-            <p className="text-xs text-ink-muted">
-              {schema.rowCount.toLocaleString()} rows · {schema.columns.length} columns loaded
+            <p className="text-xs sm:text-sm font-semibold text-ink truncate">{schema.fileName}</p>
+            <p className="text-[11px] sm:text-xs text-ink-muted">
+              {schema.rowCount.toLocaleString()} rows · {schema.columns.length} columns
             </p>
           </div>
         </div>
         <span className="text-ink-muted shrink-0">{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
       </button>
 
-      {converted.length > 0 && (
+      {open && converted.length > 0 && (
         <div className="mt-3 space-y-1">
           <p className="text-[11px] text-ink-secondary flex items-start gap-1.5">
             <Wand2 size={12} className="text-amber-300 shrink-0 mt-0.5" />
