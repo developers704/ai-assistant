@@ -248,8 +248,8 @@ export function MobileNav() {
 
   return (
     <>
-      <header className="lg:hidden sticky top-0 z-40 safe-area-top px-3 pt-2 pb-1.5">
-        <div className="mobile-ios-bar flex items-center justify-between gap-3 px-3.5 h-[3.35rem]">
+      <header className="lg:hidden sticky top-0 z-40 mobile-nav-safe px-3 pb-2">
+        <div className="mobile-ios-bar flex items-center justify-between gap-3 px-3.5 h-[3.25rem]">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <span className="icon-badge icon-badge-soft icon-badge-soft-active flex h-10 w-10 items-center justify-center rounded-[0.85rem] bg-gradient-to-br from-violet-500/95 to-indigo-600/90 ring-1 ring-white/20 shrink-0">
               <Icon icon={Sparkles} size="lg" className="text-amber-100" active />

@@ -403,6 +403,11 @@
   .safe-area-top {
     padding-top: env(safe-area-inset-top, 0);
   }
+
+  /** Mobile top nav — sits below status bar with extra breathing room */
+  .mobile-nav-safe {
+    padding-top: calc(env(safe-area-inset-top, 12px) + 14px);
+  }
 }
 
 @keyframes orb-float {
