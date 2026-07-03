@@ -246,9 +246,12 @@
   .icon-badge-soft {
     position: relative;
     overflow: hidden;
+    transform: translateZ(0);
     box-shadow:
-      0 1px 5px rgba(0, 0, 0, 0.18),
-      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      0 3px 6px rgba(0, 0, 0, 0.28),
+      0 1px 2px rgba(0, 0, 0, 0.2),
+      inset 0 1.5px 0 rgba(255, 255, 255, 0.32),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.22);
   }
 
   .icon-badge-soft::before {
@@ -257,16 +260,87 @@
     inset: 0;
     background: linear-gradient(
       155deg,
-      rgba(255, 255, 255, 0.1) 0%,
-      rgba(255, 255, 255, 0.02) 45%,
-      transparent 60%
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.06) 38%,
+      transparent 55%
     );
     pointer-events: none;
     border-radius: inherit;
+    z-index: 1;
+  }
+
+  .icon-badge-soft::after {
+    content: "";
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: 2px;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.18);
+    filter: blur(2px);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .icon-badge-soft-active {
+    transform: translateY(-1px) translateZ(0);
+    box-shadow:
+      0 5px 10px rgba(0, 0, 0, 0.32),
+      0 2px 4px rgba(0, 0, 0, 0.22),
+      inset 0 2px 0 rgba(255, 255, 255, 0.38),
+      inset 0 -2px 5px rgba(0, 0, 0, 0.24);
   }
 
   .icon-badge-soft svg {
-    filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.12));
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.2));
+  }
+
+  .icon-badge-outline-3d {
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+    box-shadow:
+      0 2px 5px rgba(0, 0, 0, 0.22),
+      0 1px 2px rgba(0, 0, 0, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      inset 0 -2px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .icon-badge-outline-3d::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.03) 40%,
+      transparent 58%
+    );
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 1;
+  }
+
+  .icon-badge-outline-3d-active {
+    transform: translateY(-1px) translateZ(0);
+    box-shadow:
+      0 4px 8px rgba(0, 0, 0, 0.28),
+      0 2px 3px rgba(0, 0, 0, 0.18),
+      inset 0 1.5px 0 rgba(255, 255, 255, 0.18),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.14);
+  }
+
+  .icon-outline-3d {
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+  }
+
+  .icon-badge-outline-3d-active .icon-outline-3d {
+    filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.38));
   }
 
   .app-logo-badge {

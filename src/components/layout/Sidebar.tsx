@@ -30,9 +30,9 @@ type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  gradient: string;
-  activeGradient: string;
+  iconBg: string;
   iconColor: string;
+  activeBg: string;
   ringColor: string;
   accent: string;
 };
@@ -42,110 +42,110 @@ const navItems: NavItem[] = [
     href: "/chat",
     label: "AI Chat",
     icon: MessageSquare,
-    gradient: "from-violet-600/78 to-indigo-700/72",
-    activeGradient: "from-violet-500/88 to-indigo-600/82",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-violet-500/22",
+    iconColor: "text-violet-300",
+    activeBg: "bg-violet-500/32",
+    ringColor: "ring-violet-400/28",
     accent: "bg-violet-400/85",
   },
   {
     href: "/dashboard",
     label: "Daily Briefing",
     icon: Sun,
-    gradient: "from-amber-600/75 to-orange-700/70",
-    activeGradient: "from-amber-500/85 to-orange-600/78",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-amber-500/22",
+    iconColor: "text-amber-300",
+    activeBg: "bg-amber-500/32",
+    ringColor: "ring-amber-400/28",
     accent: "bg-amber-400/85",
   },
   {
     href: "/news",
     label: "News & Markets",
     icon: Newspaper,
-    gradient: "from-sky-600/75 to-blue-700/70",
-    activeGradient: "from-sky-500/85 to-blue-600/78",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-sky-500/22",
+    iconColor: "text-sky-300",
+    activeBg: "bg-sky-500/32",
+    ringColor: "ring-sky-400/28",
     accent: "bg-sky-400/85",
   },
   {
     href: "/email",
     label: "Email",
     icon: Mail,
-    gradient: "from-blue-600/75 to-indigo-700/70",
-    activeGradient: "from-blue-500/85 to-indigo-600/78",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-blue-500/22",
+    iconColor: "text-blue-300",
+    activeBg: "bg-blue-500/32",
+    ringColor: "ring-blue-400/28",
     accent: "bg-blue-400/85",
   },
   {
     href: "/calendar",
     label: "Calendar & Tasks",
     icon: Calendar,
-    gradient: "from-rose-600/75 to-pink-700/70",
-    activeGradient: "from-rose-500/85 to-pink-600/78",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-rose-500/22",
+    iconColor: "text-rose-300",
+    activeBg: "bg-rose-500/32",
+    ringColor: "ring-rose-400/28",
     accent: "bg-rose-400/85",
   },
   {
     href: "/sales",
     label: "Sales Dashboard",
     icon: BarChart3,
-    gradient: "from-emerald-600/75 to-teal-700/70",
-    activeGradient: "from-emerald-500/85 to-teal-600/78",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-emerald-500/22",
+    iconColor: "text-emerald-300",
+    activeBg: "bg-emerald-500/32",
+    ringColor: "ring-emerald-400/28",
     accent: "bg-emerald-400/85",
   },
   {
     href: "/calculator",
     label: "Price Calculator",
     icon: Calculator,
-    gradient: "from-yellow-600/72 to-amber-700/68",
-    activeGradient: "from-yellow-500/82 to-amber-600/75",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-yellow-500/22",
+    iconColor: "text-yellow-300",
+    activeBg: "bg-yellow-500/32",
+    ringColor: "ring-yellow-400/28",
     accent: "bg-yellow-400/85",
   },
   {
     href: "/analyst",
     label: "Data Analyst",
     icon: Database,
-    gradient: "from-cyan-600/75 to-teal-700/70",
-    activeGradient: "from-cyan-500/85 to-teal-600/78",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-cyan-500/22",
+    iconColor: "text-cyan-300",
+    activeBg: "bg-cyan-500/32",
+    ringColor: "ring-cyan-400/28",
     accent: "bg-cyan-400/85",
   },
   {
     href: "/images",
     label: "Image Generation",
     icon: Wand2,
-    gradient: "from-fuchsia-600/75 to-purple-700/70",
-    activeGradient: "from-fuchsia-500/85 to-purple-600/78",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-fuchsia-500/22",
+    iconColor: "text-fuchsia-300",
+    activeBg: "bg-fuchsia-500/32",
+    ringColor: "ring-fuchsia-400/28",
     accent: "bg-fuchsia-400/85",
   },
   {
     href: "/contacts",
     label: "Contacts",
     icon: Users,
-    gradient: "from-indigo-600/75 to-violet-700/70",
-    activeGradient: "from-indigo-500/85 to-violet-600/78",
-    iconColor: "text-white/92",
-    ringColor: "ring-white/12",
+    iconBg: "bg-indigo-500/22",
+    iconColor: "text-indigo-300",
+    activeBg: "bg-indigo-500/32",
+    ringColor: "ring-indigo-400/28",
     accent: "bg-indigo-400/85",
   },
   {
     href: "/settings",
     label: "Settings",
     icon: Settings,
-    gradient: "from-slate-600/72 to-slate-700/68",
-    activeGradient: "from-slate-500/82 to-slate-600/75",
-    iconColor: "text-white/90",
-    ringColor: "ring-white/10",
+    iconBg: "bg-slate-500/20",
+    iconColor: "text-slate-300",
+    activeBg: "bg-slate-500/30",
+    ringColor: "ring-slate-400/22",
     accent: "bg-slate-400/75",
   },
 ];
@@ -167,12 +167,12 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       )}
       <IconBadge
         icon={item.icon}
-        gradient={item.gradient}
-        activeGradient={item.activeGradient}
+        iconBg={item.iconBg}
         iconColor={item.iconColor}
+        activeBg={item.activeBg}
         ringColor={item.ringColor}
         active={active}
-        variant="soft"
+        variant="outline"
         size="md"
       />
       <span className="truncate leading-snug">{item.label}</span>
@@ -189,8 +189,8 @@ export function Sidebar() {
       <div className="glass-panel-strong flex flex-col flex-1 rounded-3xl overflow-hidden text-ink">
         <div className="px-5 py-5 border-b border-white/10">
           <div className="flex items-center gap-3.5">
-            <span className="app-logo-badge icon-badge icon-badge-soft flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/85 to-indigo-700/80 ring-1 ring-white/15 shrink-0">
-              <Icon icon={Sparkles} size="xl" className="text-amber-200/95" active />
+            <span className="app-logo-badge icon-badge icon-badge-soft icon-badge-soft-active flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/95 to-indigo-600/90 ring-1 ring-white/20 shrink-0">
+              <Icon icon={Sparkles} size="xl" className="text-amber-100" active />
             </span>
             <div className="min-w-0">
               <h1 className="text-ink font-semibold text-[15px] tracking-wide">Alexa</h1>
@@ -251,8 +251,8 @@ export function MobileNav() {
       <header className="lg:hidden sticky top-0 z-40 safe-area-top px-3 pt-2 pb-1.5">
         <div className="mobile-ios-bar flex items-center justify-between gap-3 px-3.5 h-[3.35rem]">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <span className="icon-badge icon-badge-soft flex h-10 w-10 items-center justify-center rounded-[0.85rem] bg-gradient-to-br from-violet-600/85 to-indigo-700/80 ring-1 ring-white/15 shrink-0 shadow-sm">
-              <Icon icon={Sparkles} size="lg" className="text-amber-200/95" active />
+            <span className="icon-badge icon-badge-soft icon-badge-soft-active flex h-10 w-10 items-center justify-center rounded-[0.85rem] bg-gradient-to-br from-violet-500/95 to-indigo-600/90 ring-1 ring-white/20 shrink-0">
+              <Icon icon={Sparkles} size="lg" className="text-amber-100" active />
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-ink font-semibold text-[15px] leading-tight tracking-tight">Alexa</p>

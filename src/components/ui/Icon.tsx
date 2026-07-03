@@ -58,7 +58,7 @@ export interface IconBadgeProps {
   ringColor?: string;
   active?: boolean;
   size?: "sm" | "md" | "lg";
-  variant?: "default" | "lush" | "soft";
+  variant?: "default" | "lush" | "soft" | "outline";
   activeGradient?: string;
   className?: string;
 }
@@ -88,6 +88,7 @@ export function IconBadge({
   const s = BADGE[size];
   const isLush = variant === "lush";
   const isSoft = variant === "soft";
+  const isOutline = variant === "outline";
 
   const gradientClass = gradient
     ? cn(
@@ -101,16 +102,27 @@ export function IconBadge({
     <span
       className={cn(
         "icon-badge flex shrink-0 items-center justify-center transition-all duration-300",
-        isLush ? "icon-badge-lush" : isSoft ? "icon-badge-soft" : "ring-1",
+        isLush
+          ? "icon-badge-lush"
+          : isSoft
+            ? cn("icon-badge-soft", active && "icon-badge-soft-active")
+            : isOutline
+              ? cn("icon-badge-outline-3d", active && "icon-badge-outline-3d-active")
+              : "ring-1",
         s.box,
         gradientClass,
-        ringColor ? cn("ring-1", ringColor) : !isLush && !isSoft && "ring-white/12",
+        ringColor ? cn("ring-1", ringColor) : !isLush && !isSoft && !isOutline && "ring-white/12",
         isLush && glow && !active && glow,
         isLush && active && activeGlow && activeGlow,
         className
       )}
     >
-      <Icon icon={icon} size={s.icon} active={active || isSoft} className={iconColor} />
+      <Icon
+        icon={icon}
+        size={s.icon}
+        active={active || isSoft}
+        className={cn(iconColor, isOutline && "icon-outline-3d")}
+      />
     </span>
   );
 }
