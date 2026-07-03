@@ -12,33 +12,45 @@ const SEED_CANDIDATES: {
   path: string;
   label: string;
   reportPeriod: import("./types").ReportPeriod;
+  reportDate?: string;
+  dateRange?: { from: string; to: string };
 }[] = [
   {
     fileName: "Sales-Report.csv",
     path: path.join(process.cwd(), "data", "reports", "Sales-Report.csv"),
-    label: "Sales Report",
+    label: "Sale Report 30 June - 3 July",
     reportPeriod: "custom",
-  },
-  {
-    fileName: "SALES-LATEST.csv",
-    path: path.join(process.cwd(), "data", "reports", "SALES-LATEST.csv"),
-    label: "SALES-LATEST",
-    reportPeriod: "daily",
+    reportDate: "2026-07-03",
+    dateRange: { from: "2026-06-30", to: "2026-07-03" },
   },
 ];
 
 function isBundledSalesReport(meta: StoredReportMeta): boolean {
-  return meta.fileName === "Sales-Report.csv" || meta.fileName === "SALES-LATEST.csv";
+  return meta.fileName === "Sales-Report.csv";
 }
 
 function readSeedCsv():
-  | { fileName: string; csvText: string; label: string; reportPeriod: import("./types").ReportPeriod }
+  | {
+      fileName: string;
+      csvText: string;
+      label: string;
+      reportPeriod: import("./types").ReportPeriod;
+      reportDate?: string;
+      dateRange?: { from: string; to: string };
+    }
   | null {
   for (const seed of SEED_CANDIDATES) {
     if (!fs.existsSync(seed.path)) continue;
     const csvText = fs.readFileSync(seed.path, "utf-8");
     if (csvText.trim()) {
-      return { fileName: seed.fileName, csvText, label: seed.label, reportPeriod: seed.reportPeriod };
+      return {
+        fileName: seed.fileName,
+        csvText,
+        label: seed.label,
+        reportPeriod: seed.reportPeriod,
+        reportDate: seed.reportDate,
+        dateRange: seed.dateRange,
+      };
     }
   }
   return null;
@@ -73,6 +85,8 @@ function ensureSeedReport() {
       label: seed.label,
       reportPeriod: seed.reportPeriod,
       reportCategory: "sales",
+      reportDate: seed.reportDate,
+      dateRange: seed.dateRange,
     });
   } catch (err) {
     console.warn("Could not seed default sales report:", err);
@@ -135,6 +149,8 @@ export function saveReport(
     label?: string;
     reportPeriod?: import("./types").ReportPeriod;
     reportCategory?: import("./types").ReportCategory;
+    reportDate?: string | null;
+    dateRange?: { from: string; to: string };
   }
 ): { meta: StoredReportMeta; summary: ReportSummary } {
   ensureDir();
@@ -165,15 +181,21 @@ export function saveReport(
     fileName,
     label: displayLabel,
     uploadedAt,
-    reportDate,
+    reportDate: options?.reportDate ?? reportDate,
     rowCount,
     columns,
     reportPeriod,
     reportCategory,
     vendorCode,
     schema,
-    dateRange,
+    dateRange: options?.dateRange ?? dateRange,
   };
+
+  if (options?.dateRange || options?.reportDate) {
+    summary.reportDate = options?.reportDate ?? options?.dateRange?.to ?? summary.reportDate;
+    summary.dateRange = options?.dateRange ?? summary.dateRange;
+    summary.reportLabel = displayLabel;
+  }
 
   fs.writeFileSync(csvPath(id), csvText, "utf-8");
   const reports = readIndex();

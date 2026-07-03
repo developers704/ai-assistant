@@ -42,9 +42,10 @@ export function isVendorPosFormat(columns: string[]): boolean {
 
 export function isStoreSalesCsv(columns: string[]): boolean {
   const lower = columns.map((c) => c.trim().toLowerCase());
+  const hasProductId = lower.some((c) => c.includes("sku") || /^item\s*#?$/.test(c));
   return (
     lower.some((c) => c.includes("transaction") && c.includes("#")) &&
-    lower.some((c) => c.includes("sku")) &&
+    hasProductId &&
     lower.some((c) => c === "store") &&
     lower.some((c) => c === "total")
   );

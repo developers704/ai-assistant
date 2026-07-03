@@ -31,7 +31,7 @@ function buildSuggestions(schema: TableSchema): string[] {
   const colNames = schema.columns.map((c) => c.name.toLowerCase());
   const isStoreSales =
     colNames.some((c) => c.includes("transaction") && c.includes("#")) &&
-    colNames.some((c) => c.includes("sku")) &&
+    colNames.some((c) => c.includes("sku") || (c.includes("item") && c.includes("#"))) &&
     colNames.some((c) => c.includes("vendor name")) &&
     colNames.some((c) => c === "total");
 

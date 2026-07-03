@@ -14,9 +14,10 @@ export function detectReportPeriod(fileName: string, label?: string): ReportPeri
 
 export function isStoreSalesFormat(columns: string[]): boolean {
   const lower = columns.map((c) => c.trim().toLowerCase());
+  const hasProductId = lower.some((c) => c.includes("sku") || /^item\s*#?$/.test(c));
   return (
     lower.some((c) => c.includes("transaction") && c.includes("#")) &&
-    lower.some((c) => c.includes("sku")) &&
+    hasProductId &&
     lower.some((c) => c === "store") &&
     lower.some((c) => c === "total") &&
     lower.some((c) => c.includes("vendor name") || c === "vendor name")
