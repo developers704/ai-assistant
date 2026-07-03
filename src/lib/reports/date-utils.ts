@@ -28,3 +28,23 @@ export function parseReportFilterDate(input: string): string | null {
 export function isValidIsoDate(iso: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(new Date(`${iso}T12:00:00`).getTime());
 }
+
+/** ISO YYYY-MM-DD → M/D/YYYY for CSV Transaction Date cells */
+export function isoToUsDate(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${Number(m)}/${Number(d)}/${y}`;
+}
+
+/** Every calendar day from `from` to `to` inclusive (ISO dates). */
+export function datesInIsoRange(from: string, to: string): string[] {
+  if (!isValidIsoDate(from) || !isValidIsoDate(to)) return [];
+  const out: string[] = [];
+  const cur = new Date(`${from}T12:00:00Z`);
+  const end = new Date(`${to}T12:00:00Z`);
+  while (cur <= end) {
+    out.push(cur.toISOString().slice(0, 10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return out;
+}

@@ -2,6 +2,8 @@ import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { summarizeCsvText, extractReportDates } from "./summarize-csv";
+import { enrichStoreSalesCsvDates } from "./enrich-sales-dates";
+import { datesInIsoRange, isoToUsDate } from "./date-utils";
 import type { ReportSummary, StoredReportMeta } from "./types";
 
 const REPORTS_DIR = path.join(process.cwd(), ".data", "reports");
@@ -41,7 +43,9 @@ function readSeedCsv():
   | null {
   for (const seed of SEED_CANDIDATES) {
     if (!fs.existsSync(seed.path)) continue;
-    const csvText = fs.readFileSync(seed.path, "utf-8");
+    const csvText = enrichStoreSalesCsvDates(fs.readFileSync(seed.path, "utf-8"), {
+      fallbackDate: seed.dateRange?.to ? isoToUsDate(seed.dateRange.to) : "7/3/2026",
+    });
     if (csvText.trim()) {
       return {
         fileName: seed.fileName,
@@ -228,6 +232,12 @@ export function getLatestReportWithSummary(options?: { filterDate?: string }): {
   const csv = readReportCsv(meta.id);
   if (!csv) return null;
   const availableDates = extractReportDates(csv);
+  const resolvedDates =
+    availableDates.length > 0
+      ? availableDates
+      : meta.dateRange
+        ? datesInIsoRange(meta.dateRange.from, meta.dateRange.to)
+        : [];
   const { summary } = summarizeCsvText(csv, {
     reportId: meta.id,
     reportLabel: meta.label,
@@ -236,7 +246,7 @@ export function getLatestReportWithSummary(options?: { filterDate?: string }): {
     reportCategory: meta.reportCategory,
     filterDate: options?.filterDate,
   });
-  return { meta, summary, csv, availableDates };
+  return { meta, summary, csv, availableDates: resolvedDates };
 }
 
 export function getReportSummaryForSales(): ReportSummary | null {

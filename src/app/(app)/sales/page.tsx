@@ -112,7 +112,7 @@ export default function SalesPage() {
             subtitle={pageSubtitle}
             action={
               <div className="flex flex-wrap items-center gap-2 justify-end">
-                {dataSource === "report" && availableDates.length > 0 && (
+                {(availableDates.length > 0 || reportSummary?.dateRange) && (
                   <div className="flex items-center gap-2">
                     <CalendarDays size={15} className="text-ink-muted shrink-0" />
                     <select
