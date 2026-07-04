@@ -11,10 +11,10 @@ export function Card({ className, hover, solid, children, ...props }: CardProps)
   return (
     <div
       className={cn(
-        "rounded-3xl p-5 transition-all duration-300",
-        solid ? "glass-solid text-slate-900" : "glass-panel text-ink",
+        "rounded-2xl sm:rounded-3xl p-5 transition-all duration-300",
+        solid ? "glass-solid text-slate-900" : "ring-1 ring-white/[0.07] bg-white/[0.025] backdrop-blur-sm text-ink",
         hover &&
-          "hover:shadow-elevated hover:border-white/35 hover:-translate-y-0.5 cursor-pointer",
+          "hover:shadow-elevated hover:ring-white/15 hover:-translate-y-0.5 cursor-pointer",
         className
       )}
       {...props}

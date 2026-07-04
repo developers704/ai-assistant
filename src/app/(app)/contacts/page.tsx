@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
+import { PageShell, PageShellHeader } from "@/components/layout/PageShell";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -76,16 +77,14 @@ export default function ContactsPage() {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-4rem)]">
-      <div className="glass-panel-strong rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10">
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10 shrink-0">
-          <PageHeader
-            title="Contacts"
-            subtitle={contactsSubtitle}
-          />
-        </div>
+      <PageShell accent="indigo" className="flex-1 min-h-0">
+        <div className="flex flex-col flex-1 min-h-0">
+        <PageShellHeader className="shrink-0">
+          <PageHeader gradient eyebrow="Directory" title="Contacts" subtitle={contactsSubtitle} />
+        </PageShellHeader>
 
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-[minmax(240px,320px)_1fr] min-h-0">
-          <div className="border-b lg:border-b-0 lg:border-r border-white/10 overflow-y-auto p-3 sm:p-4 space-y-2">
+          <div className="border-b lg:border-b-0 lg:border-r border-white/[0.06] overflow-y-auto p-3 sm:p-4 space-y-2">
             {state.contacts.map((contact) => {
               const active = selectedId === contact.id;
               return (
@@ -96,8 +95,8 @@ export default function ContactsPage() {
                   className={cn(
                     "w-full text-left rounded-2xl p-3 transition-all ring-1",
                     active
-                      ? "bg-indigo-500/15 ring-indigo-400/35 shadow-glow"
-                      : "glass-panel ring-white/10 hover:bg-white/10 hover:ring-white/20"
+                      ? "bg-indigo-500/15 ring-indigo-400/35 shadow-[0_4px_24px_rgba(99,102,241,0.12)]"
+                      : "ring-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:ring-white/12"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -243,7 +242,8 @@ export default function ContactsPage() {
             )}
           </div>
         </div>
-      </div>
+        </div>
+      </PageShell>
     </div>
   );
 }

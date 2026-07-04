@@ -10,13 +10,13 @@ import { useApp } from "@/lib/store/app-context";
 
 import { PageHeader } from "@/components/layout/Sidebar";
 
+import { PageShell, PageShellHeader, PageShellBody, LushSection } from "@/components/layout/PageShell";
+
 import { Button } from "@/components/ui/Button";
 
 import { Input } from "@/components/ui/Input";
 
 import { Badge } from "@/components/ui/Badge";
-
-import { cn } from "@/lib/utils";
 
 import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug } from "lucide-react";
 
@@ -52,27 +52,11 @@ function SectionCard({
 
   return (
 
-    <div className={cn("glass-panel rounded-2xl p-5 ring-1 ring-white/10", className)}>
-
-      <div className="flex items-center gap-2 mb-4">
-
-        {Icon && (
-
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-500/25 ring-1 ring-slate-400/20">
-
-            <Icon size={16} className="text-slate-300" />
-
-          </span>
-
-        )}
-
-        <h3 className="text-sm font-semibold text-ink">{title}</h3>
-
-      </div>
+    <LushSection title={title} icon={Icon} className={className}>
 
       {children}
 
-    </div>
+    </LushSection>
 
   );
 
@@ -370,13 +354,15 @@ function SettingsContent() {
 
   return (
 
-    <div className="flex flex-col min-h-0">
+    <PageShell accent="violet">
 
-      <div className="glass-panel-strong rounded-3xl ring-1 ring-white/10 overflow-hidden">
-
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
+        <PageShellHeader>
 
           <PageHeader
+
+            gradient
+
+            eyebrow="Preferences"
 
             title="Settings & Profile"
 
@@ -394,13 +380,13 @@ function SettingsContent() {
 
           />
 
-        </div>
+        </PageShellHeader>
 
 
 
-        <div className="px-5 sm:px-6 py-5">
+        <PageShellBody className="space-y-0">
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
 
             <SectionCard title="Profile" icon={User}>
 
@@ -684,11 +670,9 @@ function SettingsContent() {
 
           </div>
 
-        </div>
+        </PageShellBody>
 
-      </div>
-
-    </div>
+    </PageShell>
 
   );
 

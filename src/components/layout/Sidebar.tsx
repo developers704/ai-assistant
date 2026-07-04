@@ -317,38 +317,4 @@ export function MobileNav() {
   );
 }
 
-export function PageHeader({
-  title,
-  subtitle,
-  action,
-  compact,
-}: {
-  title: string;
-  subtitle?: React.ReactNode;
-  action?: React.ReactNode;
-  compact?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3",
-        compact ? "mb-0" : "mb-5"
-      )}
-    >
-      <div className="min-w-0">
-        <h1
-          className={cn(
-            "font-display font-semibold text-ink tracking-tight",
-            compact ? "text-lg" : "text-2xl sm:text-[1.65rem]"
-          )}
-        >
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="text-ink-muted mt-0.5 sm:mt-1 text-xs sm:text-sm">{subtitle}</p>
-        )}
-      </div>
-      {action && <div className="flex-shrink-0">{action}</div>}
-    </div>
-  );
-}
+export { PageHeader } from "@/components/layout/PageShell";

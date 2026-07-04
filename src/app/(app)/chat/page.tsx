@@ -56,10 +56,10 @@ export default function ChatPage() {
         <header className="relative shrink-0 hidden sm:block px-5 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-white/8">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-xl font-display font-semibold text-ink tracking-tight">
+              <h1 className="text-xl font-display font-bold text-gradient-title tracking-tight">
                 AI Chat
               </h1>
-              <p className="text-sm text-ink-muted mt-0.5">
+              <p className="text-sm text-white/40 mt-0.5">
                 Your executive assistant — ask anything
               </p>
             </div>

@@ -397,6 +397,8 @@ export default function AnalystPage() {
         <div className="glass-panel-strong rounded-3xl flex flex-col flex-1 ring-1 ring-white/10 overflow-hidden">
           <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
             <PageHeader
+              gradient
+              eyebrow="Analytics"
               title="Data Analyst"
               subtitle="Upload a daily CSV report — saved for Dashboard & analysis"
             />
@@ -517,6 +519,8 @@ export default function AnalystPage() {
         <div className="px-3 sm:px-6 pt-3 sm:pt-5 pb-2 border-b border-white/10 shrink-0">
           <PageHeader
             compact
+            gradient
+            eyebrow="Analytics"
             title="Data Analyst"
             subtitle={
               <span className="hidden sm:inline">

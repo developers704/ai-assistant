@@ -237,10 +237,10 @@ export default function EmailPage() {
             <>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h1 className="text-xl sm:text-2xl font-display font-semibold text-ink tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-display font-bold text-gradient-title tracking-tight">
                     Email
                   </h1>
-                  <p className="text-xs sm:text-sm text-ink-muted mt-0.5">
+                  <p className="text-xs sm:text-sm text-white/40 mt-0.5">
                     {googleConnected ? "Gmail inbox" : "Demo inbox"}
                   </p>
                 </div>
@@ -269,8 +269,8 @@ export default function EmailPage() {
                     className={cn(
                       "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ring-1",
                       filter === pill.id
-                        ? "bg-violet-500/25 text-violet-100 ring-violet-400/40"
-                        : "bg-white/5 text-ink-muted ring-white/10 hover:bg-white/10"
+                        ? "bg-violet-500/20 text-violet-100 ring-violet-400/35"
+                        : "bg-white/[0.03] text-white/45 ring-white/[0.08] hover:bg-white/[0.06] hover:text-white/70"
                     )}
                   >
                     {pill.label}

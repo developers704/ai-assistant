@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/Sidebar";
+import { PageShell, PageShellHeader, PageShellBody } from "@/components/layout/PageShell";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -173,12 +174,13 @@ export default function CalculatorPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-0">
-      <div className="glass-panel-strong rounded-3xl ring-1 ring-white/10 overflow-hidden">
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
+    <PageShell accent="amber">
+        <PageShellHeader>
           <PageHeader
+            gradient
+            eyebrow="Pricing"
             title="Price Calculator"
-            subtitle="SKU lookup with manager discounts, financing, and commission"
+            subtitle="SKU lookup · manager tiers · financing · commission"
             action={
               <div className="flex items-center gap-2">
                 {inventoryLoaded === true && (
@@ -214,9 +216,9 @@ export default function CalculatorPage() {
               </div>
             }
           />
-        </div>
+        </PageShellHeader>
 
-        <div className="px-5 sm:px-6 py-5 space-y-5">
+        <PageShellBody>
           {inventoryLoaded === false && (
             <Card className="p-4 ring-1 ring-amber-400/20">
               <p className="text-sm text-ink-secondary">
@@ -493,9 +495,8 @@ export default function CalculatorPage() {
               </div>
             </>
           )}
-        </div>
-      </div>
-    </div>
+        </PageShellBody>
+    </PageShell>
   );
 }
 

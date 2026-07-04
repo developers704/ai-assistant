@@ -8,6 +8,8 @@ import { useSearchParams } from "next/navigation";
 
 import { PageHeader } from "@/components/layout/Sidebar";
 
+import { PageShell, PageShellHeader, PageShellBody } from "@/components/layout/PageShell";
+
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 
 import { Badge } from "@/components/ui/Badge";
@@ -177,17 +179,19 @@ export default function NewsMarketsPage() {
 
   return (
 
-    <div className="flex flex-col min-h-0">
+    <PageShell accent="sky">
 
-      <div className="glass-panel-strong rounded-3xl ring-1 ring-white/10 overflow-hidden">
-
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
+        <PageShellHeader>
 
           <PageHeader
 
+            gradient
+
+            eyebrow="Markets"
+
             title="News & Markets"
 
-            subtitle="Live metal & stock prices, industry news, US & world politics, and sports headlines"
+            subtitle="Live metals, stocks, industry news, politics & sports"
 
             action={
 
@@ -203,11 +207,11 @@ export default function NewsMarketsPage() {
 
           />
 
-        </div>
+        </PageShellHeader>
 
 
 
-        <div className="px-5 sm:px-6 py-5 space-y-6">
+        <PageShellBody>
 
           {error && (
 
@@ -576,11 +580,9 @@ export default function NewsMarketsPage() {
 
           ) : null}
 
-        </div>
+        </PageShellBody>
 
-      </div>
-
-    </div>
+    </PageShell>
 
   );
 

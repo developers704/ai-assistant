@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
+import {
+  PageShell,
+  PageShellHeader,
+  PageShellBody,
+  LushMetric,
+} from "@/components/layout/PageShell";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -98,15 +104,16 @@ export default function SalesPage() {
   const maxTopStoreRevenue = Math.max(...summary.topStores.map((s) => s.revenue), 1);
 
   return (
-    <div className="flex flex-col min-h-0">
-      <div className="glass-panel-strong rounded-3xl ring-1 ring-white/10 overflow-hidden">
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10">
+    <PageShell accent="emerald">
+      <PageShellHeader>
           <PageHeader
+            gradient
+            eyebrow="Sales"
             title={
               isFinancingReport
-                ? "Financing & Sales Reports"
+                ? "Financing & Sales"
                 : isStoreSalesReport
-                  ? "Store Sales Dashboard"
+                  ? "Store Sales"
                   : "Sales Reports"
             }
             subtitle={pageSubtitle}
@@ -147,15 +154,16 @@ export default function SalesPage() {
               </div>
             }
           />
-        </div>
+      </PageShellHeader>
 
-        <div className="px-5 sm:px-6 py-5 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <MetricCard
+        <PageShellBody>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+            <LushMetric
               label={isFinancingReport || isStoreSalesReport ? "Net Sales" : "Total Revenue"}
               value={formatCurrency(summary.totalRevenue)}
+              accent="emerald"
               footer={
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 text-white/50">
                   {summary.comparisonPreviousDay >= 0 ? (
                     <TrendingUp size={14} className="text-emerald-400" />
                   ) : (
@@ -173,17 +181,17 @@ export default function SalesPage() {
                 </div>
               }
             />
-            <MetricCard
+            <LushMetric
               label={
                 isFinancingReport
-                  ? "Sales Transactions"
+                  ? "Transactions"
                   : isStoreSalesReport
                     ? "Units Sold"
                     : "Pieces Sold"
               }
               value={summary.totalTransactions.toLocaleString()}
               footer={
-                <p className="text-sm text-ink-muted">
+                <p className="text-sm text-white/35">
                   {isFinancingReport
                     ? "Sales rows in report period"
                     : isStoreSalesReport && reportSummary?.uniqueTransactions
@@ -192,7 +200,7 @@ export default function SalesPage() {
                 </p>
               }
             />
-            <MetricCard
+            <LushMetric
               label={
                 isFinancingReport
                   ? "Total Profit"
@@ -207,12 +215,13 @@ export default function SalesPage() {
                     ? formatCurrency(reportSummary?.totalMargin ?? 0)
                     : formatCurrency(summary.averageOrderValue)
               }
+              accent="amber"
               footer={
-                <p className="text-sm text-ink-muted">
+                <p className="text-sm text-white/35">
                   {isFinancingReport
                     ? `Avg sale ${formatCurrency(summary.averageOrderValue)}`
                     : isStoreSalesReport && reportSummary?.marginRate
-                      ? `${(reportSummary.marginRate * 100).toFixed(1)}% margin rate · avg ${formatCurrency(summary.averageOrderValue)}`
+                      ? `${(reportSummary.marginRate * 100).toFixed(1)}% margin · avg ${formatCurrency(summary.averageOrderValue)}`
                       : `+${summary.comparisonPreviousWeek.toFixed(1)}% vs last week`}
                 </p>
               }
@@ -321,26 +330,7 @@ export default function SalesPage() {
               </div>
             </Card>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  footer,
-}: {
-  label: string;
-  value: string;
-  footer: React.ReactNode;
-}) {
-  return (
-    <Card className="p-4 sm:p-5">
-      <p className="text-sm text-ink-secondary">{label}</p>
-      <p className="text-2xl sm:text-3xl font-bold text-ink mt-1 tabular-nums">{value}</p>
-      <div className="mt-2">{footer}</div>
-    </Card>
+        </PageShellBody>
+    </PageShell>
   );
 }

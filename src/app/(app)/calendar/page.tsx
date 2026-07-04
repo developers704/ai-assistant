@@ -4,6 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
+import {
+  PageShell,
+  PageShellHeader,
+  LushTabBar,
+  LushEmpty,
+} from "@/components/layout/PageShell";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -105,8 +111,10 @@ export default function CalendarTasksPage() {
     return (
       <Card
         className={cn(
-          "p-4 ring-1 cursor-pointer transition-colors",
-          selected ? "ring-amber-400/50 bg-amber-500/10" : "ring-white/5 hover:bg-white/5"
+          "p-4 ring-1 cursor-pointer transition-all duration-200",
+          selected
+            ? "ring-rose-400/40 bg-rose-500/10"
+            : "ring-white/[0.06] hover:ring-white/12 hover:bg-white/[0.04]"
         )}
         onClick={() => setSelectedMeetingId(event.id)}
       >
@@ -146,19 +154,22 @@ export default function CalendarTasksPage() {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-5.5rem)] lg:h-[calc(100dvh-4rem)]">
-      <div className="glass-panel-strong rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10">
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-white/10 shrink-0">
+      <PageShell accent="rose" className="flex-1 min-h-0">
+        <div className="flex flex-col flex-1 min-h-0">
+        <PageShellHeader className="shrink-0">
           <PageHeader
+            gradient
+            eyebrow="Schedule"
             title="Calendar & Tasks"
             subtitle={
               googleConnected
-                ? `${todayEvents.length} events today · ${pending.length} pending tasks · Google Calendar`
-                : `${todayEvents.length} events today · ${pending.length} pending tasks · demo calendar`
+                ? `${todayEvents.length} events today · ${pending.length} tasks · Google synced`
+                : `${todayEvents.length} events today · ${pending.length} tasks`
             }
             action={
               <div className="flex items-center gap-2">
                 {googleConnected && (
-                  <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-500/15 px-2.5 py-1 rounded-full ring-1 ring-emerald-400/25">
+                  <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300/80 bg-emerald-500/10 px-2.5 py-1 rounded-full ring-1 ring-emerald-400/20">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Live
                   </span>
@@ -173,33 +184,19 @@ export default function CalendarTasksPage() {
             }
           />
 
-          <div className="flex gap-1 p-1 glass-panel rounded-2xl w-fit mt-4">
-            {(
-              [
+          <div className="mt-4">
+            <LushTabBar
+              tabs={[
                 { id: "calendar" as const, label: "Calendar", icon: Calendar, color: "text-rose-300" },
                 { id: "tasks" as const, label: "Tasks", icon: CheckSquare, color: "text-amber-300" },
-              ] as const
-            ).map((t) => {
-              const Icon = t.icon;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
-                    tab === t.id
-                      ? "nav-pill-active text-white"
-                      : "text-ink-muted hover:text-ink hover:bg-white/8"
-                  )}
-                >
-                  <Icon size={15} className={tab === t.id ? t.color : ""} /> {t.label}
-                </button>
-              );
-            })}
+              ]}
+              active={tab}
+              onChange={setTab}
+            />
           </div>
-        </div>
+        </PageShellHeader>
 
-        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 min-h-0">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 min-h-0">
           {!googleConnected && (
             <Card className="mb-5 p-4 flex flex-wrap items-center justify-between gap-3 ring-1 ring-amber-400/20 bg-amber-500/10">
               <p className="text-sm text-ink-secondary">Connect Google Calendar in Settings to sync your real schedule.</p>
@@ -242,7 +239,7 @@ export default function CalendarTasksPage() {
                       <EventCard key={event.id} event={event} />
                     ))}
                     {todayEvents.length === 0 && (
-                      <Card className="p-8 text-center text-ink-muted text-sm">No events scheduled for today</Card>
+                      <LushEmpty message="No events scheduled for today" icon={Calendar} />
                     )}
                   </div>
                 </div>
@@ -259,7 +256,7 @@ export default function CalendarTasksPage() {
                       <EventCard key={event.id} event={event} showDate />
                     ))}
                     {upcomingEvents.length === 0 && (
-                      <Card className="p-8 text-center text-ink-muted text-sm">No upcoming events this week</Card>
+                      <LushEmpty message="No upcoming events this week" icon={Calendar} />
                     )}
                   </div>
                 </div>
@@ -352,7 +349,8 @@ export default function CalendarTasksPage() {
             </>
           )}
         </div>
-      </div>
+        </div>
+      </PageShell>
     </div>
   );
 }
