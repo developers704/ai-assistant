@@ -322,7 +322,7 @@ export default function SalesPage() {
                   {isFinancingReport ? "Top Pay Programs" : "Top SKUs"}
                 </CardTitle>
                 <span className="text-xs text-ink-muted">
-                  {isFinancingReport ? "By net sales amount" : "Top 20 by quantity sold"}
+                  {isFinancingReport ? "By net sales amount" : "Top 20 jewelry SKUs by quantity"}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">

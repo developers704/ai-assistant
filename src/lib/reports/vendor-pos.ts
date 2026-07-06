@@ -1,4 +1,5 @@
 import type { SalesSummary } from "@/types";
+import { isExcludedTopProductSku } from "@/lib/utils";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
 
 function parseNumber(raw: unknown): number {
@@ -151,11 +152,10 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
 
   for (const r of rows) {
     const sku = r.sku?.trim() ?? "";
-    if (sku.toUpperCase() === "ITEM") continue;
+    const itemNumber = sku || r.itemNumber?.trim() || "";
+    if (!itemNumber || isExcludedTopProductSku(itemNumber)) continue;
 
     const label = r.description?.trim();
-    const itemNumber = sku || r.itemNumber?.trim();
-    if (!itemNumber || itemNumber.toUpperCase() === "ITEM") continue;
     if (!label && !itemNumber) continue;
 
     const key = `item:${itemNumber}`;

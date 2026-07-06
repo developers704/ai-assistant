@@ -18,13 +18,23 @@ export function formatPieceCount(units: number): string {
   return n === 1 ? "1 pc" : `${n.toLocaleString()} pcs`;
 }
 
-/** Store-sales placeholder rows (fees/add-ons) — not real product SKUs. */
+/** Non-jewelry SKUs hidden from Top Products only (still in report totals). */
+export function isExcludedTopProductSku(sku?: string | null): boolean {
+  const normalized = (sku ?? "").trim().toUpperCase();
+  if (!normalized) return false;
+  if (normalized === "ITEM") return true;
+  if (normalized === "250000") return true;
+  if (normalized === "217365") return true;
+  if (normalized.startsWith("MLB-LT")) return true;
+  return false;
+}
+
 export function isItemPlaceholderSku(sku?: string | null): boolean {
-  return (sku ?? "").trim().toUpperCase() === "ITEM";
+  return isExcludedTopProductSku(sku);
 }
 
 export function filterTopProductSkus<T extends { itemNumber?: string }>(products: T[]): T[] {
-  return products.filter((p) => !isItemPlaceholderSku(p.itemNumber));
+  return products.filter((p) => !isExcludedTopProductSku(p.itemNumber));
 }
 
 export function sortTopProducts<T extends { revenue: number; units: number }>(products: T[]): T[] {
