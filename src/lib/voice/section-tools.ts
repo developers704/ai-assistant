@@ -11,6 +11,7 @@ import {
 import { buildEmailVoiceScript, getVoiceEmails } from "@/lib/voice/email-data";
 import { buildTasksVoiceScript } from "@/lib/voice/tool-helpers";
 import { getAssistantSalesSummary } from "@/lib/assistant/sales-data";
+import { sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import { fetchMetalMetricSpot, KARAT_PURITY, TROY_OUNCE_GRAMS } from "@/lib/markets/metalmetric";
 
 export interface MarketRatesSummary {
@@ -42,24 +43,29 @@ export async function getMarketRatesSummary(): Promise<MarketRatesSummary> {
   };
 }
 
-export function estimateJewelleryPrice(args: {
+export async function estimateJewelleryPrice(args: {
   weight_grams: number;
   karat?: string;
   metal?: string;
   making_percent?: number;
   tax_percent?: number;
-}): { total: number; spokenAnswer: string } {
+}): Promise<{ total: number; spokenAnswer: string }> {
   const weight = Math.max(0, args.weight_grams);
   const karat = args.karat ?? "22K";
   const metal = args.metal ?? "gold";
   const makingPct = args.making_percent ?? 12;
   const taxPct = args.tax_percent ?? 8;
 
-  let ratePerGram = 127.7;
+  const rates = await getMarketRatesSummary();
+  let ratePerGram = rates.gold22PerGram;
   if (metal === "silver") {
-    ratePerGram = 2.25;
-  } else {
-    ratePerGram = { "24K": 139.3, "22K": 127.7, "18K": 104.5, "14K": 81.2 }[karat] ?? 127.7;
+    ratePerGram = rates.silverPerGram;
+  } else if (karat === "24K") {
+    ratePerGram = rates.gold24PerGram;
+  } else if (karat === "18K") {
+    ratePerGram = Math.round(rates.gold24PerGram * KARAT_PURITY["18K"] * 100) / 100;
+  } else if (karat === "14K") {
+    ratePerGram = Math.round(rates.gold24PerGram * KARAT_PURITY["14K"] * 100) / 100;
   }
 
   const metalCost = weight * ratePerGram;
@@ -68,9 +74,11 @@ export function estimateJewelleryPrice(args: {
   const tax = subtotal * (taxPct / 100);
   const total = Math.round((subtotal + tax) * 100) / 100;
 
+  const rateNote = rates.live ? "using live spot rates" : "using indicative rates";
+
   return {
     total,
-    spokenAnswer: `For ${weight} grams of ${karat !== "22K" || metal === "silver" ? "" : "22K "}${metal}, estimated total is about $${total.toLocaleString()} including ${makingPct}% making and ${taxPct}% tax. Use the Calculator page to fine-tune.`,
+    spokenAnswer: `For ${weight} grams of ${metal === "silver" ? "silver" : karat + " gold"}, estimated total is about $${total.toLocaleString()} ${rateNote}, including ${makingPct}% making and ${taxPct}% tax. Open the Calculator to fine-tune.`,
   };
 }
 
@@ -124,4 +132,64 @@ export async function buildDailyBriefingScript(): Promise<string> {
     tasks,
     salesLine,
   ].join(" ");
+}
+
+/** Integration and profile status for Settings voice answers. */
+export function buildSettingsStatusScript(): string {
+  const state = getState();
+  const google = state.integrations?.google;
+  const plaid = state.integrations?.plaid;
+  const news = state.integrations?.news;
+  const parts: string[] = [];
+
+  parts.push(
+    google?.connected
+      ? `Google is connected${google.email ? ` as ${google.email}` : ""} for Gmail, Calendar, and Contacts.`
+      : "Google is not connected. Connect it in Settings for live inbox and calendar."
+  );
+
+  parts.push(
+    plaid?.connected
+      ? `Plaid investments are connected${plaid.institutionName ? ` to ${plaid.institutionName}` : ""}.`
+      : "Plaid is not connected."
+  );
+
+  parts.push(
+    news?.configured
+      ? "News API is configured for live industry headlines."
+      : "News API is not configured on the server."
+  );
+
+  const prefs = state.user?.preferences;
+  if (prefs?.confirmBeforeMeeting) {
+    parts.push("Meeting confirmations are enabled.");
+  }
+  if (prefs?.confirmBeforeSend) {
+    parts.push("Email send confirmations are enabled.");
+  }
+
+  return parts.join(" ");
+}
+
+/** Summarize latest uploaded report for Data Analyst voice queries. */
+export function buildAnalystReportScript(userMessage?: string): string {
+  const { summary, source, label } = getAssistantSalesSummary();
+  if (source !== "report") {
+    return "No sales report is loaded yet. Open Data Analyst and upload your CSV, or check the Sales Dashboard after a report is seeded.";
+  }
+
+  const topStores = summary.topStores.slice(0, 3);
+  const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 3);
+  const lower = (userMessage ?? "").toLowerCase();
+
+  if (/\btop\s+(product|sku)/i.test(lower)) {
+    if (!topProducts.length) return "The report has no product breakdown available.";
+    return `From ${label ?? "your report"}, top SKUs by quantity: ${topProducts.map((p) => `${p.itemNumber} with ${p.units} units`).join(", ")}. Open Data Analyst for deeper queries.`;
+  }
+
+  if (/\btop\s+store/i.test(lower) && topStores[0]) {
+    return `From ${label ?? "your report"}, top store is ${topStores[0].name} at $${Math.round(topStores[0].revenue).toLocaleString()} net. Open Data Analyst for custom analysis.`;
+  }
+
+  return `Latest report ${label ?? ""}: $${summary.totalRevenue.toLocaleString()} net revenue, ${summary.totalTransactions.toLocaleString()} units, ${topStores.length} stores tracked. Top store: ${topStores[0]?.name ?? "n/a"}. Open Data Analyst to run custom SQL on the CSV.`;
 }

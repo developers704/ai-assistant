@@ -77,3 +77,46 @@ export function parseMeetingFromMessage(message: string, state: AppState): Parse
     attendees: [displayName],
   };
 }
+
+/** Resolve meeting tool args from explicit fields or natural-language user_message. */
+export function resolveMeetingToolArgs(
+  args: Record<string, unknown>,
+  state: AppState
+): {
+  title: string;
+  start: string;
+  end?: string;
+  location?: string;
+  attendees: string[];
+} {
+  const userMessage = args.user_message ? String(args.user_message) : "";
+  const hasExplicitStart = Boolean(args.start);
+
+  if (!hasExplicitStart && userMessage) {
+    const parsed = parseMeetingFromMessage(userMessage, state);
+    return {
+      title: args.title ? String(args.title) : parsed.title,
+      start: parsed.start,
+      end: args.end ? String(args.end) : undefined,
+      location: args.location ? String(args.location) : undefined,
+      attendees: Array.isArray(args.attendees)
+        ? args.attendees.map(String)
+        : parsed.attendees,
+    };
+  }
+
+  return {
+    title: String(args.title ?? "Meeting"),
+    start: String(args.start ?? new Date().toISOString()),
+    end: args.end ? String(args.end) : undefined,
+    location: args.location ? String(args.location) : undefined,
+    attendees: Array.isArray(args.attendees)
+      ? args.attendees.map(String)
+      : args.attendees
+        ? String(args.attendees)
+            .split(",")
+            .map((a) => a.trim())
+            .filter(Boolean)
+        : [],
+  };
+}

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { VoiceUiAction } from "@/lib/voice/types";
 import { VOICE_MAX_TURNS, VOICE_SESSION_MAX_MS } from "@/lib/voice/constants";
-import { detectVoiceIntent, extractCompleteTaskQuery, extractContactQuery, extractImagePrompt, extractPriceEstimate, extractTaskQuery, normalizeVoiceTranscript } from "@/lib/voice/intent";
+import { detectVoiceIntent, extractCompleteTaskQuery, extractContactQuery, extractImagePrompt, extractNavigationPage, extractPriceEstimate, extractTaskQuery, normalizeVoiceTranscript } from "@/lib/voice/intent";
 import { isConfirmMessage, isRejectMessage } from "@/lib/actions/confirmation-messages";
 
 export type RealtimeVoiceStatus =
@@ -243,13 +243,72 @@ export function useRealtimeVoice(enabled: boolean) {
         try {
           await runTool(
             "get_today_sales",
-            {},
+            { user_message: normalized },
             "The user asked about SALES. Say exactly this:",
-            150
+            200
           );
           return;
         } catch {
           // fall through
+        }
+      }
+
+      if (intent === "meeting_create") {
+        try {
+          await runTool(
+            "add_meeting",
+            { user_message: normalized },
+            "The user asked to SCHEDULE A MEETING. Say exactly this:",
+            220
+          );
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "knowledge") {
+        try {
+          await runTool(
+            "search_company_knowledge",
+            { query: normalized },
+            "The user asked about COMPANY KNOWLEDGE. Say exactly this:",
+            280
+          );
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "settings") {
+        try {
+          await runTool(
+            "get_settings_status",
+            {},
+            "The user asked about SETTINGS or INTEGRATIONS. Say exactly this:",
+            260
+          );
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "navigation") {
+        const page = extractNavigationPage(normalized);
+        if (page) {
+          try {
+            await runTool(
+              "show_detail_page",
+              { page },
+              "The user asked to OPEN A PAGE. Say exactly this:",
+              80
+            );
+            return;
+          } catch {
+            // fall through
+          }
         }
       }
 
@@ -386,7 +445,12 @@ export function useRealtimeVoice(enabled: boolean) {
 
       if (intent === "analyst") {
         try {
-          await runTool("open_data_analyst", {}, "The user asked about DATA ANALYST. Say exactly this:");
+          await runTool(
+            "open_data_analyst",
+            { user_message: normalized },
+            "The user asked about DATA ANALYST or REPORT ANALYSIS. Say exactly this:",
+            300
+          );
           return;
         } catch {
           // fall through

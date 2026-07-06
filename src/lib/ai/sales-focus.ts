@@ -1,4 +1,4 @@
-export type SalesFocus = "top_store" | "summary" | "full_report";
+export type SalesFocus = "top_store" | "top_products" | "summary" | "full_report";
 
 const TOP_STORE_PATTERNS = [
   /\b(best|top|highest|leading|#1|number\s*one)\b.*\b(store|location)\b/i,
@@ -6,6 +6,13 @@ const TOP_STORE_PATTERNS = [
   /\b(one|single)\s+store\b.*\b(top|sales|best|highest)\b/i,
   /\b(top|best)\s+store\b/i,
   /\bwhich\s+store\b.*\b(sales|revenue|best|top)\b/i,
+];
+
+const TOP_PRODUCT_PATTERNS = [
+  /\b(top|best)\b.*\b(product|sku|item)s?\b/i,
+  /\b(product|sku|item)s?\b.*\b(top|best|highest)\b/i,
+  /\bwhich\s+(product|sku)\b/i,
+  /\btop\s+\d+\s+(product|sku)/i,
 ];
 
 const FULL_REPORT_PATTERNS = [
@@ -22,6 +29,7 @@ export function detectSalesFocus(message: string, routedIntent?: string): SalesF
   if (routedIntent === "sales.top_store") return "top_store";
 
   if (FULL_REPORT_PATTERNS.some((p) => p.test(lower))) return "full_report";
+  if (TOP_PRODUCT_PATTERNS.some((p) => p.test(lower))) return "top_products";
   if (TOP_STORE_PATTERNS.some((p) => p.test(lower))) return "top_store";
 
   if (/\b(sales|revenue)\b/i.test(lower)) return "summary";

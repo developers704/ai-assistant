@@ -2,6 +2,7 @@ export type VoicePrefetchIntent =
   | "email_draft"
   | "email"
   | "calendar"
+  | "meeting_create"
   | "sales"
   | "task_list"
   | "task_remove"
@@ -14,7 +15,10 @@ export type VoicePrefetchIntent =
   | "metal_rates"
   | "price_estimate"
   | "image_generate"
-  | "analyst";
+  | "analyst"
+  | "knowledge"
+  | "settings"
+  | "navigation";
 
 /** Fix common Realtime speech-to-text mishearings before intent detection. */
 export function normalizeVoiceTranscript(text: string): string {
@@ -87,6 +91,12 @@ export function extractPriceEstimate(text: string): { weight: number; karat?: st
   return null;
 }
 
+const MEETING_CREATE =
+  /\b(set|schedule|book|create|add|plan)\b[\s\S]{0,30}\b(meeting|appointment|call)\b/i;
+
+const CALENDAR_READ =
+  /(?:what'?s|whats|show|list|view|see|tell me)\b[\s\S]{0,40}\b(?:today|tomorrow|my)?\s*(?:schedule|calendar|calender|meetings?|appointments?|events?)\b/i;
+
 export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   const lower = normalizeVoiceTranscript(text).toLowerCase().trim();
   if (!lower) return null;
@@ -146,8 +156,36 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
     return "price_estimate";
   }
 
-  if (/data analyst|analyze (?:my )?data|sales csv|upload csv|analyst page/i.test(lower)) {
+  if (
+    /data analyst|analyze (?:my )?(?:sales )?(?:data|report|csv)|upload csv|analyst page|top products? in (?:the )?report/i.test(
+      lower
+    )
+  ) {
     return "analyst";
+  }
+
+  if (
+    /policy|return policy|store count|how many stores|brand|founder|valliani|company knowledge|our stores|warranty|layaway/i.test(
+      lower
+    )
+  ) {
+    return "knowledge";
+  }
+
+  if (
+    /settings|integrations?|is google connected|google connected|plaid connected|connection status|disconnect google/i.test(
+      lower
+    )
+  ) {
+    return "settings";
+  }
+
+  if (
+    /open (?:the )?(?:sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)|go to (?:sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)/i.test(
+      lower
+    )
+  ) {
+    return "navigation";
   }
 
   if (
@@ -156,6 +194,13 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
     )
   ) {
     return "email_draft";
+  }
+
+  if (
+    (MEETING_CREATE.test(lower) || /\bmeeting\s+with\b/i.test(lower)) &&
+    !/\b(delete|cancel|remove)\b/i.test(lower)
+  ) {
+    return "meeting_create";
   }
 
   if (
@@ -196,21 +241,43 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /calendar|schedule|meeting|what'?s on today|events? today|on my (calendar|plate)|my day look|appointments?|open (?:the |my )?calendar|show (?:the |my )?calendar|go to calendar/i.test(
-      lower
-    ) &&
-    !/add meeting|schedule a|remove meeting|cancel meeting|delete meeting/i.test(lower)
+    CALENDAR_READ.test(lower) ||
+    /(?:today|tomorrow)('s)?\s*schedule\b/i.test(lower) ||
+    /(?:what|anything)\b[\s\S]{0,20}\b(?:on|for)\b[\s\S]{0,20}\b(?:today|tomorrow)\b/i.test(lower) ||
+    (/calendar|meetings? today|events? today|appointments?/i.test(lower) &&
+      !/\b(add|schedule|book|create|set|plan)\b/i.test(lower))
   ) {
     return "calendar";
   }
 
   if (
-    /sales|revenue|how much (did we|have we) sell|store(s)? performance|transactions today/i.test(
+    /sales|revenue|top store|top product|best store|best sku|how much (did we|have we) sell|store(s)? performance|transactions today/i.test(
       lower
     )
   ) {
     return "sales";
   }
 
+  return null;
+}
+
+export function extractNavigationPage(text: string): string | null {
+  const lower = text.toLowerCase();
+  const pages = [
+    "settings",
+    "analyst",
+    "calculator",
+    "contacts",
+    "dashboard",
+    "calendar",
+    "images",
+    "sales",
+    "email",
+    "news",
+    "chat",
+  ] as const;
+  for (const page of pages) {
+    if (new RegExp(`\\b${page}\\b`).test(lower)) return page;
+  }
   return null;
 }

@@ -16,6 +16,7 @@ import {
   stageDeleteTask,
 } from "@/lib/actions/confirmation";
 import { getState } from "@/lib/store/server-store";
+import { resolveMeetingToolArgs } from "@/lib/ai/meeting-parse";
 
 function parseLegacyOutput(output: string): Record<string, unknown> {
   try {
@@ -145,7 +146,8 @@ export async function executeTool(
         };
       }
     } else if (name === "add_meeting") {
-      staged = stageAddMeeting(args, context);
+      const resolved = resolveMeetingToolArgs(args, getState());
+      staged = stageAddMeeting({ ...args, ...resolved }, context);
     }
 
     if (staged) {

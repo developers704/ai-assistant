@@ -68,10 +68,25 @@ export function formatSalesSummaryBrief(): string {
   return md;
 }
 
+export function formatTopProductsAnswer(): string {
+  const { summary, source, label } = getAssistantSalesSummary();
+  const top = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 5);
+  if (!top.length) {
+    return "I don't have product-level data right now. Upload a sales report or open the Sales Dashboard.";
+  }
+  const lines = top.map(
+    (p, i) => `${i + 1}. **${p.itemNumber}** — ${formatPieceCount(p.units)} sold, ${formatCurrency(p.revenue)}`
+  );
+  const period = source === "report" ? (label ? ` (${label})` : "") : " _(demo)_";
+  return `**Top SKUs by quantity**${period}\n\n${lines.join("\n")}`;
+}
+
 export function formatSalesByFocus(focus: SalesFocus): string {
   switch (focus) {
     case "top_store":
       return formatTopStoreAnswer();
+    case "top_products":
+      return formatTopProductsAnswer();
     case "summary":
       return formatSalesSummaryBrief();
     case "full_report":

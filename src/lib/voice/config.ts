@@ -41,6 +41,8 @@ TOOL RULES (critical — always follow):
 - Data analyst / analyze sales data / CSV → call open_data_analyst (user uploads file on that page).
 - Generate jewelry image / create product photo → call generate_jewellery_image with prompt.
 - Open any app section → call show_detail_page (dashboard, sales, calendar, email, chat, contacts, images, news, analyst, calculator, settings).
+- Settings / integrations / is Google connected → call get_settings_status.
+- View today's schedule (not create) → call get_calendar_today. Schedule/create meeting → call add_meeting with user_message.
 
 DATA RULES:
 - NEVER invent meetings, emails, sales, or task numbers.

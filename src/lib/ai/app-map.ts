@@ -387,7 +387,7 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
       "Confirm-before-send preferences",
       "Timezone & communication style",
     ],
-    relatedTools: ["search_company_knowledge"],
+    relatedTools: ["get_settings_status", "show_detail_page", "search_company_knowledge"],
     commonQuestions: [
       "Connect Gmail",
       "Turn off confirm before send",

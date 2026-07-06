@@ -29,6 +29,8 @@ import { userTimezone } from "@/lib/calendar-dates";
 import { generateGeminiImage } from "@/lib/gemini/image";
 import {
   buildDailyBriefingScript,
+  buildAnalystReportScript,
+  buildSettingsStatusScript,
   estimateJewelleryPrice,
   getMarketRatesSummary,
   getNewsHeadlinesScript,
@@ -38,6 +40,7 @@ import {
 import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
 import { buildCompanyKnowledgeVoiceAnswer } from "@/lib/voice/rag-tool";
 import { sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
+import { resolveMeetingToolArgs } from "@/lib/ai/meeting-parse";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
 
 import type { VoiceUiAction } from "@/lib/voice/types";
@@ -134,22 +137,34 @@ export async function executeVoiceTool(
       const { detectSalesFocus } = await import("@/lib/ai/sales-focus");
       const { formatSalesByFocus } = await import("@/lib/assistant/sales-data");
       const focus = (
-        focusArg === "top_store" || focusArg === "summary" || focusArg === "full_report"
+        focusArg === "top_store" ||
+        focusArg === "top_products" ||
+        focusArg === "summary" ||
+        focusArg === "full_report"
           ? focusArg
           : detectSalesFocus(userMessage || focusArg)
-      ) as "top_store" | "summary" | "full_report";
+      ) as "top_store" | "top_products" | "summary" | "full_report";
 
       const { summary, source, label, vendorCode } = getAssistantSalesSummary();
       const topStores = summary.topStores.slice(0, 5);
       const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 5);
       const synthesizedAnswer = formatSalesByFocus(focus);
 
-      const spoken =
-        focus === "top_store" && topStores[0]
-          ? `Your top store is ${topStores[0].name} at ${topStores[0].revenue.toLocaleString()} dollars net.`
-          : source === "report"
+      let spoken: string;
+      if (focus === "top_store" && topStores[0]) {
+        spoken = `Your top store is ${topStores[0].name} at ${topStores[0].revenue.toLocaleString()} dollars net.`;
+      } else if (focus === "top_products" && topProducts[0]) {
+        spoken = `Your top SKU by quantity is ${topProducts[0].itemNumber}, ${topProducts[0].units} units sold, about ${topProducts[0].revenue.toLocaleString()} dollars revenue.`;
+      } else if (focus === "full_report") {
+        spoken = source === "report"
+          ? `Full report${label ? ` ${label}` : ""}: ${summary.totalRevenue.toLocaleString()} dollars net, ${summary.totalTransactions.toLocaleString()} units across ${summary.topStores.length} stores.`
+          : `Demo sales data: ${summary.totalRevenue.toLocaleString()} dollars. Upload a CSV in Data Analyst for live numbers.`;
+      } else {
+        spoken =
+          source === "report"
             ? `Latest report${label ? ` ${label}` : ""}: ${summary.totalRevenue.toLocaleString()} dollars net across ${summary.totalTransactions.toLocaleString()} units.`
             : `Today's sales are $${summary.totalRevenue.toLocaleString()} across ${summary.totalTransactions} transactions. Demo data until a CSV is uploaded.`;
+      }
 
       return {
         output: JSON.stringify({
@@ -352,18 +367,12 @@ export async function executeVoiceTool(
     }
 
     case "add_meeting": {
-      const title = String(args.title ?? "Meeting");
-      const start = String(args.start ?? new Date().toISOString());
-      const end = defaultMeetingEnd(start, args.end ? String(args.end) : undefined);
-      const location = args.location ? String(args.location) : undefined;
-      const attendees = Array.isArray(args.attendees)
-        ? args.attendees.map(String)
-        : args.attendees
-          ? String(args.attendees)
-              .split(",")
-              .map((a) => a.trim())
-              .filter(Boolean)
-          : [];
+      const resolved = resolveMeetingToolArgs(args, getState());
+      const title = resolved.title;
+      const start = resolved.start;
+      const end = defaultMeetingEnd(start, resolved.end);
+      const location = resolved.location;
+      const attendees = resolved.attendees;
 
       let event: CalendarEvent;
 
@@ -601,7 +610,7 @@ export async function executeVoiceTool(
 
     case "estimate_jewellery_price": {
       const weight = Number(args.weight_grams ?? args.weight ?? 0);
-      const result = estimateJewelleryPrice({
+      const result = await estimateJewelleryPrice({
         weight_grams: weight,
         karat: args.karat ? String(args.karat) : "22K",
         metal: args.metal ? String(args.metal) : "gold",
@@ -642,12 +651,22 @@ export async function executeVoiceTool(
     }
 
     case "open_data_analyst": {
+      const userMessage = args.user_message ? String(args.user_message) : undefined;
+      const script = buildAnalystReportScript(userMessage);
       return {
         output: JSON.stringify({
-          spokenAnswer:
-            "Opening the Data Analyst. Upload your sales CSV file there, then ask questions like top products or monthly trends. I can guide you on the Analyst page.",
+          spokenAnswer: script,
+          hasReport: getAssistantSalesSummary().source === "report",
         }),
         uiAction: { type: "navigate", path: "/analyst" },
+      };
+    }
+
+    case "get_settings_status": {
+      const script = buildSettingsStatusScript();
+      return {
+        output: JSON.stringify({ spokenAnswer: script }),
+        uiAction: { type: "navigate", path: "/settings" },
       };
     }
 
