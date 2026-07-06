@@ -3,7 +3,7 @@ import { toEmailPreview } from "@/lib/email-html";
 import { houseOfBrands, brandPillars } from "@/lib/mock-data/products";
 import { buildStoreDirectoryContext } from "@/lib/stores/store-knowledge";
 import { getAssistantSalesSummary } from "@/lib/assistant/sales-data";
-import { formatCurrency, formatPieceCount, sortTopProducts } from "@/lib/utils";
+import { formatCurrency, formatPieceCount, sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import {
   userTimezone,
   isTodayInTimezone,
@@ -58,7 +58,7 @@ export function buildAssistantContext(state: AppState): string {
 
   const salesBundle = getAssistantSalesSummary();
   const sales = salesBundle.summary;
-  const topProducts = sortTopProducts(sales.topProducts).slice(0, 3);
+  const topProducts = sortTopProductsByUnits(filterTopProductSkus(sales.topProducts)).slice(0, 3);
   const storeDirectory = buildStoreDirectoryContext();
   const pendingTasks = state.reminders.filter((r) => !r.completed);
   const googleConnected = state.integrations?.google?.connected ?? false;

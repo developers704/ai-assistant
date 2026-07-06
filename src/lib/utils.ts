@@ -18,8 +18,22 @@ export function formatPieceCount(units: number): string {
   return n === 1 ? "1 pc" : `${n.toLocaleString()} pcs`;
 }
 
+/** Store-sales placeholder rows (fees/add-ons) — not real product SKUs. */
+export function isItemPlaceholderSku(sku?: string | null): boolean {
+  return (sku ?? "").trim().toUpperCase() === "ITEM";
+}
+
+export function filterTopProductSkus<T extends { itemNumber?: string }>(products: T[]): T[] {
+  return products.filter((p) => !isItemPlaceholderSku(p.itemNumber));
+}
+
 export function sortTopProducts<T extends { revenue: number; units: number }>(products: T[]): T[] {
   return [...products].sort((a, b) => b.revenue - a.revenue || b.units - a.units);
+}
+
+/** Top SKUs by units sold (quantity), then revenue. */
+export function sortTopProductsByUnits<T extends { revenue: number; units: number }>(products: T[]): T[] {
+  return [...products].sort((a, b) => b.units - a.units || b.revenue - a.revenue);
 }
 
 /** Readable product line — title-case when feed is ALL CAPS. */

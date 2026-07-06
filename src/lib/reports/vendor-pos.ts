@@ -143,18 +143,22 @@ function rankMap(
     .slice(0, limit);
 }
 
-function rankProducts(rows: VendorPosRow[], limit = 10) {
+function rankProducts(rows: VendorPosRow[], limit = 20) {
   const map = new Map<
     string,
     { name: string; itemNumber?: string; revenue: number; units: number }
   >();
 
   for (const r of rows) {
+    const sku = r.sku?.trim() ?? "";
+    if (sku.toUpperCase() === "ITEM") continue;
+
     const label = r.description?.trim();
-    const itemNumber = r.sku?.trim() || r.itemNumber?.trim();
+    const itemNumber = sku || r.itemNumber?.trim();
+    if (!itemNumber || itemNumber.toUpperCase() === "ITEM") continue;
     if (!label && !itemNumber) continue;
 
-    const key = itemNumber ? `item:${itemNumber}` : `desc:${label}`;
+    const key = `item:${itemNumber}`;
     const existing = map.get(key) || {
       name: label || itemNumber || "Unknown item",
       itemNumber: itemNumber || undefined,
@@ -171,7 +175,7 @@ function rankProducts(rows: VendorPosRow[], limit = 10) {
   }
 
   return [...map.values()]
-    .sort((a, b) => b.revenue - a.revenue || b.units - a.units)
+    .sort((a, b) => b.units - a.units || b.revenue - a.revenue)
     .slice(0, limit);
 }
 

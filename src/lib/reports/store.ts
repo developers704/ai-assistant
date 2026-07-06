@@ -20,7 +20,7 @@ const SEED_CANDIDATES: {
   {
     fileName: "Sales-Report.csv",
     path: path.join(process.cwd(), "data", "reports", "Sales-Report.csv"),
-    label: "Sale Report 1 July - 5 July",
+    label: "Final Sales Report 1–5 July",
     reportPeriod: "custom",
     reportDate: "2026-07-05",
     dateRange: { from: "2026-07-01", to: "2026-07-05" },
@@ -218,6 +218,18 @@ export function deleteReport(id: string): boolean {
   const file = csvPath(id);
   if (fs.existsSync(file)) fs.unlinkSync(file);
   return true;
+}
+
+/** Remove every stored report (used when replacing bundled sales data). */
+export function clearAllReports(): number {
+  ensureDir();
+  const reports = readIndex();
+  for (const r of reports) {
+    const file = csvPath(r.id);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+  }
+  if (fs.existsSync(INDEX_FILE)) fs.unlinkSync(INDEX_FILE);
+  return reports.length;
 }
 
 export function getLatestReportWithSummary(options?: { filterDate?: string }): {

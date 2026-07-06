@@ -12,7 +12,7 @@ import {
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { formatCurrency, sortTopProducts } from "@/lib/utils";
+import { formatCurrency, sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import type { SalesSummary } from "@/types";
 import type { ReportSummary } from "@/lib/reports/types";
 import { ReportInsightsCards } from "@/components/reports/ReportInsightsCards";
@@ -75,7 +75,7 @@ export default function SalesPage() {
       ? summary.worstStores
       : [...summary.topStores].sort((a, b) => a.revenue - b.revenue).slice(0, 10);
   const maxWorstRevenue = Math.max(...worstStores.map((s) => s.revenue), 1);
-  const topProducts = sortTopProducts(summary.topProducts).slice(0, 20);
+  const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 20);
 
   const isFinancingReport =
     reportSummary?.schema === "financing" || reportSummary?.reportCategory === "financing";
@@ -319,10 +319,10 @@ export default function SalesPage() {
               <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Package size={17} className="text-sky-300" />
-                  {isFinancingReport ? "Top Pay Programs" : "Top Products"}
+                  {isFinancingReport ? "Top Pay Programs" : "Top SKUs"}
                 </CardTitle>
                 <span className="text-xs text-ink-muted">
-                  {isFinancingReport ? "By net sales amount" : "Highest revenue first"}
+                  {isFinancingReport ? "By net sales amount" : "Top 20 by quantity sold"}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">

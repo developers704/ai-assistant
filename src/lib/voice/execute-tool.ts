@@ -37,7 +37,7 @@ import {
 } from "@/lib/voice/section-tools";
 import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
 import { buildCompanyKnowledgeVoiceAnswer } from "@/lib/voice/rag-tool";
-import { sortTopProducts } from "@/lib/utils";
+import { sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
 
 import type { VoiceUiAction } from "@/lib/voice/types";
@@ -141,7 +141,7 @@ export async function executeVoiceTool(
 
       const { summary, source, label, vendorCode } = getAssistantSalesSummary();
       const topStores = summary.topStores.slice(0, 5);
-      const topProducts = sortTopProducts(summary.topProducts).slice(0, 5);
+      const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 5);
       const synthesizedAnswer = formatSalesByFocus(focus);
 
       const spoken =

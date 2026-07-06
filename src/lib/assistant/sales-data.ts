@@ -2,7 +2,7 @@ import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { getLatestReportWithSummary } from "@/lib/reports/store";
 import type { ReportSummary } from "@/lib/reports/types";
 import type { SalesSummary } from "@/types";
-import { formatCurrency, formatPieceCount, sortTopProducts } from "@/lib/utils";
+import { formatCurrency, formatPieceCount, sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import type { SalesFocus } from "@/lib/ai/sales-focus";
 
 export function getAssistantSalesSummary(): {
@@ -84,7 +84,7 @@ export function formatSalesReportMarkdown(): string {
   const { summary, source, label, vendorCode } = getAssistantSalesSummary();
   const changeIcon = summary.comparisonPreviousDay >= 0 ? "↑" : "↓";
   const topStores = summary.topStores.slice(0, 5);
-  const topProducts = sortTopProducts(summary.topProducts).slice(0, 5);
+  const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 5);
 
   const header =
     source === "report"
@@ -115,7 +115,7 @@ export function formatSalesReportMarkdown(): string {
     md += `\n\n**Top products:**\n${topProducts
       .map((p, i) => {
         const id = p.itemNumber ? `#${p.itemNumber} · ` : "";
-        return `${i + 1}. ${id}${p.name} — ${formatCurrency(p.revenue)} · ${formatPieceCount(p.units)}`;
+        return `${i + 1}. ${id}${p.name} — ${formatPieceCount(p.units)} · ${formatCurrency(p.revenue)}`;
       })
       .join("\n")}`;
   }
