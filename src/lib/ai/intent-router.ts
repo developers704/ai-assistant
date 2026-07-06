@@ -53,6 +53,15 @@ const EMAIL_DRAFT_ALT =
 const MEETING_CREATE =
   /\b(set|schedule|book|create|add|plan)\b[\s\S]{0,30}\b(meeting|appointment|call)\b/i;
 
+const MEETING_SCHEDULE_WITH =
+  /\bschedule\b[\s\S]{0,20}\b(?:a |an )?(?:meeting|appointment|call)\b/i;
+
+const CALENDAR_READ =
+  /(?:what'?s|whats|what is|show|list|view|see|tell me|check)\b[\s\S]{0,50}\b(?:today|tomorrow|my)?\s*(?:schedule|calendar|calender|meetings?|appointments?|events?)\b/i;
+
+const CALENDAR_READ_ALT =
+  /(?:today|tomorrow)('s)?\s*schedule\b|\b(?:my|any)\s+(?:meetings?|appointments?|events?)\b(?:\s+(?:today|tomorrow))?|\bwhat\b[\s\S]{0,25}\b(?:on|for)\b[\s\S]{0,25}\b(?:today|tomorrow)\b/i;
+
 const MEETING_WITH =
   /\bmeeting\s+with\b/i;
 
@@ -130,7 +139,14 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
 
   if (CALENDAR_TYPO.test(lower) || /\b(calendar|meeting|schedule|appointment|aaj.*meeting)\b/i.test(lower)) {
     if (/\b(delete|cancel|remove)\b/i.test(lower)) return "calendar.delete";
-    if (/\b(add|schedule|book|create|set|plan)\b/i.test(lower)) return "calendar.create";
+    if (CALENDAR_READ.test(lower) || CALENDAR_READ_ALT.test(lower)) return "calendar.read";
+    if (
+      /\b(add|book|create|set|plan)\b/i.test(lower) ||
+      MEETING_SCHEDULE_WITH.test(lower) ||
+      MEETING_CREATE.test(lower)
+    ) {
+      return "calendar.create";
+    }
     return "calendar.read";
   }
 

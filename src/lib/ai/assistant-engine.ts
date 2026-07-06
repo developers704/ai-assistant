@@ -68,7 +68,20 @@ function detectIntent(message: string): IntentType {
   if (/sales report|today('s)? sales|store sales|revenue|sales across|sales data|forecast|show me.*sales/.test(lower)) {
     return "sales_report";
   }
-  if (/schedule|book|set up.*meeting|meeting with|meeting at/.test(lower)) return "schedule_meeting";
+  if (
+    /book|set up.*meeting|meeting with|meeting at|\bschedule\b[\s\S]{0,20}\b(?:a |an )?(?:meeting|appointment|call|with)\b/.test(
+      lower
+    )
+  ) {
+    return "schedule_meeting";
+  }
+  if (
+    /(?:what'?s|whats|what is|show|list|view)\b[\s\S]{0,40}\b(?:today|tomorrow|my)?\s*schedule\b/.test(
+      lower
+    )
+  ) {
+    return "calendar_today";
+  }
   if (/summarize.*(?:email|inbox)|summarize inbox|important email|inbox summary|pending repl|email summary|check email/.test(lower)) return "email_summary";
   if (/draft.*(?:email|reply)|write.*email|reply to|email to|send email/.test(lower)) return "email_draft";
   if (/whatsapp|whats app|message to|text to|send.*to.*manager/.test(lower)) return "whatsapp_draft";
