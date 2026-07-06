@@ -234,7 +234,7 @@ export default function SalesPage() {
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             {isStoreSalesReport && summary.topStores.length > 0 && (
-              <Card className="p-0 overflow-hidden xl:col-span-2">
+              <Card className="p-0 overflow-hidden">
                 <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Store size={17} className="text-emerald-300" />
@@ -242,17 +242,15 @@ export default function SalesPage() {
                   </CardTitle>
                   <span className="text-xs text-ink-muted">Highest net sales in this report</span>
                 </CardHeader>
-                <div className="max-h-[min(24rem,50vh)] overflow-y-auto p-4 space-y-3">
+                <div className="max-h-[min(28rem,60vh)] overflow-y-auto p-4 space-y-3">
                   {summary.topStores.slice(0, 12).map((store, i) => (
-                    <div key={store.name} className="grid grid-cols-[1.5rem_1fr_auto] gap-x-3 items-center">
+                    <div
+                      key={store.name}
+                      className="grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center"
+                    >
                       <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
                       <div className="min-w-0">
-                        <div className="flex justify-between gap-3 mb-1.5">
-                          <span className="text-sm font-medium text-ink truncate">{store.name}</span>
-                          <span className="text-sm font-semibold text-ink tabular-nums shrink-0">
-                            {formatCurrency(store.revenue)}
-                          </span>
-                        </div>
+                        <p className="text-sm font-medium text-ink truncate mb-1.5">{store.name}</p>
                         <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-emerald-400/80 rounded-full transition-all"
@@ -260,9 +258,12 @@ export default function SalesPage() {
                           />
                         </div>
                       </div>
+                      <span className="text-sm font-semibold text-ink tabular-nums text-right">
+                        {formatCurrency(store.revenue)}
+                      </span>
                       <span
                         className={cn(
-                          "text-xs font-medium tabular-nums w-12 text-right",
+                          "text-xs font-medium tabular-nums text-right",
                           store.change >= 0 ? "text-emerald-400" : "text-accent-rose"
                         )}
                       >
@@ -285,15 +286,13 @@ export default function SalesPage() {
               </CardHeader>
               <div className="max-h-[min(28rem,60vh)] overflow-y-auto p-4 space-y-3">
                 {worstStores.map((store, i) => (
-                  <div key={store.name} className="grid grid-cols-[1.5rem_1fr_auto] gap-x-3 items-center">
+                  <div
+                    key={store.name}
+                    className="grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center"
+                  >
                     <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
                     <div className="min-w-0">
-                      <div className="flex justify-between gap-3 mb-1.5">
-                        <span className="text-sm font-medium text-ink truncate">{store.name}</span>
-                        <span className="text-sm font-semibold text-ink tabular-nums shrink-0">
-                          {formatCurrency(store.revenue)}
-                        </span>
-                      </div>
+                      <p className="text-sm font-medium text-ink truncate mb-1.5">{store.name}</p>
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-accent-rose/80 rounded-full transition-all"
@@ -301,9 +300,12 @@ export default function SalesPage() {
                         />
                       </div>
                     </div>
+                    <span className="text-sm font-semibold text-ink tabular-nums text-right">
+                      {formatCurrency(store.revenue)}
+                    </span>
                     <span
                       className={cn(
-                        "text-xs font-medium tabular-nums w-12 text-right",
+                        "text-xs font-medium tabular-nums text-right",
                         store.change >= 0 ? "text-emerald-400" : "text-accent-rose"
                       )}
                     >
