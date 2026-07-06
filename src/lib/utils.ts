@@ -19,13 +19,19 @@ export function formatPieceCount(units: number): string {
 }
 
 /** Non-jewelry SKUs hidden from Top Products only (still in report totals). */
+const EXCLUDED_TOP_PRODUCT_SKUS = new Set([
+  "ITEM",
+  "250000",
+  "217365",
+  "217286",
+  "159004",
+]);
+
 export function isExcludedTopProductSku(sku?: string | null): boolean {
   const normalized = (sku ?? "").trim().toUpperCase();
   if (!normalized) return false;
-  if (normalized === "ITEM") return true;
-  if (normalized === "250000") return true;
-  if (normalized === "217365") return true;
-  if (normalized.startsWith("MLB-LT")) return true;
+  if (EXCLUDED_TOP_PRODUCT_SKUS.has(normalized)) return true;
+  if (normalized.startsWith("MLB")) return true;
   return false;
 }
 
