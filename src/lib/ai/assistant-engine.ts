@@ -24,6 +24,7 @@ import {
 import { resolveTaskTarget } from "@/lib/voice/tool-helpers";
 import { formatLongDate } from "@/lib/utils";
 import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
+import { isComposeEmailToPerson } from "@/lib/ai/email-compose";
 
 function isAcknowledgmentMessage(message: string): boolean {
   const normalized = message
@@ -83,7 +84,7 @@ function detectIntent(message: string): IntentType {
     return "calendar_today";
   }
   if (/summarize.*(?:email|inbox)|summarize inbox|important email|inbox summary|pending repl|email summary|check email/.test(lower)) return "email_summary";
-  if (/draft.*(?:email|reply)|write.*email|reply to|email to|send email/.test(lower)) return "email_draft";
+  if (isComposeEmailToPerson(message) || /draft.*(?:email|reply)|write.*email|reply to|email to|send email/.test(lower)) return "email_draft";
   if (/whatsapp|whats app|message to|text to|send.*to.*manager/.test(lower)) return "whatsapp_draft";
   if (
     /(?:remove|delete|cancel)\s+(?:the\s+)?(?:this\s+)?task|remove .+ from (?:my )?tasks?|delete .+ task/i.test(

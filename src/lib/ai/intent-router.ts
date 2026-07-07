@@ -22,6 +22,8 @@ export type RoutedIntent =
   | "reject"
   | "unknown";
 
+import { isComposeEmailToPerson } from "@/lib/ai/email-compose";
+
 export interface IntentRouteInput {
   message: string;
   currentPath?: string;
@@ -121,6 +123,10 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   }
 
   if (EMAIL_DRAFT.test(lower) || EMAIL_DRAFT_ALT.test(lower)) {
+    return "email.draft";
+  }
+
+  if (isComposeEmailToPerson(input.message)) {
     return "email.draft";
   }
 

@@ -77,33 +77,62 @@ async function main() {
 
   await ask("1 top store", "show me best store with sales");
   await ask("2 one top store", "i want to see one store with top sales");
-  await ask("3 email ross", "send an email to Ross");
-  await ask("4 meeting ross", "set meeting with Ross tomorrow");
-  await ask("5 news market", "what's about news and market?");
-  const newsRes = await ask("5b news market", "what's about news and market?");
+  const emailRoss = await ask("3 email ross", "Email Ross");
+  if (/unread out of/i.test(emailRoss?.message ?? "")) {
+    console.error("FAIL: Email Ross should draft, not inbox summary");
+    process.exitCode = 1;
+  }
+  if (!emailRoss?.message?.includes("Ross")) {
+    console.error("FAIL: Email Ross should target Ross");
+    process.exitCode = 1;
+  }
+
+  const emailRos = await ask("3b email to ros", "email to ros");
+  if (!emailRos?.message?.includes("Ross")) {
+    console.error("FAIL: email to ros should target Ross, got:", emailRos?.message);
+    process.exitCode = 1;
+  }
+  if (emailRos?.message?.includes("**To**")) {
+    console.error("FAIL: email recipient should not be literal To");
+    process.exitCode = 1;
+  }
+  const emailRossTime = await ask("3c email ross time", "email to ross Tomorrow 4pm");
+  if (!emailRossTime?.message?.includes("Ross")) {
+    console.error("FAIL: email to ross with time should target Ross");
+    process.exitCode = 1;
+  }
+  if (/unread out of/i.test(emailRos?.message ?? "")) {
+    console.error("FAIL: compose email should not return inbox summary");
+    process.exitCode = 1;
+  }
+
+  await ask("4 email ross full", "send an email to Ross");
+  await ask("5 meeting ross", "set meeting with Ross tomorrow");
+  await ask("6 news market", "what's about news and market?");
+  const newsRes = await ask("6b news market", "what's about news and market?");
   if (newsRes?.pendingAction) {
     console.error("FAIL: news query should not require confirmation");
     process.exitCode = 1;
   }
 
   if (newsRes) {
-    await ask("6 yes open", "yes pls open");
+    await ask("7 yes open", "yes pls open");
   }
 
   clearPendingActions();
-  await ask("7 delete all", "delete all meetings");
-  await ask("8 confirm delete", "yes please remove all");
+  await ask("8 delete all", "delete all meetings");
+  await ask("9 confirm delete", "yes please remove all");
 
   clearPendingActions();
   const emails = getState().emails;
   if (emails[0]) {
     updateUiContext({ currentPath: "/email", selectedEmailId: emails[0].id });
-    await ask("9 reply politely", "reply politely");
+    await ask("10 reply politely", "reply politely");
   }
 
   clearPendingActions();
   updateUiContext({ currentPath: "/sales", selectedEmailId: undefined });
-  await ask("10 explain sales", "explain this");
+  await ask("11 explain sales", "explain this");
 }
 
 main().catch(console.error);

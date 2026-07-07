@@ -1,16 +1,32 @@
 import type { AppState } from "@/types";
 
+const RECIPIENT_STOP_WORDS = new Set(["to", "the", "my", "an", "a", "inbox", "summary", "unread"]);
+
 const EMAIL_TO_PERSON =
   /\b(?:send|write|draft|compose)\b[\s\S]{0,35}\b(?:an?\s+)?(?:email|mail)\b[\s\S]{0,12}\bto\s+([A-Za-z][A-Za-z'-]*)/i;
 
-const EMAIL_TO_ALT = /\bemail\s+([A-Za-z][A-Za-z'-]*)\b/i;
+const EMAIL_TO_NAME = /\b(?:email|mail)\s+to\s+([A-Za-z][A-Za-z'-]*)/i;
+
+const EMAIL_NAME =
+  /\b(?:email|mail)\s+(?!to\s|my\s|the\s|inbox|summary|unread\b)([A-Za-z][A-Za-z'-]+)/i;
 
 const HAS_BODY =
   /\b(say|saying|about|regarding|message\s*:|body\s*:|subject\s*:|that\s+the|to\s+let\s+them|informing)\b/i;
 
+function cleanRecipient(raw: string | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const name = raw.trim();
+  if (RECIPIENT_STOP_WORDS.has(name.toLowerCase())) return null;
+  return name;
+}
+
 export function parseEmailRecipient(message: string): string | null {
-  const m = message.match(EMAIL_TO_PERSON) ?? message.match(EMAIL_TO_ALT);
-  return m?.[1]?.trim() ?? null;
+  for (const pattern of [EMAIL_TO_PERSON, EMAIL_TO_NAME, EMAIL_NAME]) {
+    const match = message.match(pattern);
+    const name = cleanRecipient(match?.[1]);
+    if (name) return name;
+  }
+  return null;
 }
 
 export function isComposeEmailToPerson(message: string): boolean {

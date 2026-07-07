@@ -8,6 +8,8 @@ import {
 } from "@/lib/assistant/sales-data";
 import type { OfferTarget } from "@/lib/actions/pending-offer";
 import { recordOfferedAction } from "@/lib/memory/working-memory";
+import { buildComposeEmailPrompt, isComposeEmailToPerson } from "@/lib/ai/email-compose";
+import { getState } from "@/lib/store/server-store";
 
 export type AlexaChannel = "chat" | "voice";
 
@@ -107,10 +109,9 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
     return { message };
   }
 
-  if (toolName === "get_email_summary" && /\b(send|write|draft|reply|email to)\b/i.test(userMessage)) {
+  if (toolName === "get_email_summary" && isComposeEmailToPerson(userMessage)) {
     return {
-      message:
-        "That sounds like you want to **compose** an email, not read the inbox. Try: *send an email to Ross* — I'll draft it for you.",
+      message: buildComposeEmailPrompt(userMessage, getState()),
     };
   }
 
