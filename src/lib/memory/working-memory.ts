@@ -77,7 +77,10 @@ export function recordToolRun(input: {
   if (input.intent !== undefined) patch.lastIntent = input.intent;
   if (input.navigateTo !== undefined) {
     patch.pendingNavigation = input.navigateTo;
-    patch.lastOfferedAction = `open:${input.navigateTo}`;
+    const prev = getWorkingMemory();
+    if (!prev.lastOfferedAction || prev.lastOfferedAction.startsWith("open:")) {
+      patch.lastOfferedAction = `open:${input.navigateTo}`;
+    }
   }
   updateWorkingMemory(patch);
 }
