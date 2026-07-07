@@ -99,7 +99,7 @@ export function classifyStoreIntent(message: string): StoreIntent | null {
   if (CALL_PATTERNS.some((p) => p.test(lower))) return "store.call";
   if (LOOKUP_PATTERNS.some((p) => p.test(lower))) return "store.lookup";
   if (STATE_LIST_PATTERNS.some((p) => p.test(lower))) return "store.list_state";
-  if (/\bstores?\s+(?:in|across)\s+(california|nevada|arizona|texas|ca|nv|az|tx)\b/i.test(lower)) {
+  if (/\bstores?\s+(?:are\s+)?(?:in|across)\s+(california|nevada|arizona|texas|ca|nv|az|tx)\b/i.test(lower)) {
     return "store.list_state";
   }
   if (/\b(?:show|all)\b[\s\S]{0,20}\b(california|nevada|arizona|texas|ca|nv|az|tx)\b[\s\S]{0,20}\bstores?\b/i.test(lower)) {

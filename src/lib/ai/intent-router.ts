@@ -196,7 +196,7 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     if (/\b(?:closest|nearest)\b/i.test(lower)) return "store.nearest";
     if (/\bcall\b/i.test(lower) && MALL_HINT.test(lower)) return "store.call";
     if (/\b(?:address|phone|hours)\b/i.test(lower)) return "store.lookup";
-    if (/\bstores?\s+(?:in|across)\b/i.test(lower) && /\b(california|nevada|arizona|texas|ca|nv|az|tx)\b/i.test(lower)) {
+    if (/\bstores?\s+(?:are\s+)?(?:in|across)\b/i.test(lower) && /\b(california|nevada|arizona|texas|ca|nv|az|tx)\b/i.test(lower)) {
       return "store.list";
     }
     if (/\bstores?\s+(?:in|near|around)\b/i.test(lower)) return "store.list";
