@@ -46,9 +46,6 @@ import {
   getStoreDetails,
   listStores,
 } from "@/lib/stores/store-intelligence";
-import { getStoreGoogleDetails } from "@/lib/stores/google-details";
-import { getAllStores } from "@/lib/stores/store-directory";
-import { canCalculateDistance, haversineMiles } from "@/lib/stores/distance";
 import { sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import { resolveMeetingToolArgs } from "@/lib/ai/meeting-parse";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
@@ -655,85 +652,6 @@ export async function executeVoiceTool(
           spokenAnswer: result.message,
           markdown: result.message,
           ...result,
-        }),
-      };
-    }
-
-    case "get_store_google_reviews": {
-      const storeId = String(args.storeId ?? "");
-      const details = await getStoreGoogleDetails(storeId);
-      const reviews = Array.isArray((details as { reviews?: unknown[] }).reviews)
-        ? ((details as { reviews?: unknown[] }).reviews as unknown[])
-        : [];
-      return {
-        output: JSON.stringify({
-          spokenAnswer:
-            (details as { ok?: boolean }).ok === false
-              ? (details as { message?: string }).message ??
-                "Google reviews are unavailable right now."
-              : reviews.length
-                ? `Found ${reviews.length} Google reviews for this store.`
-                : "Google reviews are not available for this store right now.",
-          ...details,
-        }),
-      };
-    }
-
-    case "get_store_opening_hours": {
-      const storeId = String(args.storeId ?? "");
-      const details = await getStoreGoogleDetails(storeId);
-      const openNow = (details as { openNow?: boolean | null }).openNow;
-      return {
-        output: JSON.stringify({
-          spokenAnswer:
-            (details as { ok?: boolean }).ok === false
-              ? (details as { message?: string }).message ??
-                "Live opening status is unavailable. Showing local store hours."
-              : openNow == null
-                ? "Live opening status is unavailable. Showing local store hours."
-                : openNow
-                  ? "This store is currently open."
-                  : "This store is currently closed.",
-          ...details,
-        }),
-      };
-    }
-
-    case "find_nearest_store_to_customer": {
-      if (typeof args.lat !== "number" || typeof args.lng !== "number") {
-        return {
-          output: JSON.stringify({
-            ok: false,
-            spokenAnswer:
-              "Please provide customer latitude and longitude. Address-based lookup is available in the Stores Command Center API.",
-          }),
-        };
-      }
-      const customerLat = args.lat;
-      const customerLng = args.lng;
-      const nearest = getAllStores()
-        .filter(canCalculateDistance)
-        .map((s) => ({
-          id: s.id,
-          name: s.name,
-          mall: s.mall,
-          distanceMiles:
-            haversineMiles(
-              { latitude: customerLat, longitude: customerLng },
-              { latitude: s.latitude, longitude: s.longitude }
-            ) ?? Number.POSITIVE_INFINITY,
-        }))
-        .filter((x) => Number.isFinite(x.distanceMiles))
-        .sort((a, b) => a.distanceMiles - b.distanceMiles)
-        .slice(0, 3)
-        .map((x) => ({ ...x, distanceMiles: Math.round(x.distanceMiles * 10) / 10 }));
-      return {
-        output: JSON.stringify({
-          ok: nearest.length > 0,
-          nearest,
-          spokenAnswer: nearest.length
-            ? `Nearest store is ${nearest[0].name}, about ${nearest[0].distanceMiles} miles away.`
-            : "I could not calculate nearest stores for that customer location.",
         }),
       };
     }
