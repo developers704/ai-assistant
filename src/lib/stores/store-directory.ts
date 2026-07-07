@@ -173,6 +173,33 @@ export function getStoresByRegion(region: string): StoreDirectoryEntry[] {
   return getAllStores().filter((s) => normalizeQuery(s.region ?? "").includes(q));
 }
 
+export function getStoreSummary() {
+  const stores = getAllStores();
+  const byState = stores.reduce(
+    (acc, s) => {
+      acc[s.stateCode] = (acc[s.stateCode] ?? 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+  const openNow = stores.filter((s) => String(s.status).toLowerCase() === "open").length;
+  const openingSoon = stores.filter((s) => /opening[_\s]?soon/i.test(String(s.status))).length;
+  const ratings = stores
+    .map((s) => (typeof (s as { rating?: number }).rating === "number" ? (s as { rating?: number }).rating ?? null : null))
+    .filter((r): r is number => r != null);
+  const averageGoogleRating = ratings.length
+    ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
+    : null;
+  return {
+    totalStores: stores.length,
+    openNow,
+    openingSoon,
+    statesCovered: Object.keys(byState).length,
+    averageGoogleRating,
+    byState,
+  };
+}
+
 export interface FindNearestStoreInput {
   storeName?: string;
   city?: string;

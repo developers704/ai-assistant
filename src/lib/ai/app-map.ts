@@ -9,6 +9,7 @@ export type AppSectionId =
   | "email"
   | "calendar"
   | "sales"
+  | "stores"
   | "calculator"
   | "analyst"
   | "images"
@@ -373,6 +374,46 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
         "Here I can look up names, roles, and phone numbers. Try *find [name]* or open the full directory.",
     },
     aliases: ["contacts", "contact", "phone", "rolodex", "people"],
+  }),
+
+  stores: section({
+    id: "stores",
+    label: "Stores Command Center",
+    route: "/stores",
+    purpose:
+      "Store Location Simulator with map pins, opening status, contact details, nearest-store simulations, and Google reviews.",
+    availableData: [
+      "Official synced store directory",
+      "Live Google opening and rating details (when connected)",
+      "Store search and state filtering",
+      "Nearest store simulation APIs",
+    ],
+    relatedTools: [
+      "list_valliani_stores",
+      "get_valliani_store_details",
+      "find_nearest_store",
+      "get_store_google_reviews",
+      "get_store_opening_hours",
+      "find_nearest_store_to_customer",
+    ],
+    commonQuestions: [
+      "Open store simulator",
+      "Show nearest store to Valley Fair",
+      "Get Google reviews for Great Mall",
+    ],
+    whenToNavigate:
+      "When the user wants a visual map, filters, customer-location simulation, or live Google details.",
+    whenToClarify:
+      "Ask for store name or customer location if the request is ambiguous for nearest-store calculations.",
+    whenToUseLiveTool:
+      "Use local directory as source of truth; call Google APIs only for live status/reviews/ratings.",
+    exampleResponses: {
+      explain:
+        "The Stores Command Center is your map-based simulator for every branch, with local official data and live Google details when available.",
+      capabilities:
+        "I can list stores, show details, find nearest branches, and fetch Google reviews/opening hours without guessing missing data.",
+    },
+    aliases: ["stores", "store simulator", "store map", "location simulator", "command center"],
   }),
 
   settings: section({

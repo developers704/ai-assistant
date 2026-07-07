@@ -4,6 +4,7 @@ import { createPendingAction, savePendingAction } from "@/lib/actions/confirmati
 export type OfferTarget =
   | "news"
   | "sales"
+  | "stores"
   | "email"
   | "calendar"
   | "dashboard"
@@ -14,6 +15,7 @@ export type OfferTarget =
 const OFFER_PATHS: Record<OfferTarget, string> = {
   news: "/news",
   sales: "/sales",
+  stores: "/stores",
   email: "/email",
   calendar: "/calendar",
   dashboard: "/dashboard",
@@ -25,6 +27,7 @@ const OFFER_PATHS: Record<OfferTarget, string> = {
 const OFFER_LABELS: Record<OfferTarget, string> = {
   news: "News & Markets",
   sales: "Sales Dashboard",
+  stores: "Stores Command Center",
   email: "Email",
   calendar: "Calendar & Tasks",
   dashboard: "Daily Briefing",
@@ -75,7 +78,8 @@ export function saveAssistantOffer(offer: PendingAction): void {
 export function resolveOpenTargetFromMessage(message: string): OfferTarget | null {
   const lower = message.toLowerCase();
   if (/\bnews\b|\bmarket\b/i.test(lower)) return "news";
-  if (/\bsales\b|\brevenue\b|\bstore\b/i.test(lower)) return "sales";
+  if (/\bstores?\s+(command|simulator|location|map)\b|\bstore simulator\b/i.test(lower)) return "stores";
+  if (/\bsales\b|\brevenue\b/i.test(lower)) return "sales";
   if (/\bemail\b|\binbox\b|\bmail\b/i.test(lower)) return "email";
   if (/\bcalendar\b|\bmeeting\b|\bschedule\b/i.test(lower)) return "calendar";
   if (/\bbriefing\b|\bdashboard\b/i.test(lower)) return "dashboard";

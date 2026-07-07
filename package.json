@@ -11,7 +11,8 @@
     "test:chat:quick": "npx tsx scripts/test-alexa-intelligence.ts",
     "stores:sync": "npx tsx scripts/sync-store-directory.ts",
     "stores:geocode": "npx tsx scripts/geocode-store-directory.ts",
-    "test:stores": "npx tsx scripts/test-store-intelligence.ts"
+    "test:stores": "npx tsx scripts/test-store-intelligence.ts",
+    "test:stores-ui": "npx tsx scripts/test-store-command-center.ts"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.33.1-dev45.0",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
+    "@types/google.maps": "^3.65.2",
     "@types/node": "^22.10.0",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.0.0",
