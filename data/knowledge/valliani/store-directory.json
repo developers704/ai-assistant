@@ -3,7 +3,7 @@
   "company": "Valliani Jewelers",
   "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
   "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-  "generatedAt": "2026-07-07T06:52:19.799Z",
+  "generatedAt": "2026-07-07T07:26:20.600Z",
   "sourceNote": "Generated from the user's official Valliani Find Your Location page extract. The official page extract provided names, addresses, phone numbers, and email addresses for the listed stores. Latitude/longitude were not present in the extract, so they are left null with needsGeocoding=true.",
   "counts": {
     "totalRecordsInThisFile": 29,
@@ -30,9 +30,9 @@
       "addressRaw": "1151 Galleria Blvd #221, Roseville, CA 95678",
       "fullAddress": "1151 Galleria Blvd #221, Roseville, CA 95678, USA",
       "zipCode": "95678",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 38.77368269999999,
+      "longitude": -121.2689924,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 1151 Galleria Blvd #221, Roseville, CA 95678, USA",
       "phone": "(916) 234-9786",
       "phoneE164": "+19162349786",
@@ -88,9 +88,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "arden-fair",
+          "name": "Arden Fair",
+          "distanceMiles": 14.6
+        },
+        {
+          "id": "weberstown-mall",
+          "name": "Weberstown Mall",
+          "distanceMiles": 53.9
+        },
+        {
+          "id": "solano-town-center",
+          "name": "Solano Town Center",
+          "distanceMiles": 55.3
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 80.5
+        },
+        {
+          "id": "santa-rosa-plaza",
+          "name": "Santa Rosa Plaza",
+          "distanceMiles": 81.5
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "1151 Galleria Blvd #221, Roseville, CA 95678, USA",
+      "googlePlaceId": "ChIJ4wotK4Ihm4AR1pF_OEGZZKg"
     },
     {
       "id": "eastridge-centre",
@@ -107,9 +135,9 @@
       "addressRaw": "Valliani Jewelers 2200 Eastridge Loop, #1086, San Jose, CA 95122",
       "fullAddress": "2200 Eastridge Loop, #1086, San Jose, CA 95122, USA",
       "zipCode": "95122",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 37.3254045,
+      "longitude": -121.8138021,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 2200 Eastridge Loop, #1086, San Jose, CA 95122, USA",
       "phone": "(408) 274-9786",
       "phoneE164": "+14082749786",
@@ -165,9 +193,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "westfield-oakridge",
+          "name": "Westfield Oakridge",
+          "distanceMiles": 5.8
+        },
+        {
+          "id": "westfield-valley-fair",
+          "name": "Westfield Valley Fair",
+          "distanceMiles": 7.2
+        },
+        {
+          "id": "great-mall",
+          "name": "Great Mall",
+          "distanceMiles": 7.8
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 25.9
+        },
+        {
+          "id": "southland-mall",
+          "name": "Southland Mall",
+          "distanceMiles": 27.5
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "2200 Eastridge Loop #1086, San Jose, CA 95122, USA",
+      "googlePlaceId": "ChIJE8kHr6EyjoARyvF2aFJYsPk"
     },
     {
       "id": "northridge-mall",
@@ -184,9 +240,9 @@
       "addressRaw": "796 Northridge Dr, Ste F12, Salinas, CA 93906",
       "fullAddress": "796 Northridge Dr, Ste F12, Salinas, CA 93906, USA",
       "zipCode": "93906",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 36.7169046,
+      "longitude": -121.658292,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 796 Northridge Dr, Ste F12, Salinas, CA 93906, USA",
       "phone": "(831) 287-1786",
       "phoneE164": "+18312871786",
@@ -239,9 +295,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "westfield-oakridge",
+          "name": "Westfield Oakridge",
+          "distanceMiles": 38.7
+        },
+        {
+          "id": "eastridge-centre",
+          "name": "Eastridge Centre",
+          "distanceMiles": 42.9
+        },
+        {
+          "id": "westfield-valley-fair",
+          "name": "Westfield Valley Fair",
+          "distanceMiles": 44.9
+        },
+        {
+          "id": "great-mall",
+          "name": "Great Mall",
+          "distanceMiles": 50.1
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 68.6
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "796 Northridge Dr f12, Salinas, CA 93906, USA",
+      "googlePlaceId": "Ei03OTYgTm9ydGhyaWRnZSBEciBmMTIsIFNhbGluYXMsIENBIDkzOTA2LCBVU0EiHxodChYKFAoSCc_LNncX_42AEfBCmez1K_t5EgNmMTI"
     },
     {
       "id": "southland-mall",
@@ -258,9 +342,9 @@
       "addressRaw": "306 Southland Mall,CA,Hayward,94545",
       "fullAddress": "306 Southland Mall, Hayward, CA 94545, USA",
       "zipCode": "94545",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 37.6512824,
+      "longitude": -122.1016682,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 306 Southland Mall, Hayward, CA 94545, USA",
       "phone": "(510) 887-9786",
       "phoneE164": "+15108879786",
@@ -313,9 +397,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 14.6
+        },
+        {
+          "id": "great-mall",
+          "name": "Great Mall",
+          "distanceMiles": 19.7
+        },
+        {
+          "id": "serramonte-center",
+          "name": "Serramonte Center",
+          "distanceMiles": 20.2
+        },
+        {
+          "id": "westfield-valley-fair",
+          "name": "Westfield Valley Fair",
+          "distanceMiles": 24.1
+        },
+        {
+          "id": "eastridge-centre",
+          "name": "Eastridge Centre",
+          "distanceMiles": 27.5
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "306 Southland Mall, Hayward, CA 94545, USA",
+      "googlePlaceId": "ChIJj2VEEkaRj4ARyN4p3e4AVKw"
     },
     {
       "id": "serramonte-center",
@@ -332,9 +444,9 @@
       "addressRaw": "110 Serramonte Center,CA,Daly City,94015",
       "fullAddress": "110 Serramonte Center, Daly City, CA 94015, USA",
       "zipCode": "94015",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 37.6718231,
+      "longitude": -122.4708997,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 110 Serramonte Center, Daly City, CA 94015, USA",
       "phone": "(650) 991-9786",
       "phoneE164": "+16509919786",
@@ -387,9 +499,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "southland-mall",
+          "name": "Southland Mall",
+          "distanceMiles": 20.2
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 34.5
+        },
+        {
+          "id": "great-mall",
+          "name": "Great Mall",
+          "distanceMiles": 36
+        },
+        {
+          "id": "westfield-valley-fair",
+          "name": "Westfield Valley Fair",
+          "distanceMiles": 37.5
+        },
+        {
+          "id": "eastridge-centre",
+          "name": "Eastridge Centre",
+          "distanceMiles": 43.2
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "110 Serramonte Center, Daly City, CA 94015, USA",
+      "googlePlaceId": "ChIJJera2vJ7j4ARPTKQ_bbxV2M"
     },
     {
       "id": "visalia-mall",
@@ -406,9 +546,9 @@
       "addressRaw": "2181 S Mooney Blvd#1415,CA,Visalia,93277",
       "fullAddress": "2181 S Mooney Blvd#1415, Visalia, CA 93277, USA",
       "zipCode": "93277",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 36.3106236,
+      "longitude": -119.3152723,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 2181 S Mooney Blvd#1415, Visalia, CA 93277, USA",
       "phone": "(559) 635-9786",
       "phoneE164": "+15596359786",
@@ -461,9 +601,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "fashion-fair-mall",
+          "name": "Fashion Fair Mall",
+          "distanceMiles": 42.8
+        },
+        {
+          "id": "valley-plaza",
+          "name": "Valley Plaza",
+          "distanceMiles": 69
+        },
+        {
+          "id": "northridge-mall",
+          "name": "Northridge Mall",
+          "distanceMiles": 133.1
+        },
+        {
+          "id": "antelope-valley-mall",
+          "name": "Antelope Valley Mall",
+          "distanceMiles": 134.7
+        },
+        {
+          "id": "northridge-fashion-center",
+          "name": "Northridge Fashion Center",
+          "distanceMiles": 149.4
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "2181 S Mooney Blvd #1415, Visalia, CA 93277, USA",
+      "googlePlaceId": "ChIJcYdMF8vOj4ART1W640Y2uPg"
     },
     {
       "id": "fashion-fair-mall",
@@ -480,9 +648,9 @@
       "addressRaw": "619 E Shaw Ave Space F08,CA,Fresno,93710",
       "fullAddress": "619 E Shaw Ave Space F08, Fresno, CA 93710, USA",
       "zipCode": "93710",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 36.8065007,
+      "longitude": -119.7762457,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 619 E Shaw Ave Space F08, Fresno, CA 93710, USA",
       "phone": "(559) 800-7786",
       "phoneE164": "+15598007786",
@@ -535,9 +703,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "visalia-mall",
+          "name": "Visalia Mall",
+          "distanceMiles": 42.8
+        },
+        {
+          "id": "northridge-mall",
+          "name": "Northridge Mall",
+          "distanceMiles": 104.4
+        },
+        {
+          "id": "valley-plaza",
+          "name": "Valley Plaza",
+          "distanceMiles": 109.6
+        },
+        {
+          "id": "weberstown-mall",
+          "name": "Weberstown Mall",
+          "distanceMiles": 117.7
+        },
+        {
+          "id": "eastridge-centre",
+          "name": "Eastridge Centre",
+          "distanceMiles": 117.9
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "619 E Shaw Ave space f08, Fresno, CA 93710, USA",
+      "googlePlaceId": "Ei82MTkgRSBTaGF3IEF2ZSBzcGFjZSBmMDgsIEZyZXNubywgQ0EgOTM3MTAsIFVTQSIlGiMKFgoUChIJCZueZnBdlIARwjgwXHGj6SESCXNwYWNlIGYwOA"
     },
     {
       "id": "westfield-valley-fair",
@@ -554,9 +750,9 @@
       "addressRaw": "2855 Stevens Creek Blvd, #2561, Santa Clara, CA 95050",
       "fullAddress": "2855 Stevens Creek Blvd, #2561, Santa Clara, CA 95050, USA",
       "zipCode": "95050",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 37.3258896,
+      "longitude": -121.9444963,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 2855 Stevens Creek Blvd, #2561, Santa Clara, CA 95050, USA",
       "phone": "(408) 238-9786",
       "phoneE164": "+14082389786",
@@ -612,9 +808,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "westfield-oakridge",
+          "name": "Westfield Oakridge",
+          "distanceMiles": 6.7
+        },
+        {
+          "id": "great-mall",
+          "name": "Great Mall",
+          "distanceMiles": 6.7
+        },
+        {
+          "id": "eastridge-centre",
+          "name": "Eastridge Centre",
+          "distanceMiles": 7.2
+        },
+        {
+          "id": "southland-mall",
+          "name": "Southland Mall",
+          "distanceMiles": 24.1
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 26.4
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "2855 Stevens Creek Blvd #2561, Santa Clara, CA 95050, USA",
+      "googlePlaceId": "ChIJaRwEWB7Lj4ARr8Q8n01waVE"
     },
     {
       "id": "westfield-oakridge",
@@ -631,9 +855,9 @@
       "addressRaw": "925 Blossom Hill Rd, Ste #1600, San Jose, CA 95123",
       "fullAddress": "925 Blossom Hill Rd, Ste #1600, San Jose, CA 95123, USA",
       "zipCode": "95123",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 37.25179869999999,
+      "longitude": -121.8657268,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 925 Blossom Hill Rd, Ste #1600, San Jose, CA 95123, USA",
       "phone": "(408) 900-9786",
       "phoneE164": "+14089009786",
@@ -689,9 +913,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "eastridge-centre",
+          "name": "Eastridge Centre",
+          "distanceMiles": 5.8
+        },
+        {
+          "id": "westfield-valley-fair",
+          "name": "Westfield Valley Fair",
+          "distanceMiles": 6.7
+        },
+        {
+          "id": "great-mall",
+          "name": "Great Mall",
+          "distanceMiles": 11.5
+        },
+        {
+          "id": "southland-mall",
+          "name": "Southland Mall",
+          "distanceMiles": 30.5
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 30.9
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "925 Blossom Hill Rd #1600, San Jose, CA 95123, USA",
+      "googlePlaceId": "EjI5MjUgQmxvc3NvbSBIaWxsIFJkICMxNjAwLCBTYW4gSm9zZSwgQ0EgOTUxMjMsIFVTQSIgGh4KFgoUChIJPUTIu9czjoARlAG26CE-9QYSBDE2MDA"
     },
     {
       "id": "valley-plaza",
@@ -708,9 +960,9 @@
       "addressRaw": "2701 Ming Avenue Ste #181, Bakersfield, CA 93304",
       "fullAddress": "2701 Ming Avenue Ste #181, Bakersfield, CA 93304, USA",
       "zipCode": "93304",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 35.3381675,
+      "longitude": -119.0342846,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 2701 Ming Avenue Ste #181, Bakersfield, CA 93304, USA",
       "phone": "(661) 654-9786",
       "phoneE164": "+16616549786",
@@ -763,9 +1015,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "visalia-mall",
+          "name": "Visalia Mall",
+          "distanceMiles": 69
+        },
+        {
+          "id": "antelope-valley-mall",
+          "name": "Antelope Valley Mall",
+          "distanceMiles": 71
+        },
+        {
+          "id": "northridge-fashion-center",
+          "name": "Northridge Fashion Center",
+          "distanceMiles": 80.6
+        },
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 100.2
+        },
+        {
+          "id": "westfield-culver-city",
+          "name": "Westfield Culver City",
+          "distanceMiles": 100.3
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "2701 Ming Ave #181, Bakersfield, CA 93304, USA",
+      "googlePlaceId": "Ei4yNzAxIE1pbmcgQXZlICMxODEsIEJha2Vyc2ZpZWxkLCBDQSA5MzMwNCwgVVNBIh8aHQoWChQKEgkHKzz9b2rqgBGLQZhIzmrQDBIDMTgx"
     },
     {
       "id": "san-francisco-premium-outlets",
@@ -782,9 +1062,9 @@
       "addressRaw": "3642 Livermore Outlets Dr, Livermore, CA 94551",
       "fullAddress": "3642 Livermore Outlets Dr, Livermore, CA 94551, USA",
       "zipCode": "94551",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 37.6991443,
+      "longitude": -121.8411902,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 3642 Livermore Outlets Dr, Livermore, CA 94551, USA",
       "phone": "(925) 262-9786",
       "phoneE164": "+19252629786",
@@ -840,9 +1120,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "southland-mall",
+          "name": "Southland Mall",
+          "distanceMiles": 14.6
+        },
+        {
+          "id": "great-mall",
+          "name": "Great Mall",
+          "distanceMiles": 19.8
+        },
+        {
+          "id": "eastridge-centre",
+          "name": "Eastridge Centre",
+          "distanceMiles": 25.9
+        },
+        {
+          "id": "westfield-valley-fair",
+          "name": "Westfield Valley Fair",
+          "distanceMiles": 26.4
+        },
+        {
+          "id": "westfield-oakridge",
+          "name": "Westfield Oakridge",
+          "distanceMiles": 30.9
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "3642 Livermore Outlets Dr, Livermore, CA 94551, USA",
+      "googlePlaceId": "ChIJnWwwRd7pj4ARt00WEL1PxiE"
     },
     {
       "id": "inland-center",
@@ -859,9 +1167,9 @@
       "addressRaw": "500 Inland Center Dr, Ste #426, San Bernardino, CA 92408",
       "fullAddress": "500 Inland Center Dr, Ste #426, San Bernardino, CA 92408, USA",
       "zipCode": "92408",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 34.0853167,
+      "longitude": -117.2977373,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 500 Inland Center Dr, Ste #426, San Bernardino, CA 92408, USA",
       "phone": "(909) 440-9786",
       "phoneE164": "+19094409786",
@@ -914,9 +1222,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "ontario-mills",
+          "name": "Ontario Mills",
+          "distanceMiles": 14.6
+        },
+        {
+          "id": "the-mall-of-victor-valley",
+          "name": "The Mall of Victor Valley",
+          "distanceMiles": 27
+        },
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 43.3
+        },
+        {
+          "id": "antelope-valley-mall",
+          "name": "Antelope Valley Mall",
+          "distanceMiles": 60.7
+        },
+        {
+          "id": "westfield-culver-city",
+          "name": "Westfield Culver City",
+          "distanceMiles": 63.1
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "500 Inland Center Dr #426, San Bernardino, CA 92408, USA",
+      "googlePlaceId": "Ejg1MDAgSW5sYW5kIENlbnRlciBEciAjNDI2LCBTYW4gQmVybmFyZGlubywgQ0EgOTI0MDgsIFVTQSIfGh0KFgoUChIJu32cuMis3IARNjc85ko9BhQSAzQyNg"
     },
     {
       "id": "arden-fair",
@@ -933,9 +1269,9 @@
       "addressRaw": "1689 Arden Way, Ste #1046, Sacramento, CA 95815",
       "fullAddress": "1689 Arden Way, Ste #1046, Sacramento, CA 95815, USA",
       "zipCode": "95815",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 38.6038585,
+      "longitude": -121.4290114,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 1689 Arden Way, Ste #1046, Sacramento, CA 95815, USA",
       "phone": "(916) 504-9786",
       "phoneE164": "+19165049786",
@@ -988,9 +1324,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "westfield-galleria-mall",
+          "name": "Westfield Galleria Mall",
+          "distanceMiles": 14.6
+        },
+        {
+          "id": "solano-town-center",
+          "name": "Solano Town Center",
+          "distanceMiles": 41.3
+        },
+        {
+          "id": "weberstown-mall",
+          "name": "Weberstown Mall",
+          "distanceMiles": 42.6
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 66.4
+        },
+        {
+          "id": "santa-rosa-plaza",
+          "name": "Santa Rosa Plaza",
+          "distanceMiles": 70.5
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "1689 Arden Wy #1046, Sacramento, CA 95815, USA",
+      "googlePlaceId": "Ei4xNjg5IEFyZGVuIFd5ICMxMDQ2LCBTYWNyYW1lbnRvLCBDQSA5NTgxNSwgVVNBIiAaHgoWChQKEgkL4U3jHdqagBFxunH98Rzb5RIEMTA0Ng"
     },
     {
       "id": "westfield-culver-city",
@@ -1007,9 +1371,9 @@
       "addressRaw": "6000 Sepulveda Blvd #2501, Culver City, CA 90230",
       "fullAddress": "6000 Sepulveda Blvd #2501, Culver City, CA 90230, USA",
       "zipCode": "90230",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 33.9861606,
+      "longitude": -118.393284,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 6000 Sepulveda Blvd #2501, Culver City, CA 90230, USA",
       "phone": "(310) 272-9786",
       "phoneE164": "+13102729786",
@@ -1062,9 +1426,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "northridge-fashion-center",
+          "name": "Northridge Fashion Center",
+          "distanceMiles": 19.8
+        },
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 22
+        },
+        {
+          "id": "antelope-valley-mall",
+          "name": "Antelope Valley Mall",
+          "distanceMiles": 44.9
+        },
+        {
+          "id": "ontario-mills",
+          "name": "Ontario Mills",
+          "distanceMiles": 48.5
+        },
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 63.1
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "6000 Sepulveda Blvd #2501, Culver City, CA 90230, USA",
+      "googlePlaceId": "ChIJf_7mjD-xwoARW2doN1BhgR8"
     },
     {
       "id": "the-shops-at-santa-anita",
@@ -1081,9 +1473,9 @@
       "addressRaw": "400 S Baldwin Ave, Space #T56, Arcadia, CA 91007",
       "fullAddress": "400 S Baldwin Ave, Space #T56, Arcadia, CA 91007, USA",
       "zipCode": "91007",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 34.133225,
+      "longitude": -118.0524618,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 400 S Baldwin Ave, Space #T56, Arcadia, CA 91007, USA",
       "phone": "(626) 789-9786",
       "phoneE164": "+16267899786",
@@ -1139,9 +1531,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "westfield-culver-city",
+          "name": "Westfield Culver City",
+          "distanceMiles": 22
+        },
+        {
+          "id": "ontario-mills",
+          "name": "Ontario Mills",
+          "distanceMiles": 28.9
+        },
+        {
+          "id": "northridge-fashion-center",
+          "name": "Northridge Fashion Center",
+          "distanceMiles": 29.7
+        },
+        {
+          "id": "antelope-valley-mall",
+          "name": "Antelope Valley Mall",
+          "distanceMiles": 33.1
+        },
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 43.3
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "400 S Baldwin Ave space t56, Arcadia, CA 91007, USA",
+      "googlePlaceId": "EjM0MDAgUyBCYWxkd2luIEF2ZSBzcGFjZSB0NTYsIEFyY2FkaWEsIENBIDkxMDA3LCBVU0EiJRojChYKFAoSCR1oAN-828KAEdNiuCKFwclMEglzcGFjZSB0NTY"
     },
     {
       "id": "the-mall-of-victor-valley",
@@ -1158,9 +1578,9 @@
       "addressRaw": "14400 Bear Valley Rd, Ste #641, Victorville, CA 92392",
       "fullAddress": "14400 Bear Valley Rd, Ste #641, Victorville, CA 92392, USA",
       "zipCode": "92392",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 34.4734277,
+      "longitude": -117.3477984,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 14400 Bear Valley Rd, Ste #641, Victorville, CA 92392, USA",
       "phone": "(760) 305-9786",
       "phoneE164": "+17603059786",
@@ -1215,9 +1635,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 27
+        },
+        {
+          "id": "ontario-mills",
+          "name": "Ontario Mills",
+          "distanceMiles": 30.1
+        },
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 46.6
+        },
+        {
+          "id": "antelope-valley-mall",
+          "name": "Antelope Valley Mall",
+          "distanceMiles": 46.8
+        },
+        {
+          "id": "westfield-culver-city",
+          "name": "Westfield Culver City",
+          "distanceMiles": 68.6
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "14400 Bear Valley Rd #641, Victorville, CA 92392, USA",
+      "googlePlaceId": "EjUxNDQwMCBCZWFyIFZhbGxleSBSZCAjNjQxLCBWaWN0b3J2aWxsZSwgQ0EgOTIzOTIsIFVTQSIfGh0KFgoUChIJ2TcltBdmw4ARljRdK_HFAtwSAzY0MQ"
     },
     {
       "id": "ontario-mills",
@@ -1234,9 +1682,9 @@
       "addressRaw": "1 Mills Circle, Space #1011, Ontario, CA 91764",
       "fullAddress": "1 Mills Circle, Space #1011, Ontario, CA 91764, USA",
       "zipCode": "91764",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 34.0726511,
+      "longitude": -117.5523306,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 1 Mills Circle, Space #1011, Ontario, CA 91764, USA",
       "phone": "(909) 271-9786",
       "phoneE164": "+19092719786",
@@ -1289,9 +1737,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 14.6
+        },
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 28.9
+        },
+        {
+          "id": "the-mall-of-victor-valley",
+          "name": "The Mall of Victor Valley",
+          "distanceMiles": 30.1
+        },
+        {
+          "id": "westfield-culver-city",
+          "name": "Westfield Culver City",
+          "distanceMiles": 48.5
+        },
+        {
+          "id": "antelope-valley-mall",
+          "name": "Antelope Valley Mall",
+          "distanceMiles": 50.3
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "1 Mills Cir space # 1011, Ontario, CA 91764, USA",
+      "googlePlaceId": "EjAxIE1pbGxzIENpciBzcGFjZSAjIDEwMTEsIE9udGFyaW8sIENBIDkxNzY0LCBVU0EiKBomChYKFAoSCV3VGJB_NcOAERchKKZ9L1YtEgxzcGFjZSAjIDEwMTE"
     },
     {
       "id": "westfield-plaza-bonita",
@@ -1308,9 +1784,9 @@
       "addressRaw": "3030 Plaza Bonita Rd, #1076, National City, CA 91950",
       "fullAddress": "3030 Plaza Bonita Rd, #1076, National City, CA 91950, USA",
       "zipCode": "91950",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 32.6562124,
+      "longitude": -117.0658009,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 3030 Plaza Bonita Rd, #1076, National City, CA 91950, USA",
       "phone": "(619) 704-9786",
       "phoneE164": "+16197049786",
@@ -1366,9 +1842,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 99.6
+        },
+        {
+          "id": "ontario-mills",
+          "name": "Ontario Mills",
+          "distanceMiles": 101.8
+        },
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 116.8
+        },
+        {
+          "id": "westfield-culver-city",
+          "name": "Westfield Culver City",
+          "distanceMiles": 119.7
+        },
+        {
+          "id": "the-mall-of-victor-valley",
+          "name": "The Mall of Victor Valley",
+          "distanceMiles": 126.6
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "3030 Plaza Bonita Rd Spc 1076, National City, CA 91950, USA",
+      "googlePlaceId": "ChIJu_sf1j9R2YARVP57Aff6f7c"
     },
     {
       "id": "weberstown-mall",
@@ -1385,9 +1889,9 @@
       "addressRaw": "4950 Pacific Ave Suite 115, Stockton, CA 95207",
       "fullAddress": "4950 Pacific Ave Suite 115, Stockton, CA 95207, USA",
       "zipCode": "95207",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 37.9948685,
+      "longitude": -121.3120543,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 4950 Pacific Ave Suite 115, Stockton, CA 95207, USA",
       "phone": "(209) 472-9786",
       "phoneE164": "+12094729786",
@@ -1440,9 +1944,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 35.4
+        },
+        {
+          "id": "arden-fair",
+          "name": "Arden Fair",
+          "distanceMiles": 42.6
+        },
+        {
+          "id": "solano-town-center",
+          "name": "Solano Town Center",
+          "distanceMiles": 44.3
+        },
+        {
+          "id": "southland-mall",
+          "name": "Southland Mall",
+          "distanceMiles": 49.2
+        },
+        {
+          "id": "great-mall",
+          "name": "Great Mall",
+          "distanceMiles": 51.3
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "Game Stop, 4950 Pacific Ave #115, Stockton, CA 95207, USA",
+      "googlePlaceId": "EjlHYW1lIFN0b3AsIDQ5NTAgUGFjaWZpYyBBdmUgIzExNSwgU3RvY2t0b24sIENBIDk1MjA3LCBVU0EiHxodChYKFAoSCe-YsUtUDJCAEWwgmG_4HYcgEgMxMTU"
     },
     {
       "id": "meadowood-mall",
@@ -1459,9 +1991,9 @@
       "addressRaw": "5000 Meadowood Mall Cir c 112, Reno, NV 89502",
       "fullAddress": "5000 Meadowood Mall Cir c 112, Reno, NV 89502, USA",
       "zipCode": "89502",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 39.4744676,
+      "longitude": -119.7824119,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 5000 Meadowood Mall Cir c 112, Reno, NV 89502, USA",
       "phone": "(775) 410-0786",
       "phoneE164": "+17754100786",
@@ -1514,9 +2046,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "westfield-galleria-mall",
+          "name": "Westfield Galleria Mall",
+          "distanceMiles": 93.2
+        },
+        {
+          "id": "arden-fair",
+          "name": "Arden Fair",
+          "distanceMiles": 106.9
+        },
+        {
+          "id": "weberstown-mall",
+          "name": "Weberstown Mall",
+          "distanceMiles": 131.3
+        },
+        {
+          "id": "solano-town-center",
+          "name": "Solano Town Center",
+          "distanceMiles": 148.2
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 165.5
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "5000 Meadowood Mall Cir c 112, Reno, NV 89502, USA",
+      "googlePlaceId": "EjI1MDAwIE1lYWRvd29vZCBNYWxsIENpciBjIDExMiwgUmVubywgTlYgODk1MDIsIFVTQSIhGh8KFgoUChIJCZlaM_E_mYARG0xw12AM4_ISBWMgMTEy"
     },
     {
       "id": "solano-town-center",
@@ -1533,9 +2093,9 @@
       "addressRaw": "1350 Travis Blvd Ste 1464 B, Fairfield, CA 94533",
       "fullAddress": "1350 Travis Blvd Ste 1464 B, Fairfield, CA 94533, USA",
       "zipCode": "94533",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 38.2603841,
+      "longitude": -122.054641,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 1350 Travis Blvd Ste 1464 B, Fairfield, CA 94533, USA",
       "phone": "(707) 266-9786",
       "phoneE164": "+17072669786",
@@ -1588,9 +2148,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "santa-rosa-plaza",
+          "name": "Santa Rosa Plaza",
+          "distanceMiles": 37.9
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 40.5
+        },
+        {
+          "id": "arden-fair",
+          "name": "Arden Fair",
+          "distanceMiles": 41.3
+        },
+        {
+          "id": "southland-mall",
+          "name": "Southland Mall",
+          "distanceMiles": 42.2
+        },
+        {
+          "id": "weberstown-mall",
+          "name": "Weberstown Mall",
+          "distanceMiles": 44.3
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "1350 Travis Blvd Ste 1464 B, Fairfield, CA 94533, USA",
+      "googlePlaceId": "ChIJ8cGBtyYUhYAR2jUJTC8KqGs"
     },
     {
       "id": "santa-rosa-plaza",
@@ -1607,9 +2195,9 @@
       "addressRaw": "1071 Santa Rosa Plaza Space 1058A, Santa Rosa, CA 95401",
       "fullAddress": "1071 Santa Rosa Plaza Space 1058A, Santa Rosa, CA 95401, USA",
       "zipCode": "95401",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 38.4398868,
+      "longitude": -122.7161941,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 1071 Santa Rosa Plaza Space 1058A, Santa Rosa, CA 95401, USA",
       "phone": "(707) 501-9786",
       "phoneE164": "+17075019786",
@@ -1662,9 +2250,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "solano-town-center",
+          "name": "Solano Town Center",
+          "distanceMiles": 37.9
+        },
+        {
+          "id": "serramonte-center",
+          "name": "Serramonte Center",
+          "distanceMiles": 54.7
+        },
+        {
+          "id": "southland-mall",
+          "name": "Southland Mall",
+          "distanceMiles": 63.9
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 69.9
+        },
+        {
+          "id": "arden-fair",
+          "name": "Arden Fair",
+          "distanceMiles": 70.5
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "1071 Santa Rosa Plaza space 1058a, Santa Rosa, CA 95401, USA",
+      "googlePlaceId": "EjwxMDcxIFNhbnRhIFJvc2EgUGxhemEgc3BhY2UgMTA1OGEsIFNhbnRhIFJvc2EsIENBIDk1NDAxLCBVU0EiJxolChYKFAoSCbM4Vr__R4SAEZZqF72F5dGNEgtzcGFjZSAxMDU4YQ"
     },
     {
       "id": "chandler-fashion-center",
@@ -1681,9 +2297,9 @@
       "addressRaw": "3111 W Chandler Blvd Space 2300 , Chandler, AZ 85226",
       "fullAddress": "3111 W Chandler Blvd Space 2300, Chandler, AZ 85226, USA",
       "zipCode": "85226",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 33.3000488,
+      "longitude": -111.8988801,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 3111 W Chandler Blvd Space 2300, Chandler, AZ 85226, USA",
       "phone": "(480) 243-7866",
       "phoneE164": "+14802437866",
@@ -1736,9 +2352,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "westfield-plaza-bonita",
+          "name": "Westfield Plaza Bonita",
+          "distanceMiles": 302.7
+        },
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 315
+        },
+        {
+          "id": "the-mall-of-victor-valley",
+          "name": "The Mall of Victor Valley",
+          "distanceMiles": 322.8
+        },
+        {
+          "id": "ontario-mills",
+          "name": "Ontario Mills",
+          "distanceMiles": 329.3
+        },
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 358.3
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "3111 W Chandler Blvd space 2300, Chandler, AZ 85226, USA",
+      "googlePlaceId": "EjgzMTExIFcgQ2hhbmRsZXIgQmx2ZCBzcGFjZSAyMzAwLCBDaGFuZGxlciwgQVogODUyMjYsIFVTQSImGiQKFgoUChIJczE3qtYAK4cRQZnJgk9hIHcSCnNwYWNlIDIzMDA"
     },
     {
       "id": "longview-mall",
@@ -1755,9 +2399,9 @@
       "addressRaw": "3500 McCann Rd Ste M9, Longview, TX 75605",
       "fullAddress": "3500 McCann Rd Ste M9, Longview, TX 75605, USA",
       "zipCode": "75605",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 32.5393303,
+      "longitude": -94.7507162,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 3500 McCann Rd Ste M9, Longview, TX 75605, USA",
       "phone": "(214) 469-9786",
       "phoneE164": "+12144699786",
@@ -1810,9 +2454,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "deerbrook",
+          "name": "Deerbrook",
+          "distanceMiles": 177.5
+        },
+        {
+          "id": "baybrook",
+          "name": "Baybrook",
+          "distanceMiles": 208
+        },
+        {
+          "id": "chandler-fashion-center",
+          "name": "Chandler Fashion Center",
+          "distanceMiles": 994.9
+        },
+        {
+          "id": "westfield-plaza-bonita",
+          "name": "Westfield Plaza Bonita",
+          "distanceMiles": 1296.6
+        },
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 1303.6
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "3500 McCann Rd m9, Longview, TX 75605, USA",
+      "googlePlaceId": "EiozNTAwIE1jQ2FubiBSZCBtOSwgTG9uZ3ZpZXcsIFRYIDc1NjA1LCBVU0EiHhocChYKFAoSCX-rD9w0PzaGEZTx-2pvzgKtEgJtOQ"
     },
     {
       "id": "northridge-fashion-center",
@@ -1829,9 +2501,9 @@
       "addressRaw": "9301 Tampa Ave Space #180, Northridge, California 91324",
       "fullAddress": "9301 Tampa Ave Space #180, Northridge, CA 91324, USA",
       "zipCode": "91324",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 34.23912046571481,
+      "longitude": -118.5557779765814,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 9301 Tampa Ave Space #180, Northridge, CA 91324, USA",
       "phone": "(818) 396 9786",
       "phoneE164": "+18183969786",
@@ -1884,9 +2556,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "westfield-culver-city",
+          "name": "Westfield Culver City",
+          "distanceMiles": 19.8
+        },
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 29.7
+        },
+        {
+          "id": "antelope-valley-mall",
+          "name": "Antelope Valley Mall",
+          "distanceMiles": 34.1
+        },
+        {
+          "id": "ontario-mills",
+          "name": "Ontario Mills",
+          "distanceMiles": 58.5
+        },
+        {
+          "id": "the-mall-of-victor-valley",
+          "name": "The Mall of Victor Valley",
+          "distanceMiles": 70.8
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "9301 Tampa Ave space # 180, Northridge, CA 91324, USA",
+      "googlePlaceId": "EjU5MzAxIFRhbXBhIEF2ZSBzcGFjZSAjIDE4MCwgTm9ydGhyaWRnZSwgQ0EgOTEzMjQsIFVTQSInGiUKFgoUChIJX7X1sHSbwoARAYUZ1iec-_MSC3NwYWNlICMgMTgw"
     },
     {
       "id": "antelope-valley-mall",
@@ -1903,9 +2603,9 @@
       "addressRaw": "1233 Rancho Vista Blvd, Space #235, Palmdale, CA 93551",
       "fullAddress": "1233 Rancho Vista Blvd, Space #235, Palmdale, CA 93551, USA",
       "zipCode": "93551",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 34.6049351,
+      "longitude": -118.1546907,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 1233 Rancho Vista Blvd, Space #235, Palmdale, CA 93551, USA",
       "phone": "818-745-8786",
       "phoneE164": "+18187458786",
@@ -1958,9 +2658,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 33.1
+        },
+        {
+          "id": "northridge-fashion-center",
+          "name": "Northridge Fashion Center",
+          "distanceMiles": 34.1
+        },
+        {
+          "id": "westfield-culver-city",
+          "name": "Westfield Culver City",
+          "distanceMiles": 44.9
+        },
+        {
+          "id": "the-mall-of-victor-valley",
+          "name": "The Mall of Victor Valley",
+          "distanceMiles": 46.8
+        },
+        {
+          "id": "ontario-mills",
+          "name": "Ontario Mills",
+          "distanceMiles": 50.3
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "1233 Rancho Vista Blvd space # 235, Palmdale, CA 93551, USA",
+      "googlePlaceId": "EjsxMjMzIFJhbmNobyBWaXN0YSBCbHZkIHNwYWNlICMgMjM1LCBQYWxtZGFsZSwgQ0EgOTM1NTEsIFVTQSInGiUKFgoUChIJG9g5EZlZwoARPnIuxK-0tUMSC3NwYWNlICMgMjM1"
     },
     {
       "id": "great-mall",
@@ -1977,9 +2705,9 @@
       "addressRaw": "302 Great Mall Dr, Milpitas, CA 95035",
       "fullAddress": "302 Great Mall Dr, Milpitas, CA 95035, USA",
       "zipCode": "95035",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 37.4159785,
+      "longitude": -121.8986607,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 302 Great Mall Dr, Milpitas, CA 95035, USA",
       "phone": "(408) 262-9786",
       "phoneE164": "+14082629786",
@@ -2033,9 +2761,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "westfield-valley-fair",
+          "name": "Westfield Valley Fair",
+          "distanceMiles": 6.7
+        },
+        {
+          "id": "eastridge-centre",
+          "name": "Eastridge Centre",
+          "distanceMiles": 7.8
+        },
+        {
+          "id": "westfield-oakridge",
+          "name": "Westfield Oakridge",
+          "distanceMiles": 11.5
+        },
+        {
+          "id": "southland-mall",
+          "name": "Southland Mall",
+          "distanceMiles": 19.7
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 19.8
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "302 Great Mall Dr, Milpitas, CA 95035, USA",
+      "googlePlaceId": "ChIJt3hTq8vOj4AReg_4aQVd-7s"
     },
     {
       "id": "baybrook",
@@ -2052,9 +2808,9 @@
       "addressRaw": "500 Baybrook Mall # 1174A, Friendswood, TX 77546",
       "fullAddress": "500 Baybrook Mall # 1174A, Friendswood, TX 77546, USA",
       "zipCode": "77546",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 29.5490162,
+      "longitude": -95.15249229999999,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 500 Baybrook Mall # 1174A, Friendswood, TX 77546, USA",
       "phone": "(281) 936-1786",
       "phoneE164": "+12819361786",
@@ -2108,9 +2864,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "deerbrook",
+          "name": "Deerbrook",
+          "distanceMiles": 32.5
+        },
+        {
+          "id": "longview-mall",
+          "name": "Longview Mall",
+          "distanceMiles": 208
+        },
+        {
+          "id": "chandler-fashion-center",
+          "name": "Chandler Fashion Center",
+          "distanceMiles": 1019.5
+        },
+        {
+          "id": "westfield-plaza-bonita",
+          "name": "Westfield Plaza Bonita",
+          "distanceMiles": 1311.6
+        },
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 1334.5
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "500 Baybrook Mall #1174A, Friendswood, TX 77546, USA",
+      "googlePlaceId": "ChIJ19S5psmbQIYR85nJXEd9rjM"
     },
     {
       "id": "deerbrook",
@@ -2127,9 +2911,9 @@
       "addressRaw": "VALLIANI JEWELERS - 20131 US-59 Space # 1074 Humble, TX 77338",
       "fullAddress": "20131 US-59 Space # 1074 Humble, TX 77338, USA",
       "zipCode": "77338",
-      "latitude": null,
-      "longitude": null,
-      "needsGeocoding": true,
+      "latitude": 30.0089636,
+      "longitude": -95.26974969999999,
+      "needsGeocoding": false,
       "geocodingQuery": "Valliani Jewelers 20131 US-59 Space # 1074 Humble, TX 77338, USA",
       "phone": "(281) 670-7860",
       "phoneE164": "+12816707860",
@@ -2180,9 +2964,37 @@
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
-      "nearestStores": [],
+      "nearestStores": [
+        {
+          "id": "baybrook",
+          "name": "Baybrook",
+          "distanceMiles": 32.5
+        },
+        {
+          "id": "longview-mall",
+          "name": "Longview Mall",
+          "distanceMiles": 177.5
+        },
+        {
+          "id": "chandler-fashion-center",
+          "name": "Chandler Fashion Center",
+          "distanceMiles": 1002.9
+        },
+        {
+          "id": "westfield-plaza-bonita",
+          "name": "Westfield Plaza Bonita",
+          "distanceMiles": 1296.9
+        },
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 1317.7
+        }
+      ],
       "distanceCache": {},
-      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract."
+      "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
+      "geocodedAddress": "20131 US-59 space # 1074, Humble, TX 77338, USA",
+      "googlePlaceId": "Ei8yMDEzMSBVUy01OSBzcGFjZSAjIDEwNzQsIEh1bWJsZSwgVFggNzczMzgsIFVTQSIoGiYKFgoUChIJ-RfT2AGzQIYRCVvnkIozKYkSDHNwYWNlICMgMTA3NA"
     }
   ]
 }

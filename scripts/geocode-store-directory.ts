@@ -17,6 +17,17 @@ import path from "node:path";
 const STORE_FILE = path.join(process.cwd(), "data/knowledge/valliani/store-directory.json");
 const CACHE_FILE = path.join(process.cwd(), ".data/stores/geocode-cache.json");
 
+function loadEnvLocal(): void {
+  const envPath = path.join(process.cwd(), ".env.local");
+  if (!fs.existsSync(envPath)) return;
+  const lines = fs.readFileSync(envPath, "utf-8").split(/\r?\n/);
+  for (const line of lines) {
+    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (!m || process.env[m[1]]) continue;
+    process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+}
+
 type Store = {
   id: string;
   name: string;
@@ -69,6 +80,7 @@ async function geocode(query: string, apiKey: string) {
 }
 
 async function main() {
+  loadEnvLocal();
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_MAPS_API_KEY is required.");
