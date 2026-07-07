@@ -39,6 +39,13 @@ import {
 } from "@/lib/voice/section-tools";
 import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
 import { buildCompanyKnowledgeVoiceAnswer } from "@/lib/voice/rag-tool";
+import {
+  answerStoreQuery,
+  buildFindNearestStoreToolResult,
+  extractStoreQueryPhrase,
+  getStoreDetails,
+  listStores,
+} from "@/lib/stores/store-intelligence";
 import { sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import { resolveMeetingToolArgs } from "@/lib/ai/meeting-parse";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
@@ -574,6 +581,77 @@ export async function executeVoiceTool(
           chunkCount: result.chunkCount,
           context: result.context,
           mode: result.mode,
+        }),
+      };
+    }
+
+    case "get_store_directory": {
+      const userMessage = args.user_message
+        ? String(args.user_message)
+        : args.query
+          ? String(args.query)
+          : "";
+      const answer = answerStoreQuery(userMessage);
+      return {
+        output: JSON.stringify({
+          spokenAnswer: answer.markdown,
+          markdown: answer.markdown,
+          intent: answer.intent,
+        }),
+      };
+    }
+
+    case "list_valliani_stores": {
+      const payload = listStores({
+        state: args.state ? String(args.state) : undefined,
+        city: args.city ? String(args.city) : undefined,
+        region: args.region ? String(args.region) : undefined,
+        status: args.status ? String(args.status) : undefined,
+      });
+      return {
+        output: JSON.stringify({
+          spokenAnswer: payload.message,
+          markdown: payload.message,
+          ok: payload.ok,
+          stores: payload.stores,
+        }),
+      };
+    }
+
+    case "get_valliani_store_details": {
+      const details = getStoreDetails({
+        id: args.id ? String(args.id) : undefined,
+        storeName: args.storeName ? String(args.storeName) : args.query ? String(args.query) : undefined,
+        city: args.city ? String(args.city) : undefined,
+      });
+      return {
+        output: JSON.stringify({
+          spokenAnswer: details.message,
+          markdown: details.message,
+          ok: details.ok,
+          store: details.store,
+        }),
+      };
+    }
+
+    case "find_nearest_store": {
+      const userMessage = args.user_message ? String(args.user_message) : "";
+      const storeName = args.storeName
+        ? String(args.storeName)
+        : userMessage
+          ? extractStoreQueryPhrase(userMessage)
+          : undefined;
+      const result = buildFindNearestStoreToolResult({
+        storeName,
+        city: args.city ? String(args.city) : undefined,
+        state: args.state ? String(args.state) : undefined,
+        limit: typeof args.limit === "number" ? args.limit : 3,
+      });
+      return {
+        output: JSON.stringify({
+          spokenAnswer: result.message,
+          markdown: result.message,
+          ...result,
         }),
       };
     }

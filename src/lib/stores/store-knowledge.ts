@@ -1,4 +1,5 @@
 import { getStoreStats, mockStores } from "@/lib/mock-data";
+import { getAllStores, isStoreDirectoryAvailable } from "@/lib/stores/store-directory";
 import type { StoreLocation } from "@/types";
 
 export type StoreRegion = "California" | "Nevada" | "Arizona" | "Texas";
@@ -87,6 +88,23 @@ ${sections.join("\n\n")}`;
 
 /** Full store directory for LLM live context (compact). */
 export function buildStoreDirectoryContext(): string {
+  if (isStoreDirectoryAvailable()) {
+    const stores = getAllStores();
+    const open = stores.filter((s) => String(s.status).toLowerCase() === "open").length;
+    const soon = stores.filter((s) => String(s.status).toLowerCase() === "opening soon").length;
+    const byState = stores.reduce(
+      (acc, s) => {
+        acc[s.stateCode] = (acc[s.stateCode] ?? 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+    return `Store directory summary: ${stores.length} total locations from official store JSON.
+States: CA=${byState.CA ?? 0}, NV=${byState.NV ?? 0}, AZ=${byState.AZ ?? 0}, TX=${byState.TX ?? 0}.
+Status: ${open} open, ${soon} opening soon.
+For specific store address/phone/hours use Store Intelligence tools: get_valliani_store_details, list_valliani_stores, find_nearest_store.`;
+  }
+
   const stats = getStoreStats();
   const lines = REGION_ORDER.flatMap((region) => {
     const stores = storesForRegion(region);

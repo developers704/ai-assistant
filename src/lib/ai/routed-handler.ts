@@ -19,6 +19,7 @@ import {
   synthesizeToolResponse,
   type AlexaChannel,
 } from "@/lib/ai/response-synthesizer";
+import { extractStoreQueryPhrase } from "@/lib/stores/store-intelligence";
 import { recordToolIntelligence } from "@/lib/ai/app-intelligence";
 import {
   isComposeEmailToPerson,
@@ -44,6 +45,10 @@ const FAST_READ_TOOLS = new Set([
   "get_sports_news",
   "get_politics_news",
   "search_company_knowledge",
+  "get_store_directory",
+  "find_nearest_store",
+  "list_valliani_stores",
+  "get_valliani_store_details",
 ]);
 
 function buildSalesToolArgs(message: string, routed: RoutedIntent): Record<string, unknown> {
@@ -204,9 +209,20 @@ export async function tryRoutedResponse(
     const args =
       toolName === "search_company_knowledge"
         ? { query: message }
-        : toolName === "get_today_sales"
-          ? buildSalesToolArgs(message, routed)
-          : { user_message: message };
+        : toolName === "find_nearest_store"
+          ? { user_message: message, storeName: extractStoreQueryPhrase(message), limit: 3 }
+          : toolName === "list_valliani_stores"
+            ? {
+                state: /\b(california|ca|nevada|nv|arizona|az|texas|tx)\b/i.exec(message)?.[1],
+                status: /\bopening soon\b/i.test(message) ? "Opening Soon" : undefined,
+              }
+            : toolName === "get_valliani_store_details"
+              ? { query: extractStoreQueryPhrase(message), storeName: extractStoreQueryPhrase(message) }
+          : toolName === "get_store_directory"
+            ? { user_message: message, query: message }
+            : toolName === "get_today_sales"
+              ? buildSalesToolArgs(message, routed)
+              : { user_message: message };
     const result = await executeTool(toolName, args, { source: channel });
     validateToolResult(result);
     return finalizeResponse(toolName, result, message, routed, channel);

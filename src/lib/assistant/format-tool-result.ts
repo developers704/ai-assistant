@@ -28,6 +28,10 @@ export function intentForTool(name: string): IntentType {
     open_data_analyst: "general",
     draft_email_reply: "email_draft",
     search_company_knowledge: "general",
+    get_store_directory: "store_list",
+    find_nearest_store: "store_list",
+    list_valliani_stores: "store_list",
+    get_valliani_store_details: "store_list",
   };
   return map[name] ?? "general";
 }
@@ -98,6 +102,15 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
           ? data.markdown
           : String(data.spokenAnswer ?? "No company knowledge found.");
       return markdown;
+    }
+
+    case "get_store_directory":
+    case "find_nearest_store":
+    case "list_valliani_stores":
+    case "get_valliani_store_details": {
+      return typeof data.markdown === "string"
+        ? data.markdown
+        : String(data.message ?? data.spokenAnswer ?? "No store data found.");
     }
 
     case "get_industry_news":

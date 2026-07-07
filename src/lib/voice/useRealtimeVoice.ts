@@ -267,6 +267,34 @@ export function useRealtimeVoice(enabled: boolean) {
         }
       }
 
+      if (intent === "store_nearest") {
+        try {
+          await runTool(
+            "find_nearest_store",
+            { user_message: normalized, storeName: normalized, limit: 3 },
+            "The user asked for the NEAREST STORE. Say exactly this:",
+            320
+          );
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      if (intent === "store_directory") {
+        try {
+          await runTool(
+            "get_store_directory",
+            { user_message: normalized, query: normalized },
+            "The user asked about STORE LOCATIONS. Say exactly this:",
+            320
+          );
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
       if (intent === "knowledge") {
         try {
           await runTool(

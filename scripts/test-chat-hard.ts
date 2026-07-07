@@ -294,6 +294,16 @@ const REGRESSION_CASES: ChatTestCase[] = [
       noPending: true,
     },
   },
+  {
+    id: "reg-20260707-nearest-great-mall",
+    category: "regression",
+    messages: ["Which branch is closest to Great Mall?"],
+    assert: {
+      mustInclude: ["coordinates are not geocoded yet", "nearby branches include"],
+      mustNotInclude: ["Confirmation required", "What should I confirm"],
+      noPending: true,
+    },
+  },
 ];
 
 const CASES: ChatTestCase[] = [

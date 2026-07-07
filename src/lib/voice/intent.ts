@@ -17,6 +17,8 @@ export type VoicePrefetchIntent =
   | "image_generate"
   | "analyst"
   | "knowledge"
+  | "store_nearest"
+  | "store_directory"
   | "settings"
   | "navigation";
 
@@ -165,10 +167,29 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /policy|return policy|store count|how many stores|brand|founder|valliani|company knowledge|our stores|warranty|layaway/i.test(
-      lower
-    )
+    /(?:closest|nearest)\b[\s\S]{0,50}\b(?:to|from)\b/i.test(lower) ||
+    /\bwhich\s+(?:branch|store)\b[\s\S]{0,30}\b(?:closest|nearest)\b/i.test(lower)
   ) {
+    return "store_nearest";
+  }
+
+  if (
+    /\b(?:address|phone|hours)\b[\s\S]{0,20}\b(?:of|for|at)\b/i.test(lower) ||
+    /\bstores?\s+(?:in|near|across)\b/i.test(lower) ||
+    /\bcall\b[\s\S]{0,30}\b(?:mall|mills|center|fair|plaza)\b/i.test(lower) ||
+    /\b(?:how many|list|show)\b[\s\S]{0,20}\bstores?\b/i.test(lower)
+  ) {
+    return "store_directory";
+  }
+
+  if (
+    /policy|return policy|brand|founder|company knowledge|warranty|layaway/i.test(lower) &&
+    !/\b(?:store|stores|mall|nearest|closest|address|phone)\b/i.test(lower)
+  ) {
+    return "knowledge";
+  }
+
+  if (/\bvalliani\b/i.test(lower) && /\b(?:everything|all you know|overview)\b/i.test(lower)) {
     return "knowledge";
   }
 

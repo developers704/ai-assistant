@@ -21,6 +21,11 @@ import {
   detectStoreRegionQuery,
   isStoreLocationQuery,
 } from "@/lib/stores/store-knowledge";
+import {
+  answerStoreQuery,
+  isStoreIntelligenceQuery,
+} from "@/lib/stores/store-intelligence";
+import { isStoreDirectoryAvailable } from "@/lib/stores/store-directory";
 import { resolveTaskTarget } from "@/lib/voice/tool-helpers";
 import { formatLongDate } from "@/lib/utils";
 import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
@@ -117,6 +122,7 @@ function detectIntent(message: string): IntentType {
   if (/summarize.*(pdf|document|doc|file|contract|report)|key points|analyze.*(excel|csv|data)/.test(lower)) return "document_summarize";
   if (/analyze.*(screenshot|image|photo|picture|dashboard)|what does this (show|dashboard)/.test(lower)) return "image_analyze";
   if (/call\s+\w+|phone call|dial/.test(lower)) return "call_prepare";
+  if (isStoreDirectoryAvailable() && isStoreIntelligenceQuery(message)) return "store_list";
   if (isStoreLocationQuery(message)) return "store_list";
 
   return "general";
@@ -563,6 +569,14 @@ I'll notify you when it's due.`,
 }
 
 function listStores(message: string): AIResponse {
+  if (isStoreDirectoryAvailable()) {
+    const answer = answerStoreQuery(message);
+    return {
+      intent: "store_list",
+      message: answer.markdown,
+      speak: true,
+    };
+  }
   const region = detectStoreRegionQuery(message) ?? "all";
   return {
     intent: "store_list",

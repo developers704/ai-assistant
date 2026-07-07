@@ -15,6 +15,11 @@ export type RoutedIntent =
   | "news.industry"
   | "image.generate"
   | "knowledge.search"
+  | "store.nearest"
+  | "store.list"
+  | "store.lookup"
+  | "store.call"
+  | "store.opening_soon"
   | "navigation"
   | "affirmative.open"
   | "complex_planner"
@@ -23,6 +28,7 @@ export type RoutedIntent =
   | "unknown";
 
 import { isComposeEmailToPerson } from "@/lib/ai/email-compose";
+import { isStoreIntelligenceQuery } from "@/lib/stores/store-intelligence";
 
 export interface IntentRouteInput {
   message: string;
@@ -79,6 +85,9 @@ const FULL_SALES_REPORT =
 /**
  * Deterministic intent router — priority-ordered; no blanket "yes" → confirm.
  */
+const MALL_HINT =
+  /\b(mall|mills|center|centre|fair|plaza|outlets|galleria|fashion|valley|oakridge|eastridge|meadowood|baybrook|deerbrook|ontario|great)\b/i;
+
 export function routeIntent(input: IntentRouteInput): RoutedIntent {
   const lower = input.message.toLowerCase().trim();
   const path = input.currentPath ?? "";
@@ -181,7 +190,25 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "news.industry";
   }
   if (/\b(generate|create).*\b(image|photo|ring|necklace)\b/i.test(lower)) return "image.generate";
-  if (/\b(policy|return|store count|brand|founder|valliani)\b/i.test(lower)) return "knowledge.search";
+
+  if (isStoreIntelligenceQuery(input.message)) {
+    if (/\b(?:closest|nearest)\b/i.test(lower)) return "store.nearest";
+    if (/\bcall\b/i.test(lower) && MALL_HINT.test(lower)) return "store.call";
+    if (/\b(?:address|phone|hours)\b/i.test(lower)) return "store.lookup";
+    if (/\bstores?\s+(?:in|across)\b/i.test(lower) && /\b(california|nevada|arizona|texas|ca|nv|az|tx)\b/i.test(lower)) {
+      return "store.list";
+    }
+    if (/\bstores?\s+(?:in|near|around)\b/i.test(lower)) return "store.list";
+    if (/\b(?:how many|list|show|all)\b/i.test(lower) && /\bstores?\b/i.test(lower)) return "store.list";
+    if (/\bopening soon\b/i.test(lower)) return "store.opening_soon";
+    return "store.lookup";
+  }
+
+  if (/\b(policy|return|brand|founder)\b/i.test(lower)) return "knowledge.search";
+  if (/\bstore count\b/i.test(lower)) return "store.list";
+  if (/\bvalliani\b/i.test(lower) && !/\b(store|stores|mall|location|branch|nearest|closest)\b/i.test(lower)) {
+    return "knowledge.search";
+  }
   if (
     /\b(tell me\s+)?(everything|all)\b[\s\S]{0,50}\b(you know|about|on)\b/i.test(lower) ||
     /\beverything you know\b/i.test(lower) ||
@@ -214,6 +241,11 @@ export function intentToTool(intent: RoutedIntent): string | null {
     "news.industry": "get_industry_news",
     "image.generate": "generate_jewellery_image",
     "knowledge.search": "search_company_knowledge",
+    "store.nearest": "find_nearest_store",
+    "store.list": "list_valliani_stores",
+    "store.lookup": "get_valliani_store_details",
+    "store.call": "get_valliani_store_details",
+    "store.opening_soon": "list_valliani_stores",
     "navigation": "show_detail_page",
   };
   return map[intent] ?? null;

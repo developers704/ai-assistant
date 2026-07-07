@@ -54,6 +54,11 @@ const TOOL_ANSWER_INTENTS = new Set<RoutedIntent>([
   "news.industry",
   "image.generate",
   "knowledge.search",
+  "store.nearest",
+  "store.list",
+  "store.lookup",
+  "store.call",
+  "store.opening_soon",
 ]);
 
 function shouldAnswerWithTools(message: string, hasPending: boolean): boolean {

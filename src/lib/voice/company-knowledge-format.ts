@@ -27,7 +27,7 @@ const OVERVIEW_SECTION_IDS = [
   "vj_returns",
 ] as const;
 
-export function cleanChunkText(chunk: RetrievedChunk): string {
+export function cleanChunkText(chunk: Pick<RetrievedChunk, "text">): string {
   const faqMatch = chunk.text.match(/^Q:\s*.+\nA:\s*([\s\S]+)$/i);
   if (faqMatch) return faqMatch[1].trim();
   return chunk.text.trim();
