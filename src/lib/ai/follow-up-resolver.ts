@@ -15,6 +15,7 @@ import { executeTool } from "@/lib/tools/registry";
 import { synthesizeToolResponse } from "@/lib/ai/response-synthesizer";
 import type { AlexaChannel } from "@/lib/ai/response-synthesizer";
 import { formatResponseForChannel } from "@/lib/ai/response-synthesizer";
+import { resolveContextualAffirmative } from "@/lib/ai/contextual-affirmative";
 
 const OPEN_FOLLOWUP =
   /\b(open it|show more|read more|tell me more|yes open|yes pls open|go there|take me there|open that|show me more)\b/i;
@@ -76,6 +77,11 @@ export async function resolveFollowUp(
         channel
       );
     }
+
+    const contextual = await resolveContextualAffirmative(state, memory, channel);
+    if (contextual) {
+      return formatResponseForChannel(contextual, channel);
+    }
   }
 
   if (OPEN_FOLLOWUP.test(lower) || (isAffirmativeWithOpenIntent(message) && !pending)) {
@@ -99,18 +105,6 @@ export async function resolveFollowUp(
         channel
       );
     }
-  }
-
-  if (isStrictConfirmMessage(lower) && !pending) {
-    return formatResponseForChannel(
-      {
-        intent: "general",
-        message:
-          "What should I confirm? I can send a drafted email, create a meeting, open a page we discussed, or run another pending action.",
-        speak: true,
-      },
-      channel
-    );
   }
 
   if (path === "/email" && REPLY_THIS.test(lower) && state.uiContext?.selectedEmailId) {

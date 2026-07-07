@@ -7,6 +7,7 @@ import {
   formatTopStoreAnswer,
 } from "@/lib/assistant/sales-data";
 import type { OfferTarget } from "@/lib/actions/pending-offer";
+import { recordOfferedAction } from "@/lib/memory/working-memory";
 
 export type AlexaChannel = "chat" | "voice";
 
@@ -95,6 +96,7 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
         : formatSalesByFocus(focus as "top_store" | "summary" | "full_report");
 
     if (focus === "top_store") {
+      recordOfferedAction("sales:full_breakdown");
       return { message };
     }
 

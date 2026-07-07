@@ -44,6 +44,16 @@ async function main() {
     process.exitCode = 1;
   }
 
+  const yesBreakdown = await ask("0c yes breakdown", "yes");
+  if (!yesBreakdown?.message?.includes("Top stores") && !yesBreakdown?.message?.includes("Sales Summary")) {
+    console.error("FAIL: yes after top store should return full sales breakdown");
+    process.exitCode = 1;
+  }
+  if (/What should I confirm/i.test(yesBreakdown?.message ?? "")) {
+    console.error("FAIL: yes should not ask generic confirm after sales offer");
+    process.exitCode = 1;
+  }
+
   await ask("1 top store", "show me best store with sales");
   await ask("2 one top store", "i want to see one store with top sales");
   await ask("3 email ross", "send an email to Ross");

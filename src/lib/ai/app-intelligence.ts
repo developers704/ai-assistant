@@ -16,8 +16,10 @@ import {
 import { getActivePendingAction } from "@/lib/actions/confirmation";
 import {
   isStrictConfirmMessage,
+  isConfirmMessage,
 } from "@/lib/actions/confirmation-messages";
-import { recordNavigationOffer, recordToolRun } from "@/lib/memory/working-memory";
+import { getWorkingMemory, recordNavigationOffer, recordToolRun } from "@/lib/memory/working-memory";
+import { resolveContextualAffirmative } from "@/lib/ai/contextual-affirmative";
 
 const WHAT_CAN_YOU_DO =
   /\b(what can you do|what do you do|what are you able to|help me here|your capabilities)\b/i;
@@ -97,15 +99,10 @@ function handleOpenIt(ctx: SectionRuntimeContext): AIResponse | null {
   };
 }
 
-function handleBareYes(ctx: SectionRuntimeContext): AIResponse | null {
-  if (ctx.pendingAction) return null;
-
-  return {
-    intent: "general",
-    message:
-      "I'm ready to confirm — what would you like me to do? For example: send a drafted email, create a meeting, or open a page we just discussed.",
-    speak: true,
-  };
+async function handleBareYes(message: string, state: AppState): Promise<AIResponse | null> {
+  if (getActivePendingAction()) return null;
+  if (!isConfirmMessage(message)) return null;
+  return resolveContextualAffirmative(state, getWorkingMemory(), "chat");
 }
 
 /**
@@ -129,7 +126,9 @@ export async function tryAppIntelligence(
   }
 
   if (isStrictConfirmMessage(lower) && !pending) {
-    return handleBareYes(ctx);
+    const contextual = await handleBareYes(message, state);
+    if (contextual) return contextual;
+    return null;
   }
 
   if (EXPLAIN_THIS.test(lower)) {
