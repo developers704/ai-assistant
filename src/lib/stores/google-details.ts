@@ -4,7 +4,7 @@ import { getStoreById } from "@/lib/stores/store-directory";
 import type { StoreDirectoryEntry } from "@/lib/stores/types";
 
 const CACHE_PATH = path.join(process.cwd(), ".data", "stores", "google-details-cache.json");
-const CACHE_TTL_MS = 1000 * 60 * 60 * 18;
+const CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 
 type CacheRow = {
   storeId: string;
@@ -23,7 +23,7 @@ function saveCache(cache: Record<string, CacheRow>): void {
 }
 
 function serverKey(): string | null {
-  return process.env.GOOGLE_MAPS_SERVER_KEY || process.env.GOOGLE_MAPS_API_KEY || null;
+  return process.env.GOOGLE_MAPS_SERVER_KEY || null;
 }
 
 function normalizeGoogleResponse(store: StoreDirectoryEntry, raw: Record<string, unknown>) {
@@ -101,12 +101,13 @@ export async function getStoreGoogleDetails(storeId: string, forceRefresh = fals
     return {
       ok: false,
       storeId,
-      message: "Google live store data is not connected yet, but I can show official local store data.",
+      message:
+        "Google live store data is not connected yet. Set GOOGLE_MAPS_SERVER_KEY for server-side Places/Geocoding.",
       fallbackStore: store,
     };
   }
 
-  let placeId = (store as { googlePlaceId?: string }).googlePlaceId ?? null;
+  let placeId = store.googlePlaceId ?? null;
   if (!placeId) {
     placeId = await fetchPlaceByText(
       `Valliani Jewelers ${store.fullAddress ?? store.address ?? ""}`,
@@ -126,7 +127,7 @@ export async function getStoreGoogleDetails(storeId: string, forceRefresh = fals
     headers: {
       "X-Goog-Api-Key": key,
       "X-Goog-FieldMask":
-        "id,displayName,formattedAddress,location,businessStatus,currentOpeningHours,regularOpeningHours,nationalPhoneNumber,internationalPhoneNumber,rating,userRatingCount,reviews,googleMapsUri,websiteUri,photos",
+        "id,displayName,formattedAddress,location,businessStatus,currentOpeningHours,regularOpeningHours,nationalPhoneNumber,internationalPhoneNumber,rating,userRatingCount,reviews,googleMapsUri,websiteUri",
     },
   });
 

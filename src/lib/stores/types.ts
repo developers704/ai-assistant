@@ -36,6 +36,7 @@ export interface StoreDirectoryEntry {
   googleMapsUrl: string | null;
   appleMapsUrl: string | null;
   storeUrl: string | null;
+  googlePlaceId?: string | null;
   nearestStores: NearestStoreRef[];
   sourceUrl: string;
   lastSyncedAt: string;

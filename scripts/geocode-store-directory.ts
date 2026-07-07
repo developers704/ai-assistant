@@ -2,7 +2,7 @@
  * One-time geocoding helper for Valliani store directory.
  *
  * Usage:
- *   GOOGLE_MAPS_API_KEY=your_key npx tsx scripts/geocode-store-directory.ts
+ *   GOOGLE_MAPS_SERVER_KEY=your_key npx tsx scripts/geocode-store-directory.ts
  *
  * Input:
  *   data/knowledge/valliani/store-directory.json
@@ -36,6 +36,7 @@ type Store = {
   longitude: number | null;
   needsGeocoding?: boolean;
   geocodingQuery?: string;
+  googlePlaceId?: string | null;
   nearestStores?: Array<{ id: string; name: string; distanceMiles: number }>;
 };
 
@@ -81,9 +82,9 @@ async function geocode(query: string, apiKey: string) {
 
 async function main() {
   loadEnvLocal();
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_SERVER_KEY || process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
-    throw new Error("GOOGLE_MAPS_API_KEY is required.");
+    throw new Error("GOOGLE_MAPS_SERVER_KEY is required (fallback: GOOGLE_MAPS_API_KEY).");
   }
 
   const directory = JSON.parse(fs.readFileSync(STORE_FILE, "utf8"));
@@ -110,8 +111,7 @@ async function main() {
       store.latitude = result.lat;
       store.longitude = result.lng;
       store.needsGeocoding = false;
-      (store as any).geocodedAddress = result.formattedAddress;
-      (store as any).googlePlaceId = result.placeId;
+      store.googlePlaceId = result.placeId;
     }
   }
 

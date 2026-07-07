@@ -29,10 +29,14 @@ type GoogleReview = {
 };
 
 type GoogleStoreDetails = {
+  ok?: boolean;
+  message?: string;
   phone?: string | null;
   openNow?: boolean | null;
   rating?: number | null;
   userRatingCount?: number | null;
+  currentOpeningHours?: string[] | null;
+  googleMapsUri?: string | null;
   reviews?: GoogleReview[];
 };
 
@@ -52,6 +56,7 @@ export default function StoresCommandCenterPage() {
   const [googleDetails, setGoogleDetails] = useState<Record<string, GoogleStoreDetails>>({});
   const [query, setQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
   const [openNowOnly, setOpenNowOnly] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [overview, setOverview] = useState<StoresApiResponse["overview"]>();
@@ -88,15 +93,16 @@ export default function StoresCommandCenterPage() {
 
   const filtered = useMemo(() => {
     return stores.filter((s) => {
-      const hay = `${s.name} ${s.mall} ${s.city ?? ""} ${s.state} ${s.stateCode}`.toLowerCase();
+      const hay = `${s.name} ${s.mall} ${s.city ?? ""} ${s.state} ${s.stateCode} ${s.region}`.toLowerCase();
       if (query && !hay.includes(query.toLowerCase())) return false;
       if (stateFilter && s.stateCode !== stateFilter) return false;
+      if (regionFilter && s.region !== regionFilter) return false;
       const gd = googleDetails[s.id];
       if (openNowOnly && gd?.openNow !== true) return false;
       if (minRating > 0 && Number(gd?.rating ?? 0) < minRating) return false;
       return true;
     });
-  }, [stores, query, stateFilter, openNowOnly, minRating, googleDetails]);
+  }, [stores, query, stateFilter, regionFilter, openNowOnly, minRating, googleDetails]);
 
   function initMap() {
     if (!mapRef.current || !window.google?.maps) return;
@@ -164,6 +170,7 @@ export default function StoresCommandCenterPage() {
   }, [selected, googleDetails]);
 
   const states = [...new Set(stores.map((s) => s.stateCode))].sort();
+  const regions = [...new Set(stores.map((s) => s.region).filter(Boolean))].sort();
   const selectedGoogle = selected ? googleDetails[selected.id] : null;
 
   return (
@@ -191,7 +198,7 @@ export default function StoresCommandCenterPage() {
 
         <LushPanel className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
           <div className="space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -207,6 +214,18 @@ export default function StoresCommandCenterPage() {
                 {states.map((s) => (
                   <option value={s} key={s}>
                     {s}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={regionFilter}
+                onChange={(e) => setRegionFilter(e.target.value)}
+                className="rounded-xl bg-black/25 border border-white/10 px-3 py-2 text-sm"
+              >
+                <option value="">All Regions</option>
+                {regions.map((region) => (
+                  <option value={region} key={region}>
+                    {region}
                   </option>
                 ))}
               </select>
@@ -233,6 +252,7 @@ export default function StoresCommandCenterPage() {
                 <h3 className="text-lg font-semibold text-amber-200">{selected.mall}</h3>
                 <p className="text-sm text-white/75">{selected.fullAddress ?? selected.address}</p>
                 <p className="text-sm text-white/80">Status: {statusLabel(selected)}</p>
+                <p className="text-sm text-white/80">Region: {selected.region || "N/A"}</p>
                 <p className="text-sm text-white/80">Phone: {selectedGoogle?.phone ?? selected.phone ?? "N/A"}</p>
                 <p className="text-sm text-white/80">
                   Open now:{" "}
@@ -252,8 +272,12 @@ export default function StoresCommandCenterPage() {
                       Email
                     </a>
                   )}
-                  {selected.googleMapsUrl && (
-                    <a href={selected.googleMapsUrl} target="_blank" className="px-3 py-1.5 rounded-lg bg-amber-400/20 text-xs">
+                  {(selectedGoogle?.googleMapsUri ?? selected.googleMapsUrl) && (
+                    <a
+                      href={selectedGoogle?.googleMapsUri ?? selected.googleMapsUrl ?? "#"}
+                      target="_blank"
+                      className="px-3 py-1.5 rounded-lg bg-amber-400/20 text-xs"
+                    >
                       Directions
                     </a>
                   )}
@@ -282,6 +306,19 @@ export default function StoresCommandCenterPage() {
                 </div>
 
                 <div className="pt-2 border-t border-white/10 space-y-2">
+                  <h4 className="text-sm font-semibold text-amber-200">Opening Hours</h4>
+                  {Array.isArray(selectedGoogle?.currentOpeningHours) && selectedGoogle.currentOpeningHours.length > 0 ? (
+                    selectedGoogle.currentOpeningHours.slice(0, 7).map((line, idx) => (
+                      <p key={idx} className="text-xs text-white/70">
+                        {line}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="text-xs text-white/60">Live hours unavailable. Using official local directory data.</p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-white/10 space-y-2">
                   <h4 className="text-sm font-semibold text-amber-200">Google Reviews</h4>
                   {Array.isArray(selectedGoogle?.reviews) && selectedGoogle.reviews.length > 0 ? (
                     selectedGoogle.reviews.slice(0, 3).map((r: GoogleReview, i: number) => (
@@ -296,6 +333,19 @@ export default function StoresCommandCenterPage() {
                     <p className="text-xs text-white/60">
                       Reviews are not available for this store right now. Showing official local store directory data.
                     </p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-white/10 space-y-2">
+                  <h4 className="text-sm font-semibold text-amber-200">Nearest Stores</h4>
+                  {selected.nearestStores?.length ? (
+                    selected.nearestStores.slice(0, 3).map((n) => (
+                      <p key={n.id} className="text-xs text-white/75">
+                        {n.name}: {n.distanceMiles} miles
+                      </p>
+                    ))
+                  ) : (
+                    <p className="text-xs text-white/60">Nearest store distances unavailable for this location.</p>
                   )}
                 </div>
               </>
