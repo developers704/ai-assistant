@@ -71,7 +71,6 @@ const PAGE_PATHS: Record<string, string> = {
   images: "/images",
   news: "/news",
   analyst: "/analyst",
-  stores: "/stores",
   calculator: "/calculator",
   settings: "/settings",
 };

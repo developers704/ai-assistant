@@ -217,7 +217,7 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   ) {
     return "knowledge.search";
   }
-  if (/\b(open|go to|show)\b.*\b(page|dashboard|sales|stores|email|calendar|analyst|images|news)\b/i.test(lower)) {
+  if (/\b(open|go to|show)\b.*\b(page|dashboard|sales|email|calendar|analyst|images|news)\b/i.test(lower)) {
     return "navigation";
   }
 

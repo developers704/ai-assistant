@@ -571,7 +571,6 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
           type: "string",
           enum: [
             "sales",
-            "stores",
             "calendar",
             "email",
             "dashboard",

@@ -202,7 +202,7 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /open (?:the )?(?:sales|stores|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)|go to (?:sales|stores|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)/i.test(
+    /open (?:the )?(?:sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)|go to (?:sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)/i.test(
       lower
     )
   ) {
@@ -293,7 +293,6 @@ export function extractNavigationPage(text: string): string | null {
     "calendar",
     "images",
     "sales",
-    "stores",
     "email",
     "news",
     "chat",

@@ -177,7 +177,6 @@ export function synthesizeOfferExecution(
   const paths: Record<OfferTarget, string> = {
     news: "/news",
     sales: "/sales",
-    stores: "/stores",
     email: "/email",
     calendar: "/calendar",
     dashboard: "/dashboard",
