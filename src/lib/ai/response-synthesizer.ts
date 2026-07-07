@@ -1,5 +1,4 @@
-import type { PendingAction } from "@/types";
-import type { AIResponse } from "@/types";
+import type { AIResponse, PendingAction } from "@/types";
 import type { ToolResult } from "@/lib/tools/types";
 import type { RoutedIntent } from "@/lib/ai/intent-router";
 import { detectSalesFocus } from "@/lib/ai/sales-focus";
@@ -7,10 +6,7 @@ import {
   formatSalesByFocus,
   formatTopStoreAnswer,
 } from "@/lib/assistant/sales-data";
-import {
-  createAssistantOffer,
-  type OfferTarget,
-} from "@/lib/actions/pending-offer";
+import type { OfferTarget } from "@/lib/actions/pending-offer";
 
 export type AlexaChannel = "chat" | "voice";
 
@@ -35,20 +31,11 @@ function parseToolData(result: ToolResult): Record<string, unknown> {
   return {};
 }
 
-function newsOffer(summary: string, channel: AlexaChannel): SynthesizedResponse {
-  const suffix =
-    channel === "voice"
-      ? " Say open news for the full page."
-      : "\n\nSay **yes** or **open news** for the full News & Markets page.";
-  return {
-    message: `${summary}${suffix}`,
-    pendingOffer: createAssistantOffer({
-      target: "news",
-      summary: "Open News & Markets for full headlines and live charts.",
-      toolName: "get_industry_news",
-    }),
-    navigateTo: "/news",
-  };
+function readOnlySectionHint(sectionLabel: string, channel: AlexaChannel): string {
+  if (channel === "voice") {
+    return ` Say open ${sectionLabel.toLowerCase()} for the full page.`;
+  }
+  return `\n\nOpen **${sectionLabel}** from the sidebar for charts and details.`;
 }
 
 function stripMarkdown(text: string): string {
@@ -108,21 +95,14 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
         : formatSalesByFocus(focus as "top_store" | "summary" | "full_report");
 
     if (focus === "top_store") {
-      return {
-        message,
-        navigateTo: "/sales",
-        pendingOffer: createAssistantOffer({
-          target: "sales",
-          summary: "Open Sales Dashboard for store rankings and charts.",
-        }),
-      };
+      return { message };
     }
 
     if (focus === "summary") {
-      return { message, navigateTo: "/sales" };
+      return { message };
     }
 
-    return { message, navigateTo: "/sales" };
+    return { message };
   }
 
   if (toolName === "get_email_summary" && /\b(send|write|draft|reply|email to)\b/i.test(userMessage)) {
@@ -143,7 +123,9 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
     const spoken = String(data.spokenAnswer ?? result.spokenAnswer ?? "");
     const short =
       spoken.length > 420 ? `${spoken.slice(0, 400).trim()}…` : spoken;
-    return newsOffer(short || "Here are the latest jewelry industry headlines.", channel);
+    return {
+      message: `${short || "Here are the latest jewelry industry headlines."}${readOnlySectionHint("News & Markets", channel)}`,
+    };
   }
 
   if (toolName === "draft_email_reply") {
@@ -164,19 +146,15 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
   }
 
   if (routedIntent === "sales.top_store") {
-    return { message: formatTopStoreAnswer(), navigateTo: "/sales" };
+    return { message: formatTopStoreAnswer() };
   }
 
   const fallback = result.textAnswer ?? result.spokenAnswer ?? "Done.";
   if (fallback.length > 600 && toolName === "get_email_summary") {
     const unread = Number(data.unread ?? 0);
     const total = Number(data.total ?? 0);
-  return {
-      message: `**Inbox** — ${unread} unread of ${total} messages. Open Email for the full list.`,
-      pendingOffer: createAssistantOffer({
-        target: "email",
-        summary: "Open your inbox.",
-      }),
+    return {
+      message: `**Inbox** — ${unread} unread of ${total} messages.${readOnlySectionHint("Email", channel)}`,
     };
   }
 

@@ -187,7 +187,7 @@ export function ChatBubble({ message, onConfirm, onReject, onEdit }: ChatBubbleP
             </div>
           )}
         </div>
-        {!isUser && message.pendingAction && (
+        {!isUser && message.pendingAction && message.pendingAction.type !== "assistant_offer" && (
           <PendingActionCard
             action={message.pendingAction}
             onConfirm={onConfirm}

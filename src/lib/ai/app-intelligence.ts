@@ -14,7 +14,6 @@ import {
   type SectionRuntimeContext,
 } from "@/lib/ai/section-context";
 import { getActivePendingAction } from "@/lib/actions/confirmation";
-import { createAssistantOffer } from "@/lib/actions/pending-offer";
 import {
   isStrictConfirmMessage,
 } from "@/lib/actions/confirmation-messages";
@@ -72,45 +71,12 @@ function offerNavigation(
 ): AIResponse {
   recordNavigationOffer(section.route, topic);
 
-  if (section.id === "settings" || section.id === "chat" || section.id === "calculator") {
-    return {
-      intent: "general",
-      message: `${buildSectionExplanation(section, false)}\n\nOpen **${section.label}** from the sidebar when you're ready.`,
-      speak: true,
-      data: section.id === "settings" ? { navigate: section.route } : undefined,
-    };
-  }
-
-  const offer = createAssistantOffer({
-    target: sectionIdToOfferTarget(section.id),
-    summary: `Open ${section.label}?`,
-  });
-
   return {
     intent: "general",
-    message: `${buildSectionExplanation(section, false)}\n\nSay **yes** or **open it** to open **${section.label}**.`,
+    message: `${buildSectionExplanation(section, false)}\n\nOpen **${section.label}** from the sidebar, or say **open ${section.label.toLowerCase()}**.`,
     speak: true,
-    pendingAction: offer,
+    data: section.id === "settings" ? { navigate: section.route } : undefined,
   };
-}
-
-function sectionIdToOfferTarget(
-  id: AppSectionDefinition["id"]
-): "news" | "sales" | "email" | "calendar" | "dashboard" | "analyst" | "images" | "contacts" {
-  const map: Record<string, "news" | "sales" | "email" | "calendar" | "dashboard" | "analyst" | "images" | "contacts"> = {
-    news: "news",
-    sales: "sales",
-    email: "email",
-    calendar: "calendar",
-    dashboard: "dashboard",
-    analyst: "analyst",
-    images: "images",
-    contacts: "contacts",
-    chat: "dashboard",
-    calculator: "news",
-    settings: "dashboard",
-  };
-  return map[id] ?? "dashboard";
 }
 
 function handleOpenIt(ctx: SectionRuntimeContext): AIResponse | null {
@@ -188,12 +154,8 @@ export async function tryAppIntelligence(
     recordNavigationOffer(sec.route, sec.label);
     return {
       intent: "help",
-      message: `**${sec.label}**\n\n${sec.exampleResponses.capabilities ?? sec.purpose}\n\nSay **open it** to go there.`,
+      message: `**${sec.label}**\n\n${sec.exampleResponses.capabilities ?? sec.purpose}\n\nOpen **${sec.label}** from the sidebar, or say **open ${sec.label.toLowerCase()}**.`,
       speak: true,
-      pendingAction: createAssistantOffer({
-        target: sectionIdToOfferTarget(sec.id),
-        summary: `Open ${sec.label}`,
-      }),
     };
   }
 
