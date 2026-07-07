@@ -178,9 +178,8 @@ function sectionFromAliases(lower: string): AppSectionDefinition | null {
 
 /** Persist intelligence state after tool execution (call from router). */
 export function recordToolIntelligence(toolName: string, summary: string): void {
-  recordToolRun({
-    toolName,
-    summary: summary.slice(0, 200),
+  updateWorkingMemory({
+    lastToolResultSummary: summary.slice(0, 200),
   });
 }
 

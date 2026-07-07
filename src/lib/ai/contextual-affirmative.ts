@@ -18,6 +18,7 @@ function lastAssistantText(state: AppState): string {
 function offeredSalesBreakdown(last: string, memory: WorkingMemory): boolean {
   if (memory.lastOfferedAction === "sales:full_breakdown") return true;
   if (/want full store breakdown/i.test(last)) return true;
+  if (/want full store breakdown/i.test(memory.lastToolResultSummary ?? "")) return true;
   if (/ask for \*\*full report\*\*/i.test(last)) return true;
   if (memory.lastIntent === "sales.top_store") return true;
   return false;

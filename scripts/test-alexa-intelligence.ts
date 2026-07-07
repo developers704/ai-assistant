@@ -9,6 +9,27 @@ import { clearPendingActions } from "../src/lib/actions/confirmation";
 async function ask(label: string, message: string) {
   const state = getState();
   const res = await processAlexaMessage(message, state);
+  if (res) {
+    setState((s) => ({
+      ...s,
+      chatHistory: [
+        ...s.chatHistory,
+        {
+          id: `user-${label}`,
+          role: "user" as const,
+          content: message,
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: `assistant-${label}`,
+          role: "assistant" as const,
+          content: res.message,
+          timestamp: new Date().toISOString(),
+          pendingAction: res.pendingAction,
+        },
+      ],
+    }));
+  }
   console.log(`\n--- ${label} ---`);
   console.log(`Q: ${message}`);
   console.log(`A: ${res?.message?.slice(0, 280) ?? "(null)"}`);
