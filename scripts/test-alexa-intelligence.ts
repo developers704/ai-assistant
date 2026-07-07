@@ -21,6 +21,19 @@ async function main() {
   clearPendingActions();
   updateUiContext({ currentPath: "/chat" });
 
+  const calendarRes = await ask(
+    "0 calendar today",
+    "What's on my calendar today?"
+  );
+  if (calendarRes?.pendingAction) {
+    console.error("FAIL: calendar query should not require confirmation");
+    process.exitCode = 1;
+  }
+  if (!calendarRes?.message || /Confirmation required|Say \*\*yes\*\*/i.test(calendarRes.message)) {
+    console.error("FAIL: calendar query should return schedule in chat");
+    process.exitCode = 1;
+  }
+
   await ask("1 top store", "show me best store with sales");
   await ask("2 one top store", "i want to see one store with top sales");
   await ask("3 email ross", "send an email to Ross");

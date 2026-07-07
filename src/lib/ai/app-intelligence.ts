@@ -4,6 +4,7 @@ import {
   sectionForPath,
   type AppSectionDefinition,
 } from "@/lib/ai/app-map";
+import { routeIntent, type RoutedIntent } from "@/lib/ai/intent-router";
 import {
   buildSectionRuntimeContext,
   buildWhatCanYouDoHere,
@@ -33,6 +34,31 @@ const EXPLAIN_THIS =
 
 const OPEN_IT =
   /\b(open it|show more|yes open|yes pls open|go there|take me there|open that)\b/i;
+
+/** Data/action intents — answer in chat via tools, not section explanations. */
+const TOOL_ANSWER_INTENTS = new Set<RoutedIntent>([
+  "calendar.read",
+  "calendar.create",
+  "calendar.delete",
+  "calendar.delete_all",
+  "email.summary",
+  "email.draft",
+  "sales.read",
+  "sales.top_store",
+  "sales.analysis",
+  "contacts.search",
+  "task.create",
+  "task.delete",
+  "news.gold",
+  "news.industry",
+  "image.generate",
+  "knowledge.search",
+]);
+
+function shouldAnswerWithTools(message: string, hasPending: boolean): boolean {
+  const routed = routeIntent({ message, hasPendingAction: hasPending });
+  return TOOL_ANSWER_INTENTS.has(routed);
+}
 
 function wantsLiveNews(message: string): boolean {
   const lower = message.toLowerCase();
@@ -171,7 +197,7 @@ export async function tryAppIntelligence(
     };
   }
 
-  if (WHAT_IS_SECTION.test(lower)) {
+  if (WHAT_IS_SECTION.test(lower) && !shouldAnswerWithTools(message, !!pending)) {
     const sec = resolveSectionFromQuestion(message) ?? sectionFromAliases(lower);
     if (sec) {
       recordNavigationOffer(sec.route, sec.label);
