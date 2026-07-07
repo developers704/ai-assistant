@@ -177,6 +177,7 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "sales.read";
   }
 
+  if (/\bcall\b/i.test(lower) && MALL_HINT.test(lower)) return "store.call";
   if (/\b(contact|phone number|call )\b/i.test(lower)) return "contacts.search";
   if (/\b(remind|add task|create task|to-do)\b/i.test(lower)) return "task.create";
   if (/\b(delete task|remove task|cancel task)\b/i.test(lower)) return "task.delete";

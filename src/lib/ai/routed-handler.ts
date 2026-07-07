@@ -214,6 +214,7 @@ export async function tryRoutedResponse(
           : toolName === "list_valliani_stores"
             ? {
                 state: /\b(california|ca|nevada|nv|arizona|az|texas|tx)\b/i.exec(message)?.[1],
+                city: /\bstores?\s+(?:near|in|around)\b/i.test(message) ? extractStoreQueryPhrase(message) : undefined,
                 status: /\bopening soon\b/i.test(message) ? "Opening Soon" : undefined,
               }
             : toolName === "get_valliani_store_details"

@@ -285,12 +285,22 @@ export function formatNearestStoreMessage(
 }
 
 export function formatStoreEntry(store: StoreDirectoryEntry): string {
-  const status = store.status === "opening_soon" ? " *(Opening soon)*" : "";
+  const isOpeningSoon = /opening[_\s]?soon/i.test(String(store.status));
+  const status = isOpeningSoon ? " *(Opening soon)*" : "";
+  const hours =
+    typeof store.openingHours === "string"
+      ? store.openingHours
+      : store.openingHours && typeof store.openingHours === "object"
+        ? Object.entries(store.openingHours as Record<string, string | null>)
+            .filter(([, v]) => v)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(", ")
+        : null;
   const lines = [
     `**${store.mall}**${status}`,
     store.address ? `📍 ${store.address}` : null,
     store.phone ? `📞 ${store.phone}` : null,
-    store.openingHours ? `🕐 ${store.openingHours}` : null,
+    hours ? `🕐 ${hours}` : null,
     store.email ? `✉️ ${store.email}` : null,
   ].filter(Boolean);
   return lines.join("\n");

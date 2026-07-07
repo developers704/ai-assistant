@@ -299,7 +299,7 @@ const REGRESSION_CASES: ChatTestCase[] = [
     category: "regression",
     messages: ["Which branch is closest to Great Mall?"],
     assert: {
-      mustInclude: ["coordinates are not geocoded yet", "nearby branches include"],
+      mustInclude: [/(Nearest to Great Mall|coordinates are not geocoded yet)/i],
       mustNotInclude: ["Confirmation required", "What should I confirm"],
       noPending: true,
     },

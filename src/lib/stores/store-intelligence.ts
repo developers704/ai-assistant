@@ -203,8 +203,8 @@ export function answerStoreQuery(message: string): { markdown: string; intent: S
     case "store.list_all":
     default: {
       const stores = getAllStores();
-      const open = stores.filter((s) => s.status === "open").length;
-      const soon = stores.filter((s) => s.status === "opening_soon").length;
+      const open = stores.filter((s) => String(s.status).toLowerCase() === "open").length;
+      const soon = stores.filter((s) => /opening[_\s]?soon/i.test(String(s.status))).length;
       return {
         markdown: formatStoreListMarkdown(
           stores,
