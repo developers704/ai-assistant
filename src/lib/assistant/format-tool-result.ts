@@ -93,10 +93,11 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
       return `**Price estimate:** ${formatCurrency(Number(data.estimatedTotal ?? 0))}`;
 
     case "search_company_knowledge": {
-      const context = String(data.context ?? "");
-      const spoken = String(data.spokenAnswer ?? "No company knowledge found.");
-      if (!context) return spoken;
-      return `${spoken}\n\n**Company knowledge**\n\n${context}`;
+      const markdown =
+        typeof data.markdown === "string"
+          ? data.markdown
+          : String(data.spokenAnswer ?? "No company knowledge found.");
+      return markdown;
     }
 
     case "get_industry_news":

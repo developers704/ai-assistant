@@ -560,14 +560,20 @@ export async function executeVoiceTool(
     }
 
     case "search_company_knowledge": {
-      const query = String(args.query ?? "").trim();
-      const result = buildCompanyKnowledgeVoiceAnswer(query);
+      const userMessage = args.user_message
+        ? String(args.user_message)
+        : args.query
+          ? String(args.query)
+          : undefined;
+      const result = buildCompanyKnowledgeVoiceAnswer(userMessage ?? "");
       return {
         output: JSON.stringify({
-          spokenAnswer: result.spokenAnswer,
+          spokenAnswer: result.markdown ?? result.spokenAnswer,
+          markdown: result.markdown ?? result.spokenAnswer,
           available: result.available,
           chunkCount: result.chunkCount,
           context: result.context,
+          mode: result.mode,
         }),
       };
     }

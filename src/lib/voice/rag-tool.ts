@@ -3,6 +3,11 @@ import {
   isRagAvailable,
   retrieveKnowledge,
 } from "@/lib/rag";
+import {
+  buildCompanyKnowledgeAnswer,
+  cleanChunkText,
+  isBroadCompanyOverviewQuery,
+} from "@/lib/voice/company-knowledge-format";
 
 function truncateForSpeech(text: string, maxLen: number): string {
   const normalized = text.replace(/\s+/g, " ").trim();
@@ -12,12 +17,14 @@ function truncateForSpeech(text: string, maxLen: number): string {
   return `${(lastSpace > 80 ? cut.slice(0, lastSpace) : cut).trim()}...`;
 }
 
-/** Compact spoken answer from retrieved company knowledge (for voice tool). */
+/** Company knowledge answer for voice + chat tools. */
 export function buildCompanyKnowledgeVoiceAnswer(query: string): {
   spokenAnswer: string;
+  markdown?: string;
   available: boolean;
   chunkCount: number;
   context: string;
+  mode?: "overview" | "retrieved";
 } {
   if (!isRagAvailable()) {
     return {
@@ -39,7 +46,20 @@ export function buildCompanyKnowledgeVoiceAnswer(query: string): {
     };
   }
 
-  const chunks = retrieveKnowledge(trimmed, 3);
+  const answer = buildCompanyKnowledgeAnswer(trimmed);
+
+  if (answer.mode === "overview") {
+    return {
+      spokenAnswer: answer.markdown,
+      markdown: answer.markdown,
+      available: true,
+      chunkCount: answer.chunkCount,
+      context: "",
+      mode: "overview",
+    };
+  }
+
+  const chunks = retrieveKnowledge(trimmed, 5);
   if (chunks.length === 0) {
     return {
       spokenAnswer:
@@ -47,20 +67,20 @@ export function buildCompanyKnowledgeVoiceAnswer(query: string): {
       available: true,
       chunkCount: 0,
       context: "",
+      mode: "retrieved",
     };
   }
 
+  const markdown = answer.markdown;
   const top = chunks[0];
-  const excerpt = truncateForSpeech(top.text, 320);
-  const spokenAnswer =
-    chunks.length === 1
-      ? `${top.title}: ${excerpt}`
-      : `${top.title}: ${excerpt} I also have ${chunks.length - 1} related note${chunks.length > 2 ? "s" : ""} if you want more detail.`;
+  const voiceShort = truncateForSpeech(cleanChunkText(top), 400);
 
   return {
-    spokenAnswer,
+    spokenAnswer: markdown,
+    markdown,
     available: true,
     chunkCount: chunks.length,
     context: formatRetrievedContext(chunks),
+    mode: "retrieved",
   };
 }

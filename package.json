@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:chat": "npx tsx scripts/test-chat-hard.ts",
+    "test:chat:quick": "npx tsx scripts/test-alexa-intelligence.ts"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.33.1-dev45.0",
@@ -38,6 +40,7 @@
     "eslint-config-next": "^15.1.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.23.0",
     "typescript": "^5.7.0"
   }
 }

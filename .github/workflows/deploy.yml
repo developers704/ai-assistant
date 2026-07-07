@@ -11,7 +11,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  alexa-chat-tests:
+    uses: ./.github/workflows/alexa-chat-tests.yml
+
   deploy:
+    name: Deploy to Hetzner VPS
+    needs: alexa-chat-tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

@@ -182,6 +182,13 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   }
   if (/\b(generate|create).*\b(image|photo|ring|necklace)\b/i.test(lower)) return "image.generate";
   if (/\b(policy|return|store count|brand|founder|valliani)\b/i.test(lower)) return "knowledge.search";
+  if (
+    /\b(tell me\s+)?(everything|all)\b[\s\S]{0,50}\b(you know|about|on)\b/i.test(lower) ||
+    /\beverything you know\b/i.test(lower) ||
+    /\b(company overview|about valliani)\b/i.test(lower)
+  ) {
+    return "knowledge.search";
+  }
   if (/\b(open|go to|show)\b.*\b(page|dashboard|sales|email|calendar|analyst|images|news)\b/i.test(lower)) {
     return "navigation";
   }
