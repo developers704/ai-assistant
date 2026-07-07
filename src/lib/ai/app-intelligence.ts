@@ -18,7 +18,7 @@ import {
   isStrictConfirmMessage,
   isConfirmMessage,
 } from "@/lib/actions/confirmation-messages";
-import { getWorkingMemory, recordNavigationOffer, recordToolRun } from "@/lib/memory/working-memory";
+import { getWorkingMemory, recordNavigationOffer, updateWorkingMemory } from "@/lib/memory/working-memory";
 import { resolveContextualAffirmative } from "@/lib/ai/contextual-affirmative";
 
 const WHAT_CAN_YOU_DO =

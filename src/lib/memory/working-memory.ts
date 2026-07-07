@@ -26,24 +26,27 @@ export function getWorkingMemory(): WorkingMemory {
 
 export function updateWorkingMemory(patch: Partial<WorkingMemory>): WorkingMemory {
   const prev = getWorkingMemory();
+  const defined = Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== undefined)
+  ) as Partial<WorkingMemory>;
   const next: WorkingMemory = {
     ...prev,
-    ...patch,
+    ...defined,
     updatedAt: new Date().toISOString(),
   };
 
   setState((s) => ({ ...s, workingMemory: next }));
 
   updateUiContext({
-    currentPath: next.currentPage,
-    lastTopic: next.lastTopic,
-    lastUserIntent: next.lastIntent,
-    lastToolResult: next.lastToolResultSummary,
-    lastSuggestedRoute: next.pendingNavigation,
-    selectedEmailId: next.selectedEmailId,
-    selectedMeetingId: next.selectedMeetingId,
-    selectedReportId: next.selectedReportId,
-    selectedContactId: next.selectedContactId,
+    ...(next.currentPage !== undefined && { currentPath: next.currentPage }),
+    ...(next.lastTopic !== undefined && { lastTopic: next.lastTopic }),
+    ...(next.lastIntent !== undefined && { lastUserIntent: next.lastIntent }),
+    ...(next.lastToolResultSummary !== undefined && { lastToolResult: next.lastToolResultSummary }),
+    ...(next.pendingNavigation !== undefined && { lastSuggestedRoute: next.pendingNavigation }),
+    ...(next.selectedEmailId !== undefined && { selectedEmailId: next.selectedEmailId }),
+    ...(next.selectedMeetingId !== undefined && { selectedMeetingId: next.selectedMeetingId }),
+    ...(next.selectedReportId !== undefined && { selectedReportId: next.selectedReportId }),
+    ...(next.selectedContactId !== undefined && { selectedContactId: next.selectedContactId }),
   });
 
   return next;
@@ -67,13 +70,16 @@ export function recordToolRun(input: {
   intent?: string;
   navigateTo?: string;
 }): void {
-  updateWorkingMemory({
+  const patch: Partial<WorkingMemory> = {
     lastTopic: input.toolName,
-    lastIntent: input.intent,
     lastToolResultSummary: input.summary.slice(0, 240),
-    pendingNavigation: input.navigateTo,
-    lastOfferedAction: input.navigateTo ? `open:${input.navigateTo}` : undefined,
-  });
+  };
+  if (input.intent !== undefined) patch.lastIntent = input.intent;
+  if (input.navigateTo !== undefined) {
+    patch.pendingNavigation = input.navigateTo;
+    patch.lastOfferedAction = `open:${input.navigateTo}`;
+  }
+  updateWorkingMemory(patch);
 }
 
 export function recordNavigationOffer(route: string, topic: string): void {
