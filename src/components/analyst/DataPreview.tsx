@@ -12,6 +12,7 @@ const kindIcon: Record<ColumnKind, React.ReactNode> = {
   boolean: <ToggleLeft size={11} />,
 };
 
+
 const kindColor: Record<ColumnKind, string> = {
   number: "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/20",
   date: "bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/20",
