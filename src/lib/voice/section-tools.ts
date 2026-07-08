@@ -3,6 +3,7 @@ import {
   fetchRssPoliticsNews,
   fetchRssSportsNews,
 } from "@/lib/news";
+import { getMetaStatus } from "@/lib/social/meta-client";
 import { getState } from "@/lib/store/server-store";
 import {
   buildCalendarVoiceScript,
@@ -158,6 +159,13 @@ export function buildSettingsStatusScript(): string {
     news?.configured
       ? "News API is configured for live industry headlines."
       : "News API is not configured on the server."
+  );
+
+  const social = getMetaStatus();
+  parts.push(
+    social.connected
+      ? "Instagram Business is connected for the Social dashboard."
+      : "Instagram is not connected. Add Meta env keys in Settings."
   );
 
   const prefs = state.user?.preferences;

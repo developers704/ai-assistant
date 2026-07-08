@@ -73,7 +73,7 @@ export function PageShell({
 }) {
   return (
     <div className={cn("flex flex-col min-h-0 relative", className)}>
-      <div className="glass-panel-strong rounded-2xl sm:rounded-3xl ring-1 ring-white/[0.08] overflow-hidden relative">
+      <div className="glass-panel-strong rounded-2xl sm:rounded-3xl ring-1 ring-white/[0.08] overflow-hidden relative flex flex-col flex-1 min-h-0 h-full">
         <div
           className={cn(
             "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80",
@@ -81,7 +81,7 @@ export function PageShell({
           )}
         />
         <div className="pointer-events-none absolute -top-24 -right-20 h-56 w-56 rounded-full bg-fuchsia-500/8 blur-3xl" />
-        <div className="relative">{children}</div>
+        <div className="relative flex flex-col flex-1 min-h-0 h-full">{children}</div>
       </div>
     </div>
   );

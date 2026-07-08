@@ -46,6 +46,16 @@ import {
   getStoreDetails,
   listStores,
 } from "@/lib/stores/store-intelligence";
+import {
+  fetchInstagramAccount,
+  fetchInstagramPosts,
+  fetchPostComments,
+  fetchPostInsights,
+  fetchInstagramConversations,
+  fetchConversationMessages,
+  getMetaConfig,
+} from "@/lib/social/meta-client";
+import { draftInstagramCaption, draftCommentReply } from "@/lib/social/instagram-drafts";
 import { sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import { resolveMeetingToolArgs } from "@/lib/ai/meeting-parse";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
@@ -70,7 +80,15 @@ const PAGE_PATHS: Record<string, string> = {
   analyst: "/analyst",
   calculator: "/calculator",
   settings: "/settings",
+  social: "/social",
 };
+
+function formatInstagramDate(iso?: string | null): string {
+  if (!iso) return "unknown date";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "unknown date";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 function formatEventTime(iso: string, tz: string): string {
   return new Date(iso).toLocaleString("en-US", {
@@ -795,6 +813,241 @@ export async function executeVoiceTool(
           uiAction: { type: "navigate", path: "/images" },
         };
       }
+    }
+
+    case "get_instagram_account": {
+      const result = await fetchInstagramAccount();
+      if (!result.ok) {
+        return {
+          output: JSON.stringify({ success: false, spokenAnswer: result.error, error: result.error, code: result.code }),
+          uiAction: { type: "navigate", path: "/social" },
+        };
+      }
+      const a = result.data;
+      const followers = a.followersCount != null ? a.followersCount.toLocaleString() : "unavailable";
+      const spoken = `Instagram @${a.username}${a.name ? ` (${a.name})` : ""} has ${followers} followers and ${a.mediaCount ?? 0} posts.`;
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: spoken,
+          markdown: `**@${a.username}**${a.name ? ` — ${a.name}` : ""}\n\n- Followers: **${followers}**\n- Posts: **${a.mediaCount ?? 0}**`,
+          account: a,
+        }),
+        uiAction: { type: "navigate", path: "/social" },
+      };
+    }
+
+    case "get_instagram_recent_posts": {
+      const limit = typeof args.limit === "number" ? args.limit : 12;
+      const result = await fetchInstagramPosts(limit);
+      if (!result.ok) {
+        return {
+          output: JSON.stringify({ success: false, spokenAnswer: result.error, error: result.error, code: result.code }),
+          uiAction: { type: "navigate", path: "/social" },
+        };
+      }
+      const posts = result.data;
+      if (posts.length === 0) {
+        return {
+          output: JSON.stringify({ success: true, spokenAnswer: "No Instagram posts found.", markdown: "No Instagram posts found.", posts: [] }),
+          uiAction: { type: "navigate", path: "/social" },
+        };
+      }
+      const lines = posts.slice(0, 8).map((p) => {
+        const caption = (p.caption ?? "").replace(/\s+/g, " ").slice(0, 60);
+        return `- ${formatInstagramDate(p.timestamp)} · ${p.mediaType ?? "POST"} · ❤ ${p.likeCount ?? "—"} · 💬 ${p.commentsCount ?? "—"}${caption ? ` — ${caption}` : ""}`;
+      });
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: `You have ${posts.length} recent Instagram posts. The latest is from ${formatInstagramDate(posts[0].timestamp)}.`,
+          markdown: `**Recent Instagram posts** (${posts.length})\n\n${lines.join("\n")}`,
+          posts,
+        }),
+        uiAction: { type: "navigate", path: "/social" },
+      };
+    }
+
+    case "get_instagram_post_comments": {
+      const mediaId = String(args.mediaId ?? "").trim();
+      if (!mediaId) {
+        return {
+          output: JSON.stringify({ success: false, spokenAnswer: "I need the post ID to fetch comments. Open the Social page and pick a post." }),
+          uiAction: { type: "navigate", path: "/social" },
+        };
+      }
+      const result = await fetchPostComments(mediaId);
+      if (!result.ok) {
+        return {
+          output: JSON.stringify({ success: false, spokenAnswer: result.error, error: result.error, code: result.code }),
+        };
+      }
+      const comments = result.data;
+      if (comments.length === 0) {
+        return {
+          output: JSON.stringify({ success: true, spokenAnswer: "Comments are not available for this post.", markdown: "Comments are not available for this post.", comments: [] }),
+        };
+      }
+      const lines = comments.slice(0, 8).map((c) => `- **@${c.username ?? "user"}**: ${(c.text ?? "").slice(0, 100)}`);
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: `This post has ${comments.length} comment${comments.length !== 1 ? "s" : ""}.`,
+          markdown: `**Comments** (${comments.length})\n\n${lines.join("\n")}`,
+          comments,
+        }),
+      };
+    }
+
+    case "get_instagram_post_insights": {
+      const mediaId = String(args.mediaId ?? "").trim();
+      if (!mediaId) {
+        return {
+          output: JSON.stringify({ success: false, spokenAnswer: "I need the post ID to fetch insights." }),
+          uiAction: { type: "navigate", path: "/social" },
+        };
+      }
+      const result = await fetchPostInsights(mediaId);
+      if (!result.ok) {
+        const msg = result.code === "METRIC_UNAVAILABLE" ? "Insight metric not available for this media type." : result.error;
+        return {
+          output: JSON.stringify({ success: false, spokenAnswer: msg, error: msg, code: result.code, insights: [] }),
+        };
+      }
+      const insights = result.data;
+      const lines = insights.map((i) => `- ${i.title ?? i.name}: **${i.value ?? "—"}**`);
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: insights.length
+            ? `Post performance: ${insights.map((i) => `${i.title ?? i.name} ${i.value ?? "n/a"}`).join(", ")}.`
+            : "No insight metrics were returned for this post.",
+          markdown: insights.length ? `**Post insights**\n\n${lines.join("\n")}` : "No insight metrics available for this post.",
+          insights,
+        }),
+      };
+    }
+
+    case "get_instagram_inbox": {
+      const result = await fetchInstagramConversations(25);
+      if (!result.ok) {
+        return {
+          output: JSON.stringify({ success: false, spokenAnswer: result.error, error: result.error, code: result.code }),
+          uiAction: { type: "navigate", path: "/social" },
+        };
+      }
+      const convs = result.data;
+      if (convs.length === 0) {
+        return {
+          output: JSON.stringify({ success: true, spokenAnswer: "No Instagram DMs yet. When people message your business, conversations appear on the Social Inbox tab.", markdown: "No Instagram DMs yet.", conversations: [] }),
+          uiAction: { type: "navigate", path: "/social" },
+        };
+      }
+      const cfg = getMetaConfig();
+      const lines = convs.slice(0, 8).map((c) => {
+        const other = c.participants.find((p) => p.id !== cfg.igBusinessId) ?? c.participants[0];
+        return `- @${other?.username ?? "user"}${c.unreadCount ? ` (${c.unreadCount} new)` : ""}: ${(c.snippet ?? "").slice(0, 60)}`;
+      });
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: `You have ${convs.length} Instagram DM conversation${convs.length !== 1 ? "s" : ""}. Open the Social Inbox tab to reply.`,
+          markdown: `**Instagram inbox** (${convs.length})\n\n${lines.join("\n")}`,
+          conversations: convs,
+        }),
+        uiAction: { type: "navigate", path: "/social" },
+      };
+    }
+
+    case "get_instagram_conversation": {
+      const conversationId = String(args.conversationId ?? "").trim();
+      if (!conversationId) {
+        return {
+          output: JSON.stringify({ success: false, spokenAnswer: "I need a conversation ID. Open the Social Inbox tab and pick a thread." }),
+          uiAction: { type: "navigate", path: "/social" },
+        };
+      }
+      const result = await fetchConversationMessages(conversationId);
+      if (!result.ok) {
+        return { output: JSON.stringify({ success: false, spokenAnswer: result.error, error: result.error, code: result.code }) };
+      }
+      const msgs = result.data;
+      if (msgs.length === 0) {
+        return { output: JSON.stringify({ success: true, spokenAnswer: "No messages in this conversation.", markdown: "No messages in this conversation.", messages: [] }) };
+      }
+      const cfg = getMetaConfig();
+      const lines = msgs.slice(-10).map((m) => {
+        const mine = m.from?.id === cfg.igBusinessId;
+        return `${mine ? "You" : `@${m.from?.username ?? "them"}`}: ${(m.message ?? "[non-text]").slice(0, 80)}`;
+      });
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: `Showing ${msgs.length} message${msgs.length !== 1 ? "s" : ""} in this thread.`,
+          markdown: `**Thread**\n\n${lines.join("\n")}`,
+          messages: msgs,
+        }),
+      };
+    }
+
+    case "draft_instagram_dm": {
+      const incoming = String(args.message ?? "").trim();
+      const intent = args.intent ? String(args.intent) : undefined;
+      const to = args.to ? String(args.to) : undefined;
+      const base = intent ? intent : "a friendly, on-brand reply that thanks them and offers to help";
+      const draftText = to
+        ? `Hi @${to.replace(/^@/, "")}, thanks for reaching out! ${intent ? intent : "We'd love to help — let us know how we can."} 💎`
+        : `Thanks so much for reaching out! We'd love to help — feel free to share any details and our team will take it from there. 💎`;
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: "Here's a DM draft. Review it on the Social Inbox tab and tap Send to confirm — I never send automatically.",
+          markdown: `**DM reply draft** (draft only — not sent)\n\n${draftText}\n\n_Intent: ${base}_`,
+          draft: draftText,
+          to,
+          note: "Draft only. Sending needs confirmation in the Social Inbox and is subject to Meta's 24-hour window.",
+        }),
+      };
+    }
+
+    case "open_social_dashboard": {
+      return {
+        output: JSON.stringify({ opened: "social", path: "/social", spokenAnswer: "Opening the Social dashboard." }),
+        uiAction: { type: "navigate", path: "/social" },
+      };
+    }
+
+    case "draft_instagram_caption": {
+      const topic = String(args.topic ?? "").trim();
+      const draft = draftInstagramCaption(topic);
+      const md = `**Caption drafts** (draft only — not published)\n\n${draft.variations
+        .map((v, i) => `${i + 1}. ${v}`)
+        .join("\n\n")}\n\n${draft.hashtags.join(" ")}`;
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: `Here are ${draft.variations.length} caption drafts. Publishing needs confirmation and is not enabled yet.`,
+          markdown: md,
+          variations: draft.variations,
+          hashtags: draft.hashtags,
+          note: draft.note,
+        }),
+      };
+    }
+
+    case "draft_instagram_comment_reply": {
+      const comment = String(args.comment ?? "").trim();
+      const commenter = args.commenter ? String(args.commenter) : undefined;
+      const draft = draftCommentReply(comment, commenter);
+      return {
+        output: JSON.stringify({
+          success: true,
+          spokenAnswer: `Here's a reply draft. Replying needs confirmation and is not enabled yet.`,
+          markdown: `**Reply draft** (draft only — not posted)\n\n${draft.reply}`,
+          reply: draft.reply,
+          note: draft.note,
+        }),
+      };
     }
 
     case "show_detail_page": {

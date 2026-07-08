@@ -32,6 +32,16 @@ export function intentForTool(name: string): IntentType {
     find_nearest_store: "store_list",
     list_valliani_stores: "store_list",
     get_valliani_store_details: "store_list",
+    get_instagram_account: "general",
+    get_instagram_recent_posts: "general",
+    get_instagram_post_comments: "general",
+    get_instagram_post_insights: "general",
+    open_social_dashboard: "general",
+    draft_instagram_caption: "general",
+    draft_instagram_comment_reply: "general",
+    get_instagram_inbox: "general",
+    get_instagram_conversation: "general",
+    draft_instagram_dm: "general",
   };
   return map[name] ?? "general";
 }
@@ -113,10 +123,24 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
         : String(data.message ?? data.spokenAnswer ?? "No store data found.");
     }
 
+    case "get_instagram_account":
+    case "get_instagram_recent_posts":
+    case "get_instagram_post_comments":
+    case "get_instagram_post_insights":
+    case "get_instagram_inbox":
+    case "get_instagram_conversation":
+    case "draft_instagram_caption":
+    case "draft_instagram_comment_reply":
+    case "draft_instagram_dm":
+      return typeof data.markdown === "string"
+        ? data.markdown
+        : String(data.spokenAnswer ?? data.error ?? "No Instagram data found.");
+
     case "get_industry_news":
     case "get_sports_news":
     case "get_politics_news":
     case "open_data_analyst":
+    case "open_social_dashboard":
     case "draft_email_reply":
     case "show_detail_page":
       return String(data.spokenAnswer ?? data.message ?? "Done.");

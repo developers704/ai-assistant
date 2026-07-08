@@ -183,6 +183,7 @@ export function synthesizeOfferExecution(
     analyst: "/analyst",
     images: "/images",
     contacts: "/contacts",
+    social: "/social",
   };
   return {
     message: `Opening **${target}** for you.`,

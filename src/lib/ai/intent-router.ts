@@ -20,6 +20,17 @@ export type RoutedIntent =
   | "store.lookup"
   | "store.call"
   | "store.opening_soon"
+  | "social.open"
+  | "social.account"
+  | "social.posts"
+  | "social.comments"
+  | "social.insights"
+  | "social.caption"
+  | "social.reply"
+  | "social.inbox"
+  | "social.thread"
+  | "social.dm"
+  | "social.publish_blocked"
   | "navigation"
   | "affirmative.open"
   | "complex_planner"
@@ -205,6 +216,23 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "store.lookup";
   }
 
+  if (/\b(instagram|insta|social media|social)\b/i.test(lower)) {
+    if (/\b(post|publish|upload|share)\b[\s\S]{0,30}\b(instagram|insta|this|it)\b/i.test(lower)) {
+      return "social.publish_blocked";
+    }
+    if (/\bcaption\b/i.test(lower)) return "social.caption";
+    if (/\breply\b/i.test(lower) && /\bcomment\b/i.test(lower)) return "social.reply";
+    if (/\b(dms?|direct messages?|inbox|messaged me|messages?)\b/i.test(lower)) {
+      if (/\b(draft|write|reply|respond)\b/i.test(lower) && /\b(dms?|message)\b/i.test(lower)) return "social.dm";
+      return "social.inbox";
+    }
+    if (/\bcomments?\b/i.test(lower)) return "social.comments";
+    if (/\b(insight|perform|reach|impression|engagement)\b/i.test(lower)) return "social.insights";
+    if (/\b(followers?|account|profile|bio)\b/i.test(lower)) return "social.account";
+    if (/\b(posts?|content|feed)\b/i.test(lower)) return "social.posts";
+    return "social.open";
+  }
+
   if (/\b(policy|return|brand|founder)\b/i.test(lower)) return "knowledge.search";
   if (/\bstore count\b/i.test(lower)) return "store.list";
   if (/\bvalliani\b/i.test(lower) && !/\b(store|stores|mall|location|branch|nearest|closest)\b/i.test(lower)) {
@@ -247,6 +275,16 @@ export function intentToTool(intent: RoutedIntent): string | null {
     "store.lookup": "get_valliani_store_details",
     "store.call": "get_valliani_store_details",
     "store.opening_soon": "list_valliani_stores",
+    "social.open": "open_social_dashboard",
+    "social.account": "get_instagram_account",
+    "social.posts": "get_instagram_recent_posts",
+    "social.comments": "get_instagram_post_comments",
+    "social.insights": "get_instagram_post_insights",
+    "social.caption": "draft_instagram_caption",
+    "social.reply": "draft_instagram_comment_reply",
+    "social.inbox": "get_instagram_inbox",
+    "social.thread": "get_instagram_conversation",
+    "social.dm": "draft_instagram_dm",
     "navigation": "show_detail_page",
   };
   return map[intent] ?? null;

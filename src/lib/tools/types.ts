@@ -12,6 +12,7 @@ export type ToolCategory =
   | "news"
   | "knowledge"
   | "stores"
+  | "social"
   | "navigation"
   | "media"
   | "calculator";

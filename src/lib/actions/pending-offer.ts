@@ -9,7 +9,8 @@ export type OfferTarget =
   | "dashboard"
   | "analyst"
   | "images"
-  | "contacts";
+  | "contacts"
+  | "social";
 
 const OFFER_PATHS: Record<OfferTarget, string> = {
   news: "/news",
@@ -20,6 +21,7 @@ const OFFER_PATHS: Record<OfferTarget, string> = {
   analyst: "/analyst",
   images: "/images",
   contacts: "/contacts",
+  social: "/social",
 };
 
 const OFFER_LABELS: Record<OfferTarget, string> = {
@@ -31,6 +33,7 @@ const OFFER_LABELS: Record<OfferTarget, string> = {
   analyst: "Data Analyst",
   images: "Image Generation",
   contacts: "Contacts",
+  social: "Social",
 };
 
 export function offerPath(target: OfferTarget): string {
@@ -82,5 +85,6 @@ export function resolveOpenTargetFromMessage(message: string): OfferTarget | nul
   if (/\banalyst\b/i.test(lower)) return "analyst";
   if (/\bimages?\b/i.test(lower)) return "images";
   if (/\bcontacts?\b/i.test(lower)) return "contacts";
+  if (/\b(social|instagram|insta)\b/i.test(lower)) return "social";
   return null;
 }

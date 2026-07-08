@@ -13,6 +13,7 @@ export type AppSectionId =
   | "analyst"
   | "images"
   | "contacts"
+  | "social"
   | "settings";
 
 export interface AppSectionDefinition {
@@ -373,6 +374,45 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
         "Here I can look up names, roles, and phone numbers. Try *find [name]* or open the full directory.",
     },
     aliases: ["contacts", "contact", "phone", "rolodex", "people"],
+  }),
+
+  social: section({
+    id: "social",
+    label: "Social",
+    route: "/social",
+    purpose:
+      "Instagram Business command center — followers, recent posts, comments, and post insights from the Meta Graph API, plus AI caption and reply drafting.",
+    availableData: [
+      "Instagram account profile (followers, media count)",
+      "Recent posts with likes and comments",
+      "Comments on selected posts",
+      "Post insights (reach, impressions, engagement)",
+    ],
+    relatedTools: [
+      "get_instagram_account",
+      "get_instagram_recent_posts",
+      "get_instagram_post_comments",
+      "get_instagram_post_insights",
+      "draft_instagram_caption",
+      "draft_instagram_comment_reply",
+    ],
+    commonQuestions: [
+      "How many Instagram followers do I have?",
+      "Show my latest Instagram posts",
+      "Comments on the latest post",
+      "How did my last post perform?",
+    ],
+    whenToNavigate: "When user wants the full Instagram dashboard with post grid and detail panel.",
+    whenToClarify: "When it's unclear which post the user means — offer recent posts first.",
+    whenToUseLiveTool:
+      "Call get_instagram_* tools for live data. Captions/replies are DRAFT ONLY — never publish or auto-reply.",
+    exampleResponses: {
+      explain:
+        "**Social** is your Instagram Business dashboard — followers, recent posts, comments, and performance insights, with AI help to draft captions and replies. Publishing stays manual.",
+      capabilities:
+        "Here I can show your Instagram followers, recent posts, comments, and post insights, and draft captions or replies for you. I never publish or reply automatically.",
+    },
+    aliases: ["social", "instagram", "insta", "social media"],
   }),
 
   settings: section({

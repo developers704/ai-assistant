@@ -104,6 +104,12 @@ function SettingsContent() {
 
   const [disconnecting, setDisconnecting] = useState(false);
 
+  const [socialStatus, setSocialStatus] = useState<{ connected: boolean; hasToken: boolean } | null>(
+    null
+  );
+
+  const [socialLoading, setSocialLoading] = useState(true);
+
   const [profile, setProfile] = useState({
 
     name: "",
@@ -208,6 +214,40 @@ function SettingsContent() {
 
 
 
+  useEffect(() => {
+
+    let cancelled = false;
+
+    (async () => {
+
+      try {
+
+        const res = await fetch("/api/social/instagram/status", { cache: "no-store" });
+
+        if (!res.ok) return;
+
+        const data = (await res.json()) as { connected: boolean; hasToken: boolean };
+
+        if (!cancelled) setSocialStatus(data);
+
+      } finally {
+
+        if (!cancelled) setSocialLoading(false);
+
+      }
+
+    })();
+
+    return () => {
+
+      cancelled = true;
+
+    };
+
+  }, []);
+
+
+
   if (!state?.user) return null;
 
 
@@ -300,9 +340,23 @@ function SettingsContent() {
 
     { name: "WhatsApp Business", status: "Mock", variant: "warning" as const },
 
-    { name: "Phone (Twilio)", status: "Mock", variant: "warning" as const },
+    {
 
-    { name: "Sales Data (POS/ERP)", status: "Mock", variant: "warning" as const },
+      name: "Social (Instagram)",
+
+      status: socialLoading
+
+        ? "Checking…"
+
+        : socialStatus?.connected
+
+          ? "Connected"
+
+          : "Not connected — add Meta env keys",
+
+      variant: socialStatus?.connected ? ("success" as const) : ("warning" as const),
+
+    },
 
   ];
 

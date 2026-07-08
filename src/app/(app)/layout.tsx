@@ -13,6 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const showFloatingVoice =
     pathname !== "/chat" &&
     pathname !== "/email" &&
+    pathname !== "/contacts" &&
     pathname !== "/images" &&
     pathname !== "/analyst";
 

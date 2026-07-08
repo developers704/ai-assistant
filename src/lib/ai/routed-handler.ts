@@ -49,7 +49,20 @@ const FAST_READ_TOOLS = new Set([
   "find_nearest_store",
   "list_valliani_stores",
   "get_valliani_store_details",
+  "get_instagram_account",
+  "get_instagram_recent_posts",
+  "get_instagram_post_comments",
+  "get_instagram_post_insights",
+  "open_social_dashboard",
+  "draft_instagram_caption",
+  "draft_instagram_comment_reply",
+  "get_instagram_inbox",
+  "get_instagram_conversation",
+  "draft_instagram_dm",
 ]);
+
+const INSTAGRAM_PUBLISH_BLOCKED =
+  "I can prepare a caption and preview, but publishing needs confirmation. Publishing flow is not enabled yet.";
 
 function buildSalesToolArgs(message: string, routed: RoutedIntent): Record<string, unknown> {
   const focus =
@@ -203,6 +216,15 @@ export async function tryRoutedResponse(
     };
   }
 
+  if (routed === "social.publish_blocked") {
+    recordNavigationOffer("/social", "social");
+    return {
+      intent: "general",
+      message: INSTAGRAM_PUBLISH_BLOCKED,
+      speak: true,
+    };
+  }
+
   const toolName = intentToTool(routed);
 
   if (toolName && FAST_READ_TOOLS.has(toolName)) {
@@ -219,6 +241,12 @@ export async function tryRoutedResponse(
               }
             : toolName === "get_valliani_store_details"
               ? { query: extractStoreQueryPhrase(message), storeName: extractStoreQueryPhrase(message) }
+          : toolName === "draft_instagram_caption"
+            ? { topic: message.replace(/^.*\bcaption\b\s*(for|about|:)?\s*/i, "").trim() || message }
+            : toolName === "draft_instagram_comment_reply"
+              ? { comment: message }
+            : toolName === "draft_instagram_dm"
+              ? { message, intent: undefined, to: undefined }
           : toolName === "get_store_directory"
             ? { user_message: message, query: message }
             : toolName === "get_today_sales"
