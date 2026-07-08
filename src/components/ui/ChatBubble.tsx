@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, PendingAction } from "@/types";
 import { Button } from "./Button";
-import { Bot, User, Check, X, Mic, MicOff, Send, Pencil } from "lucide-react";
+import { Sparkles, Check, X, Mic, MicOff, Send, Pencil, Copy } from "lucide-react";
 import { useSpeech } from "@/lib/hooks/useSpeech";
 
 interface ChatBubbleProps {
@@ -152,31 +152,47 @@ export function PendingActionCard({
 
 export function ChatBubble({ message, onConfirm, onReject, onEdit }: ChatBubbleProps) {
   const isUser = message.role === "user";
+  const [copied, setCopied] = useState(false);
+
+  const copyText = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // clipboard unavailable — ignore
+    }
+  };
+
+  const time = new Date(message.timestamp).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  if (isUser) {
+    return (
+      <div className="msg-enter flex justify-end">
+        <div className="max-w-[min(85%,34rem)] flex flex-col items-end gap-1">
+          <div className="chat-bubble-user px-4 py-2.5 sm:px-5 sm:py-3 rounded-3xl rounded-br-lg text-sm leading-relaxed text-white">
+            {renderMarkdown(message.content)}
+          </div>
+          <p className="text-[10px] text-ink-muted/70 pr-2 tabular-nums">{time}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
-      <div className="flex-shrink-0 mt-1">
-        {isUser ? (
-          <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center ring-1 ring-white/30">
-            <User size={18} className="text-white" />
-          </div>
-        ) : (
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-[0_2px_12px_rgba(139,92,246,0.35)]">
-            <Bot size={18} className="text-white" />
-          </div>
-        )}
+    <div className="msg-enter group flex gap-2.5 sm:gap-3">
+      <div className="flex-shrink-0 mt-0.5">
+        <div className="chat-ai-orb w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center">
+          <Sparkles size={15} className="text-white drop-shadow" />
+        </div>
       </div>
-      <div className={cn("max-w-[min(88%,36rem)] space-y-1", isUser ? "items-end" : "items-start")}>
-        <div
-          className={cn(
-            "px-4 py-3 rounded-2xl text-sm leading-relaxed",
-            isUser
-              ? "btn-futuristic text-white rounded-tr-md shadow-elevated"
-              : "glass-panel-strong text-ink rounded-tl-md"
-          )}
-        >
+      <div className="max-w-[min(88%,38rem)] min-w-0 flex flex-col items-start gap-1">
+        <div className="chat-bubble-ai px-4 py-3 sm:px-5 sm:py-3.5 rounded-3xl rounded-tl-lg text-sm leading-relaxed text-ink">
           {renderMarkdown(message.content)}
-          {!isUser && message.imageUrl && (
+          {message.imageUrl && (
             <div className="mt-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -187,20 +203,34 @@ export function ChatBubble({ message, onConfirm, onReject, onEdit }: ChatBubbleP
             </div>
           )}
         </div>
-        {!isUser && message.pendingAction && message.pendingAction.type !== "assistant_offer" && (
-          <PendingActionCard
-            action={message.pendingAction}
-            onConfirm={onConfirm}
-            onReject={onReject}
-            onEdit={onEdit}
-          />
+        {message.pendingAction && message.pendingAction.type !== "assistant_offer" && (
+          <div className="w-full">
+            <PendingActionCard
+              action={message.pendingAction}
+              onConfirm={onConfirm}
+              onReject={onReject}
+              onEdit={onEdit}
+            />
+          </div>
         )}
-        <p className="text-xs text-ink-muted px-1">
-          {new Date(message.timestamp).toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          })}
-        </p>
+        <div className="flex items-center gap-2 pl-2">
+          <p className="text-[10px] text-ink-muted/70 tabular-nums">{time}</p>
+          <button
+            type="button"
+            onClick={() => void copyText()}
+            aria-label="Copy message"
+            className={cn(
+              "inline-flex items-center gap-1 text-[10px] rounded-md px-1.5 py-0.5 transition-all",
+              "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+              copied
+                ? "text-emerald-300 opacity-100"
+                : "text-ink-muted hover:text-ink hover:bg-white/8"
+            )}
+          >
+            {copied ? <Check size={11} /> : <Copy size={11} />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
       </div>
     </div>
   );

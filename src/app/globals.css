@@ -169,6 +169,149 @@
       0 0 32px rgba(139, 92, 246, 0.2);
   }
 
+  /* ============ AI Chat — premium 2026 look ============ */
+
+  /* Ambient aurora wash behind the conversation */
+  .chat-aurora {
+    background:
+      radial-gradient(ellipse 60% 42% at 18% -8%, rgba(139, 92, 246, 0.16), transparent 60%),
+      radial-gradient(ellipse 50% 38% at 85% -6%, rgba(236, 72, 153, 0.10), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 50% 115%, rgba(99, 102, 241, 0.10), transparent 60%);
+    animation: aurora-drift 16s ease-in-out infinite alternate;
+  }
+
+  /* User bubble — saturated gradient, soft glow, no avatar */
+  .chat-bubble-user {
+    background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 45%, #a855f7 100%);
+    box-shadow:
+      0 4px 20px rgba(139, 92, 246, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+
+  /* Assistant bubble — frosted glass with hairline gradient border */
+  .chat-bubble-ai {
+    position: relative;
+    background:
+      linear-gradient(rgba(20, 26, 43, 0.72), rgba(20, 26, 43, 0.72)) padding-box,
+      linear-gradient(140deg, rgba(167, 139, 250, 0.35), rgba(255, 255, 255, 0.08) 40%, rgba(244, 114, 182, 0.18)) border-box;
+    border: 1px solid transparent;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow:
+      0 8px 28px rgba(2, 6, 23, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* Assistant avatar orb */
+  .chat-ai-orb {
+    background: conic-gradient(from 210deg, #7c3aed, #6366f1 35%, #d946ef 70%, #7c3aed);
+    box-shadow:
+      0 0 18px rgba(139, 92, 246, 0.55),
+      inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  }
+
+  .chat-ai-orb-pulse {
+    animation: orb-breathe 3.2s ease-in-out infinite;
+  }
+
+  /* Message entrance */
+  .msg-enter {
+    animation: msg-in 0.42s cubic-bezier(0.21, 1.02, 0.55, 1) both;
+  }
+
+  /* Typing dots */
+  .typing-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: rgba(196, 181, 253, 0.9);
+    animation: typing-bounce 1.2s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+  /* Shimmering "thinking" label */
+  .text-shimmer {
+    background: linear-gradient(90deg, rgba(226, 232, 240, 0.45) 20%, #ffffff 50%, rgba(226, 232, 240, 0.45) 80%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer-sweep 1.8s linear infinite;
+  }
+
+  /* Composer — animated conic gradient ring on focus */
+  .chat-composer-2026 {
+    position: relative;
+    background:
+      linear-gradient(rgba(13, 18, 32, 0.82), rgba(13, 18, 32, 0.82)) padding-box,
+      linear-gradient(120deg, rgba(167, 139, 250, 0.35), rgba(255, 255, 255, 0.06) 45%, rgba(244, 114, 182, 0.22)) border-box;
+    border: 1px solid transparent;
+    backdrop-filter: blur(24px) saturate(1.3);
+    -webkit-backdrop-filter: blur(24px) saturate(1.3);
+    box-shadow:
+      0 10px 36px rgba(2, 6, 23, 0.45),
+      0 0 28px rgba(139, 92, 246, 0.10);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .chat-composer-2026:focus-within {
+    background:
+      linear-gradient(rgba(13, 18, 32, 0.88), rgba(13, 18, 32, 0.88)) padding-box,
+      linear-gradient(120deg, rgba(192, 132, 252, 0.75), rgba(129, 140, 248, 0.45) 45%, rgba(244, 114, 182, 0.6)) border-box;
+    box-shadow:
+      0 10px 40px rgba(2, 6, 23, 0.5),
+      0 0 44px rgba(139, 92, 246, 0.22);
+  }
+
+  /* Send button — lively gradient */
+  .chat-send-live {
+    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 55%, #d946ef 100%);
+    box-shadow:
+      0 4px 18px rgba(168, 85, 247, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  }
+  .chat-send-live:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  .chat-send-live:active { transform: scale(0.94); }
+
+  /* Suggestion cards — sheen sweep on hover */
+  .chat-suggest-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .chat-suggest-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -80%;
+    width: 55%;
+    height: 100%;
+    background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    transform: skewX(-18deg);
+    transition: left 0.6s ease;
+    pointer-events: none;
+  }
+  .chat-suggest-card:hover::after { left: 130%; }
+
+  /* Welcome hero orb — layered conic ring */
+  .chat-hero-orb {
+    background: conic-gradient(from 200deg, #7c3aed, #4f46e5 30%, #c026d3 62%, #7c3aed);
+    animation: hero-hue 9s linear infinite;
+    box-shadow:
+      0 0 42px rgba(139, 92, 246, 0.5),
+      inset 0 2px 3px rgba(255, 255, 255, 0.35);
+  }
+
+  /* Scroll-to-bottom pill */
+  .chat-scroll-pill {
+    background: rgba(15, 20, 36, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(167, 139, 250, 0.35);
+    box-shadow: 0 6px 22px rgba(2, 6, 23, 0.5), 0 0 16px rgba(139, 92, 246, 0.18);
+  }
+
   /* Dark inputs — avoids iOS painting type=search bright white */
   .input-dark {
     -webkit-appearance: none;
@@ -414,6 +557,45 @@
   0%, 100% { transform: translate(0, 0) scale(1); }
   33% { transform: translate(24px, -18px) scale(1.05); }
   66% { transform: translate(-16px, 12px) scale(0.96); }
+}
+
+@keyframes aurora-drift {
+  0% { background-position: 0% 0%, 100% 0%, 50% 100%; opacity: 0.9; }
+  100% { background-position: 8% 4%, 92% 6%, 46% 96%; opacity: 1; }
+}
+
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+@keyframes shimmer-sweep {
+  to { background-position: -200% center; }
+}
+
+@keyframes orb-breathe {
+  0%, 100% { box-shadow: 0 0 14px rgba(139, 92, 246, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35); }
+  50% { box-shadow: 0 0 26px rgba(168, 85, 247, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.35); }
+}
+
+@keyframes hero-hue {
+  to { filter: hue-rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-aurora,
+  .msg-enter,
+  .typing-dot,
+  .text-shimmer,
+  .chat-hero-orb,
+  .chat-ai-orb-pulse {
+    animation: none !important;
+  }
 }
 
 ::-webkit-scrollbar {

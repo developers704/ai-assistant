@@ -124,21 +124,32 @@ interface ChatWelcomeProps {
   onSuggestion: (text: string) => void;
 }
 
+function greetingForNow(name?: string | null) {
+  const hour = new Date().getHours();
+  const first = (name ?? "").trim().split(/\s+/)[0] || null;
+  const part = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  return first ? `${part}, ${first}` : part;
+}
+
 export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps) {
   const highlights = buildHighlights(state);
   const recent = buildRecentActivity(state);
+  const greeting = greetingForNow(state.user?.name);
 
   return (
     <div className="w-full max-w-3xl mx-auto">
       {/* Hero */}
       <div className="text-center pt-1 pb-5 sm:pt-4 sm:pb-8 max-lg:pt-0">
-        <div className="relative mx-auto mb-4 sm:mb-6 w-fit">
+        <div className="relative mx-auto mb-4 sm:mb-6 w-fit msg-enter">
           <div className="chat-orb-glow absolute inset-0 -m-5 sm:-m-6 rounded-full blur-2xl opacity-70" aria-hidden />
-          <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 via-indigo-600 to-fuchsia-700 ring-1 ring-violet-300/40 shadow-[0_0_32px_rgba(139,92,246,0.4)]">
-            <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-amber-300" strokeWidth={1.5} />
+          <div className="chat-hero-orb relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full ring-1 ring-violet-300/40">
+            <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-white drop-shadow-lg" strokeWidth={1.5} />
           </div>
         </div>
 
+        <p className="text-xs sm:text-sm font-medium uppercase tracking-[0.18em] text-violet-300/80 mb-1.5">
+          {greeting}
+        </p>
         <h2 className="text-[1.65rem] sm:text-3xl lg:text-[2rem] font-display font-semibold text-ink tracking-tight leading-tight px-2">
           How can I{" "}
           <span className="text-gradient-accent">help</span> you today?
@@ -155,16 +166,17 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
 
       {/* Suggestions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pb-2">
-        {CHAT_SUGGESTIONS.map(({ text, icon, iconBg, iconColor, ringColor, ring }) => (
+        {CHAT_SUGGESTIONS.map(({ text, icon, iconBg, iconColor, ringColor, ring }, i) => (
           <button
             key={text}
             type="button"
             disabled={disabled}
             onClick={() => onSuggestion(text)}
+            style={{ animationDelay: `${80 + i * 55}ms` }}
             className={cn(
-              "group flex items-center gap-3 w-full text-left px-3 py-3 sm:px-4 sm:py-3.5 rounded-2xl",
+              "chat-suggest-card msg-enter group flex items-center gap-3 w-full text-left px-3 py-3 sm:px-4 sm:py-3.5 rounded-2xl",
               "bg-white/[0.04] ring-1 ring-white/10 transition-all duration-200",
-              "hover:bg-white/[0.08] active:scale-[0.99] disabled:opacity-50",
+              "hover:bg-white/[0.08] hover:-translate-y-0.5 active:scale-[0.99] disabled:opacity-50",
               ring
             )}
           >
