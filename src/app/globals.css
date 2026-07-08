@@ -318,11 +318,11 @@
     position: relative;
     border-radius: 9999px;
     background: radial-gradient(
-      circle at 33% 28%,
-      rgba(237, 213, 255, 0.95) 0%,
-      #c026d3 20%,
-      #7c3aed 46%,
-      #3b0764 76%,
+      circle at 35% 30%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(236, 72, 153, 0.95) 12%,
+      #8b5cf6 38%,
+      #4f46e5 68%,
       #1e1b4b 100%
     );
     box-shadow:
@@ -367,15 +367,15 @@
 
   /* Bright breathing core */
   .plasma-core {
-    inset: 20% !important;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.7), rgba(216, 180, 254, 0.22) 55%, transparent 75%);
-    filter: blur(4px);
+    inset: 15% !important;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.65) 0%, rgba(139, 92, 246, 0.4) 45%, transparent 70%);
+    filter: blur(6px);
     animation: plasma-core-breathe 3.4s ease-in-out infinite;
   }
 
   /* Glassy specular highlight */
   .plasma-shine {
-    background: radial-gradient(ellipse 40% 26% at 32% 20%, rgba(255, 255, 255, 0.8), transparent 70%);
+    background: radial-gradient(ellipse 35% 22% at 32% 20%, rgba(255, 255, 255, 0.42) 0%, transparent 80%);
   }
 
   /* ============ Section icon tiles — gradient glass 3D ============ */

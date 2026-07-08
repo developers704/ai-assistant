@@ -15,7 +15,7 @@ async function buildSessionConfig(model: string) {
   const state = getState();
   const dynamic = await buildDynamicContext(state);
   const liveContext = dynamic.textBlock;
-  const instructions = `${loadVoiceInstructions()}\n\n---\nLIVE CONTEXT (authoritative for this session):\n${liveContext}`;
+  const instructions = `CRITICAL LANGUAGE & NOISE RULE: You must ONLY understand, transcribe, and respond in English and Urdu. Ignore background noise, static, breathing, or silence completely. Never transcribe them as words (especially not as Chinese, Portuguese, or other languages). If there is no clear human speech in English or Urdu, ignore the sound and do not respond.\n\n${loadVoiceInstructions()}\n\n---\nLIVE CONTEXT (authoritative for this session):\n${liveContext}`;
   return {
     type: "realtime" as const,
     model,

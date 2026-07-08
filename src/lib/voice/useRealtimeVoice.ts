@@ -107,7 +107,9 @@ export function useRealtimeVoice(enabled: boolean) {
         return;
       }
 
-      sendEvent(dc, { type: "response.cancel" });
+      if (status === "speaking" || status === "thinking" || processingResponseRef.current) {
+        sendEvent(dc, { type: "response.cancel" });
+      }
 
       const normalized = normalizeVoiceTranscript(transcript);
 
@@ -627,7 +629,9 @@ export function useRealtimeVoice(enabled: boolean) {
           break;
         case "input_audio_buffer.speech_started":
           if (sessionActiveRef.current && dcRef.current) {
-            sendEvent(dcRef.current, { type: "response.cancel" });
+            if (status === "speaking" || status === "thinking" || processingResponseRef.current) {
+              sendEvent(dcRef.current, { type: "response.cancel" });
+            }
             processingResponseRef.current = false;
             pendingResponseRef.current = false;
             clearResponseTimer();
@@ -684,6 +688,10 @@ export function useRealtimeVoice(enabled: boolean) {
           break;
         case "error": {
           const msg = event.error?.message ?? "Voice session error";
+          if (msg.includes("Cancellation failed") || msg.includes("no active response")) {
+            // Ignore this harmless error from OpenAI Realtime API so it doesn't disrupt the user
+            break;
+          }
           processingResponseRef.current = false;
           setError(msg);
           setStatus("error");
