@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, PendingAction } from "@/types";
 import { Button } from "./Button";
-import { Sparkles, Check, X, Mic, MicOff, Send, Pencil, Copy } from "lucide-react";
+import { Check, X, Mic, MicOff, Send, Pencil, Copy } from "lucide-react";
 import { useSpeech } from "@/lib/hooks/useSpeech";
+import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -185,9 +186,7 @@ export function ChatBubble({ message, onConfirm, onReject, onEdit }: ChatBubbleP
   return (
     <div className="msg-enter group flex gap-2.5 sm:gap-3">
       <div className="flex-shrink-0 mt-0.5">
-        <div className="chat-ai-orb w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center">
-          <Sparkles size={15} className="text-white drop-shadow" />
-        </div>
+        <PlasmaOrb className="w-8 h-8 sm:w-9 sm:h-9" />
       </div>
       <div className="max-w-[min(88%,38rem)] min-w-0 flex flex-col items-start gap-1">
         <div className="chat-bubble-ai px-4 py-3 sm:px-5 sm:py-3.5 rounded-3xl rounded-tl-lg text-sm leading-relaxed text-ink">

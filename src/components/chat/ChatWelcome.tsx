@@ -2,9 +2,8 @@
 
 import type { AppState } from "@/types";
 import { cn } from "@/lib/utils";
-import { IconBadge } from "@/components/ui/Icon";
+import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 import {
-  Sparkles,
   ChevronRight,
   MessageSquare,
   TrendingUp,
@@ -18,57 +17,43 @@ import {
 export const CHAT_SUGGESTIONS: {
   text: string;
   icon: LucideIcon;
-  iconBg: string;
-  iconColor: string;
-  ringColor: string;
+  tile: string;
   ring: string;
 }[] = [
   {
     text: "What do I need to focus on today?",
     icon: MessageSquare,
-    iconBg: "bg-violet-500/14",
-    iconColor: "text-violet-300",
-    ringColor: "ring-violet-500/18",
+    tile: "from-violet-400 via-violet-500 to-indigo-600",
     ring: "hover:ring-violet-400/25",
   },
   {
     text: "Show me today's sales across all stores",
     icon: TrendingUp,
-    iconBg: "bg-emerald-500/14",
-    iconColor: "text-emerald-300",
-    ringColor: "ring-emerald-500/18",
+    tile: "from-emerald-300 via-emerald-500 to-teal-700",
     ring: "hover:ring-emerald-400/25",
   },
   {
     text: "Summarize my important emails",
     icon: Mail,
-    iconBg: "bg-blue-500/14",
-    iconColor: "text-blue-300",
-    ringColor: "ring-blue-500/18",
+    tile: "from-blue-400 via-blue-500 to-indigo-700",
     ring: "hover:ring-blue-400/25",
   },
   {
     text: "What's on my calendar today?",
     icon: Calendar,
-    iconBg: "bg-amber-500/14",
-    iconColor: "text-amber-300",
-    ringColor: "ring-amber-500/18",
+    tile: "from-amber-300 via-orange-400 to-orange-600",
     ring: "hover:ring-amber-400/25",
   },
   {
     text: "Draft an email to the diamond supplier",
     icon: Gem,
-    iconBg: "bg-fuchsia-500/14",
-    iconColor: "text-fuchsia-300",
-    ringColor: "ring-fuchsia-500/18",
+    tile: "from-fuchsia-400 via-fuchsia-500 to-purple-700",
     ring: "hover:ring-fuchsia-400/25",
   },
   {
     text: "Remind me to review Baybrook Mall lease tomorrow",
     icon: Bell,
-    iconBg: "bg-orange-500/14",
-    iconColor: "text-orange-300",
-    ringColor: "ring-orange-500/18",
+    tile: "from-orange-300 via-orange-500 to-rose-600",
     ring: "hover:ring-orange-400/25",
   },
 ];
@@ -141,10 +126,8 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
       {/* Hero */}
       <div className="text-center pt-1 pb-5 sm:pt-4 sm:pb-8 max-lg:pt-0">
         <div className="relative mx-auto mb-4 sm:mb-6 w-fit msg-enter">
-          <div className="chat-orb-glow absolute inset-0 -m-5 sm:-m-6 rounded-full blur-2xl opacity-70" aria-hidden />
-          <div className="chat-hero-orb relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full ring-1 ring-violet-300/40">
-            <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-white drop-shadow-lg" strokeWidth={1.5} />
-          </div>
+          <div className="chat-orb-glow absolute inset-0 -m-6 sm:-m-8 rounded-full blur-3xl opacity-80" aria-hidden />
+          <PlasmaOrb className="plasma-orb-float relative h-20 w-20 sm:h-28 sm:w-28" />
         </div>
 
         <p className="text-xs sm:text-sm font-medium uppercase tracking-[0.18em] text-violet-300/80 mb-1.5">
@@ -166,7 +149,7 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
 
       {/* Suggestions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pb-2">
-        {CHAT_SUGGESTIONS.map(({ text, icon, iconBg, iconColor, ringColor, ring }, i) => (
+        {CHAT_SUGGESTIONS.map(({ text, icon: SuggestIcon, tile, ring }, i) => (
           <button
             key={text}
             type="button"
@@ -180,14 +163,14 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
               ring
             )}
           >
-            <IconBadge
-              icon={icon}
-              iconBg={iconBg}
-              iconColor={iconColor}
-              ringColor={ringColor}
-              size="md"
-              className="h-10 w-10"
-            />
+            <span
+              className={cn(
+                "icon-tile icon-tile-dim flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ring-1 ring-white/25",
+                tile
+              )}
+            >
+              <SuggestIcon size={18} strokeWidth={2.25} className="text-white" />
+            </span>
             <span className="flex-1 min-w-0 text-[13px] sm:text-sm text-ink-secondary group-hover:text-ink leading-snug">
               {text}
             </span>

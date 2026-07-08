@@ -2,17 +2,16 @@
 
 import { useApp } from "@/lib/store/app-context";
 import { useRealtimeVoice } from "@/lib/voice/useRealtimeVoice";
-import { Icon } from "@/components/ui/Icon";
-import { Mic, Loader2, Volume2, PhoneOff } from "lucide-react";
+import { Mic, Loader2, PhoneOff, AudioLines } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABELS: Record<string, string> = {
   idle: "Start voice",
   connecting: "Connecting…",
-  ready: "Listening…",
-  listening: "Listening…",
+  ready: "Listening",
+  listening: "Listening",
   thinking: "Thinking…",
-  speaking: "Speaking…",
+  speaking: "Speaking",
   error: "Tap to retry",
 };
 
@@ -61,105 +60,168 @@ export function RealtimeVoiceButton({
   const isBusy = status === "connecting" || status === "thinking";
   const isSpeaking = status === "speaking";
 
-  const micSize = isComposer ? "w-11 h-11" : isInline ? "w-11 h-11" : "w-12 h-12";
+  const statusLabel = STATUS_LABELS[status] ?? "Voice";
+  const statusTone = isLive
+    ? "text-emerald-300"
+    : isSpeaking
+      ? "text-cyan-300"
+      : isBusy
+        ? "text-violet-300"
+        : status === "error"
+          ? "text-rose-300"
+          : "text-ink-muted";
+
+  const voicePanel = panelOpen && (
+    <div
+      className={cn(
+        "voice-card rounded-3xl p-4 sm:p-5 animate-in fade-in slide-in-from-bottom-3 duration-300 z-50",
+        isInline
+          ? // Mobile: fixed sheet centered above composer. Desktop: popover anchored to the mic's right edge.
+            "fixed inset-x-3 bottom-24 mx-auto max-w-sm sm:absolute sm:inset-x-auto sm:bottom-full sm:right-0 sm:mb-3 sm:w-80"
+          : "w-[min(20rem,calc(100vw-2rem))]"
+      )}
+    >
+      {/* Header: orb + status */}
+      <div className="flex items-center gap-3.5">
+        <div className="relative shrink-0">
+          {isLive && (
+            <>
+              <span className="voice-ring" />
+              <span className="voice-ring" />
+              <span className="voice-ring" />
+            </>
+          )}
+          <div
+            className={cn(
+              "voice-orb relative flex h-12 w-12 items-center justify-center rounded-full",
+              isSpeaking && "voice-orb-speaking"
+            )}
+          >
+            {isBusy ? (
+              <Loader2 size={19} className="animate-spin text-white" />
+            ) : isSpeaking ? (
+              <AudioLines size={19} className="text-white" />
+            ) : (
+              <Mic size={19} className="text-white" />
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+              Voice · Realtime
+            </p>
+            {isSpeaking && (
+              <span className="voice-eq" aria-hidden>
+                <span /><span /><span /><span /><span />
+              </span>
+            )}
+          </div>
+          <p className={cn("text-sm font-semibold mt-0.5 flex items-center gap-1.5", statusTone)}>
+            {isLive && (
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
+            )}
+            {statusLabel}
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <p className="mt-3 text-xs text-rose-300 bg-rose-500/10 ring-1 ring-rose-400/25 rounded-xl px-3 py-2">
+          {error}
+        </p>
+      )}
+
+      {isLive && !userTranscript && !isBusy && !isSpeaking && (
+        <p className="mt-3 text-xs text-ink-secondary">
+          Mic is on — speak naturally, ask follow-ups anytime.
+        </p>
+      )}
+
+      {(userTranscript || assistantTranscript) && (
+        <div className="mt-3 space-y-2.5 max-h-56 overflow-y-auto pr-1">
+          {userTranscript && (
+            <div className="flex justify-end">
+              <div className="chat-bubble-user max-w-[88%] rounded-2xl rounded-br-md px-3 py-2">
+                <p className="text-xs text-white leading-relaxed">{userTranscript}</p>
+              </div>
+            </div>
+          )}
+
+          {assistantTranscript && (
+            <div className="flex justify-start">
+              <div className="chat-bubble-ai max-w-[92%] rounded-2xl rounded-tl-md px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-violet-300/80 mb-0.5">
+                  Alexa
+                </p>
+                <p className="text-xs text-ink-secondary leading-relaxed line-clamp-6 whitespace-pre-wrap">
+                  {assistantTranscript}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isBusy && !userTranscript && (
+        <p className="mt-3 text-xs text-ink-muted flex items-center gap-2">
+          <span className="typing-dot" />
+          <span className="typing-dot" />
+          <span className="typing-dot" />
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={closePanel}
+        className="mt-4 w-full py-2.5 text-xs font-semibold rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 hover:text-rose-100 ring-1 ring-rose-400/30 transition-colors flex items-center justify-center gap-1.5"
+      >
+        <PhoneOff size={13} />
+        End voice chat
+      </button>
+    </div>
+  );
 
   return (
     <div
       className={cn(
         isInline
-          ? "relative shrink-0 flex flex-col items-start"
+          ? "relative shrink-0"
           : "fixed right-4 bottom-5 z-30 flex flex-col items-end gap-2 safe-area-bottom",
         className
       )}
       style={isInline ? undefined : { paddingBottom: "env(safe-area-inset-bottom, 0)" }}
     >
-      {panelOpen && (
-        <div
-          className={cn(
-            "glass-panel-strong shadow-elevated rounded-2xl p-3.5 animate-in fade-in slide-in-from-bottom-2 z-50",
-            isInline
-              ? "absolute bottom-full left-0 mb-2 w-[min(18rem,calc(100vw-2rem))]"
-              : "max-w-xs w-64"
-          )}
-        >
-          <div className="mb-2">
-            <p className="text-[10px] uppercase tracking-wide text-ink-muted">Voice · Realtime</p>
-            <p className="text-[10px] text-ink-muted mt-0.5">
-              Speak naturally — ask follow-ups anytime. Press Exit when done.
-            </p>
-          </div>
-
-          {error && <p className="text-xs text-rose-300 mb-2">{error}</p>}
-
-          {isLive && !userTranscript && !isBusy && !isSpeaking && (
-            <p className="text-xs text-emerald-300/90 mb-2 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Mic is on — go ahead and speak
-            </p>
-          )}
-
-          {userTranscript && (
-            <div className="mb-2">
-              <p className="text-[10px] uppercase tracking-wide text-ink-muted">You</p>
-              <p className="text-xs text-ink font-medium">{userTranscript}</p>
-            </div>
-          )}
-
-          {isBusy && (
-            <p className="text-xs text-ink-muted flex items-center gap-2">
-              <Loader2 size={13} className="animate-spin" />
-              {STATUS_LABELS[status]}
-            </p>
-          )}
-
-          {assistantTranscript && (
-            <div className="mt-2 pt-2 border-t border-white/15">
-              <p className="text-[10px] uppercase tracking-wide text-ink-muted flex items-center gap-1">
-                <Volume2 size={10} /> Alexa {isSpeaking && "(speaking)"}
-              </p>
-              <p className="text-xs text-ink-secondary mt-0.5 line-clamp-6 whitespace-pre-wrap">
-                {assistantTranscript}
-              </p>
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={closePanel}
-            className="mt-3 w-full py-2 text-xs font-medium rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 hover:text-rose-100 ring-1 ring-rose-400/30 transition-colors flex items-center justify-center gap-1.5"
-          >
-            <PhoneOff size={13} />
-            Exit voice chat
-          </button>
-        </div>
-      )}
+      {voicePanel}
 
       <button
         type="button"
         onClick={handleMicClick}
         disabled={sessionActive && status !== "error"}
         aria-label={sessionActive ? "Voice session active" : "Start voice chat"}
-        title={STATUS_LABELS[status] ?? "Start voice"}
+        title={statusLabel}
         className={cn(
-          micSize,
+          isComposer ? "w-11 h-11 rounded-full" : isInline ? "w-11 h-11 rounded-full" : "w-12 h-12 rounded-2xl shadow-elevated",
           "flex items-center justify-center transition-all duration-300 shrink-0",
           isComposer
-            ? "rounded-xl bg-gradient-to-br from-violet-500/25 to-cyan-500/20 ring-1 ring-violet-400/30 text-violet-200 hover:text-white hover:from-violet-500/35 hover:to-cyan-500/25"
-            : "rounded-2xl shadow-elevated",
-          !isComposer &&
-            (sessionActive && status !== "error"
-              ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white scale-[1.02] shadow-glow-orange cursor-default"
+            ? cn(
+                "voice-mic-btn text-violet-200 hover:text-white",
+                sessionActive && status !== "error" && "voice-mic-btn-live text-rose-200"
+              )
+            : sessionActive && status !== "error"
+              ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white scale-[1.02] shadow-glow-orange cursor-default animate-pulse"
               : isSpeaking
                 ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white scale-[1.02] shadow-glow"
-                : "btn-futuristic text-accent-neon hover:shadow-glow"),
-          !isComposer && sessionActive && status !== "error" && "animate-pulse",
-          isComposer && sessionActive && status !== "error" && "ring-rose-400/50 text-rose-200 animate-pulse"
+                : "btn-futuristic text-accent-neon hover:shadow-glow"
         )}
       >
         {isBusy ? (
           <Loader2 size={18} className="animate-spin" />
+        ) : sessionActive && isSpeaking ? (
+          <AudioLines size={18} />
         ) : (
-          <Icon icon={Mic} size="md" active={sessionActive || status === "idle"} />
+          <Mic size={18} />
         )}
       </button>
     </div>

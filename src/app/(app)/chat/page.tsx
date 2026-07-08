@@ -6,7 +6,8 @@ import { ChatBubble, PendingActionCard } from "@/components/ui/ChatBubble";
 import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
 import { ChatWelcome } from "@/components/chat/ChatWelcome";
 import { ChatComposer } from "@/components/chat/ChatComposer";
-import { ArrowDown, MessageSquarePlus, Sparkles } from "lucide-react";
+import { ArrowDown, MessageSquarePlus } from "lucide-react";
+import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 
 export default function ChatPage() {
   const { state, sendChat, clearChat, confirmAction, rejectAction, updatePendingDraft } = useApp();
@@ -71,9 +72,7 @@ export default function ChatPage() {
         <header className="relative shrink-0 hidden sm:block px-5 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-white/8">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="chat-ai-orb chat-ai-orb-pulse hidden sm:flex h-9 w-9 rounded-full items-center justify-center shrink-0">
-                <Sparkles size={16} className="text-white" />
-              </div>
+              <PlasmaOrb className="hidden sm:block h-9 w-9 shrink-0" />
               <div className="min-w-0">
                 <h1 className="text-xl font-display font-bold text-gradient-title tracking-tight">
                   AI Chat
@@ -156,9 +155,7 @@ export default function ChatPage() {
                 }}
               />
               <div className="msg-enter flex gap-2.5 sm:gap-3">
-                <div className="chat-ai-orb chat-ai-orb-pulse w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                  <Sparkles size={15} className="text-white" />
-                </div>
+                <PlasmaOrb className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 mt-0.5" />
                 <div className="chat-bubble-ai px-4 py-3 rounded-3xl rounded-tl-lg flex items-center gap-3">
                   <span className="flex items-center gap-1">
                     <span className="typing-dot" />

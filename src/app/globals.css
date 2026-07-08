@@ -312,6 +312,197 @@
     box-shadow: 0 6px 22px rgba(2, 6, 23, 0.5), 0 0 16px rgba(139, 92, 246, 0.18);
   }
 
+  /* ============ 3D Plasma Orb — Siri-style energy sphere ============ */
+
+  .plasma-orb {
+    position: relative;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 33% 28%,
+      rgba(237, 213, 255, 0.95) 0%,
+      #c026d3 20%,
+      #7c3aed 46%,
+      #3b0764 76%,
+      #1e1b4b 100%
+    );
+    box-shadow:
+      0 0 34px rgba(168, 85, 247, 0.5),
+      0 0 80px rgba(139, 92, 246, 0.28),
+      0 14px 34px rgba(2, 6, 23, 0.5),
+      inset 0 -10px 22px rgba(30, 27, 75, 0.85),
+      inset 0 6px 12px rgba(255, 255, 255, 0.28);
+    transform: translateZ(0);
+  }
+
+  /* Gentle hover-float — for the large hero orb only */
+  .plasma-orb-float {
+    animation: plasma-float 6s ease-in-out infinite;
+  }
+
+  .plasma-orb > span {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Rotating energy filaments */
+  .plasma-swirl-a {
+    background:
+      radial-gradient(ellipse 62% 42% at 30% 66%, rgba(244, 114, 182, 0.85), transparent 65%),
+      radial-gradient(ellipse 46% 34% at 72% 28%, rgba(34, 211, 238, 0.55), transparent 60%);
+    filter: blur(5px);
+    mix-blend-mode: screen;
+    animation: plasma-spin 7s linear infinite;
+  }
+
+  .plasma-swirl-b {
+    background:
+      radial-gradient(ellipse 56% 46% at 66% 72%, rgba(192, 132, 252, 0.9), transparent 62%),
+      radial-gradient(ellipse 40% 30% at 24% 34%, rgba(255, 255, 255, 0.4), transparent 55%);
+    filter: blur(7px);
+    mix-blend-mode: screen;
+    animation: plasma-spin 11s linear infinite reverse;
+  }
+
+  /* Bright breathing core */
+  .plasma-core {
+    inset: 20% !important;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.7), rgba(216, 180, 254, 0.22) 55%, transparent 75%);
+    filter: blur(4px);
+    animation: plasma-core-breathe 3.4s ease-in-out infinite;
+  }
+
+  /* Glassy specular highlight */
+  .plasma-shine {
+    background: radial-gradient(ellipse 40% 26% at 32% 20%, rgba(255, 255, 255, 0.8), transparent 70%);
+  }
+
+  /* ============ Section icon tiles — gradient glass 3D ============ */
+
+  .icon-tile {
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+    box-shadow:
+      0 3px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1.5px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -3px 6px rgba(0, 0, 0, 0.28);
+    transition: transform 0.2s ease, box-shadow 0.25s ease, filter 0.25s ease;
+  }
+
+  /* Gloss sweep across the top half */
+  .icon-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.35) 0%,
+      rgba(255, 255, 255, 0.08) 42%,
+      transparent 60%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .icon-tile svg {
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.35));
+  }
+
+  .icon-tile-dim {
+    filter: saturate(0.82) brightness(0.9);
+  }
+
+  .group:hover .icon-tile-dim,
+  .icon-tile-active {
+    filter: saturate(1.05) brightness(1.05);
+  }
+
+  .icon-tile-active {
+    transform: translateY(-1px) scale(1.04) translateZ(0);
+    box-shadow:
+      0 5px 14px rgba(0, 0, 0, 0.35),
+      inset 0 2px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -3px 7px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ============ Voice Realtime — premium overlay ============ */
+
+  .voice-card {
+    background:
+      linear-gradient(rgba(12, 16, 30, 0.88), rgba(12, 16, 30, 0.88)) padding-box,
+      linear-gradient(140deg, rgba(167, 139, 250, 0.5), rgba(255, 255, 255, 0.08) 40%, rgba(34, 211, 238, 0.3)) border-box;
+    border: 1px solid transparent;
+    backdrop-filter: blur(28px) saturate(1.3);
+    -webkit-backdrop-filter: blur(28px) saturate(1.3);
+    box-shadow:
+      0 18px 56px rgba(2, 6, 23, 0.6),
+      0 0 40px rgba(139, 92, 246, 0.16);
+  }
+
+  .voice-orb {
+    background: conic-gradient(from 220deg, #7c3aed, #06b6d4 30%, #6366f1 55%, #d946ef 80%, #7c3aed);
+    animation: hero-hue 8s linear infinite;
+    box-shadow:
+      0 0 30px rgba(139, 92, 246, 0.55),
+      inset 0 2px 3px rgba(255, 255, 255, 0.35);
+  }
+
+  .voice-orb-speaking {
+    animation: hero-hue 3.5s linear infinite, orb-breathe 1.6s ease-in-out infinite;
+  }
+
+  /* Expanding rings while mic is live */
+  .voice-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 1.5px solid rgba(139, 92, 246, 0.55);
+    animation: voice-ring-expand 2.2s ease-out infinite;
+    pointer-events: none;
+  }
+  .voice-ring:nth-child(2) { animation-delay: 0.7s; border-color: rgba(34, 211, 238, 0.4); }
+  .voice-ring:nth-child(3) { animation-delay: 1.4s; border-color: rgba(217, 70, 239, 0.35); }
+
+  /* Equalizer bars while Alexa speaks */
+  .voice-eq {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 18px;
+  }
+  .voice-eq span {
+    width: 3px;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, #a78bfa, #22d3ee);
+    animation: voice-eq-bounce 0.9s ease-in-out infinite;
+  }
+  .voice-eq span:nth-child(1) { animation-delay: 0s; }
+  .voice-eq span:nth-child(2) { animation-delay: 0.12s; }
+  .voice-eq span:nth-child(3) { animation-delay: 0.24s; }
+  .voice-eq span:nth-child(4) { animation-delay: 0.36s; }
+  .voice-eq span:nth-child(5) { animation-delay: 0.48s; }
+
+  /* Composer mic button — subtle gradient shell */
+  .voice-mic-btn {
+    background:
+      linear-gradient(rgba(15, 20, 36, 0.7), rgba(15, 20, 36, 0.7)) padding-box,
+      linear-gradient(135deg, rgba(139, 92, 246, 0.55), rgba(34, 211, 238, 0.4)) border-box;
+    border: 1px solid transparent;
+    transition: box-shadow 0.25s ease, transform 0.15s ease;
+  }
+  .voice-mic-btn:hover {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.35);
+    transform: translateY(-1px);
+  }
+  .voice-mic-btn-live {
+    box-shadow: 0 0 22px rgba(244, 63, 94, 0.4);
+  }
+
   /* Dark inputs — avoids iOS painting type=search bright white */
   .input-dark {
     -webkit-appearance: none;
@@ -587,13 +778,46 @@
   to { filter: hue-rotate(360deg); }
 }
 
+@keyframes plasma-float {
+  0%, 100% { transform: translateY(0) translateZ(0); }
+  50% { transform: translateY(-7px) translateZ(0); }
+}
+
+@keyframes plasma-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes plasma-core-breathe {
+  0%, 100% { opacity: 0.65; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.14); }
+}
+
+@keyframes voice-ring-expand {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+@keyframes voice-eq-bounce {
+  0%, 100% { height: 5px; }
+  50% { height: 18px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chat-aurora,
   .msg-enter,
   .typing-dot,
   .text-shimmer,
   .chat-hero-orb,
-  .chat-ai-orb-pulse {
+  .chat-ai-orb-pulse,
+  .voice-orb,
+  .voice-orb-speaking,
+  .voice-ring,
+  .voice-eq span,
+  .plasma-orb,
+  .plasma-orb-float,
+  .plasma-swirl-a,
+  .plasma-swirl-b,
+  .plasma-core {
     animation: none !important;
   }
 }

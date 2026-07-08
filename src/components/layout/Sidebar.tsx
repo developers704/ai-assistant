@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Icon, IconBadge } from "@/components/ui/Icon";
+import { Icon } from "@/components/ui/Icon";
 import {
   Sun,
   MessageSquare,
@@ -26,15 +26,14 @@ import {
 } from "lucide-react";
 import { useApp } from "@/lib/store/app-context";
 import { Avatar } from "@/components/ui/Avatar";
+import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 
 type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  iconBg: string;
-  iconColor: string;
-  activeBg: string;
-  ringColor: string;
+  /** Vivid gradient for the 3D glass tile */
+  tile: string;
   accent: string;
 };
 
@@ -43,123 +42,101 @@ const navItems: NavItem[] = [
     href: "/chat",
     label: "AI Chat",
     icon: MessageSquare,
-    iconBg: "bg-violet-500/22",
-    iconColor: "text-violet-300",
-    activeBg: "bg-violet-500/32",
-    ringColor: "ring-violet-400/28",
+    tile: "from-violet-400 via-violet-500 to-indigo-600",
     accent: "bg-violet-400/85",
   },
   {
     href: "/dashboard",
     label: "Daily Briefing",
     icon: Sun,
-    iconBg: "bg-amber-500/22",
-    iconColor: "text-amber-300",
-    activeBg: "bg-amber-500/32",
-    ringColor: "ring-amber-400/28",
+    tile: "from-amber-300 via-orange-400 to-orange-600",
     accent: "bg-amber-400/85",
   },
   {
     href: "/news",
     label: "News & Markets",
     icon: Newspaper,
-    iconBg: "bg-sky-500/22",
-    iconColor: "text-sky-300",
-    activeBg: "bg-sky-500/32",
-    ringColor: "ring-sky-400/28",
+    tile: "from-sky-300 via-sky-500 to-blue-600",
     accent: "bg-sky-400/85",
   },
   {
     href: "/email",
     label: "Email",
     icon: Mail,
-    iconBg: "bg-blue-500/22",
-    iconColor: "text-blue-300",
-    activeBg: "bg-blue-500/32",
-    ringColor: "ring-blue-400/28",
+    tile: "from-blue-400 via-blue-500 to-indigo-700",
     accent: "bg-blue-400/85",
   },
   {
     href: "/calendar",
     label: "Calendar & Tasks",
     icon: Calendar,
-    iconBg: "bg-rose-500/22",
-    iconColor: "text-rose-300",
-    activeBg: "bg-rose-500/32",
-    ringColor: "ring-rose-400/28",
+    tile: "from-rose-400 via-rose-500 to-pink-700",
     accent: "bg-rose-400/85",
   },
   {
     href: "/sales",
     label: "Sales Dashboard",
     icon: BarChart3,
-    iconBg: "bg-emerald-500/22",
-    iconColor: "text-emerald-300",
-    activeBg: "bg-emerald-500/32",
-    ringColor: "ring-emerald-400/28",
+    tile: "from-emerald-300 via-emerald-500 to-teal-700",
     accent: "bg-emerald-400/85",
   },
   {
     href: "/calculator",
     label: "Price Calculator",
     icon: Calculator,
-    iconBg: "bg-yellow-500/22",
-    iconColor: "text-yellow-300",
-    activeBg: "bg-yellow-500/32",
-    ringColor: "ring-yellow-400/28",
+    tile: "from-yellow-300 via-amber-400 to-amber-600",
     accent: "bg-yellow-400/85",
   },
   {
     href: "/analyst",
     label: "Data Analyst",
     icon: Database,
-    iconBg: "bg-cyan-500/22",
-    iconColor: "text-cyan-300",
-    activeBg: "bg-cyan-500/32",
-    ringColor: "ring-cyan-400/28",
+    tile: "from-cyan-300 via-cyan-500 to-sky-700",
     accent: "bg-cyan-400/85",
   },
   {
     href: "/images",
     label: "Image Generation",
     icon: Wand2,
-    iconBg: "bg-fuchsia-500/22",
-    iconColor: "text-fuchsia-300",
-    activeBg: "bg-fuchsia-500/32",
-    ringColor: "ring-fuchsia-400/28",
+    tile: "from-fuchsia-400 via-fuchsia-500 to-purple-700",
     accent: "bg-fuchsia-400/85",
   },
   {
     href: "/social",
     label: "Social",
     icon: Instagram,
-    iconBg: "bg-pink-500/22",
-    iconColor: "text-pink-300",
-    activeBg: "bg-pink-500/32",
-    ringColor: "ring-pink-400/28",
+    tile: "from-pink-400 via-rose-500 to-fuchsia-700",
     accent: "bg-pink-400/85",
   },
   {
     href: "/contacts",
     label: "Contacts",
     icon: Users,
-    iconBg: "bg-indigo-500/22",
-    iconColor: "text-indigo-300",
-    activeBg: "bg-indigo-500/32",
-    ringColor: "ring-indigo-400/28",
+    tile: "from-indigo-300 via-indigo-500 to-violet-700",
     accent: "bg-indigo-400/85",
   },
   {
     href: "/settings",
     label: "Settings",
     icon: Settings,
-    iconBg: "bg-slate-500/20",
-    iconColor: "text-slate-300",
-    activeBg: "bg-slate-500/30",
-    ringColor: "ring-slate-400/22",
+    tile: "from-slate-400 via-slate-500 to-slate-700",
     accent: "bg-slate-400/75",
   },
 ];
+
+function NavTile({ item, active }: { item: NavItem; active: boolean }) {
+  return (
+    <span
+      className={cn(
+        "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ring-1 ring-white/25",
+        item.tile,
+        active ? "icon-tile-active" : "icon-tile-dim"
+      )}
+    >
+      <Icon icon={item.icon} size="md" active className="text-white" />
+    </span>
+  );
+}
 
 function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
   return (
@@ -176,16 +153,7 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       {active && (
         <span className={cn("absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full", item.accent)} />
       )}
-      <IconBadge
-        icon={item.icon}
-        iconBg={item.iconBg}
-        iconColor={item.iconColor}
-        activeBg={item.activeBg}
-        ringColor={item.ringColor}
-        active={active}
-        variant="outline"
-        size="md"
-      />
+      <NavTile item={item} active={active} />
       <span className="truncate leading-snug">{item.label}</span>
     </Link>
   );
@@ -200,9 +168,9 @@ export function Sidebar() {
       <div className="glass-panel-strong flex flex-col flex-1 rounded-3xl overflow-hidden text-ink">
         <div className="px-5 py-5 border-b border-white/10">
           <div className="flex items-center gap-3.5">
-            <span className="app-logo-badge icon-badge icon-badge-soft icon-badge-soft-active flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/95 to-indigo-600/90 ring-1 ring-white/20 shrink-0">
-              <Icon icon={Sparkles} size="xl" className="text-amber-100" active />
-            </span>
+            <PlasmaOrb className="h-12 w-12 shrink-0">
+              <Icon icon={Sparkles} size="lg" className="text-white drop-shadow" active />
+            </PlasmaOrb>
             <div className="min-w-0">
               <h1 className="text-ink font-semibold text-[15px] tracking-wide">Alexa</h1>
               <p className="text-ink-muted text-[11px] tracking-wide leading-snug">executive assistance</p>
@@ -262,9 +230,9 @@ export function MobileNav() {
       <header className="lg:hidden sticky top-0 z-40 mobile-nav-safe px-3 pb-2">
         <div className="mobile-ios-bar flex items-center justify-between gap-3 px-3.5 h-[3.25rem]">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <span className="icon-badge icon-badge-soft icon-badge-soft-active flex h-10 w-10 items-center justify-center rounded-[0.85rem] bg-gradient-to-br from-violet-500/95 to-indigo-600/90 ring-1 ring-white/20 shrink-0">
-              <Icon icon={Sparkles} size="lg" className="text-amber-100" active />
-            </span>
+            <PlasmaOrb className="h-10 w-10 shrink-0">
+              <Icon icon={Sparkles} size="md" className="text-white drop-shadow" active />
+            </PlasmaOrb>
             <div className="min-w-0 flex-1">
               <p className="text-ink font-semibold text-[15px] leading-tight tracking-tight">Alexa</p>
               <p className="text-ink-muted text-xs truncate leading-tight mt-0.5 font-medium">
