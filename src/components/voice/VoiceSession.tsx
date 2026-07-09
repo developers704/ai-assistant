@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store/app-context";
-import { useRealtimeVoice } from "@/lib/voice/useRealtimeVoice";
+import { useVoice } from "@/components/voice/VoiceProvider";
 import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 import { cn, getDisplayFirstName } from "@/lib/utils";
 import { PhoneOff } from "lucide-react";
@@ -21,7 +21,6 @@ const STATUS_LABELS: Record<string, string> = {
 export function VoiceSession() {
   const router = useRouter();
   const { state } = useApp();
-  const voiceEnabled = state?.user?.preferences?.voiceEnabled ?? true;
   const firstName = getDisplayFirstName(state?.user?.name) || "there";
   const startedRef = useRef(false);
 
@@ -33,15 +32,16 @@ export function VoiceSession() {
     userTranscript,
     assistantTranscript,
     audioLevel,
+    voiceEnabled,
     startSession,
     closePanel,
-  } = useRealtimeVoice(voiceEnabled);
+  } = useVoice();
 
   useEffect(() => {
-    if (!supported || !voiceEnabled || startedRef.current) return;
+    if (!supported || !voiceEnabled || startedRef.current || sessionActive) return;
     startedRef.current = true;
     void startSession();
-  }, [supported, voiceEnabled, startSession]);
+  }, [supported, voiceEnabled, sessionActive, startSession]);
 
   const handleEnd = () => {
     closePanel();
@@ -168,9 +168,28 @@ export function VoiceSession() {
               </div>
 
               {error && (
-                <p className="text-sm text-rose-300 bg-rose-500/10 ring-1 ring-rose-400/25 rounded-xl px-4 py-3 mb-3 text-left">
-                  {error}
-                </p>
+                <div className="mb-3 text-left">
+                  <p className="text-sm text-rose-300 bg-rose-500/10 ring-1 ring-rose-400/25 rounded-xl px-4 py-3">
+                    {error}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void startSession()}
+                    className="mt-2 px-4 py-2 text-xs font-semibold rounded-xl bg-violet-500/20 hover:bg-violet-500/30 text-violet-100 ring-1 ring-violet-400/30 transition-all"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+
+              {!sessionActive && !error && status === "idle" && (
+                <button
+                  type="button"
+                  onClick={() => void startSession()}
+                  className="mb-3 px-5 py-2.5 text-sm font-semibold rounded-xl bg-violet-500/20 hover:bg-violet-500/30 text-violet-100 ring-1 ring-violet-400/30 transition-all"
+                >
+                  Start voice session
+                </button>
               )}
 
               {!hasTranscript && !error && (

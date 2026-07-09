@@ -174,7 +174,8 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /\b(?:address|phone|hours)\b[\s\S]{0,20}\b(?:of|for|at)\b/i.test(lower) ||
+    (/\b(?:address|phone|hours)\b[\s\S]{0,20}\b(?:of|for|at)\b/i.test(lower) &&
+      /\b(?:store|stores|branch|mall|mills|plaza|fair|center|location)\b/i.test(lower)) ||
     /\bstores?\s+(?:in|near|across)\b/i.test(lower) ||
     /\bcall\b[\s\S]{0,30}\b(?:mall|mills|center|fair|plaza)\b/i.test(lower) ||
     /\b(?:how many|list|show)\b[\s\S]{0,20}\bstores?\b/i.test(lower)

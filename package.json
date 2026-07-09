@@ -12,7 +12,8 @@
     "stores:sync": "npx tsx scripts/sync-store-directory.ts",
     "stores:geocode": "npx tsx scripts/geocode-store-directory.ts",
     "test:stores": "npx tsx scripts/test-store-intelligence.ts",
-    "test:social": "npx tsx scripts/test-social-instagram.ts"
+    "test:social": "npx tsx scripts/test-social-instagram.ts",
+    "test:voice": "npx tsx scripts/test-voice-flow.ts"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.33.1-dev45.0",

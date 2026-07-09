@@ -20,10 +20,10 @@ const SEED_CANDIDATES: {
   {
     fileName: "Sales-Report.csv",
     path: path.join(process.cwd(), "data", "reports", "Sales-Report.csv"),
-    label: "Final Sales Report 1–5 July",
+    label: "Final Sales Report 1–8 July",
     reportPeriod: "custom",
-    reportDate: "2026-07-05",
-    dateRange: { from: "2026-07-01", to: "2026-07-05" },
+    reportDate: "2026-07-08",
+    dateRange: { from: "2026-07-01", to: "2026-07-08" },
   },
 ];
 

@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { GEMINI_IMAGE_MODEL_LABEL } from "@/lib/gemini/config";
-import { ImagePlus, Loader2, Ratio, SlidersHorizontal, Sparkles, X, Camera } from "lucide-react";
+import { ImagePlus, Loader2, X, Camera } from "lucide-react";
 
 export interface ReferenceItem {
   id: string;
@@ -19,12 +18,13 @@ interface ImageCreateBarProps {
   onPromptChange: (v: string) => void;
   refs: ReferenceItem[];
   onRefsChange: (refs: ReferenceItem[]) => void;
-  size: string;
-  quality: string;
-  sizes: { id: string; label: string; ratio: string }[];
-  qualities: { id: string; label: string }[];
-  onSizeChange: (s: string) => void;
-  onQualityChange: (q: string) => void;
+  /** Kept for API defaults — UI no longer exposes ratio/quality controls */
+  size?: string;
+  quality?: string;
+  sizes?: { id: string; label: string; ratio: string }[];
+  qualities?: { id: string; label: string }[];
+  onSizeChange?: (s: string) => void;
+  onQualityChange?: (q: string) => void;
   loading: boolean;
   onCreate: () => void;
   onCamera?: () => void;
@@ -35,35 +35,14 @@ export function ImageCreateBar({
   onPromptChange,
   refs,
   onRefsChange,
-  size,
-  quality,
-  sizes,
-  qualities,
-  onSizeChange,
-  onQualityChange,
   loading,
   onCreate,
   onCamera,
 }: ImageCreateBarProps) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const settingsRef = useRef<HTMLDivElement>(null);
-
-  const ratioLabel = sizes.find((s) => s.id === size)?.ratio ?? "1:1";
-  const qualityLabel = qualities.find((q) => q.id === quality)?.label ?? "High";
-
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
-        setSettingsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
 
   const addFiles = (list: FileList | File[] | null | undefined) => {
     if (!list?.length) return;
@@ -99,7 +78,7 @@ export function ImageCreateBar({
         ? "Describe how to transform this photo — white background, studio lighting…"
         : "Use @img1, @img2… to combine your references…";
 
-  const shellActive = focused || dragOver || settingsOpen;
+  const shellActive = focused || dragOver;
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -215,82 +194,6 @@ export function ImageCreateBar({
                     </button>
                   </>
                 )}
-
-                <span className="h-4 w-px bg-white/10 shrink-0 mx-0.5" aria-hidden />
-
-                <div className="relative" ref={settingsRef}>
-                  <button
-                    type="button"
-                    onClick={() => setSettingsOpen((o) => !o)}
-                    title={`${ratioLabel} · ${qualityLabel}`}
-                    aria-label="Image settings"
-                    aria-expanded={settingsOpen}
-                    className={cn(
-                      "flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-white/50 transition-all",
-                      settingsOpen
-                        ? "bg-fuchsia-500/15 text-fuchsia-200"
-                        : "hover:text-white/80 hover:bg-white/[0.05]"
-                    )}
-                  >
-                    <Ratio size={15} strokeWidth={1.75} />
-                    <span className="text-[11px] font-medium tabular-nums tracking-tight">{ratioLabel}</span>
-                    <SlidersHorizontal size={13} strokeWidth={1.75} className="opacity-50" />
-                  </button>
-
-                  {settingsOpen && (
-                    <div className="absolute left-0 top-full mt-2 z-30 w-[min(280px,calc(100vw-2rem))] rounded-2xl bg-[#151d2e]/98 backdrop-blur-xl shadow-[0_24px_60px_rgba(0,0,0,0.5)] ring-1 ring-fuchsia-400/25 p-4 space-y-4">
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-fuchsia-300/60 mb-2">
-                          Aspect ratio
-                        </p>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {sizes.map((opt) => (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => onSizeChange(opt.id)}
-                              className={cn(
-                                "px-2 py-2 rounded-xl text-xs font-medium transition-all text-left",
-                                size === opt.id
-                                  ? "bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-[0_4px_16px_rgba(139,92,246,0.35)]"
-                                  : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] ring-1 ring-white/8"
-                              )}
-                            >
-                              {opt.label}
-                              <span className="block text-[9px] opacity-70">{opt.ratio}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-fuchsia-300/60 mb-2">
-                          Quality
-                        </p>
-                        <div className="flex gap-1.5">
-                          {qualities.map((opt) => (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => onQualityChange(opt.id)}
-                              className={cn(
-                                "flex-1 px-2 py-2 rounded-xl text-xs font-medium transition-all",
-                                quality === opt.id
-                                  ? "bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white"
-                                  : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] ring-1 ring-white/8"
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-white/35 pt-1 border-t border-white/[0.08] flex items-center gap-1.5">
-                        <Sparkles size={10} className="text-emerald-400/80" />
-                        {GEMINI_IMAGE_MODEL_LABEL}
-                      </p>
-                    </div>
-                  )}
-                </div>
               </div>
 
               <button

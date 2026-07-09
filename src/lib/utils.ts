@@ -31,7 +31,7 @@ export function isExcludedTopProductSku(sku?: string | null): boolean {
   const normalized = (sku ?? "").trim().toUpperCase();
   if (!normalized) return false;
   if (EXCLUDED_TOP_PRODUCT_SKUS.has(normalized)) return true;
-  if (normalized.startsWith("MLB")) return true;
+  if (normalized.startsWith("MLB-")) return true;
   return false;
 }
 

@@ -60,7 +60,7 @@ async function main() {
     console.error("FAIL: sales query should not require confirmation");
     process.exitCode = 1;
   }
-  if (!salesRes?.message?.includes("DBC-GM")) {
+  if (!salesRes?.message?.includes("VJ-MOD")) {
     console.error("FAIL: sales query should return top store data in chat");
     process.exitCode = 1;
   }

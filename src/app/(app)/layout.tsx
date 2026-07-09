@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { useApp } from "@/lib/store/app-context";
 import { Sidebar, MobileNav } from "@/components/layout/Sidebar";
 import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
+import { VoiceProvider } from "@/components/voice/VoiceProvider";
+import { VoiceMiniHud } from "@/components/voice/VoiceMiniHud";
 import { FuturisticBackground } from "@/components/layout/FuturisticBackground";
 import { UiContextSync } from "@/components/layout/UiContextSync";
 import { cn } from "@/lib/utils";
@@ -42,23 +44,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen relative">
-      <UiContextSync />
-      <FuturisticBackground />
-      {!isVoicePage && <Sidebar />}
-      <div className="flex-1 flex flex-col min-w-0">
-        {!isVoicePage && <MobileNav />}
-        <main className={cn("flex-1 overflow-x-hidden", isVoicePage && "overflow-hidden")}>
-          {isVoicePage ? (
-            children
-          ) : (
-            <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
-              {children}
-            </div>
-          )}
-        </main>
+    <VoiceProvider>
+      <div className="flex min-h-screen relative">
+        <UiContextSync />
+        <FuturisticBackground />
+        {!isVoicePage && <Sidebar />}
+        <div className="flex-1 flex flex-col min-w-0">
+          {!isVoicePage && <MobileNav />}
+          <main className={cn("flex-1 overflow-x-hidden", isVoicePage && "overflow-hidden")}>
+            {isVoicePage ? (
+              children
+            ) : (
+              <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
+                {children}
+              </div>
+            )}
+          </main>
+        </div>
+        {showFloatingVoice && <RealtimeVoiceButton />}
+        <VoiceMiniHud />
       </div>
-      {showFloatingVoice && <RealtimeVoiceButton />}
-    </div>
+    </VoiceProvider>
   );
 }
