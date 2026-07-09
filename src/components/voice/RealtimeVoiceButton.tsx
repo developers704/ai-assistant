@@ -77,7 +77,7 @@ export function RealtimeVoiceButton({
         
         {/* Dynamic Greeting */}
         <h2 className="text-3xl sm:text-4xl font-bold text-white mb-12 tracking-tight">
-          Hi Kash, what's on your mind?
+          Hi Kash, what&apos;s on your mind?
         </h2>
 
         {/* Large Central Orb */}
