@@ -1,0 +1,35 @@
+---
+description: Sales report uploads and Top 20 product exclusion rules (always apply)
+alwaysApply: true
+---
+
+# Sales Report Rules
+
+**Every uploaded or replaced sales CSV must follow these rules** — bundled seed (`data/reports/Sales-Report.csv`), Data Analyst upload, and API `POST /api/reports`.
+
+## Top 20 products — hide only, never exclude from totals
+
+Excluded SKUs are **hidden from Top 20 products** (Sales Dashboard, voice, chat, Data Analyst) but **must still count** in total revenue, store rankings, departments, vendors, margins, and all other aggregates.
+
+### Exclusion rules (match on SKU # or Item #)
+
+| Rule | Reason |
+|------|--------|
+| `ITEM` | Placeholder / custom order / special order lines |
+| `250000` | CBE recycling fee |
+| Starts with `MLB-` | Mulberry lifetime / care plans |
+| `JVS-200940` | Watch battery service (repair, not product) |
+| `217365`, `217286`, `159004` | Legacy excluded SKUs |
+
+### Implementation (do not bypass on upload)
+
+- **Single source of truth:** `isExcludedTopProductSku()` + `EXCLUDED_TOP_PRODUCT_SKUS` in `src/lib/utils.ts`
+- **On every summarize/upload:** `rankProducts()` in `src/lib/reports/vendor-pos.ts` skips excluded SKUs
+- **On every display:** `filterTopProductSkus()` in sales page, `TopProductsTable`, voice, assistant, context builder
+
+When adding exclusions, update `src/lib/utils.ts` only. Never filter excluded rows out of `periodRows` or revenue totals.
+
+## Bundled default report
+
+- File: `data/reports/Sales-Report.csv`
+- Seeded via `src/lib/reports/store.ts`; app refreshes `.data/reports/` when the file changes

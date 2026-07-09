@@ -18,7 +18,11 @@ export function formatPieceCount(units: number): string {
   return n === 1 ? "1 pc" : `${n.toLocaleString()} pcs`;
 }
 
-/** Non-jewelry SKUs hidden from Top Products only (still in report totals). */
+/**
+ * SKUs hidden from Top 20 products only — applies to every uploaded/seeeded sales CSV.
+ * Still counted in total revenue, stores, departments, and all other report sections.
+ * See .cursor/rules/sales-report.mdc
+ */
 const EXCLUDED_TOP_PRODUCT_SKUS = new Set([
   "ITEM",
   "250000",

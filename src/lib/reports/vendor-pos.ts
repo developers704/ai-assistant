@@ -144,6 +144,7 @@ function rankMap(
     .slice(0, limit);
 }
 
+/** Top products for display — excludes SKUs in isExcludedTopProductSku(); totals use all rows. */
 function rankProducts(rows: VendorPosRow[], limit = 20) {
   const map = new Map<
     string,
