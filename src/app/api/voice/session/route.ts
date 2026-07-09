@@ -15,7 +15,16 @@ async function buildSessionConfig(model: string) {
   const state = getState();
   const dynamic = await buildDynamicContext(state);
   const liveContext = dynamic.textBlock;
-  const instructions = `CRITICAL LANGUAGE & NOISE RULE: You must ONLY understand, transcribe, and respond in English and Urdu. Ignore background noise, static, breathing, or silence completely. Never transcribe them as words (especially not as Chinese, Portuguese, or other languages). If there is no clear human speech in English or Urdu, ignore the sound and do not respond.\n\n${loadVoiceInstructions()}\n\n---\nLIVE CONTEXT (authoritative for this session):\n${liveContext}`;
+  const instructions = `CRITICAL LANGUAGE & NOISE RULE: You must ONLY understand, transcribe, and respond in English and Urdu. Ignore background noise, static, breathing, or silence completely. Never transcribe them as words (especially not as Chinese, Portuguese, or other languages). If there is no clear human speech in English or Urdu, ignore the sound and do not respond.
+
+CRITICAL NAVIGATION RULE: If the user asks to see a specific section (e.g., "show me today sales", "open emails", "go to calendar", "open social"), YOU MUST USE THE \`show_detail_page\` TOOL to navigate them there. 
+When doing so, provide a VERY SHORT, 1-2 sentence brief summary of what they are looking at. Do NOT give long explanations unless explicitly asked. Be highly accurate, no hallucinations.
+
+${loadVoiceInstructions()}
+
+---
+LIVE CONTEXT (authoritative for this session):
+${liveContext}`;
   return {
     type: "realtime" as const,
     model,

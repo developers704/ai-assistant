@@ -19,14 +19,14 @@ export function PlasmaOrb({ className, children }: PlasmaOrbProps) {
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
           <filter id="electric-noise">
-            <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="4" result="noise" seed="1">
-              <animate attributeName="baseFrequency" values="0.025;0.035;0.025" dur="8s" repeatCount="indefinite" />
+            <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise" seed="2">
+              <animate attributeName="baseFrequency" values="0.06;0.08;0.06" dur="3s" repeatCount="indefinite" />
             </feTurbulence>
             <feColorMatrix type="matrix" values="
               1 0 0 0 0
               0 1 0 0 0
               0 0 1 0 0
-              0 0 0 30 -12" in="noise" result="highContrast" />
+              0 0 0 20 -8" in="noise" result="highContrast" />
             <feComposite operator="in" in="SourceGraphic" in2="highContrast" result="composite" />
           </filter>
         </defs>

@@ -246,7 +246,7 @@ export function useRealtimeVoice(enabled: boolean) {
           await runTool(
             "get_today_sales",
             { user_message: normalized },
-            "The user asked about SALES. Say exactly this:",
+            "The user asked about SALES. Navigate them to the sales dashboard and give a VERY BRIEF 1-2 sentence summary. Say exactly this:",
             200
           );
           return;
@@ -332,7 +332,7 @@ export function useRealtimeVoice(enabled: boolean) {
             await runTool(
               "show_detail_page",
               { page },
-              "The user asked to OPEN A PAGE. Say exactly this:",
+              "The user asked to OPEN A PAGE. Navigate them there and give a VERY BRIEF 1 sentence confirmation. Say exactly this:",
               80
             );
             return;
@@ -478,7 +478,7 @@ export function useRealtimeVoice(enabled: boolean) {
           await runTool(
             "open_data_analyst",
             { user_message: normalized },
-            "The user asked about DATA ANALYST or REPORT ANALYSIS. Say exactly this:",
+            "The user asked about DATA ANALYST or REPORT ANALYSIS. Navigate them there and give a VERY BRIEF 1-2 sentence summary. Say exactly this:",
             300
           );
           return;
@@ -492,7 +492,7 @@ export function useRealtimeVoice(enabled: boolean) {
       sendEvent(dc, {
         type: "response.create",
         response: {
-          instructions: `${STOP_INSTRUCTION}\n\nUse ONE appropriate tool for what the user asked. After speaking the result, stop. Never ask follow-up questions or take extra actions while the user is silent.`,
+          instructions: `${STOP_INSTRUCTION}\n\nUse ONE appropriate tool for what the user asked. If they ask to see a section, use the \`show_detail_page\` tool to navigate them there. After speaking the result, stop. Keep your answer VERY BRIEF (1-2 sentences) unless asked for details. Never ask follow-up questions or take extra actions while the user is silent.`,
           max_output_tokens: 220,
         },
       });

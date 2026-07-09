@@ -72,45 +72,76 @@ export function RealtimeVoiceButton({
           : "text-ink-muted";
 
   const voicePanel = panelOpen && (
-    <div
-      className={cn(
-        "voice-card rounded-3xl p-4 sm:p-5 animate-in fade-in slide-in-from-bottom-3 duration-300 z-50",
-        isInline
-          ? // Mobile: fixed sheet centered above composer. Desktop: popover anchored to the mic's right edge.
-            "fixed inset-x-3 bottom-24 mx-auto max-w-sm sm:absolute sm:inset-x-auto sm:bottom-full sm:right-0 sm:mb-3 sm:w-80"
-          : "w-[min(20rem,calc(100vw-2rem))]"
-      )}
-    >
-      {/* Header: orb + status */}
-      <div className="flex items-center gap-3.5">
-        <div className="relative shrink-0">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020617]/90 backdrop-blur-2xl animate-in fade-in duration-300">
+      <div className="flex flex-col items-center max-w-2xl w-full px-6 text-center">
+        
+        {/* Dynamic Greeting */}
+        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-12 tracking-tight">
+          Hi Kash, what's on your mind?
+        </h2>
+
+        {/* Large Central Orb */}
+        <div className="relative mb-16">
           {isLive && (
             <>
-              <span className="voice-ring" />
-              <span className="voice-ring" />
-              <span className="voice-ring" />
+              <span className="voice-ring" style={{ width: '200%', height: '200%', left: '-50%', top: '-50%' }} />
+              <span className="voice-ring" style={{ width: '250%', height: '250%', left: '-75%', top: '-75%', animationDelay: '0.7s' }} />
             </>
           )}
           <div
             className={cn(
-              "voice-orb relative flex h-12 w-12 items-center justify-center rounded-full",
-              isSpeaking && "voice-orb-speaking"
+              "plasma-orb relative flex h-40 w-40 sm:h-56 sm:w-56 items-center justify-center rounded-full transition-transform duration-300",
+              isSpeaking && "scale-110",
+              isLive && !isSpeaking && !isBusy && "scale-105" // Vibrate/pulse when user speaks
             )}
+            style={{
+              boxShadow: isLive && !isSpeaking && !isBusy 
+                ? '0 0 60px rgba(217, 70, 239, 0.6), inset 0 0 30px rgba(255, 255, 255, 0.5)' 
+                : undefined,
+              animation: isLive && !isSpeaking && !isBusy ? 'orb-breathe 0.5s ease-in-out infinite alternate' : undefined
+            }}
           >
-            {isBusy ? (
-              <Loader2 size={19} className="animate-spin text-white" />
-            ) : isSpeaking ? (
-              <AudioLines size={19} className="text-white" />
-            ) : (
-              <Mic size={19} className="text-white" />
-            )}
+            <svg className="absolute w-0 h-0" aria-hidden="true">
+              <defs>
+                <filter id="electric-noise-voice">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise" seed="3">
+                    <animate attributeName="baseFrequency" values="0.06;0.08;0.06" dur="3s" repeatCount="indefinite" />
+                  </feTurbulence>
+                  <feColorMatrix type="matrix" values="
+                    1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 20 -8" in="noise" result="highContrast" />
+                  <feComposite operator="in" in="SourceGraphic" in2="highContrast" result="composite" />
+                </filter>
+              </defs>
+            </svg>
+            <span className="plasma-lightning" style={{ filter: 'url(#electric-noise-voice)' }} />
+            <span className="plasma-lightning-b" style={{ filter: 'url(#electric-noise-voice)' }} />
+            <span className="plasma-core" />
+            <span className="plasma-shine" />
+
+            {/* Icon Overlay */}
+            <div className="relative z-10">
+              {isBusy ? (
+                <Loader2 size={40} className="animate-spin text-white/80" />
+              ) : isSpeaking ? (
+                <AudioLines size={48} className="text-white/90 animate-pulse" />
+              ) : (
+                <Mic size={40} className="text-white/80" />
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-              Voice · Realtime
+        {/* Status & Transcripts */}
+        <div className="w-full max-w-lg mx-auto bg-white/5 rounded-3xl p-6 border border-white/10 shadow-2xl">
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <p className={cn("text-sm font-semibold flex items-center gap-2", statusTone)}>
+              {isLive && (
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
+              )}
+              {statusLabel}
             </p>
             {isSpeaking && (
               <span className="voice-eq" aria-hidden>
@@ -118,68 +149,54 @@ export function RealtimeVoiceButton({
               </span>
             )}
           </div>
-          <p className={cn("text-sm font-semibold mt-0.5 flex items-center gap-1.5", statusTone)}>
-            {isLive && (
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
-            )}
-            {statusLabel}
-          </p>
+
+          {error && (
+            <p className="text-sm text-rose-300 bg-rose-500/10 ring-1 ring-rose-400/25 rounded-xl px-4 py-3 mb-4 text-left">
+              {error}
+            </p>
+          )}
+
+          {isLive && !userTranscript && !isBusy && !isSpeaking && (
+            <p className="text-sm text-ink-secondary text-left">
+              Listening...
+            </p>
+          )}
+
+          {(userTranscript || assistantTranscript) && (
+            <div className="space-y-4 max-h-48 overflow-y-auto pr-2 text-left">
+              {userTranscript && (
+                <div className="flex justify-end">
+                  <div className="chat-bubble-user max-w-[90%] rounded-2xl rounded-br-md px-4 py-3">
+                    <p className="text-sm text-white leading-relaxed">{userTranscript}</p>
+                  </div>
+                </div>
+              )}
+
+              {assistantTranscript && (
+                <div className="flex justify-start">
+                  <div className="chat-bubble-ai max-w-[95%] rounded-2xl rounded-tl-md px-4 py-3">
+                    <p className="text-xs uppercase tracking-wide text-violet-300/80 mb-1">
+                      Alexa
+                    </p>
+                    <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap">
+                      {assistantTranscript}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
+        <button
+          type="button"
+          onClick={closePanel}
+          className="mt-8 px-8 py-3.5 text-sm font-semibold rounded-full bg-white/10 hover:bg-rose-500/20 text-white hover:text-rose-100 ring-1 ring-white/20 hover:ring-rose-400/40 transition-all flex items-center justify-center gap-2 backdrop-blur-md"
+        >
+          <PhoneOff size={16} />
+          End Session
+        </button>
       </div>
-
-      {error && (
-        <p className="mt-3 text-xs text-rose-300 bg-rose-500/10 ring-1 ring-rose-400/25 rounded-xl px-3 py-2">
-          {error}
-        </p>
-      )}
-
-      {isLive && !userTranscript && !isBusy && !isSpeaking && (
-        <p className="mt-3 text-xs text-ink-secondary">
-          Mic is on — speak naturally, ask follow-ups anytime.
-        </p>
-      )}
-
-      {(userTranscript || assistantTranscript) && (
-        <div className="mt-3 space-y-2.5 max-h-56 overflow-y-auto pr-1">
-          {userTranscript && (
-            <div className="flex justify-end">
-              <div className="chat-bubble-user max-w-[88%] rounded-2xl rounded-br-md px-3 py-2">
-                <p className="text-xs text-white leading-relaxed">{userTranscript}</p>
-              </div>
-            </div>
-          )}
-
-          {assistantTranscript && (
-            <div className="flex justify-start">
-              <div className="chat-bubble-ai max-w-[92%] rounded-2xl rounded-tl-md px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wide text-violet-300/80 mb-0.5">
-                  Alexa
-                </p>
-                <p className="text-xs text-ink-secondary leading-relaxed line-clamp-6 whitespace-pre-wrap">
-                  {assistantTranscript}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {isBusy && !userTranscript && (
-        <p className="mt-3 text-xs text-ink-muted flex items-center gap-2">
-          <span className="typing-dot" />
-          <span className="typing-dot" />
-          <span className="typing-dot" />
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={closePanel}
-        className="mt-4 w-full py-2.5 text-xs font-semibold rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 hover:text-rose-100 ring-1 ring-rose-400/30 transition-colors flex items-center justify-center gap-1.5"
-      >
-        <PhoneOff size={13} />
-        End voice chat
-      </button>
     </div>
   );
 
