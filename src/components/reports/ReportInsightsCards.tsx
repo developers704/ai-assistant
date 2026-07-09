@@ -36,14 +36,14 @@ function BriefingMetric({
   accent: "emerald" | "amber" | "violet";
 }) {
   const accents = {
-    emerald: "text-emerald-300",
-    amber: "text-amber-300",
-    violet: "text-violet-200",
+    emerald: "text-emerald-300 font-bold",
+    amber: "text-gold-metric",
+    violet: "text-violet-200 font-bold",
   };
   return (
     <div className="flex-1 min-w-0 px-4 py-3.5 first:pl-0 last:pr-0">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">{label}</p>
-      <p className={cn("text-xl sm:text-2xl font-bold mt-1 tabular-nums tracking-tight", accents[accent])}>
+      <p className={cn("text-xl sm:text-2xl mt-1 tabular-nums tracking-tight", accents[accent])}>
         {value}
       </p>
       {sub && <p className="text-[10px] text-white/30 mt-0.5">{sub}</p>}
@@ -66,8 +66,8 @@ function RankedList({
   return (
     <section className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.025] p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-4">
-        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-white/10", iconClass)}>
-          <Icon size={14} strokeWidth={1.75} />
+        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]", iconClass)}>
+          <Icon size={14} strokeWidth={1.85} />
         </span>
         <h3 className="text-xs font-semibold uppercase tracking-wider text-white/60">{title}</h3>
       </div>
@@ -154,7 +154,7 @@ export function ReportInsightsCards({ summary, compact, variant = "default" }: R
             <RankedList
               title="Top stores"
               icon={Store}
-              iconClass="bg-cyan-500/15 text-cyan-300"
+              iconClass="text-cyan-300/80"
               items={summary.topStores}
             />
           )}
@@ -162,7 +162,7 @@ export function ReportInsightsCards({ summary, compact, variant = "default" }: R
             <RankedList
               title="Design lines"
               icon={Gem}
-              iconClass="bg-fuchsia-500/15 text-fuchsia-300"
+              iconClass="text-fuchsia-300/80"
               items={summary.topDesigns}
             />
           )}
@@ -170,7 +170,7 @@ export function ReportInsightsCards({ summary, compact, variant = "default" }: R
             <RankedList
               title="Metal / class"
               icon={Layers}
-              iconClass="bg-emerald-500/15 text-emerald-300"
+              iconClass="text-emerald-300/80"
               items={summary.topClasses}
             />
           )}
@@ -270,22 +270,22 @@ export function ReportInsightsCards({ summary, compact, variant = "default" }: R
           <ListCard title="Payment methods" icon={CreditCard} iconColor="text-indigo-300" items={summary.paymentMethods} />
         )}
         {isFinancing && summary.financingProviders && summary.financingProviders.length > 0 && (
-          <ListCard title="Pay programs" icon={Wallet} iconColor="text-amber-300" items={summary.financingProviders} />
+          <ListCard title="Pay programs" icon={Wallet} iconColor="text-amber-300/75" items={summary.financingProviders} />
         )}
         {summary.topStores.length > 0 && (
-          <ListCard title="Top stores" icon={Store} iconColor="text-cyan-300" items={summary.topStores} />
+          <ListCard title="Top stores" icon={Store} iconColor="text-cyan-300/75" items={summary.topStores} />
         )}
         {summary.topDepartments && summary.topDepartments.length > 0 && (
-          <ListCard title="Top departments" icon={Tag} iconColor="text-violet-300" items={summary.topDepartments} />
+          <ListCard title="Top departments" icon={Tag} iconColor="text-violet-300/75" items={summary.topDepartments} />
         )}
         {summary.topVendors && summary.topVendors.length > 0 && (
-          <ListCard title="Top vendors" icon={Truck} iconColor="text-orange-300" items={summary.topVendors} />
+          <ListCard title="Top vendors" icon={Truck} iconColor="text-orange-300/75" items={summary.topVendors} />
         )}
         {summary.topDesigns && summary.topDesigns.length > 0 && (
-          <ListCard title="Top design lines" icon={Gem} iconColor="text-fuchsia-300" items={summary.topDesigns} />
+          <ListCard title="Top design lines" icon={Gem} iconColor="text-fuchsia-300/75" items={summary.topDesigns} />
         )}
         {summary.topClasses && summary.topClasses.length > 0 && (
-          <ListCard title="Top metal / class" icon={Layers} iconColor="text-emerald-300" items={summary.topClasses} />
+          <ListCard title="Top metal / class" icon={Layers} iconColor="text-emerald-300/75" items={summary.topClasses} />
         )}
       </div>
 
@@ -332,13 +332,13 @@ function MetricCard({
   icon?: typeof TrendingUp;
 }) {
   const valueColor =
-    accent === "emerald" ? "text-emerald-300" : accent === "amber" ? "text-amber-300" : "text-ink";
+    accent === "emerald" ? "text-emerald-300 font-bold" : accent === "amber" ? "text-gold-metric" : "text-ink font-bold";
   return (
     <div className="rounded-3xl p-4 glass-panel">
       <p className="text-xs text-ink-muted flex items-center gap-1.5">
         {Icon && <Icon size={12} />} {label}
       </p>
-      <p className={cn("text-xl font-bold mt-1", valueColor)}>{value}</p>
+      <p className={cn("text-xl mt-1", valueColor)}>{value}</p>
       {sub && <p className="text-[11px] text-ink-muted mt-0.5">{sub}</p>}
     </div>
   );
@@ -377,7 +377,7 @@ function ListCard({
   return (
     <div className="rounded-3xl p-4 glass-panel">
       <div className="flex items-center gap-2 mb-3">
-        <Icon size={14} className={iconColor} />
+        <Icon size={14} className={iconColor} strokeWidth={1.85} />
         <p className="text-sm font-semibold text-ink">{title}</p>
       </div>
       <div className="space-y-2">

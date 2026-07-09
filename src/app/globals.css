@@ -152,6 +152,16 @@
     color: transparent;
   }
 
+  /** Rich gold for margin / KPI values — warmer than amber-300 */
+  .text-gold-metric {
+    background: linear-gradient(145deg, #f0d78c 0%, #d4a843 42%, #b8862d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
   .chat-orb-glow {
     background: radial-gradient(circle, rgba(139, 92, 246, 0.55) 0%, transparent 70%);
   }
@@ -444,20 +454,19 @@
       inset 0 -3px 7px rgba(0, 0, 0, 0.25);
   }
 
-  /* Soft glass icon tiles (reference style) */
+  /* Soft glass icon tiles — matte, low-glow */
   .glass-icon-tile {
     background: linear-gradient(
       145deg,
-      color-mix(in srgb, var(--gi-from) 88%, white),
-      var(--gi-via) 48%,
-      var(--gi-to)
+      color-mix(in srgb, var(--gi-from) 72%, #1e293b),
+      color-mix(in srgb, var(--gi-via) 65%, #1e293b) 50%,
+      color-mix(in srgb, var(--gi-to) 70%, #1e293b)
     );
     box-shadow:
-      0 6px 16px color-mix(in srgb, var(--gi-glow) 55%, transparent),
-      0 2px 6px rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 rgba(255, 255, 255, 0.55),
-      inset 0 -2px 5px rgba(15, 23, 42, 0.25);
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, filter 0.25s ease;
+      0 2px 8px color-mix(in srgb, var(--gi-glow) 22%, transparent),
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .glass-icon-layer {
@@ -470,57 +479,45 @@
     inset: 2px;
     background: linear-gradient(
       160deg,
-      rgba(255, 255, 255, 0.22),
+      rgba(255, 255, 255, 0.1),
       transparent 55%
     );
-    opacity: 0.85;
+    opacity: 0.5;
   }
 
   .glass-icon-layer-mid {
     inset: 0;
     background:
-      radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.45), transparent 42%),
-      radial-gradient(circle at 70% 80%, color-mix(in srgb, var(--gi-to) 40%, transparent), transparent 50%);
+      radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.18), transparent 42%),
+      radial-gradient(circle at 70% 80%, color-mix(in srgb, var(--gi-to) 18%, transparent), transparent 50%);
     mix-blend-mode: soft-light;
+    opacity: 0.6;
   }
 
   .glass-icon-layer-front {
     inset: 0;
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0.12) 0%,
       transparent 38%,
-      rgba(15, 23, 42, 0.12) 100%
+      rgba(15, 23, 42, 0.08) 100%
     );
   }
 
   .glass-icon-sparkle {
-    position: absolute;
-    top: 4px;
-    right: 5px;
-    width: 7px;
-    height: 7px;
-    z-index: 3;
-    background: white;
-    clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
-    opacity: 0.9;
-    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
-    pointer-events: none;
+    display: none;
   }
 
   .glass-icon-tile-active {
-    transform: translateY(-1px) scale(1.04);
+    transform: translateY(-1px) scale(1.02);
     box-shadow:
-      0 10px 22px color-mix(in srgb, var(--gi-glow) 70%, transparent),
-      0 3px 8px rgba(0, 0, 0, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.7),
-      inset 0 -2px 6px rgba(15, 23, 42, 0.28);
-    filter: saturate(1.1) brightness(1.06);
+      0 4px 12px color-mix(in srgb, var(--gi-glow) 28%, transparent),
+      0 1px 4px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
   }
 
   .group:hover .glass-icon-tile:not(.glass-icon-tile-active) {
-    transform: translateY(-1px) scale(1.03);
-    filter: saturate(1.08) brightness(1.05);
+    transform: translateY(-0.5px) scale(1.01);
   }
 
   /* ============ Voice Realtime — premium overlay ============ */
