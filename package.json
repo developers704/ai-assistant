@@ -11,6 +11,7 @@
     "test:chat:quick": "npx tsx scripts/test-alexa-intelligence.ts",
     "stores:sync": "npx tsx scripts/sync-store-directory.ts",
     "stores:geocode": "npx tsx scripts/geocode-store-directory.ts",
+    "stores:reviews": "npx tsx scripts/sync-store-reviews.ts",
     "test:stores": "npx tsx scripts/test-store-intelligence.ts",
     "test:social": "npx tsx scripts/test-social-instagram.ts",
     "test:voice": "npx tsx scripts/test-voice-flow.ts"

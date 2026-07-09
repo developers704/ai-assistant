@@ -6,6 +6,17 @@ export interface NearestStoreRef {
   distanceMiles: number;
 }
 
+/** Cached Google Places review (API returns up to 5 most relevant). */
+export interface StoreGoogleReview {
+  authorName: string;
+  rating: number;
+  text: string;
+  relativeTime: string;
+  time?: number | null;
+  profilePhotoUrl?: string | null;
+  language?: string | null;
+}
+
 export interface StoreDirectoryEntry {
   id: string;
   officialName?: string | null;
@@ -37,6 +48,14 @@ export interface StoreDirectoryEntry {
   appleMapsUrl: string | null;
   storeUrl: string | null;
   googlePlaceId?: string | null;
+  /** Google Places star rating (1–5). */
+  googleRating?: number | null;
+  /** Total Google review count. */
+  googleReviewCount?: number | null;
+  /** Up to 5 reviews from Places Details. */
+  googleReviews?: StoreGoogleReview[] | null;
+  googleMapsPlaceUrl?: string | null;
+  googleRatingSyncedAt?: string | null;
   nearestStores: NearestStoreRef[];
   sourceUrl: string;
   lastSyncedAt: string;

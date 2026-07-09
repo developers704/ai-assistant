@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { canCalculateDistance, haversineMiles } from "@/lib/stores/distance";
+import { formatTodayHoursLabel, getStoreOpenStatus } from "@/lib/stores/store-hours";
 import type { NearestStoreRef, StoreDirectoryEntry, StoreDirectoryFile } from "@/lib/stores/types";
 
 export const STORE_DIRECTORY_PATH = path.join(
@@ -185,7 +186,7 @@ export function getStoreSummary() {
   const openNow = stores.filter((s) => String(s.status).toLowerCase() === "open").length;
   const openingSoon = stores.filter((s) => /opening[_\s]?soon/i.test(String(s.status))).length;
   const ratings = stores
-    .map((s) => (typeof (s as { rating?: number }).rating === "number" ? (s as { rating?: number }).rating ?? null : null))
+    .map((s) => (typeof s.googleRating === "number" ? s.googleRating : null))
     .filter((r): r is number => r != null);
   const averageGoogleRating = ratings.length
     ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
@@ -312,19 +313,18 @@ export function formatNearestStoreMessage(
 }
 
 export function formatStoreEntry(store: StoreDirectoryEntry): string {
-  const isOpeningSoon = /opening[_\s]?soon/i.test(String(store.status));
-  const status = isOpeningSoon ? " *(Opening soon)*" : "";
-  const hours =
-    typeof store.openingHours === "string"
-      ? store.openingHours
-      : store.openingHours && typeof store.openingHours === "object"
-        ? Object.entries(store.openingHours as Record<string, string | null>)
-            .filter(([, v]) => v)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(", ")
-        : null;
+  const openStatus = getStoreOpenStatus(store);
+  const statusNote =
+    openStatus.listingStatus === "opening_soon"
+      ? " *(Opening soon)*"
+      : openStatus.isOpenNow === true
+        ? ` *(Open now · ${openStatus.tzLabel})*`
+        : openStatus.isOpenNow === false
+          ? ` *(Closed now · ${openStatus.tzLabel})*`
+          : "";
+  const hours = formatTodayHoursLabel(store);
   const lines = [
-    `**${store.mall}**${status}`,
+    `**${store.mall}**${statusNote}`,
     store.address ? `📍 ${store.address}` : null,
     store.phone ? `📞 ${store.phone}` : null,
     hours ? `🕐 ${hours}` : null,

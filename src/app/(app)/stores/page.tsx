@@ -14,6 +14,10 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { StoreDirectoryEntry } from "@/lib/stores/types";
 import {
+  formatTodayHoursLabel,
+  getStoreOpenStatus,
+} from "@/lib/stores/store-hours";
+import {
   MapPin,
   Phone,
   Clock,
@@ -47,23 +51,17 @@ type StoresApiResponse = {
   };
 };
 
-function formatHours(hours: StoreDirectoryEntry["openingHours"]): string | null {
-  if (!hours) return null;
-  if (typeof hours === "string") return hours;
-  const today = new Date()
-    .toLocaleDateString("en-US", { weekday: "long" })
-    .toLowerCase() as keyof typeof hours;
-  const todayHours = hours[today];
-  if (todayHours) return `Today: ${todayHours}`;
-  const first = Object.entries(hours).find(([, v]) => v);
-  return first ? `${first[0]}: ${first[1]}` : null;
+function statusVariant(store: StoreDirectoryEntry): "success" | "warning" | "default" {
+  const status = getStoreOpenStatus(store);
+  if (status.listingStatus === "opening_soon") return "warning";
+  if (status.isOpenNow === true) return "success";
+  if (status.isOpenNow === false) return "default";
+  if (status.listingStatus === "open") return "success";
+  return "default";
 }
 
-function statusVariant(status: string): "success" | "warning" | "default" {
-  const s = status.toLowerCase();
-  if (s.includes("open") && !s.includes("soon")) return "success";
-  if (s.includes("soon")) return "warning";
-  return "default";
+function statusLabel(store: StoreDirectoryEntry): string {
+  return getStoreOpenStatus(store).label;
 }
 
 export default function StoresPage() {
@@ -114,7 +112,7 @@ export default function StoresPage() {
   }, [stores, query, stateFilter]);
 
   const selected = stores.find((s) => s.id === selectedId) ?? null;
-  const openCount = stores.filter((s) => /open/i.test(s.status) && !/soon/i.test(s.status)).length;
+  const openNowCount = stores.filter((s) => getStoreOpenStatus(s).isOpenNow === true).length;
   const soonCount = stores.filter((s) => /soon/i.test(s.status)).length;
   const mappedCount = stores.filter((s) => s.latitude != null && s.longitude != null).length;
 
@@ -125,7 +123,7 @@ export default function StoresPage() {
           gradient
           eyebrow="Locations"
           title="Stores Map & Info"
-          subtitle="Valliani Jewelers locations on the map · ratings & Google details coming soon"
+          subtitle="Valliani Jewelers locations · Google ratings & reviews"
           action={
             <div className="flex flex-wrap items-center gap-2 justify-end">
               {stores.length > 0 && (
@@ -139,7 +137,14 @@ export default function StoresPage() {
       <PageShellBody>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           <LushMetric label="Total stores" value={String(stores.length || "—")} accent="sky" />
-          <LushMetric label="Open now" value={String(openCount || "—")} accent="emerald" />
+          <LushMetric
+            label="Open now"
+            value={String(openNowCount)}
+            accent="emerald"
+            footer={
+              <p className="text-sm text-white/35">By each store&apos;s US local time</p>
+            }
+          />
           <LushMetric
             label="On map"
             value={`${mappedCount}`}
@@ -223,10 +228,18 @@ export default function StoresPage() {
                               </p>
                               <p className="text-xs text-white/40 mt-0.5 truncate">
                                 {[store.city, store.stateCode].filter(Boolean).join(", ")}
+                                {typeof store.googleRating === "number" && (
+                                  <span className="text-amber-300/80 ml-1.5">
+                                    · {store.googleRating.toFixed(1)}★
+                                    {typeof store.googleReviewCount === "number"
+                                      ? ` (${store.googleReviewCount})`
+                                      : ""}
+                                  </span>
+                                )}
                               </p>
                             </div>
-                            <Badge variant={statusVariant(store.status)} className="shrink-0 text-[10px]">
-                              {store.status}
+                            <Badge variant={statusVariant(store)} className="shrink-0 text-[10px]">
+                              {statusLabel(store)}
                             </Badge>
                           </div>
                         </button>
@@ -249,9 +262,8 @@ export default function StoresPage() {
 }
 
 function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
-  const hoursLabel =
-    formatHours(store.openingHours) ??
-    (typeof store.hoursRaw === "string" ? store.hoursRaw : null);
+  const openStatus = getStoreOpenStatus(store);
+  const hoursLabel = formatTodayHoursLabel(store);
 
   return (
     <div className="rounded-2xl ring-1 ring-white/[0.08] bg-white/[0.03] p-4 sm:p-5 space-y-3">
@@ -267,7 +279,7 @@ function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
             {[store.city, store.state].filter(Boolean).join(", ")}
           </p>
         </div>
-        <Badge variant={statusVariant(store.status)}>{store.status}</Badge>
+        <Badge variant={statusVariant(store)}>{openStatus.label}</Badge>
       </div>
 
       {(store.address || store.fullAddress) && (
@@ -294,28 +306,82 @@ function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
         </p>
       )}
 
-      {/* Placeholders for future Google Places enrichment */}
       <div className="grid grid-cols-2 gap-2 pt-1">
-        <div className="rounded-xl bg-white/[0.03] ring-1 ring-dashed ring-white/10 px-3 py-2.5">
+        <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 px-3 py-2.5">
           <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/30">
-            <Star size={11} /> Rating
+            <Star size={11} className="text-amber-300/80" /> Rating
           </p>
-          <p className="text-xs text-white/40 mt-1">Coming from Google</p>
+          {typeof store.googleRating === "number" ? (
+            <p className="text-sm font-semibold text-amber-200 mt-1 tabular-nums">
+              {store.googleRating.toFixed(1)}
+              <span className="text-white/35 font-normal text-xs ml-1.5">
+                / 5
+              </span>
+            </p>
+          ) : (
+            <p className="text-xs text-white/40 mt-1">Not synced yet</p>
+          )}
         </div>
-        <div className="rounded-xl bg-white/[0.03] ring-1 ring-dashed ring-white/10 px-3 py-2.5">
+        <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 px-3 py-2.5">
           <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/30">
             <MessageSquare size={11} /> Reviews
           </p>
-          <p className="text-xs text-white/40 mt-1">Coming from Google</p>
+          {typeof store.googleReviewCount === "number" ? (
+            <p className="text-sm font-semibold text-ink mt-1 tabular-nums">
+              {store.googleReviewCount.toLocaleString()}
+            </p>
+          ) : (
+            <p className="text-xs text-white/40 mt-1">Not synced yet</p>
+          )}
         </div>
       </div>
 
+      {store.googleReviews && store.googleReviews.length > 0 && (
+        <div className="space-y-2 pt-1">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+            Recent Google reviews
+          </p>
+          <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            {store.googleReviews.slice(0, 3).map((review, i) => (
+              <li
+                key={`${review.authorName}-${i}`}
+                className="rounded-xl bg-white/[0.025] ring-1 ring-white/[0.06] px-3 py-2.5"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="text-xs font-medium text-white/80 truncate">
+                    {review.authorName}
+                  </p>
+                  <span className="text-[11px] text-amber-300/90 tabular-nums shrink-0">
+                    {"★".repeat(Math.round(review.rating))}
+                    <span className="text-white/30 ml-1">{review.rating}</span>
+                  </span>
+                </div>
+                {review.text && (
+                  <p className="text-xs text-white/50 leading-relaxed line-clamp-3">
+                    {review.text}
+                  </p>
+                )}
+                {review.relativeTime && (
+                  <p className="text-[10px] text-white/30 mt-1">{review.relativeTime}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2 pt-1">
-        {store.googleMapsUrl && (
+        {(store.googleMapsPlaceUrl || store.googleMapsUrl) && (
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => window.open(store.googleMapsUrl!, "_blank", "noopener,noreferrer")}
+            onClick={() =>
+              window.open(
+                store.googleMapsPlaceUrl || store.googleMapsUrl!,
+                "_blank",
+                "noopener,noreferrer"
+              )
+            }
           >
             <ExternalLink size={14} className="mr-1.5" />
             Google Maps

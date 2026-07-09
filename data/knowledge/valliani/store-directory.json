@@ -3,13 +3,13 @@
   "company": "Valliani Jewelers",
   "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
   "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-  "generatedAt": "2026-07-07T07:26:20.600Z",
-  "sourceNote": "Generated from the user's official Valliani Find Your Location page extract. The official page extract provided names, addresses, phone numbers, and email addresses for the listed stores. Latitude/longitude were not present in the extract, so they are left null with needsGeocoding=true.",
+  "generatedAt": "2026-07-09T08:19:16.293Z",
+  "sourceNote": "Generated from the user's official Valliani Find Your Location page extract. The official page extract provided names, addresses, phone numbers, and email addresses for the listed stores. Latitude/longitude were not present in the extract, so they are left null with needsGeocoding=true. Manually added Vintage Faire Mall (Modesto, CA) and Galleria at Sunset (Henderson, NV) from Google listings on 2026-07-09.",
   "counts": {
-    "totalRecordsInThisFile": 29,
+    "totalRecordsInThisFile": 31,
     "byState": {
-      "CA": 24,
-      "NV": 1,
+      "CA": 25,
+      "NV": 2,
       "AZ": 1,
       "TX": 3
     }
@@ -105,14 +105,14 @@
           "distanceMiles": 55.3
         },
         {
+          "id": "vintage-faire-mall",
+          "name": "Vintage Faire Mall",
+          "distanceMiles": 75.9
+        },
+        {
           "id": "san-francisco-premium-outlets",
           "name": "San Francisco Premium Outlets",
           "distanceMiles": 80.5
-        },
-        {
-          "id": "santa-rosa-plaza",
-          "name": "Santa Rosa Plaza",
-          "distanceMiles": 81.5
         }
       ],
       "distanceCache": {},
@@ -623,9 +623,9 @@
           "distanceMiles": 134.7
         },
         {
-          "id": "northridge-fashion-center",
-          "name": "Northridge Fashion Center",
-          "distanceMiles": 149.4
+          "id": "vintage-faire-mall",
+          "name": "Vintage Faire Mall",
+          "distanceMiles": 135.2
         }
       ],
       "distanceCache": {},
@@ -710,6 +710,11 @@
           "distanceMiles": 42.8
         },
         {
+          "id": "vintage-faire-mall",
+          "name": "Vintage Faire Mall",
+          "distanceMiles": 93
+        },
+        {
           "id": "northridge-mall",
           "name": "Northridge Mall",
           "distanceMiles": 104.4
@@ -723,11 +728,6 @@
           "id": "weberstown-mall",
           "name": "Weberstown Mall",
           "distanceMiles": 117.7
-        },
-        {
-          "id": "eastridge-centre",
-          "name": "Eastridge Centre",
-          "distanceMiles": 117.9
         }
       ],
       "distanceCache": {},
@@ -1346,9 +1346,9 @@
           "distanceMiles": 66.4
         },
         {
-          "id": "santa-rosa-plaza",
-          "name": "Santa Rosa Plaza",
-          "distanceMiles": 70.5
+          "id": "vintage-faire-mall",
+          "name": "Vintage Faire Mall",
+          "distanceMiles": 66.4
         }
       ],
       "distanceCache": {},
@@ -1946,6 +1946,11 @@
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
       "nearestStores": [
         {
+          "id": "vintage-faire-mall",
+          "name": "Vintage Faire Mall",
+          "distanceMiles": 25.4
+        },
+        {
           "id": "san-francisco-premium-outlets",
           "name": "San Francisco Premium Outlets",
           "distanceMiles": 35.4
@@ -1964,11 +1969,6 @@
           "id": "southland-mall",
           "name": "Southland Mall",
           "distanceMiles": 49.2
-        },
-        {
-          "id": "great-mall",
-          "name": "Great Mall",
-          "distanceMiles": 51.3
         }
       ],
       "distanceCache": {},
@@ -2063,14 +2063,14 @@
           "distanceMiles": 131.3
         },
         {
+          "id": "vintage-faire-mall",
+          "name": "Vintage Faire Mall",
+          "distanceMiles": 141.2
+        },
+        {
           "id": "solano-town-center",
           "name": "Solano Town Center",
           "distanceMiles": 148.2
-        },
-        {
-          "id": "san-francisco-premium-outlets",
-          "name": "San Francisco Premium Outlets",
-          "distanceMiles": 165.5
         }
       ],
       "distanceCache": {},
@@ -2354,6 +2354,11 @@
       "lastSyncedAt": "2026-07-07T06:52:19.799Z",
       "nearestStores": [
         {
+          "id": "galleria-at-sunset",
+          "name": "Galleria at Sunset",
+          "distanceMiles": 261.6
+        },
+        {
           "id": "westfield-plaza-bonita",
           "name": "Westfield Plaza Bonita",
           "distanceMiles": 302.7
@@ -2372,11 +2377,6 @@
           "id": "ontario-mills",
           "name": "Ontario Mills",
           "distanceMiles": 329.3
-        },
-        {
-          "id": "the-shops-at-santa-anita",
-          "name": "The Shops at Santa Anita",
-          "distanceMiles": 358.3
         }
       ],
       "distanceCache": {},
@@ -2471,14 +2471,14 @@
           "distanceMiles": 994.9
         },
         {
+          "id": "galleria-at-sunset",
+          "name": "Galleria at Sunset",
+          "distanceMiles": 1181.2
+        },
+        {
           "id": "westfield-plaza-bonita",
           "name": "Westfield Plaza Bonita",
           "distanceMiles": 1296.6
-        },
-        {
-          "id": "inland-center",
-          "name": "Inland Center",
-          "distanceMiles": 1303.6
         }
       ],
       "distanceCache": {},
@@ -2881,14 +2881,14 @@
           "distanceMiles": 1019.5
         },
         {
+          "id": "galleria-at-sunset",
+          "name": "Galleria at Sunset",
+          "distanceMiles": 1236.8
+        },
+        {
           "id": "westfield-plaza-bonita",
           "name": "Westfield Plaza Bonita",
           "distanceMiles": 1311.6
-        },
-        {
-          "id": "inland-center",
-          "name": "Inland Center",
-          "distanceMiles": 1334.5
         }
       ],
       "distanceCache": {},
@@ -2981,20 +2981,226 @@
           "distanceMiles": 1002.9
         },
         {
+          "id": "galleria-at-sunset",
+          "name": "Galleria at Sunset",
+          "distanceMiles": 1216.6
+        },
+        {
           "id": "westfield-plaza-bonita",
           "name": "Westfield Plaza Bonita",
           "distanceMiles": 1296.9
-        },
-        {
-          "id": "inland-center",
-          "name": "Inland Center",
-          "distanceMiles": 1317.7
         }
       ],
       "distanceCache": {},
       "notes": "Address, phone, and email were extracted from the official Valliani location page. Lat/lng require geocoding. Hours were only visible for Westfield Galleria in the provided extract.",
       "geocodedAddress": "20131 US-59 space # 1074, Humble, TX 77338, USA",
       "googlePlaceId": "Ei8yMDEzMSBVUy01OSBzcGFjZSAjIDEwNzQsIEh1bWJsZSwgVFggNzczMzgsIFVTQSIoGiYKFgoUChIJ-RfT2AGzQIYRCVvnkIozKYkSDHNwYWNlICMgMTA3NA"
+    },
+    {
+      "id": "vintage-faire-mall",
+      "storeCode": null,
+      "officialName": "Valliani Jewelers Vintage Faire Mall",
+      "name": "Vintage Faire Mall",
+      "mall": "Vintage Faire Mall",
+      "city": "Modesto",
+      "state": "California",
+      "stateCode": "CA",
+      "country": "USA",
+      "status": "Open",
+      "address": "3401 Dale Rd Ste 132",
+      "addressRaw": "3401 Dale Rd Ste 132, Modesto, CA 95356, United States",
+      "fullAddress": "3401 Dale Rd Ste 132, Modesto, CA 95356, USA",
+      "zipCode": "95356",
+      "latitude": 37.688767,
+      "longitude": -121.0539585,
+      "needsGeocoding": false,
+      "geocodingQuery": "Valliani Jewelers 3401 Dale Rd Ste 132, Modesto, CA 95356, USA",
+      "phone": "(209) 224-9786",
+      "phoneE164": "+12092249786",
+      "email": "orders@vallianijewelers.com",
+      "manager": null,
+      "region": "Northern California",
+      "timezone": "America/Los_Angeles",
+      "openingHours": {
+        "monday": "10:00 AM - 9:00 PM",
+        "tuesday": "10:00 AM - 9:00 PM",
+        "wednesday": "10:00 AM - 9:00 PM",
+        "thursday": "10:00 AM - 9:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
+      },
+      "hoursRaw": "Mon-Fri: 10am-9pm, Sat: 10am-6pm, Sun: 11am-7pm",
+      "hoursSource": "user_provided_google_listing",
+      "services": [
+        "Fine Jewelry",
+        "Diamond Jewelry",
+        "Engagement Rings",
+        "Wedding Bands",
+        "Lab-Grown Diamonds",
+        "Gold Jewelry",
+        "Gemstones",
+        "Watches",
+        "Gifts",
+        "Financing"
+      ],
+      "supportsPickup": true,
+      "supportsRepair": null,
+      "supportsTradeIn": null,
+      "supportsFinancing": true,
+      "salesEnabled": true,
+      "inventoryEnabled": false,
+      "aliases": [
+        "Vintage Faire",
+        "Vintage Faire Mall",
+        "Vintage Faire Modesto",
+        "Modesto",
+        "Modesto store",
+        "Modesto branch",
+        "Valliani Modesto",
+        "Valliani Jewelers Modesto",
+        "Valliani Jewelers Vintage Faire Mall",
+        "VJ-MOD"
+      ],
+      "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Valliani%20Jewelers%203401%20Dale%20Rd%20Ste%20132%2C%20Modesto%2C%20CA%2095356%2C%20USA",
+      "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%203401%20Dale%20Rd%20Ste%20132%2C%20Modesto%2C%20CA%2095356%2C%20USA",
+      "storeUrl": null,
+      "googlePlaceId": "EikzNDAxIERhbGUgUmQgIzEzMiwgTW9kZXN0bywgQ0EgOTUzNTYsIFVTQSIfGh0KFgoUChIJ0-mqmElQkIARqR-2dt56VTESAzEzMg",
+      "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
+      "sourceExtractedAt": "2026-07-09T08:04:22.579Z",
+      "lastSyncedAt": "2026-07-09T08:04:22.579Z",
+      "nearestStores": [
+        {
+          "id": "weberstown-mall",
+          "name": "Weberstown Mall",
+          "distanceMiles": 25.4
+        },
+        {
+          "id": "san-francisco-premium-outlets",
+          "name": "San Francisco Premium Outlets",
+          "distanceMiles": 43
+        },
+        {
+          "id": "eastridge-centre",
+          "name": "Eastridge Centre",
+          "distanceMiles": 48.6
+        },
+        {
+          "id": "great-mall",
+          "name": "Great Mall",
+          "distanceMiles": 50
+        },
+        {
+          "id": "westfield-oakridge",
+          "name": "Westfield Oakridge",
+          "distanceMiles": 53.8
+        }
+      ],
+      "notes": "Added manually from Google listing — was missing from official page extract."
+    },
+    {
+      "id": "galleria-at-sunset",
+      "storeCode": null,
+      "officialName": "Valliani Jewelers Galleria at Sunset",
+      "name": "Galleria at Sunset",
+      "mall": "The Galleria at Sunset",
+      "city": "Henderson",
+      "state": "Nevada",
+      "stateCode": "NV",
+      "country": "USA",
+      "status": "Open",
+      "address": "1300 W Sunset Rd Unit 2621",
+      "addressRaw": "1300 W Sunset Rd Unit 2621, Henderson, NV 89014, United States",
+      "fullAddress": "1300 W Sunset Rd Unit 2621, Henderson, NV 89014, USA",
+      "zipCode": "89014",
+      "latitude": 36.0669018,
+      "longitude": -115.0421507,
+      "needsGeocoding": false,
+      "geocodingQuery": "Valliani Jewelers 1300 W Sunset Rd Unit 2621, Henderson, NV 89014, USA",
+      "phone": "(702) 330-9786",
+      "phoneE164": "+17023309786",
+      "email": "orders@vallianijewelers.com",
+      "manager": null,
+      "region": "Nevada",
+      "timezone": "America/Los_Angeles",
+      "openingHours": {
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 12:00 AM"
+      },
+      "hoursRaw": "Mon-Thu: 10am-8pm, Fri: 10am-9pm, Sat: 10am-6pm, Sun: 11am-12am",
+      "hoursSource": "user_provided_google_listing",
+      "services": [
+        "Fine Jewelry",
+        "Diamond Jewelry",
+        "Engagement Rings",
+        "Wedding Bands",
+        "Lab-Grown Diamonds",
+        "Gold Jewelry",
+        "Gemstones",
+        "Watches",
+        "Gifts",
+        "Financing"
+      ],
+      "supportsPickup": true,
+      "supportsRepair": null,
+      "supportsTradeIn": null,
+      "supportsFinancing": true,
+      "salesEnabled": true,
+      "inventoryEnabled": false,
+      "aliases": [
+        "Galleria at Sunset",
+        "The Galleria at Sunset",
+        "Mershops Galleria at Sunset",
+        "Henderson",
+        "Henderson store",
+        "Henderson branch",
+        "Las Vegas Henderson",
+        "Valliani Henderson",
+        "Valliani Jewelers Henderson",
+        "Valliani Jewelers Galleria at Sunset",
+        "Sunset Galleria"
+      ],
+      "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=Valliani%20Jewelers%201300%20W%20Sunset%20Rd%20Unit%202621%2C%20Henderson%2C%20NV%2089014%2C%20USA",
+      "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%201300%20W%20Sunset%20Rd%20Unit%202621%2C%20Henderson%2C%20NV%2089014%2C%20USA",
+      "storeUrl": null,
+      "googlePlaceId": "EjAxMzAwIFcgU3Vuc2V0IFJkICMyNjIxLCBIZW5kZXJzb24sIE5WIDg5MDE0LCBVU0EiIBoeChYKFAoSCbMztkP00MiAET8uFzT0yPsMEgQyNjIx",
+      "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
+      "sourceExtractedAt": "2026-07-09T08:04:22.579Z",
+      "lastSyncedAt": "2026-07-09T08:04:22.579Z",
+      "nearestStores": [
+        {
+          "id": "the-mall-of-victor-valley",
+          "name": "The Mall of Victor Valley",
+          "distanceMiles": 170.4
+        },
+        {
+          "id": "inland-center",
+          "name": "Inland Center",
+          "distanceMiles": 187.1
+        },
+        {
+          "id": "ontario-mills",
+          "name": "Ontario Mills",
+          "distanceMiles": 197.8
+        },
+        {
+          "id": "antelope-valley-mall",
+          "name": "Antelope Valley Mall",
+          "distanceMiles": 202.4
+        },
+        {
+          "id": "the-shops-at-santa-anita",
+          "name": "The Shops at Santa Anita",
+          "distanceMiles": 216.3
+        }
+      ],
+      "notes": "Added manually from Google listing — was missing from official page extract. Mall listed as Mershops Galleria at Sunset."
     }
-  ]
+  ],
+  "storeCount": 31
 }

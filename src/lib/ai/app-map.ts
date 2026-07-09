@@ -261,10 +261,11 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
     label: "Stores Map & Info",
     route: "/stores",
     purpose:
-      "Interactive map of all Valliani Jewelers locations — mall names, addresses, phones, and hours. Ratings and Google reviews coming later.",
+      "Interactive map of all Valliani Jewelers locations — mall names, addresses, phones, hours, and Google ratings/reviews.",
     availableData: [
-      "29 synced store locations with lat/lng",
-      "Addresses, phones, opening hours",
+      "31 synced store locations with lat/lng",
+      "Addresses, phones, opening hours (US local time)",
+      "Google Maps ratings & reviews (via npm run stores:reviews)",
       "Google Maps / Apple Maps links",
       "State and city filters",
     ],
