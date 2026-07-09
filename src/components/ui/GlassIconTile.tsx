@@ -117,7 +117,7 @@ export function GlassIconTile({
       <span className="glass-icon-layer glass-icon-layer-mid" aria-hidden />
       <span className="glass-icon-layer glass-icon-layer-front" aria-hidden />
       {sparkle && <span className="glass-icon-sparkle" aria-hidden />}
-      <Icon icon={icon} size={s.icon} className="relative z-10 text-white/90" strokeWidth={1.85} />
+      <Icon icon={icon} size={s.icon} className="relative z-10 text-white/90" />
     </span>
   );
 }

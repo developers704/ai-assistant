@@ -9,6 +9,7 @@ export type AppSectionId =
   | "email"
   | "calendar"
   | "sales"
+  | "stores"
   | "calculator"
   | "analyst"
   | "images"
@@ -252,7 +253,49 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
       capabilities:
         "Here I can tell you top stores, revenue, and product leaders from your latest report. Try *best store with sales?* — I'll keep it concise unless you ask for a full breakdown.",
     },
-    aliases: ["sales", "sales dashboard", "revenue", "stores", "pos"],
+    aliases: ["sales", "sales dashboard", "revenue", "pos"],
+  }),
+
+  stores: section({
+    id: "stores",
+    label: "Stores Map & Info",
+    route: "/stores",
+    purpose:
+      "Interactive map of all Valliani Jewelers locations — mall names, addresses, phones, and hours. Ratings and Google reviews coming later.",
+    availableData: [
+      "29 synced store locations with lat/lng",
+      "Addresses, phones, opening hours",
+      "Google Maps / Apple Maps links",
+      "State and city filters",
+    ],
+    relatedTools: ["get_store_directory", "show_detail_page"],
+    commonQuestions: [
+      "Open stores map",
+      "Where is the Roseville store?",
+      "Show all California locations",
+      "Store phone numbers",
+    ],
+    whenToNavigate:
+      "When user wants the map UI, store locator, or to browse locations visually.",
+    whenToClarify: "When asking about a store without naming mall/city — ask which location.",
+    whenToUseLiveTool:
+      "Call get_store_directory for address/phone/hours answers; navigate to /stores for the map.",
+    exampleResponses: {
+      explain:
+        "**Stores Map & Info** shows every Valliani location on a map with address, phone, and hours. Ratings and Google reviews will be added later.",
+      capabilities:
+        "I can look up any store's address, phone, or hours, or open the **Stores Map** so you can browse pins by state.",
+    },
+    aliases: [
+      "stores",
+      "stores map",
+      "store map",
+      "store locator",
+      "locations",
+      "store locations",
+      "find a store",
+      "stores map and info",
+    ],
   }),
 
   calculator: section({

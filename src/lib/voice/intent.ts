@@ -167,6 +167,14 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
+    /open (?:the )?(?:stores?(?:\s+map(?:\s+and\s+info)?)?|store\s+(?:map|locator)|locations?|sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)|go to (?:stores?(?:\s+map(?:\s+and\s+info)?)?|store\s+(?:map|locator)|locations?|sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)/i.test(
+      lower
+    )
+  ) {
+    return "navigation";
+  }
+
+  if (
     /(?:closest|nearest)\b[\s\S]{0,50}\b(?:to|from)\b/i.test(lower) ||
     /\bwhich\s+(?:branch|store)\b[\s\S]{0,30}\b(?:closest|nearest)\b/i.test(lower)
   ) {
@@ -200,14 +208,6 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
     )
   ) {
     return "settings";
-  }
-
-  if (
-    /open (?:the )?(?:sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)|go to (?:sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)/i.test(
-      lower
-    )
-  ) {
-    return "navigation";
   }
 
   if (

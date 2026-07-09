@@ -1,0 +1,336 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import { PageHeader } from "@/components/layout/Sidebar";
+import {
+  PageShell,
+  PageShellHeader,
+  PageShellBody,
+  LushMetric,
+} from "@/components/layout/PageShell";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+import type { StoreDirectoryEntry } from "@/lib/stores/types";
+import {
+  MapPin,
+  Phone,
+  Clock,
+  ExternalLink,
+  Search,
+  Star,
+  MessageSquare,
+} from "lucide-react";
+
+const StoresMap = dynamic(
+  () => import("@/components/stores/StoresMap").then((m) => m.StoresMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full min-h-[320px] items-center justify-center rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.08]">
+        <p className="text-sm text-white/40 animate-pulse">Loading map…</p>
+      </div>
+    ),
+  }
+);
+
+type StoresApiResponse = {
+  source: string;
+  lastSyncedAt?: string;
+  stores: StoreDirectoryEntry[];
+  stats?: {
+    total: number;
+    open?: number;
+    openingSoon?: number;
+    byState?: Record<string, number>;
+  };
+};
+
+function formatHours(hours: StoreDirectoryEntry["openingHours"]): string | null {
+  if (!hours) return null;
+  if (typeof hours === "string") return hours;
+  const today = new Date()
+    .toLocaleDateString("en-US", { weekday: "long" })
+    .toLowerCase() as keyof typeof hours;
+  const todayHours = hours[today];
+  if (todayHours) return `Today: ${todayHours}`;
+  const first = Object.entries(hours).find(([, v]) => v);
+  return first ? `${first[0]}: ${first[1]}` : null;
+}
+
+function statusVariant(status: string): "success" | "warning" | "default" {
+  const s = status.toLowerCase();
+  if (s.includes("open") && !s.includes("soon")) return "success";
+  if (s.includes("soon")) return "warning";
+  return "default";
+}
+
+export default function StoresPage() {
+  const [stores, setStores] = useState<StoreDirectoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stores")
+      .then((r) => r.json())
+      .then((d: StoresApiResponse) => {
+        const list = Array.isArray(d.stores) ? d.stores : [];
+        setStores(list);
+        const firstMapped = list.find((s) => s.latitude != null && s.longitude != null);
+        if (firstMapped) setSelectedId(firstMapped.id);
+      })
+      .catch(() => setStores([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const states = useMemo(() => {
+    const set = new Set(stores.map((s) => s.stateCode).filter(Boolean));
+    return [...set].sort();
+  }, [stores]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return stores.filter((s) => {
+      if (stateFilter && s.stateCode !== stateFilter) return false;
+      if (!q) return true;
+      const hay = [
+        s.name,
+        s.mall,
+        s.city,
+        s.state,
+        s.stateCode,
+        s.address,
+        s.phone,
+        ...(s.aliases ?? []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [stores, query, stateFilter]);
+
+  const selected = stores.find((s) => s.id === selectedId) ?? null;
+  const openCount = stores.filter((s) => /open/i.test(s.status) && !/soon/i.test(s.status)).length;
+  const soonCount = stores.filter((s) => /soon/i.test(s.status)).length;
+  const mappedCount = stores.filter((s) => s.latitude != null && s.longitude != null).length;
+
+  return (
+    <PageShell accent="sky">
+      <PageShellHeader>
+        <PageHeader
+          gradient
+          eyebrow="Locations"
+          title="Stores Map & Info"
+          subtitle="Valliani Jewelers locations on the map · ratings & Google details coming soon"
+          action={
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              {stores.length > 0 && (
+                <Badge variant="success">{stores.length} locations</Badge>
+              )}
+            </div>
+          }
+        />
+      </PageShellHeader>
+
+      <PageShellBody>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+          <LushMetric label="Total stores" value={String(stores.length || "—")} accent="sky" />
+          <LushMetric label="Open now" value={String(openCount || "—")} accent="emerald" />
+          <LushMetric
+            label="On map"
+            value={`${mappedCount}`}
+            footer={
+              <p className="text-sm text-white/35">
+                {soonCount > 0 ? `${soonCount} opening soon` : "Geocoded pins"}
+              </p>
+            }
+          />
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <div className="relative flex-1">
+            <Search
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search mall, city, phone…"
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm bg-white/[0.04] ring-1 ring-white/10 text-ink placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
+            />
+          </div>
+          <select
+            value={stateFilter}
+            onChange={(e) => setStateFilter(e.target.value)}
+            className="select-dark px-3 py-2.5 rounded-xl text-sm"
+            aria-label="Filter by state"
+          >
+            <option value="">All states</option>
+            {states.map((st) => (
+              <option key={st} value={st}>
+                {st}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {loading ? (
+          <div className="py-16 text-center text-ink-muted animate-pulse">Loading stores…</div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] gap-4 sm:gap-5 min-h-[28rem]">
+            <div className="h-[min(52vh,28rem)] xl:h-auto xl:min-h-[28rem]">
+              <StoresMap
+                stores={filtered}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+            </div>
+
+            <div className="flex flex-col gap-4 min-h-0">
+              {selected && (
+                <StoreDetailCard store={selected} />
+              )}
+
+              <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.025] overflow-hidden flex flex-col min-h-0 max-h-[min(40vh,22rem)] xl:max-h-none xl:flex-1">
+                <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/50">
+                    Store list
+                  </p>
+                  <span className="text-[11px] text-white/35">{filtered.length}</span>
+                </div>
+                <ul className="overflow-y-auto divide-y divide-white/5 flex-1">
+                  {filtered.map((store) => {
+                    const active = store.id === selectedId;
+                    return (
+                      <li key={store.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(store.id)}
+                          className={cn(
+                            "w-full text-left px-4 py-3 transition-colors",
+                            active ? "bg-sky-500/15" : "hover:bg-white/[0.04]"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-ink truncate">
+                                {store.mall || store.name}
+                              </p>
+                              <p className="text-xs text-white/40 mt-0.5 truncate">
+                                {[store.city, store.stateCode].filter(Boolean).join(", ")}
+                              </p>
+                            </div>
+                            <Badge variant={statusVariant(store.status)} className="shrink-0 text-[10px]">
+                              {store.status}
+                            </Badge>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {filtered.length === 0 && (
+                    <li className="px-4 py-8 text-center text-sm text-white/35">
+                      No stores match your search.
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+      </PageShellBody>
+    </PageShell>
+  );
+}
+
+function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
+  const hoursLabel =
+    formatHours(store.openingHours) ??
+    (typeof store.hoursRaw === "string" ? store.hoursRaw : null);
+
+  return (
+    <div className="rounded-2xl ring-1 ring-white/[0.08] bg-white/[0.03] p-4 sm:p-5 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35 mb-1">
+            Selected store
+          </p>
+          <h2 className="text-lg font-semibold text-ink leading-snug">
+            {store.mall || store.name}
+          </h2>
+          <p className="text-sm text-white/45 mt-0.5">
+            {[store.city, store.state].filter(Boolean).join(", ")}
+          </p>
+        </div>
+        <Badge variant={statusVariant(store.status)}>{store.status}</Badge>
+      </div>
+
+      {(store.address || store.fullAddress) && (
+        <p className="flex items-start gap-2 text-sm text-white/70">
+          <MapPin size={15} className="text-sky-300/80 shrink-0 mt-0.5" />
+          <span>{store.fullAddress || store.address}</span>
+        </p>
+      )}
+
+      {store.phone && (
+        <a
+          href={`tel:${store.phone.replace(/[^\d+]/g, "")}`}
+          className="flex items-center gap-2 text-sm text-emerald-300/90 hover:text-emerald-200 transition-colors"
+        >
+          <Phone size={15} className="shrink-0" />
+          {store.phone}
+        </a>
+      )}
+
+      {hoursLabel && (
+        <p className="flex items-start gap-2 text-sm text-white/60">
+          <Clock size={15} className="text-amber-300/70 shrink-0 mt-0.5" />
+          <span>{hoursLabel}</span>
+        </p>
+      )}
+
+      {/* Placeholders for future Google Places enrichment */}
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <div className="rounded-xl bg-white/[0.03] ring-1 ring-dashed ring-white/10 px-3 py-2.5">
+          <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/30">
+            <Star size={11} /> Rating
+          </p>
+          <p className="text-xs text-white/40 mt-1">Coming from Google</p>
+        </div>
+        <div className="rounded-xl bg-white/[0.03] ring-1 ring-dashed ring-white/10 px-3 py-2.5">
+          <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/30">
+            <MessageSquare size={11} /> Reviews
+          </p>
+          <p className="text-xs text-white/40 mt-1">Coming from Google</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        {store.googleMapsUrl && (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => window.open(store.googleMapsUrl!, "_blank", "noopener,noreferrer")}
+          >
+            <ExternalLink size={14} className="mr-1.5" />
+            Google Maps
+          </Button>
+        )}
+        {store.appleMapsUrl && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => window.open(store.appleMapsUrl!, "_blank", "noopener,noreferrer")}
+          >
+            Apple Maps
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}

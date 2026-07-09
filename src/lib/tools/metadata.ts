@@ -702,6 +702,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
             "news",
             "analyst",
             "calculator",
+            "stores",
             "settings",
             "social",
           ],

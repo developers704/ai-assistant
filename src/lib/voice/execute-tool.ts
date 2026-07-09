@@ -79,6 +79,7 @@ const PAGE_PATHS: Record<string, string> = {
   news: "/news",
   analyst: "/analyst",
   calculator: "/calculator",
+  stores: "/stores",
   settings: "/settings",
   social: "/social",
 };
