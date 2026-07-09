@@ -25,6 +25,7 @@ const EXCLUDED_TOP_PRODUCT_SKUS = new Set([
   "217365",
   "217286",
   "159004",
+  "JVS-200940",
 ]);
 
 export function isExcludedTopProductSku(sku?: string | null): boolean {
