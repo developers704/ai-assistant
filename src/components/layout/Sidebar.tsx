@@ -26,115 +26,32 @@ import {
 import { useApp } from "@/lib/store/app-context";
 import { Avatar } from "@/components/ui/Avatar";
 import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
+import { GlassIconTile, type GlassPalette } from "@/components/ui/GlassIconTile";
 
 type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Vivid gradient for the 3D glass tile */
-  tile: string;
-  accent: string;
+  palette: GlassPalette;
 };
 
 const navItems: NavItem[] = [
-  {
-    href: "/chat",
-    label: "AI Chat",
-    icon: MessageSquare,
-    tile: "from-violet-400 via-violet-500 to-indigo-600",
-    accent: "bg-violet-400/85",
-  },
-  {
-    href: "/dashboard",
-    label: "Daily Briefing",
-    icon: Sun,
-    tile: "from-amber-300 via-orange-400 to-orange-600",
-    accent: "bg-amber-400/85",
-  },
-  {
-    href: "/news",
-    label: "News & Markets",
-    icon: Newspaper,
-    tile: "from-sky-300 via-sky-500 to-blue-600",
-    accent: "bg-sky-400/85",
-  },
-  {
-    href: "/email",
-    label: "Email",
-    icon: Mail,
-    tile: "from-blue-400 via-blue-500 to-indigo-700",
-    accent: "bg-blue-400/85",
-  },
-  {
-    href: "/calendar",
-    label: "Calendar & Tasks",
-    icon: Calendar,
-    tile: "from-rose-400 via-rose-500 to-pink-700",
-    accent: "bg-rose-400/85",
-  },
-  {
-    href: "/sales",
-    label: "Sales Dashboard",
-    icon: BarChart3,
-    tile: "from-emerald-300 via-emerald-500 to-teal-700",
-    accent: "bg-emerald-400/85",
-  },
-  {
-    href: "/calculator",
-    label: "Price Calculator",
-    icon: Calculator,
-    tile: "from-yellow-300 via-amber-400 to-amber-600",
-    accent: "bg-yellow-400/85",
-  },
-  {
-    href: "/analyst",
-    label: "Data Analyst",
-    icon: Database,
-    tile: "from-cyan-300 via-cyan-500 to-sky-700",
-    accent: "bg-cyan-400/85",
-  },
-  {
-    href: "/images",
-    label: "Image Generation",
-    icon: Wand2,
-    tile: "from-fuchsia-400 via-fuchsia-500 to-purple-700",
-    accent: "bg-fuchsia-400/85",
-  },
-  {
-    href: "/social",
-    label: "Social",
-    icon: Instagram,
-    tile: "from-pink-400 via-rose-500 to-fuchsia-700",
-    accent: "bg-pink-400/85",
-  },
-  {
-    href: "/contacts",
-    label: "Contacts",
-    icon: Users,
-    tile: "from-indigo-300 via-indigo-500 to-violet-700",
-    accent: "bg-indigo-400/85",
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    icon: Settings,
-    tile: "from-slate-400 via-slate-500 to-slate-700",
-    accent: "bg-slate-400/75",
-  },
+  { href: "/chat", label: "AI Chat", icon: MessageSquare, palette: "violet" },
+  { href: "/dashboard", label: "Daily Briefing", icon: Sun, palette: "amber" },
+  { href: "/news", label: "News & Markets", icon: Newspaper, palette: "sky" },
+  { href: "/email", label: "Email", icon: Mail, palette: "indigo" },
+  { href: "/calendar", label: "Calendar & Tasks", icon: Calendar, palette: "rose" },
+  { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
+  { href: "/calculator", label: "Price Calculator", icon: Calculator, palette: "amber" },
+  { href: "/analyst", label: "Data Analyst", icon: Database, palette: "cyan" },
+  { href: "/images", label: "Image Generation", icon: Wand2, palette: "fuchsia" },
+  { href: "/social", label: "Social", icon: Instagram, palette: "rose" },
+  { href: "/contacts", label: "Contacts", icon: Users, palette: "indigo" },
+  { href: "/settings", label: "Settings", icon: Settings, palette: "slate" },
 ];
 
 function NavTile({ item, active }: { item: NavItem; active: boolean }) {
-  return (
-    <span
-      className={cn(
-        "icon-tile flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br ring-1 ring-white/10",
-        item.tile,
-        active ? "icon-tile-active" : "icon-tile-dim"
-      )}
-    >
-      <Icon icon={item.icon} size="sm" className="text-white" />
-    </span>
-  );
+  return <GlassIconTile icon={item.icon} palette={item.palette} active={active} size="sm" />;
 }
 
 function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {

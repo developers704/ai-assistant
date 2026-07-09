@@ -124,8 +124,6 @@ export function VoiceSession() {
           </>
         )}
         <PlasmaOrb
-          variant="particles"
-          density="high"
           audioLevel={orbLevel}
           className={cn(
             "relative h-56 w-56 sm:h-72 sm:w-72 transition-transform duration-200",
@@ -210,10 +208,7 @@ export function VoiceSession() {
               )}
             </div>
 
-            <div className="relative flex items-center justify-between gap-3 px-4 sm:px-5 pb-4 pt-2 border-t border-white/8">
-              <p className="text-[11px] text-ink-muted">
-                English &amp; Urdu · say &ldquo;End session&rdquo; or tap below
-              </p>
+            <div className="relative flex items-center justify-end gap-3 px-4 sm:px-5 pb-4 pt-2 border-t border-white/8">
               <button
                 type="button"
                 onClick={handleEnd}

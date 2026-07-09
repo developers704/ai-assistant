@@ -3,6 +3,7 @@
 import type { AppState } from "@/types";
 import { cn } from "@/lib/utils";
 import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
+import { GlassIconTile, type GlassPalette } from "@/components/ui/GlassIconTile";
 import {
   ChevronRight,
   MessageSquare,
@@ -17,44 +18,37 @@ import {
 export const CHAT_SUGGESTIONS: {
   text: string;
   icon: LucideIcon;
-  tile: string;
-  ring: string;
+  palette: GlassPalette;
 }[] = [
   {
     text: "What do I need to focus on today?",
     icon: MessageSquare,
-    tile: "from-violet-400 via-violet-500 to-indigo-600",
-    ring: "hover:ring-violet-400/25",
+    palette: "violet",
   },
   {
     text: "Show me today's sales across all stores",
     icon: TrendingUp,
-    tile: "from-emerald-300 via-emerald-500 to-teal-700",
-    ring: "hover:ring-emerald-400/25",
+    palette: "emerald",
   },
   {
     text: "Summarize my important emails",
     icon: Mail,
-    tile: "from-blue-400 via-blue-500 to-indigo-700",
-    ring: "hover:ring-blue-400/25",
+    palette: "indigo",
   },
   {
     text: "What's on my calendar today?",
     icon: Calendar,
-    tile: "from-amber-300 via-orange-400 to-orange-600",
-    ring: "hover:ring-amber-400/25",
+    palette: "amber",
   },
   {
     text: "Draft an email to the diamond supplier",
     icon: Gem,
-    tile: "from-fuchsia-400 via-fuchsia-500 to-purple-700",
-    ring: "hover:ring-fuchsia-400/25",
+    palette: "fuchsia",
   },
   {
     text: "Remind me to review Baybrook Mall lease tomorrow",
     icon: Bell,
-    tile: "from-orange-300 via-orange-500 to-rose-600",
-    ring: "hover:ring-orange-400/25",
+    palette: "rose",
   },
 ];
 
@@ -127,7 +121,7 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
       <div className="text-center pt-1 pb-5 sm:pt-4 sm:pb-8 max-lg:pt-0">
         <div className="relative mx-auto mb-4 sm:mb-6 w-fit msg-enter">
           <div className="chat-orb-glow absolute inset-0 -m-6 sm:-m-8 rounded-full blur-3xl opacity-80" aria-hidden />
-          <PlasmaOrb density="high" className="plasma-orb-float relative h-24 w-24 sm:h-32 sm:w-32" />
+          <PlasmaOrb className="plasma-orb-float relative h-24 w-24 sm:h-32 sm:w-32" />
         </div>
 
         <p className="text-xs sm:text-sm font-medium uppercase tracking-[0.18em] text-violet-300/80 mb-1.5">
@@ -149,7 +143,7 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
 
       {/* Suggestions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pb-2">
-        {CHAT_SUGGESTIONS.map(({ text, icon: SuggestIcon, tile, ring }, i) => (
+        {CHAT_SUGGESTIONS.map(({ text, icon: SuggestIcon, palette }, i) => (
           <button
             key={text}
             type="button"
@@ -160,17 +154,10 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
               "chat-suggest-card msg-enter group flex items-center gap-3 w-full text-left px-3 py-3 sm:px-4 sm:py-3.5 rounded-2xl",
               "bg-white/[0.04] ring-1 ring-white/10 transition-all duration-200",
               "hover:bg-white/[0.08] hover:-translate-y-0.5 active:scale-[0.99] disabled:opacity-50",
-              ring
+              "hover:ring-violet-400/20"
             )}
           >
-            <span
-              className={cn(
-                "icon-tile icon-tile-dim flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ring-1 ring-white/25",
-                tile
-              )}
-            >
-              <SuggestIcon size={18} strokeWidth={2.25} className="text-white" />
-            </span>
+            <GlassIconTile icon={SuggestIcon} palette={palette} size="md" />
             <span className="flex-1 min-w-0 text-[13px] sm:text-sm text-ink-secondary group-hover:text-ink leading-snug">
               {text}
             </span>

@@ -2,15 +2,15 @@
    remove FuturisticBackground from src/app/(app)/layout.tsx, and git checkout
    globals.css tailwind.config.ts + ui components (Card, Button, Input, Badge, Sidebar). */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-inter: 'Inter', system-ui, sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-inter: 'Outfit', system-ui, sans-serif;
+  --font-display: 'Sora', 'Outfit', system-ui, sans-serif;
   --glass-bg: rgba(15, 23, 42, 0.35);
   --glass-bg-strong: rgba(15, 23, 42, 0.52);
   --glass-border: rgba(255, 255, 255, 0.12);
@@ -28,14 +28,19 @@
 
   html[data-theme="futuristic"] body {
     @apply text-ink font-sans antialiased min-h-screen;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.015em;
     background: #1e2733;
   }
 
   html:not([data-theme="futuristic"]) body {
     @apply text-ink font-sans antialiased;
     background: #020617; /* Dark navy background */
-    letter-spacing: -0.011em;
+    letter-spacing: -0.015em;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
 }
 
@@ -377,43 +382,40 @@
     background: radial-gradient(ellipse 35% 22% at 32% 20%, rgba(255, 255, 255, 0.42) 0%, transparent 80%);
   }
 
-  /* ============ Section icon tiles — gradient glass 3D ============ */
+  /* ============ Section icon tiles — soft glass 3D ============ */
 
   .icon-tile {
     position: relative;
     overflow: hidden;
     transform: translateZ(0);
-    /* Soft 3D glass effect */
     box-shadow:
-      0 4px 12px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
-      inset 0 -2px 6px rgba(0, 0, 0, 0.25);
+      0 4px 14px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -2px 6px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, filter 0.25s ease;
   }
 
-  /* Gloss sweep across the top half */
   .icon-tile::before {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
     background: linear-gradient(
-      160deg,
-      rgba(255, 255, 255, 0.45) 0%,
-      rgba(255, 255, 255, 0.15) 40%,
-      transparent 60%
+      155deg,
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0.12) 42%,
+      transparent 62%
     );
     pointer-events: none;
     z-index: 1;
   }
 
-  /* Inner glow from the bottom to make it look like a physical button */
   .icon-tile::after {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: radial-gradient(circle at 50% 120%, rgba(255,255,255,0.4) 0%, transparent 60%);
+    background: radial-gradient(circle at 50% 120%, rgba(255,255,255,0.35) 0%, transparent 55%);
     pointer-events: none;
     z-index: 1;
   }
@@ -421,25 +423,104 @@
   .icon-tile svg {
     position: relative;
     z-index: 2;
-    filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.4));
-    color: white; /* Ensure icons are white to match the screenshot */
+    filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.35));
+    color: white;
   }
 
   .icon-tile-dim {
-    filter: saturate(0.95) brightness(0.95);
+    filter: saturate(0.98) brightness(0.97);
   }
 
   .group:hover .icon-tile-dim,
   .icon-tile-active {
-    filter: saturate(1.1) brightness(1.1);
+    filter: saturate(1.12) brightness(1.08);
   }
 
   .icon-tile-active {
     transform: translateY(-1px) scale(1.03) translateZ(0);
     box-shadow:
-      0 6px 16px rgba(0, 0, 0, 0.3),
-      inset 0 2px 0 rgba(255, 255, 255, 0.7),
-      inset 0 -3px 7px rgba(0, 0, 0, 0.3);
+      0 8px 18px rgba(0, 0, 0, 0.28),
+      inset 0 2px 0 rgba(255, 255, 255, 0.65),
+      inset 0 -3px 7px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Soft glass icon tiles (reference style) */
+  .glass-icon-tile {
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--gi-from) 88%, white),
+      var(--gi-via) 48%,
+      var(--gi-to)
+    );
+    box-shadow:
+      0 6px 16px color-mix(in srgb, var(--gi-glow) 55%, transparent),
+      0 2px 6px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -2px 5px rgba(15, 23, 42, 0.25);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, filter 0.25s ease;
+  }
+
+  .glass-icon-layer {
+    position: absolute;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .glass-icon-layer-back {
+    inset: 2px;
+    background: linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.22),
+      transparent 55%
+    );
+    opacity: 0.85;
+  }
+
+  .glass-icon-layer-mid {
+    inset: 0;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.45), transparent 42%),
+      radial-gradient(circle at 70% 80%, color-mix(in srgb, var(--gi-to) 40%, transparent), transparent 50%);
+    mix-blend-mode: soft-light;
+  }
+
+  .glass-icon-layer-front {
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.28) 0%,
+      transparent 38%,
+      rgba(15, 23, 42, 0.12) 100%
+    );
+  }
+
+  .glass-icon-sparkle {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    width: 7px;
+    height: 7px;
+    z-index: 3;
+    background: white;
+    clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
+    pointer-events: none;
+  }
+
+  .glass-icon-tile-active {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow:
+      0 10px 22px color-mix(in srgb, var(--gi-glow) 70%, transparent),
+      0 3px 8px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      inset 0 -2px 6px rgba(15, 23, 42, 0.28);
+    filter: saturate(1.1) brightness(1.06);
+  }
+
+  .group:hover .glass-icon-tile:not(.glass-icon-tile-active) {
+    transform: translateY(-1px) scale(1.03);
+    filter: saturate(1.08) brightness(1.05);
   }
 
   /* ============ Voice Realtime — premium overlay ============ */
