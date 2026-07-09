@@ -234,3 +234,36 @@ export function formatTodayHoursLabel(store: StoreDirectoryEntry, at: Date = new
     status.localWeekday.charAt(0).toUpperCase() + status.localWeekday.slice(1, 3);
   return `Today (${dayShort}, ${status.tzLabel}): ${status.todayHours}`;
 }
+
+const WEEKDAY_DISPLAY: { key: WeekdayKey; label: string }[] = [
+  { key: "monday", label: "Monday" },
+  { key: "tuesday", label: "Tuesday" },
+  { key: "wednesday", label: "Wednesday" },
+  { key: "thursday", label: "Thursday" },
+  { key: "friday", label: "Friday" },
+  { key: "saturday", label: "Saturday" },
+  { key: "sunday", label: "Sunday" },
+];
+
+/** Ordered Mon–Sun rows for the selected-store hours panel. */
+export function getWeeklyHoursRows(
+  store: Pick<StoreDirectoryEntry, "openingHours" | "timezone" | "stateCode">,
+  at: Date = new Date()
+): Array<{ key: WeekdayKey; label: string; hours: string | null; isToday: boolean }> {
+  const { weekday } = getStoreLocalParts(store, at);
+  const hours = store.openingHours;
+
+  if (!hours || typeof hours === "string") {
+    return WEEKDAY_DISPLAY.map((d) => ({
+      ...d,
+      hours: typeof hours === "string" ? hours : null,
+      isToday: d.key === weekday,
+    }));
+  }
+
+  return WEEKDAY_DISPLAY.map((d) => ({
+    ...d,
+    hours: hours[d.key] ? String(hours[d.key]) : null,
+    isToday: d.key === weekday,
+  }));
+}

@@ -16,7 +16,9 @@ import type { StoreDirectoryEntry } from "@/lib/stores/types";
 import {
   formatTodayHoursLabel,
   getStoreOpenStatus,
+  getWeeklyHoursRows,
 } from "@/lib/stores/store-hours";
+import { haversineMiles } from "@/lib/stores/distance";
 import {
   MapPin,
   Phone,
@@ -25,6 +27,7 @@ import {
   Search,
   Star,
   MessageSquare,
+  Route,
 } from "lucide-react";
 
 const StoresMap = dynamic(
@@ -70,6 +73,8 @@ export default function StoresPage() {
   const [query, setQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [distanceFromId, setDistanceFromId] = useState<string>("");
+  const [distanceToId, setDistanceToId] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/stores")
@@ -83,6 +88,11 @@ export default function StoresPage() {
       .catch(() => setStores([]))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    setDistanceFromId((prev) => prev || selectedId);
+  }, [selectedId]);
 
   const states = useMemo(() => {
     const set = new Set(stores.map((s) => s.stateCode).filter(Boolean));
@@ -115,6 +125,23 @@ export default function StoresPage() {
   const openNowCount = stores.filter((s) => getStoreOpenStatus(s).isOpenNow === true).length;
   const soonCount = stores.filter((s) => /soon/i.test(s.status)).length;
   const mappedCount = stores.filter((s) => s.latitude != null && s.longitude != null).length;
+
+  const distanceMiles = useMemo(() => {
+    if (!distanceFromId || !distanceToId || distanceFromId === distanceToId) return null;
+    const from = stores.find((s) => s.id === distanceFromId);
+    const to = stores.find((s) => s.id === distanceToId);
+    if (!from || !to) return null;
+    const miles = haversineMiles(from, to);
+    return miles == null ? null : Math.round(miles * 10) / 10;
+  }, [stores, distanceFromId, distanceToId]);
+
+  const storeOptions = useMemo(
+    () =>
+      [...stores].sort((a, b) =>
+        (a.mall || a.name).localeCompare(b.mall || b.name)
+      ),
+    [stores]
+  );
 
   return (
     <PageShell accent="sky">
@@ -183,6 +210,69 @@ export default function StoresPage() {
             ))}
           </select>
         </div>
+
+        {!loading && stores.length > 0 && (
+          <div className="rounded-2xl ring-1 ring-white/[0.08] bg-white/[0.03] p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Route size={15} className="text-sky-300/80" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/50">
+                Distance between stores
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto] gap-2 sm:gap-3 items-end">
+              <label className="block min-w-0">
+                <span className="text-[11px] text-white/40 mb-1 block">From</span>
+                <select
+                  value={distanceFromId}
+                  onChange={(e) => setDistanceFromId(e.target.value)}
+                  className="select-dark w-full px-3 py-2.5 rounded-xl text-sm"
+                >
+                  <option value="">Select store…</option>
+                  {storeOptions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.mall || s.name}
+                      {s.city ? ` · ${s.city}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span className="hidden sm:block text-white/30 pb-2.5 text-center">→</span>
+              <label className="block min-w-0">
+                <span className="text-[11px] text-white/40 mb-1 block">To</span>
+                <select
+                  value={distanceToId}
+                  onChange={(e) => setDistanceToId(e.target.value)}
+                  className="select-dark w-full px-3 py-2.5 rounded-xl text-sm"
+                >
+                  <option value="">Select store…</option>
+                  {storeOptions.map((s) => (
+                    <option key={s.id} value={s.id} disabled={s.id === distanceFromId}>
+                      {s.mall || s.name}
+                      {s.city ? ` · ${s.city}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="rounded-xl bg-sky-500/10 ring-1 ring-sky-400/20 px-4 py-2.5 min-w-[7.5rem] text-center">
+                {distanceMiles != null ? (
+                  <>
+                    <p className="text-lg font-semibold text-sky-200 tabular-nums leading-none">
+                      {distanceMiles}
+                      <span className="text-sm font-medium ml-1">mi</span>
+                    </p>
+                    <p className="text-[10px] text-white/35 mt-1">straight-line</p>
+                  </>
+                ) : distanceFromId && distanceToId && distanceFromId === distanceToId ? (
+                  <p className="text-xs text-white/40">Same store</p>
+                ) : distanceFromId && distanceToId ? (
+                  <p className="text-xs text-white/40">Need map pins</p>
+                ) : (
+                  <p className="text-xs text-white/40">Pick both</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="py-16 text-center text-ink-muted animate-pulse">Loading stores…</div>
@@ -264,6 +354,7 @@ export default function StoresPage() {
 function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
   const openStatus = getStoreOpenStatus(store);
   const hoursLabel = formatTodayHoursLabel(store);
+  const weeklyHours = getWeeklyHoursRows(store);
 
   return (
     <div className="rounded-2xl ring-1 ring-white/[0.08] bg-white/[0.03] p-4 sm:p-5 space-y-3">
@@ -304,6 +395,43 @@ function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
           <Clock size={15} className="text-amber-300/70 shrink-0 mt-0.5" />
           <span>{hoursLabel}</span>
         </p>
+      )}
+
+      {weeklyHours.some((row) => row.hours) && (
+        <div className="rounded-xl bg-white/[0.025] ring-1 ring-white/[0.06] overflow-hidden">
+          <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/35 border-b border-white/5">
+            Hours this week · {openStatus.tzLabel}
+          </p>
+          <ul className="divide-y divide-white/5">
+            {weeklyHours.map((row) => (
+              <li
+                key={row.key}
+                className={cn(
+                  "flex items-center justify-between gap-3 px-3 py-1.5 text-sm",
+                  row.isToday ? "bg-amber-500/10" : ""
+                )}
+              >
+                <span
+                  className={cn(
+                    "text-white/50",
+                    row.isToday && "text-amber-200/90 font-medium"
+                  )}
+                >
+                  {row.label}
+                  {row.isToday ? " · Today" : ""}
+                </span>
+                <span
+                  className={cn(
+                    "tabular-nums text-white/70",
+                    row.isToday && "text-amber-100 font-medium"
+                  )}
+                >
+                  {row.hours ?? "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-2 pt-1">

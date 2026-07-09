@@ -3,8 +3,8 @@
   "company": "Valliani Jewelers",
   "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
   "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-  "generatedAt": "2026-07-09T08:32:28.394Z",
-  "sourceNote": "Generated from the user's official Valliani Find Your Location page extract. The official page extract provided names, addresses, phone numbers, and email addresses for the listed stores. Latitude/longitude were not present in the extract, so they are left null with needsGeocoding=true. Manually added Vintage Faire Mall (Modesto, CA) and Galleria at Sunset (Henderson, NV) from Google listings on 2026-07-09.",
+  "generatedAt": "2026-07-09T09:50:04.745Z",
+  "sourceNote": "Generated from the user's official Valliani Find Your Location page extract. The official page extract provided names, addresses, phone numbers, and email addresses for the listed stores. Latitude/longitude were not present in the extract, so they are left null with needsGeocoding=true. Manually added Vintage Faire Mall (Modesto, CA) and Galleria at Sunset (Henderson, NV) from Google listings on 2026-07-09. Weekly opening hours updated from Google Maps listings on 2026-07-09 for stores with pasted hours.",
   "counts": {
     "totalRecordsInThisFile": 31,
     "byState": {
@@ -41,16 +41,16 @@
       "region": "Northern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": "11:00 AM - 8:00 PM",
-        "tuesday": "11:00 AM - 8:00 PM",
-        "wednesday": "11:00 AM - 8:00 PM",
-        "thursday": "11:00 AM - 8:00 PM",
-        "friday": "11:00 AM - 8:00 PM",
-        "saturday": "11:00 AM - 8:00 PM",
-        "sunday": "11:00 AM - 6:00 PM"
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": "Mon-Sat: 11am-8pm, Sun: 11am-6pm",
-      "hoursSource": "official_page_visible_expanded_card",
+      "hoursRaw": "Mon-Thu: 10 am - 8 pm, Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -87,7 +87,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%201151%20Galleria%20Blvd%20%23221%2C%20Roseville%2C%20CA%2095678%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "arden-fair",
@@ -197,16 +197,16 @@
       "region": "Bay Area",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 8:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 10 am - 8 pm, Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 8 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -243,7 +243,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%202200%20Eastridge%20Loop%2C%20%231086%2C%20San%20Jose%2C%20CA%2095122%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "westfield-oakridge",
@@ -353,16 +353,16 @@
       "region": "Central Coast",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "11:00 AM - 8:00 PM",
+        "tuesday": "11:00 AM - 8:00 PM",
+        "wednesday": "11:00 AM - 8:00 PM",
+        "thursday": "11:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 8:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 11 am - 8 pm, Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 8 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -396,7 +396,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%20796%20Northridge%20Dr%2C%20Ste%20F12%2C%20Salinas%2C%20CA%2093906%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "westfield-oakridge",
@@ -506,16 +506,16 @@
       "region": "Bay Area",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "11:00 AM - 7:00 PM",
+        "tuesday": "11:00 AM - 7:00 PM",
+        "wednesday": "11:00 AM - 7:00 PM",
+        "thursday": "11:00 AM - 7:00 PM",
+        "friday": "11:00 AM - 8:00 PM",
+        "saturday": "11:00 AM - 8:00 PM",
+        "sunday": "11:00 AM - 6:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 11 am - 7 pm, Fri-Sat: 11 am - 8 pm, Sun: 11 am - 6 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -549,7 +549,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%20306%20Southland%20Mall%2C%20Hayward%2C%20CA%2094545%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "san-francisco-premium-outlets",
@@ -659,16 +659,16 @@
       "region": "Bay Area",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 9:00 PM",
+        "tuesday": "10:00 AM - 9:00 PM",
+        "wednesday": "10:00 AM - 9:00 PM",
+        "thursday": "10:00 AM - 9:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "10:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 10 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -702,7 +702,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%20110%20Serramonte%20Center%2C%20Daly%20City%2C%20CA%2094015%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "southland-mall",
@@ -812,16 +812,16 @@
       "region": "Central Valley",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "11:00 AM - 7:00 PM",
+        "tuesday": "11:00 AM - 7:00 PM",
+        "wednesday": "11:00 AM - 7:00 PM",
+        "thursday": "11:00 AM - 7:00 PM",
+        "friday": "11:00 AM - 8:00 PM",
+        "saturday": "11:00 AM - 8:00 PM",
+        "sunday": "11:00 AM - 6:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 11 am - 7 pm, Fri-Sat: 11 am - 8 pm, Sun: 11 am - 6 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -855,7 +855,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%202181%20S%20Mooney%20Blvd%231415%2C%20Visalia%2C%20CA%2093277%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "fashion-fair-mall",
@@ -965,16 +965,16 @@
       "region": "Central Valley",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 8:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 8 pm, Sat: 10 am - 6 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -1008,7 +1008,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%20619%20E%20Shaw%20Ave%20Space%20F08%2C%20Fresno%2C%20CA%2093710%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "visalia-mall",
@@ -1118,16 +1118,16 @@
       "region": "Bay Area",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 9:00 PM",
+        "tuesday": "10:00 AM - 9:00 PM",
+        "wednesday": "10:00 AM - 9:00 PM",
+        "thursday": "10:00 AM - 9:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "10:00 AM - 9:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 10 am - 9 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -1164,7 +1164,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%202855%20Stevens%20Creek%20Blvd%2C%20%232561%2C%20Santa%20Clara%2C%20CA%2095050%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "westfield-oakridge",
@@ -1274,16 +1274,16 @@
       "region": "Bay Area",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 10 am - 8 pm, Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -1320,7 +1320,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%20925%20Blossom%20Hill%20Rd%2C%20Ste%20%231600%2C%20San%20Jose%2C%20CA%2095123%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "eastridge-centre",
@@ -1430,16 +1430,16 @@
       "region": "Central Valley",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 8:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "10:00 AM - 9:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 8 pm, Sat: 10 am - 6 pm, Sun: 10 am - 9 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -1473,7 +1473,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%202701%20Ming%20Avenue%20Ste%20%23181%2C%20Bakersfield%2C%20CA%2093304%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "visalia-mall",
@@ -1583,16 +1583,16 @@
       "region": "Bay Area",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 8:00 PM",
+        "saturday": "10:00 AM - 7:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 8 pm, Sat: 10 am - 7 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -1629,7 +1629,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%203642%20Livermore%20Outlets%20Dr%2C%20Livermore%2C%20CA%2094551%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "southland-mall",
@@ -1739,16 +1739,16 @@
       "region": "Southern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 8:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 8 pm, Sat: 10 am - 6 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -1782,7 +1782,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%20500%20Inland%20Center%20Dr%2C%20Ste%20%23426%2C%20San%20Bernardino%2C%20CA%2092408%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "ontario-mills",
@@ -1892,16 +1892,16 @@
       "region": "Northern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 8:00 PM",
+        "saturday": "10:00 AM - 7:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 8 pm, Sat: 10 am - 7 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -1935,7 +1935,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%201689%20Arden%20Way%2C%20Ste%20%231046%2C%20Sacramento%2C%20CA%2095815%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "westfield-galleria-mall",
@@ -2045,16 +2045,16 @@
       "region": "Southern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 8:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 10 am - 8 pm, Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 8 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -2088,7 +2088,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%206000%20Sepulveda%20Blvd%20%232501%2C%20Culver%20City%2C%20CA%2090230%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "northridge-fashion-center",
@@ -2198,16 +2198,16 @@
       "region": "Southern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 9:00 PM",
+        "tuesday": "10:00 AM - 9:00 PM",
+        "wednesday": "10:00 AM - 9:00 PM",
+        "thursday": "10:00 AM - 9:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 8:00 PM",
+        "sunday": "11:00 AM - 8:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 9 pm, Sat: 10 am - 8 pm, Sun: 11 am - 8 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -2244,7 +2244,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%20400%20S%20Baldwin%20Ave%2C%20Space%20%23T56%2C%20Arcadia%2C%20CA%2091007%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "westfield-culver-city",
@@ -2354,16 +2354,16 @@
       "region": "Southern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 8:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 6:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 8 pm, Sat: 10 am - 6 pm, Sun: 11 am - 6 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -2399,7 +2399,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%2014400%20Bear%20Valley%20Rd%2C%20Ste%20%23641%2C%20Victorville%2C%20CA%2092392%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "inland-center",
@@ -2509,16 +2509,16 @@
       "region": "Southern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 8:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 10 am - 8 pm, Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 8 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -2552,7 +2552,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%201%20Mills%20Circle%2C%20Space%20%231011%2C%20Ontario%2C%20CA%2091764%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "inland-center",
@@ -2662,16 +2662,16 @@
       "region": "Southern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 10 am - 8 pm, Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -2708,7 +2708,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%203030%20Plaza%20Bonita%20Rd%2C%20%231076%2C%20National%20City%2C%20CA%2091950%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "inland-center",
@@ -2818,16 +2818,16 @@
       "region": "Northern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "11:00 AM - 8:00 PM",
+        "tuesday": "11:00 AM - 8:00 PM",
+        "wednesday": "11:00 AM - 8:00 PM",
+        "thursday": "11:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 8:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 11 am - 8 pm, Fri: 10 am - 8 pm, Sat: 10 am - 6 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -2861,7 +2861,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%204950%20Pacific%20Ave%20Suite%20115%2C%20Stockton%2C%20CA%2095207%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "vintage-faire-mall",
@@ -2971,16 +2971,16 @@
       "region": "Nevada",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "11:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 9:00 PM",
+        "sunday": "10:00 AM - 8:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Tue: 10 am - 8 pm, Wed: 11 am - 8 pm, Thu: 10 am - 8 pm, Fri-Sat: 10 am - 9 pm, Sun: 10 am - 8 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -3014,7 +3014,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%205000%20Meadowood%20Mall%20Cir%20c%20112%2C%20Reno%2C%20NV%2089502%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "westfield-galleria-mall",
@@ -3231,16 +3231,16 @@
       "region": "Northern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 8:00 PM",
+        "saturday": "10:00 AM - 8:00 PM",
+        "sunday": "10:00 AM - 6:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Sat: 10 am - 8 pm, Sun: 10 am - 6 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -3274,7 +3274,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%201071%20Santa%20Rosa%20Plaza%20Space%201058A%2C%20Santa%20Rosa%2C%20CA%2095401%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "solano-town-center",
@@ -3384,16 +3384,16 @@
       "region": "Arizona",
       "timezone": "America/Phoenix",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 9:00 PM",
+        "tuesday": "10:00 AM - 9:00 PM",
+        "wednesday": "10:00 AM - 9:00 PM",
+        "thursday": "10:00 AM - 9:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 6:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 6 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -3427,7 +3427,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%203111%20W%20Chandler%20Blvd%20Space%202300%2C%20Chandler%2C%20AZ%2085226%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "galleria-at-sunset",
@@ -3537,16 +3537,16 @@
       "region": "Texas",
       "timezone": "America/Chicago",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "11:00 AM - 8:00 PM",
+        "tuesday": "11:00 AM - 8:00 PM",
+        "wednesday": "11:00 AM - 6:00 PM",
+        "thursday": "11:00 AM - 6:00 PM",
+        "friday": "11:00 AM - 8:00 PM",
+        "saturday": "10:00 AM - 8:00 PM",
+        "sunday": "12:00 PM - 6:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Tue: 11 am - 8 pm, Wed-Thu: 11 am - 6 pm, Fri: 11 am - 8 pm, Sat: 10 am - 8 pm, Sun: 12 pm - 6 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -3580,7 +3580,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%203500%20McCann%20Rd%20Ste%20M9%2C%20Longview%2C%20TX%2075605%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "deerbrook",
@@ -3690,16 +3690,16 @@
       "region": "Southern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "11:00 AM - 8:00 PM",
+        "tuesday": "11:00 AM - 8:00 PM",
+        "wednesday": "11:00 AM - 8:00 PM",
+        "thursday": "11:00 AM - 8:00 PM",
+        "friday": "11:00 AM - 9:00 PM",
+        "saturday": "11:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 11 am - 8 pm, Fri: 11 am - 9 pm, Sat: 11 am - 6 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -3733,7 +3733,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%209301%20Tampa%20Ave%20Space%20%23180%2C%20Northridge%2C%20CA%2091324%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "westfield-culver-city",
@@ -3843,16 +3843,16 @@
       "region": "Southern California",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "11:00 AM - 8:00 PM",
+        "tuesday": "11:00 AM - 8:00 PM",
+        "wednesday": "11:00 AM - 8:00 PM",
+        "thursday": "11:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 11 am - 8 pm, Fri: 10 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -3886,7 +3886,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%201233%20Rancho%20Vista%20Blvd%2C%20Space%20%23235%2C%20Palmdale%2C%20CA%2093551%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "the-shops-at-santa-anita",
@@ -3996,16 +3996,16 @@
       "region": "Bay Area",
       "timezone": "America/Los_Angeles",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "10:00 AM - 8:00 PM",
+        "tuesday": "10:00 AM - 8:00 PM",
+        "wednesday": "10:00 AM - 8:00 PM",
+        "thursday": "10:00 AM - 8:00 PM",
+        "friday": "10:00 AM - 6:00 PM",
+        "saturday": "10:00 AM - 9:00 PM",
+        "sunday": "11:00 AM - 7:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 10 am - 8 pm, Fri: 10 am - 6 pm, Sat: 10 am - 9 pm, Sun: 11 am - 7 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -4040,7 +4040,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%20302%20Great%20Mall%20Dr%2C%20Milpitas%2C%20CA%2095035%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "westfield-valley-fair",
@@ -4258,16 +4258,16 @@
       "region": "Texas",
       "timezone": "America/Chicago",
       "openingHours": {
-        "monday": null,
-        "tuesday": null,
-        "wednesday": null,
-        "thursday": null,
-        "friday": null,
-        "saturday": null,
-        "sunday": null
+        "monday": "11:00 AM - 8:00 PM",
+        "tuesday": "11:00 AM - 8:00 PM",
+        "wednesday": "11:00 AM - 8:00 PM",
+        "thursday": "11:00 AM - 8:00 PM",
+        "friday": "11:00 AM - 9:00 PM",
+        "saturday": "10:00 AM - 6:00 PM",
+        "sunday": "11:00 AM - 6:00 PM"
       },
-      "hoursRaw": null,
-      "hoursSource": "not_extracted",
+      "hoursRaw": "Mon-Thu: 11 am - 8 pm, Fri: 11 am - 9 pm, Sat: 10 am - 6 pm, Sun: 11 am - 6 pm",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -4299,7 +4299,7 @@
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%2020131%20US-59%20Space%20%23%201074%20Humble%2C%20TX%2077338%2C%20USA",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-      "lastSyncedAt": "2026-07-07T06:52:19.799Z",
+      "lastSyncedAt": "2026-07-09T09:41:27.547Z",
       "nearestStores": [
         {
           "id": "baybrook",
@@ -4359,8 +4359,8 @@
       "country": "USA",
       "status": "Open",
       "address": "3401 Dale Rd Ste 132",
-      "addressRaw": "3401 Dale Rd Ste 132, Modesto, CA 95356, United States",
-      "fullAddress": "3401 Dale Rd Ste 132, Modesto, CA 95356, USA",
+      "addressRaw": "3401 Dale Rd Ste 132, Modesto, CA 95356",
+      "fullAddress": "3401 Dale Rd Ste 132, Modesto, CA 95356, United States",
       "zipCode": "95356",
       "latitude": 37.688767,
       "longitude": -121.0539585,
@@ -4382,7 +4382,7 @@
         "sunday": "11:00 AM - 7:00 PM"
       },
       "hoursRaw": "Mon-Fri: 10am-9pm, Sat: 10am-6pm, Sun: 11am-7pm",
-      "hoursSource": "user_provided_google_listing",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -4419,7 +4419,7 @@
       "googlePlaceId": "ChIJ54bXcZZRkIARt5bht4d12Is",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-09T08:04:22.579Z",
-      "lastSyncedAt": "2026-07-09T08:04:22.579Z",
+      "lastSyncedAt": "2026-07-09T09:50:04.745Z",
       "nearestStores": [
         {
           "id": "weberstown-mall",
@@ -4503,7 +4503,7 @@
     {
       "id": "galleria-at-sunset",
       "storeCode": null,
-      "officialName": "Valliani Jewelers Galleria at Sunset",
+      "officialName": "Valliani Jewelers The Galleria at Sunset",
       "name": "Galleria at Sunset",
       "mall": "The Galleria at Sunset",
       "city": "Henderson",
@@ -4512,8 +4512,8 @@
       "country": "USA",
       "status": "Open",
       "address": "1300 W Sunset Rd Unit 2621",
-      "addressRaw": "1300 W Sunset Rd Unit 2621, Henderson, NV 89014, United States",
-      "fullAddress": "1300 W Sunset Rd Unit 2621, Henderson, NV 89014, USA",
+      "addressRaw": "1300 W Sunset Rd Unit 2621, Henderson, NV 89014",
+      "fullAddress": "1300 W Sunset Rd Unit 2621, Henderson, NV 89014, United States",
       "zipCode": "89014",
       "latitude": 36.0669018,
       "longitude": -115.0421507,
@@ -4535,7 +4535,7 @@
         "sunday": "11:00 AM - 12:00 AM"
       },
       "hoursRaw": "Mon-Thu: 10am-8pm, Fri: 10am-9pm, Sat: 10am-6pm, Sun: 11am-12am",
-      "hoursSource": "user_provided_google_listing",
+      "hoursSource": "google_maps_manual_2026-07-09",
       "services": [
         "Fine Jewelry",
         "Diamond Jewelry",
@@ -4565,7 +4565,8 @@
         "Valliani Henderson",
         "Valliani Jewelers Henderson",
         "Valliani Jewelers Galleria at Sunset",
-        "Sunset Galleria"
+        "Sunset Galleria",
+        "Henderson Galleria"
       ],
       "googleMapsUrl": "https://maps.google.com/?cid=3785686504989440531&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "appleMapsUrl": "https://maps.apple.com/?q=Valliani%20Jewelers%201300%20W%20Sunset%20Rd%20Unit%202621%2C%20Henderson%2C%20NV%2089014%2C%20USA",
@@ -4573,7 +4574,7 @@
       "googlePlaceId": "ChIJt9NlVXDRyIARE7rioNF1iTQ",
       "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
       "sourceExtractedAt": "2026-07-09T08:04:22.579Z",
-      "lastSyncedAt": "2026-07-09T08:04:22.579Z",
+      "lastSyncedAt": "2026-07-09T09:50:04.745Z",
       "nearestStores": [
         {
           "id": "the-mall-of-victor-valley",

@@ -913,18 +913,18 @@
   @apply bg-white/35;
 }
 
-/* Stores map (Leaflet) */
+/* Stores map (Leaflet) — colorful Voyager basemap */
 .stores-map-shell .leaflet-container {
-  background: #0b1220;
+  background: #d4e6f1;
   font-family: inherit;
 }
 .stores-map-shell .leaflet-control-attribution {
-  background: rgba(15, 23, 42, 0.75) !important;
-  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: rgba(15, 23, 42, 0.55);
   font-size: 10px;
 }
 .stores-map-shell .leaflet-control-attribution a {
-  color: rgba(125, 211, 252, 0.7);
+  color: rgba(14, 116, 144, 0.85);
 }
 .stores-map-marker {
   background: transparent !important;
@@ -936,13 +936,15 @@
   height: 14px;
   margin: 4px;
   border-radius: 9999px;
-  background: #38bdf8;
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 2px 8px rgba(0, 0, 0, 0.45);
+  background: #0ea5e9;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 .stores-map-pin-selected {
   width: 18px;
   height: 18px;
   margin: 5px;
-  background: #fbbf24;
-  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.3), 0 2px 10px rgba(0, 0, 0, 0.5);
+  background: #f59e0b;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.4), 0 2px 10px rgba(0, 0, 0, 0.3);
 }
