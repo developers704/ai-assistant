@@ -317,21 +317,14 @@
   .plasma-orb {
     position: relative;
     border-radius: 9999px;
-    background: radial-gradient(
-      circle at 35% 30%,
-      rgba(255, 255, 255, 0.95) 0%,
-      rgba(236, 72, 153, 0.95) 12%,
-      #8b5cf6 38%,
-      #4f46e5 68%,
-      #1e1b4b 100%
-    );
+    background: radial-gradient(circle at 50% 50%, #020024 0%, #090979 35%, #7c3aed 75%, #d946ef 100%);
     box-shadow:
-      0 0 34px rgba(168, 85, 247, 0.5),
-      0 0 80px rgba(139, 92, 246, 0.28),
-      0 14px 34px rgba(2, 6, 23, 0.5),
-      inset 0 -10px 22px rgba(30, 27, 75, 0.85),
-      inset 0 6px 12px rgba(255, 255, 255, 0.28);
+      0 0 30px rgba(217, 70, 239, 0.5),
+      0 0 70px rgba(124, 58, 237, 0.3),
+      inset 0 0 20px rgba(255, 255, 255, 0.6),
+      inset 0 0 50px rgba(217, 70, 239, 0.8);
     transform: translateZ(0);
+    overflow: hidden;
   }
 
   /* Gentle hover-float — for the large hero orb only */
@@ -346,31 +339,32 @@
     pointer-events: none;
   }
 
-  /* Rotating energy filaments */
-  .plasma-swirl-a {
-    background:
-      radial-gradient(ellipse 62% 42% at 30% 66%, rgba(244, 114, 182, 0.85), transparent 65%),
-      radial-gradient(ellipse 46% 34% at 72% 28%, rgba(34, 211, 238, 0.55), transparent 60%);
-    filter: blur(5px);
-    mix-blend-mode: screen;
-    animation: plasma-spin 7s linear infinite;
+  /* Electric lightning layers */
+  .plasma-lightning {
+    inset: -5% !important;
+    background: radial-gradient(circle, #ffffff 0%, #fdf4ff 30%, transparent 70%);
+    filter: url(#electric-noise);
+    mix-blend-mode: color-dodge;
+    animation: plasma-spin 15s linear infinite;
+    opacity: 0.85;
   }
 
-  .plasma-swirl-b {
-    background:
-      radial-gradient(ellipse 56% 46% at 66% 72%, rgba(192, 132, 252, 0.9), transparent 62%),
-      radial-gradient(ellipse 40% 30% at 24% 34%, rgba(255, 255, 255, 0.4), transparent 55%);
-    filter: blur(7px);
+  .plasma-lightning-b {
+    inset: -5% !important;
+    background: radial-gradient(circle, #e879f9 0%, #c026d3 40%, transparent 80%);
+    filter: url(#electric-noise);
     mix-blend-mode: screen;
-    animation: plasma-spin 11s linear infinite reverse;
+    animation: plasma-spin 25s linear infinite reverse;
+    opacity: 0.7;
   }
 
   /* Bright breathing core */
   .plasma-core {
     inset: 15% !important;
-    background: radial-gradient(circle, rgba(236, 72, 153, 0.65) 0%, rgba(139, 92, 246, 0.4) 45%, transparent 70%);
-    filter: blur(6px);
-    animation: plasma-core-breathe 3.4s ease-in-out infinite;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(232, 121, 249, 0.4) 40%, transparent 70%);
+    filter: blur(4px);
+    animation: plasma-core-breathe 3s ease-in-out infinite;
+    mix-blend-mode: overlay;
   }
 
   /* Glassy specular highlight */
@@ -815,8 +809,8 @@
   .voice-eq span,
   .plasma-orb,
   .plasma-orb-float,
-  .plasma-swirl-a,
-  .plasma-swirl-b,
+  .plasma-lightning,
+  .plasma-lightning-b,
   .plasma-core {
     animation: none !important;
   }
