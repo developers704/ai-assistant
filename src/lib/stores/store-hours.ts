@@ -98,7 +98,7 @@ export function parseHourRange(
 
   const closeMer = match[6];
   const openMer = match[3] || closeMer;
-  let openMin = toMin(match[1], match[2], openMer, closeMer);
+  const openMin = toMin(match[1], match[2], openMer, closeMer);
   let closeMin = toMin(match[4], match[5], closeMer, openMer);
 
   // "12:00 AM" as close usually means midnight (end of day) → 24:00
@@ -203,7 +203,7 @@ export function getStoreOpenStatus(
 
   const { hour, minute } = getStoreLocalParts(store, at);
   const nowMin = hour * 60 + minute;
-  let { openMin, closeMin } = range;
+  const { openMin, closeMin } = range;
 
   // Overnight ranges (e.g. 11am–12am)
   let isOpenNow: boolean;
