@@ -6,7 +6,7 @@ import { useApp } from "@/lib/store/app-context";
 import { useRealtimeVoice } from "@/lib/voice/useRealtimeVoice";
 import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 import { cn, getDisplayFirstName } from "@/lib/utils";
-import { Mic, Loader2, PhoneOff, AudioLines } from "lucide-react";
+import { PhoneOff } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   idle: "Starting…",
@@ -92,8 +92,8 @@ export function VoiceSession() {
           ? "text-rose-300"
           : "text-ink-muted";
 
-  // Boost orb motion while Alexa speaks too
   const orbLevel = Math.max(audioLevel, isSpeaking ? 0.45 : 0, isBusy ? 0.2 : 0);
+  const hasTranscript = Boolean(userTranscript || assistantTranscript);
 
   return (
     <div className="flex flex-col items-center justify-between min-h-full px-4 sm:px-6 py-10 sm:py-14 safe-area-bottom">
@@ -104,7 +104,7 @@ export function VoiceSession() {
         <p className="mt-2 text-sm text-ink-muted">Speak naturally — Alexa is listening</p>
       </div>
 
-      <div className="relative flex-1 flex items-center justify-center min-h-[280px] w-full my-6">
+      <div className="relative flex-1 flex items-center justify-center min-h-[320px] w-full my-6">
         {isLive && (
           <>
             <span
@@ -128,88 +128,103 @@ export function VoiceSession() {
           density="high"
           audioLevel={orbLevel}
           className={cn(
-            "relative h-48 w-48 sm:h-64 sm:w-64 transition-transform duration-200",
+            "relative h-56 w-56 sm:h-72 sm:w-72 transition-transform duration-200",
             isSpeaking && "scale-110",
             isLive && audioLevel > 0.08 && "scale-105"
           )}
-        >
-          <div className="relative z-10 drop-shadow-[0_0_12px_rgba(0,0,0,0.45)]">
-            {isBusy ? (
-              <Loader2 size={48} className="animate-spin text-white/85" />
-            ) : isSpeaking ? (
-              <AudioLines size={56} className="text-white/90 animate-pulse" />
-            ) : (
-              <Mic size={48} className="text-white/85" />
-            )}
-          </div>
-        </PlasmaOrb>
+        />
       </div>
 
       <div className="w-full max-w-2xl flex-shrink-0 flex flex-col items-center gap-5 pb-4">
-        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-6 shadow-2xl min-h-[140px]">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <p className={cn("text-sm font-semibold flex items-center gap-2", statusTone)}>
-              {isLive && (
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
-              )}
-              {statusLabel}
-            </p>
-            {isSpeaking && (
-              <span className="voice-eq" aria-hidden>
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </span>
-            )}
-          </div>
-
-          {error && (
-            <p className="text-sm text-rose-300 bg-rose-500/10 ring-1 ring-rose-400/25 rounded-xl px-4 py-3 mb-3 text-left">
-              {error}
-            </p>
+        {/* Jewelry-image-style gradient shell */}
+        <div
+          className={cn(
+            "relative w-full rounded-[1.75rem] p-[1.5px] transition-all duration-500",
+            isLive || isSpeaking || hasTranscript
+              ? "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 shadow-[0_0_60px_rgba(168,85,247,0.35),0_20px_50px_rgba(15,23,42,0.5)]"
+              : "bg-gradient-to-r from-violet-500/50 via-fuchsia-500/40 to-cyan-400/30 shadow-[0_12px_48px_rgba(139,92,246,0.2)]"
           )}
+        >
+          <div className="relative overflow-hidden rounded-[1.65rem] bg-[#121a28]/95 backdrop-blur-2xl min-h-[140px]">
+            <div className="pointer-events-none absolute -top-20 -right-16 h-48 w-48 rounded-full bg-fuchsia-500/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-12 h-56 w-56 rounded-full bg-violet-600/15 blur-3xl" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(139,92,246,0.12),transparent)]" />
 
-          {isLive && !userTranscript && !assistantTranscript && !error && (
-            <p className="text-base text-ink-secondary text-left">
-              Listening for your voice…
-            </p>
-          )}
+            <div className="relative px-4 sm:px-5 pt-4 sm:pt-5 pb-3 sm:pb-4">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <p className={cn("text-sm font-semibold flex items-center gap-2", statusTone)}>
+                  {isLive && (
+                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
+                  )}
+                  {statusLabel}
+                </p>
+                {isSpeaking && (
+                  <span className="voice-eq" aria-hidden>
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                )}
+              </div>
 
-          {(userTranscript || assistantTranscript) && (
-            <div className="space-y-3 max-h-52 overflow-y-auto text-left">
-              {userTranscript && (
-                <div className="flex justify-end">
-                  <div className="chat-bubble-user max-w-[90%] rounded-2xl rounded-br-md px-4 py-3">
-                    <p className="text-sm text-white leading-relaxed">{userTranscript}</p>
-                  </div>
-                </div>
+              {error && (
+                <p className="text-sm text-rose-300 bg-rose-500/10 ring-1 ring-rose-400/25 rounded-xl px-4 py-3 mb-3 text-left">
+                  {error}
+                </p>
               )}
-              {assistantTranscript && (
-                <div className="flex justify-start">
-                  <div className="chat-bubble-ai max-w-[95%] rounded-2xl rounded-tl-md px-4 py-3">
-                    <p className="text-xs uppercase tracking-wide text-violet-300/80 mb-1">
-                      Alexa
-                    </p>
-                    <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap">
-                      {assistantTranscript}
-                    </p>
-                  </div>
+
+              {!hasTranscript && !error && (
+                <p className="text-base text-ink-muted text-left min-h-[3rem]">
+                  {isBusy
+                    ? "Thinking…"
+                    : isSpeaking
+                      ? "Alexa is speaking…"
+                      : "Listening for your voice…"}
+                </p>
+              )}
+
+              {hasTranscript && (
+                <div className="space-y-3 max-h-52 overflow-y-auto text-left border-t border-white/8 pt-3 mt-1">
+                  {userTranscript && (
+                    <div className="flex justify-end">
+                      <div className="chat-bubble-user max-w-[90%] rounded-2xl rounded-br-md px-4 py-3">
+                        <p className="text-sm text-white leading-relaxed">{userTranscript}</p>
+                      </div>
+                    </div>
+                  )}
+                  {assistantTranscript && (
+                    <div className="flex justify-start">
+                      <div className="chat-bubble-ai max-w-[95%] rounded-2xl rounded-tl-md px-4 py-3">
+                        <p className="text-xs uppercase tracking-wide text-violet-300/80 mb-1">
+                          Alexa
+                        </p>
+                        <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap">
+                          {assistantTranscript}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        <button
-          type="button"
-          onClick={handleEnd}
-          className="px-8 py-3.5 text-sm font-semibold rounded-full bg-white/10 hover:bg-rose-500/20 text-white hover:text-rose-100 ring-1 ring-white/20 hover:ring-rose-400/40 transition-all flex items-center justify-center gap-2"
-        >
-          <PhoneOff size={16} />
-          End Session
-        </button>
+            <div className="relative flex items-center justify-between gap-3 px-4 sm:px-5 pb-4 pt-2 border-t border-white/8">
+              <p className="text-[11px] text-ink-muted">
+                English &amp; Urdu · say &ldquo;End session&rdquo; or tap below
+              </p>
+              <button
+                type="button"
+                onClick={handleEnd}
+                className="shrink-0 px-4 py-2 text-xs font-semibold rounded-xl bg-white/10 hover:bg-rose-500/20 text-white hover:text-rose-100 ring-1 ring-white/15 hover:ring-rose-400/40 transition-all flex items-center gap-1.5"
+              >
+                <PhoneOff size={14} />
+                End Session
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

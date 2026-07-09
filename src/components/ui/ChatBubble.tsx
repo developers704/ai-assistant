@@ -186,7 +186,7 @@ export function ChatBubble({ message, onConfirm, onReject, onEdit }: ChatBubbleP
   return (
     <div className="msg-enter group flex gap-2.5 sm:gap-3">
       <div className="flex-shrink-0 mt-0.5">
-        <PlasmaOrb className="w-8 h-8 sm:w-9 sm:h-9" />
+        <PlasmaOrb density="low" className="w-8 h-8 sm:w-9 sm:h-9" />
       </div>
       <div className="max-w-[min(88%,38rem)] min-w-0 flex flex-col items-start gap-1">
         <div className="chat-bubble-ai px-4 py-3 sm:px-5 sm:py-3.5 rounded-3xl rounded-tl-lg text-sm leading-relaxed text-ink">

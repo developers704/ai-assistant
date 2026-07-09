@@ -14,7 +14,6 @@ import {
   Users,
   Settings,
   LogOut,
-  Sparkles,
   Database,
   Wand2,
   Newspaper,
@@ -165,9 +164,7 @@ export function Sidebar() {
       <div className="glass-panel-strong flex flex-col flex-1 rounded-3xl overflow-hidden text-ink">
         <div className="px-5 py-5 border-b border-white/10">
           <div className="flex items-center gap-3.5">
-            <PlasmaOrb className="h-12 w-12 shrink-0">
-              <Icon icon={Sparkles} size="lg" className="text-white drop-shadow" active />
-            </PlasmaOrb>
+            <PlasmaOrb density="low" className="h-12 w-12 shrink-0" />
             <div className="min-w-0">
               <h1 className="text-ink font-semibold text-[15px] tracking-wide">Alexa</h1>
               <p className="text-ink-muted text-[11px] tracking-wide leading-snug">executive assistance</p>
@@ -227,9 +224,7 @@ export function MobileNav() {
       <header className="lg:hidden sticky top-0 z-40 mobile-nav-safe px-3 pb-2">
         <div className="mobile-ios-bar flex items-center justify-between gap-3 px-3.5 h-[3.25rem]">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <PlasmaOrb className="h-10 w-10 shrink-0">
-              <Icon icon={Sparkles} size="md" className="text-white drop-shadow" active />
-            </PlasmaOrb>
+            <PlasmaOrb density="low" className="h-10 w-10 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-ink font-semibold text-[15px] leading-tight tracking-tight">Alexa</p>
               <p className="text-ink-muted text-xs truncate leading-tight mt-0.5 font-medium">

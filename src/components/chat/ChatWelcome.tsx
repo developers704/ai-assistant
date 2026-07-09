@@ -127,7 +127,7 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
       <div className="text-center pt-1 pb-5 sm:pt-4 sm:pb-8 max-lg:pt-0">
         <div className="relative mx-auto mb-4 sm:mb-6 w-fit msg-enter">
           <div className="chat-orb-glow absolute inset-0 -m-6 sm:-m-8 rounded-full blur-3xl opacity-80" aria-hidden />
-          <PlasmaOrb variant="particles" density="low" className="plasma-orb-float relative h-20 w-20 sm:h-28 sm:w-28" />
+          <PlasmaOrb density="high" className="plasma-orb-float relative h-24 w-24 sm:h-32 sm:w-32" />
         </div>
 
         <p className="text-xs sm:text-sm font-medium uppercase tracking-[0.18em] text-violet-300/80 mb-1.5">

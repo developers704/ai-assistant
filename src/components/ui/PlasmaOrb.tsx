@@ -13,8 +13,8 @@ interface PlasmaOrbProps {
   /** denser particle field for large hero/voice orbs */
   density?: "low" | "high";
   /**
-   * particles = magenta point-cloud sphere (voice/hero)
-   * css = lightweight gradient orb (avatars / sidebar)
+   * particles = magenta point-cloud sphere (default — used everywhere)
+   * css = lightweight gradient orb (legacy fallback)
    */
   variant?: "particles" | "css";
 }
@@ -117,7 +117,7 @@ export function PlasmaOrb({
   children,
   audioLevel = 0,
   density = "low",
-  variant = "css",
+  variant = "particles",
 }: PlasmaOrbProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
