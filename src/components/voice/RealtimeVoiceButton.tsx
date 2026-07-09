@@ -2,7 +2,7 @@
 
 import { useApp } from "@/lib/store/app-context";
 import { useRealtimeVoice } from "@/lib/voice/useRealtimeVoice";
-import { Mic, Loader2, PhoneOff, AudioLines } from "lucide-react";
+import { Mic, Loader2, PhoneOff, AudioLines, Mail, Calendar, BarChart3, ImageIcon, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -131,6 +131,38 @@ export function RealtimeVoiceButton({
                 <Mic size={40} className="text-white/80" />
               )}
             </div>
+          </div>
+
+          {/* Floating Glassy Icons */}
+          <div 
+            className="absolute -top-4 -left-8 sm:-left-16 w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex items-center justify-center text-violet-300/80" 
+            style={{ animation: 'orb-float 12s ease-in-out infinite' }}
+          >
+            <Mail size={24} />
+          </div>
+          <div 
+            className="absolute top-10 -right-6 sm:-right-12 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex items-center justify-center text-emerald-300/80" 
+            style={{ animation: 'orb-float 15s ease-in-out infinite reverse', animationDelay: '-2s' }}
+          >
+            <BarChart3 size={20} />
+          </div>
+          <div 
+            className="absolute -bottom-6 -left-4 sm:-left-8 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex items-center justify-center text-cyan-300/80" 
+            style={{ animation: 'orb-float 14s ease-in-out infinite', animationDelay: '-5s' }}
+          >
+            <Calendar size={20} />
+          </div>
+          <div 
+            className="absolute -bottom-2 -right-10 sm:-right-16 w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex items-center justify-center text-pink-300/80" 
+            style={{ animation: 'orb-float 13s ease-in-out infinite reverse', animationDelay: '-7s' }}
+          >
+            <ImageIcon size={24} />
+          </div>
+          <div 
+            className="absolute -top-12 right-4 sm:right-10 w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex items-center justify-center text-indigo-300/80" 
+            style={{ animation: 'orb-float 10s ease-in-out infinite', animationDelay: '-9s' }}
+          >
+            <MessageSquare size={16} />
           </div>
         </div>
 

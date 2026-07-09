@@ -128,12 +128,12 @@ function NavTile({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <span
       className={cn(
-        "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ring-1 ring-white/25",
+        "icon-tile flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br ring-1 ring-white/10",
         item.tile,
         active ? "icon-tile-active" : "icon-tile-dim"
       )}
     >
-      <Icon icon={item.icon} size="md" active className="text-white" />
+      <Icon icon={item.icon} size="sm" className="text-white" />
     </span>
   );
 }
@@ -144,15 +144,12 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       href={item.href}
       onClick={onClick}
       className={cn(
-        "group relative flex items-center gap-3.5 px-3 py-2.5 rounded-2xl text-[13.5px] transition-all duration-200",
+        "group relative flex items-center gap-3.5 px-3 py-2 rounded-[14px] text-[13.5px] transition-all duration-200",
         active
           ? "nav-pill-active text-white font-semibold"
-          : "text-ink-secondary font-medium hover:text-white hover:bg-white/8"
+          : "text-ink-secondary font-medium hover:text-white hover:bg-white/5"
       )}
     >
-      {active && (
-        <span className={cn("absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full", item.accent)} />
-      )}
       <NavTile item={item} active={active} />
       <span className="truncate leading-snug">{item.label}</span>
     </Link>
