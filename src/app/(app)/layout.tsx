@@ -6,16 +6,20 @@ import { Sidebar, MobileNav } from "@/components/layout/Sidebar";
 import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
 import { FuturisticBackground } from "@/components/layout/FuturisticBackground";
 import { UiContextSync } from "@/components/layout/UiContextSync";
+import { cn } from "@/lib/utils";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { state, loading, refresh } = useApp();
   const pathname = usePathname();
   const showFloatingVoice =
     pathname !== "/chat" &&
+    pathname !== "/voice" &&
     pathname !== "/email" &&
     pathname !== "/contacts" &&
     pathname !== "/images" &&
     pathname !== "/analyst";
+
+  const isVoicePage = pathname === "/voice";
 
   if (loading) {
     return null;
@@ -41,13 +45,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen relative">
       <UiContextSync />
       <FuturisticBackground />
-      <Sidebar />
+      {!isVoicePage && <Sidebar />}
       <div className="flex-1 flex flex-col min-w-0">
-        <MobileNav />
-        <main className="flex-1 overflow-x-hidden">
-          <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
-            {children}
-          </div>
+        {!isVoicePage && <MobileNav />}
+        <main className={cn("flex-1 overflow-x-hidden", isVoicePage && "overflow-hidden")}>
+          {isVoicePage ? (
+            children
+          ) : (
+            <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
+              {children}
+            </div>
+          )}
         </main>
       </div>
       {showFloatingVoice && <RealtimeVoiceButton />}
