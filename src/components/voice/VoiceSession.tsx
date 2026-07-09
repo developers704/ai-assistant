@@ -4,9 +4,9 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store/app-context";
 import { useRealtimeVoice } from "@/lib/voice/useRealtimeVoice";
-import { getDisplayFirstName } from "@/lib/utils";
+import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
+import { cn, getDisplayFirstName } from "@/lib/utils";
 import { Mic, Loader2, PhoneOff, AudioLines } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const STATUS_LABELS: Record<string, string> = {
   idle: "Starting…",
@@ -32,6 +32,7 @@ export function VoiceSession() {
     supported,
     userTranscript,
     assistantTranscript,
+    audioLevel,
     startSession,
     closePanel,
   } = useRealtimeVoice(voiceEnabled);
@@ -49,7 +50,7 @@ export function VoiceSession() {
 
   if (!supported) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 text-center px-6">
+      <div className="flex min-h-full flex-col items-center justify-center gap-4 text-center px-6">
         <p className="text-ink-secondary">Voice is not supported in this browser.</p>
         <button
           type="button"
@@ -64,7 +65,7 @@ export function VoiceSession() {
 
   if (!voiceEnabled) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 text-center px-6">
+      <div className="flex min-h-full flex-col items-center justify-center gap-4 text-center px-6">
         <p className="text-ink-secondary">Voice is disabled in Settings.</p>
         <button
           type="button"
@@ -91,9 +92,11 @@ export function VoiceSession() {
           ? "text-rose-300"
           : "text-ink-muted";
 
+  // Boost orb motion while Alexa speaks too
+  const orbLevel = Math.max(audioLevel, isSpeaking ? 0.45 : 0, isBusy ? 0.2 : 0);
+
   return (
     <div className="flex flex-col items-center justify-between min-h-full px-4 sm:px-6 py-10 sm:py-14 safe-area-bottom">
-      {/* Greeting */}
       <div className="flex-shrink-0 text-center w-full max-w-xl">
         <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
           Hi {firstName}, what&apos;s on your mind?
@@ -101,7 +104,6 @@ export function VoiceSession() {
         <p className="mt-2 text-sm text-ink-muted">Speak naturally — Alexa is listening</p>
       </div>
 
-      {/* Orb */}
       <div className="relative flex-1 flex items-center justify-center min-h-[280px] w-full my-6">
         {isLive && (
           <>
@@ -121,84 +123,30 @@ export function VoiceSession() {
             />
           </>
         )}
-        <div
+        <PlasmaOrb
+          variant="particles"
+          density="high"
+          audioLevel={orbLevel}
           className={cn(
-            "plasma-orb relative flex h-48 w-48 sm:h-64 sm:w-64 items-center justify-center rounded-full transition-transform duration-300",
+            "relative h-48 w-48 sm:h-64 sm:w-64 transition-transform duration-200",
             isSpeaking && "scale-110",
-            isLive && !isSpeaking && !isBusy && "scale-105"
+            isLive && audioLevel > 0.08 && "scale-105"
           )}
-          style={{
-            boxShadow:
-              isLive && !isSpeaking && !isBusy
-                ? "0 0 60px rgba(217, 70, 239, 0.6), inset 0 0 30px rgba(255, 255, 255, 0.5)"
-                : undefined,
-            animation:
-              isLive && !isSpeaking && !isBusy
-                ? "orb-breathe 0.5s ease-in-out infinite alternate"
-                : undefined,
-          }}
         >
-          <svg className="absolute w-0 h-0" aria-hidden="true">
-            <defs>
-              <filter id="electric-noise-voice-page">
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.06"
-                  numOctaves="3"
-                  result="noise"
-                  seed="3"
-                >
-                  <animate
-                    attributeName="baseFrequency"
-                    values="0.06;0.08;0.06"
-                    dur="3s"
-                    repeatCount="indefinite"
-                  />
-                </feTurbulence>
-                <feColorMatrix
-                  type="matrix"
-                  values="
-                    1 0 0 0 0
-                    0 1 0 0 0
-                    0 0 1 0 0
-                    0 0 0 20 -8"
-                  in="noise"
-                  result="highContrast"
-                />
-                <feComposite
-                  operator="in"
-                  in="SourceGraphic"
-                  in2="highContrast"
-                  result="composite"
-                />
-              </filter>
-            </defs>
-          </svg>
-          <span
-            className="plasma-lightning"
-            style={{ filter: "url(#electric-noise-voice-page)" }}
-          />
-          <span
-            className="plasma-lightning-b"
-            style={{ filter: "url(#electric-noise-voice-page)" }}
-          />
-          <span className="plasma-core" />
-          <span className="plasma-shine" />
-          <div className="relative z-10">
+          <div className="relative z-10 drop-shadow-[0_0_12px_rgba(0,0,0,0.45)]">
             {isBusy ? (
-              <Loader2 size={48} className="animate-spin text-white/80" />
+              <Loader2 size={48} className="animate-spin text-white/85" />
             ) : isSpeaking ? (
               <AudioLines size={56} className="text-white/90 animate-pulse" />
             ) : (
-              <Mic size={48} className="text-white/80" />
+              <Mic size={48} className="text-white/85" />
             )}
           </div>
-        </div>
+        </PlasmaOrb>
       </div>
 
-      {/* Status + transcripts — always visible above End Session */}
-      <div className="w-full max-w-2xl flex-shrink-0 flex flex-col items-center gap-5">
-        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-6 shadow-2xl min-h-[120px]">
+      <div className="w-full max-w-2xl flex-shrink-0 flex flex-col items-center gap-5 pb-4">
+        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-6 shadow-2xl min-h-[140px]">
           <div className="flex items-center justify-between gap-2 mb-3">
             <p className={cn("text-sm font-semibold flex items-center gap-2", statusTone)}>
               {isLive && (

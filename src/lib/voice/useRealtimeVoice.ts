@@ -48,6 +48,7 @@ export function useRealtimeVoice(enabled: boolean) {
   const [userTranscript, setUserTranscript] = useState("");
   const [assistantTranscript, setAssistantTranscript] = useState("");
   const [supported, setSupported] = useState(true);
+  const [audioLevel, setAudioLevel] = useState(0);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
@@ -61,6 +62,9 @@ export function useRealtimeVoice(enabled: boolean) {
   const pendingResponseRef = useRef(false);
   const responseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTranscriptRef = useRef("");
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const levelRafRef = useRef(0);
 
   const clearResponseTimer = useCallback(() => {
     if (responseTimerRef.current) {
@@ -513,10 +517,63 @@ export function useRealtimeVoice(enabled: boolean) {
     }, 8000);
   }, [clearResponseTimer, createResponse]);
 
+  const stopLevelMeter = useCallback(() => {
+    if (levelRafRef.current) {
+      cancelAnimationFrame(levelRafRef.current);
+      levelRafRef.current = 0;
+    }
+    analyserRef.current = null;
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close().catch(() => undefined);
+      audioCtxRef.current = null;
+    }
+    setAudioLevel(0);
+  }, []);
+
+  const startLevelMeter = useCallback(
+    (stream: MediaStream) => {
+      stopLevelMeter();
+      try {
+        const ctx = new AudioContext();
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.72;
+        source.connect(analyser);
+        audioCtxRef.current = ctx;
+        analyserRef.current = analyser;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+
+        const tick = () => {
+          if (!analyserRef.current || !sessionActiveRef.current) {
+            setAudioLevel(0);
+            levelRafRef.current = requestAnimationFrame(tick);
+            return;
+          }
+          analyserRef.current.getByteFrequencyData(data);
+          let sum = 0;
+          // Focus on speech band bins
+          const end = Math.min(data.length, 48);
+          for (let i = 2; i < end; i++) sum += data[i];
+          const avg = sum / Math.max(1, end - 2) / 255;
+          // Gate quiet room noise, then expand for catchy motion
+          const gated = Math.max(0, avg - 0.04) * 1.8;
+          setAudioLevel(Math.min(1, gated));
+          levelRafRef.current = requestAnimationFrame(tick);
+        };
+        levelRafRef.current = requestAnimationFrame(tick);
+      } catch {
+        // Analyser unavailable — orb still animates via CSS/status
+      }
+    },
+    [stopLevelMeter]
+  );
+
   const teardownConnection = useCallback(() => {
     clearResponseTimer();
     pendingResponseRef.current = false;
     processingResponseRef.current = false;
+    stopLevelMeter();
     dcRef.current?.close();
     dcRef.current = null;
     pcRef.current?.close();
@@ -530,7 +587,7 @@ export function useRealtimeVoice(enabled: boolean) {
     sessionStartRef.current = null;
     turnCountRef.current = 0;
     processingToolRef.current = false;
-  }, [clearResponseTimer, disableMic]);
+  }, [clearResponseTimer, disableMic, stopLevelMeter]);
 
   const disconnect = useCallback(() => {
     sessionActiveRef.current = false;
@@ -641,6 +698,12 @@ export function useRealtimeVoice(enabled: boolean) {
             setStatus("listening");
           }
           break;
+        case "conversation.item.input_audio_transcription.delta":
+          if (event.delta && sessionActiveRef.current) {
+            setUserTranscript((prev) => prev + event.delta);
+            setStatus("listening");
+          }
+          break;
         case "input_audio_buffer.speech_stopped":
           if (sessionActiveRef.current) {
             setStatus("thinking");
@@ -719,11 +782,18 @@ export function useRealtimeVoice(enabled: boolean) {
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
-      const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mic = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       micStreamRef.current = mic;
       const track = mic.getAudioTracks()[0];
       track.enabled = false;
       pc.addTrack(track, mic);
+      startLevelMeter(mic);
 
       if (!audioRef.current) {
         audioRef.current = new Audio();
@@ -782,7 +852,7 @@ export function useRealtimeVoice(enabled: boolean) {
     } catch (err) {
       endSessionWithError(err instanceof Error ? err.message : "Failed to connect");
     }
-  }, [enabled, enableMic, endSessionWithError, handleServerEvent]);
+  }, [enabled, enableMic, endSessionWithError, handleServerEvent, startLevelMeter]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -832,6 +902,7 @@ export function useRealtimeVoice(enabled: boolean) {
     supported,
     userTranscript,
     assistantTranscript,
+    audioLevel,
     startSession,
     closePanel,
   };
