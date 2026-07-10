@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
 import {
@@ -25,6 +26,7 @@ import { syncUiSelection } from "@/components/layout/UiContextSync";
 import {
   formatReportDateDisplay,
   formatReportDateRange,
+  isValidIsoDate,
 } from "@/lib/reports/date-utils";
 import { TrendingUp, TrendingDown, Package, Store, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,13 +36,23 @@ const selectClass =
 
 export default function SalesPage() {
   const { sendChat } = useApp();
+  const searchParams = useSearchParams();
+  const dateFromUrl = searchParams.get("date");
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
   const [dataSource, setDataSource] = useState<"mock" | "report">("mock");
   const [availableDates, setAvailableDates] = useState<string[]>([]);
-  const [filterDate, setFilterDate] = useState<string>("");
+  const [filterDate, setFilterDate] = useState<string>(() =>
+    dateFromUrl && isValidIsoDate(dateFromUrl) ? dateFromUrl : ""
+  );
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
+
+  useEffect(() => {
+    if (dateFromUrl && isValidIsoDate(dateFromUrl) && dateFromUrl !== filterDate) {
+      setFilterDate(dateFromUrl);
+    }
+  }, [dateFromUrl, filterDate]);
 
   useEffect(() => {
     const qs = filterDate ? `?date=${encodeURIComponent(filterDate)}` : "";

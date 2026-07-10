@@ -2,10 +2,7 @@ import type { AIResponse, PendingAction } from "@/types";
 import type { ToolResult } from "@/lib/tools/types";
 import type { RoutedIntent } from "@/lib/ai/intent-router";
 import { detectSalesFocus } from "@/lib/ai/sales-focus";
-import {
-  formatSalesByFocus,
-  formatTopStoreAnswer,
-} from "@/lib/assistant/sales-data";
+import { formatSalesByFocus } from "@/lib/assistant/sales-data";
 import type { OfferTarget } from "@/lib/actions/pending-offer";
 import { recordOfferedAction } from "@/lib/memory/working-memory";
 import { buildComposeEmailPrompt, isComposeEmailToPerson } from "@/lib/ai/email-compose";
@@ -92,21 +89,25 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
     const focus =
       (typeof data.focus === "string" ? data.focus : undefined) ??
       detectSalesFocus(userMessage, routedIntent);
+
+    if (channel === "voice" && typeof data.spokenAnswer === "string") {
+      return { message: data.spokenAnswer, navigateTo: result.navigateTo };
+    }
+
     const message =
       typeof data.synthesizedAnswer === "string"
         ? data.synthesizedAnswer
-        : formatSalesByFocus(focus as "top_store" | "summary" | "full_report");
+        : formatSalesByFocus(focus as "top_store" | "summary" | "full_report", {
+            userMessage,
+            filterDate:
+              typeof data.filterDate === "string" ? data.filterDate : undefined,
+          });
 
     if (focus === "top_store") {
       recordOfferedAction("sales:full_breakdown");
-      return { message };
     }
 
-    if (focus === "summary") {
-      return { message };
-    }
-
-    return { message };
+    return { message, navigateTo: result.navigateTo };
   }
 
   if (toolName === "get_email_summary" && isComposeEmailToPerson(userMessage)) {
@@ -149,7 +150,7 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
   }
 
   if (routedIntent === "sales.top_store") {
-    return { message: formatTopStoreAnswer() };
+    return { message: formatSalesByFocus("top_store", { userMessage }) };
   }
 
   const fallback = result.textAnswer ?? result.spokenAnswer ?? "Done.";

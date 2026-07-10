@@ -214,7 +214,7 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
     whenToNavigate: "When user wants charts and tables beyond a chat summary.",
     whenToClarify: "When user says 'sales' but means analyst CSV vs dashboard report.",
     whenToUseLiveTool:
-      "Call get_today_sales with focus top_store | summary | full_report — default to short answers.",
+      "Call get_today_sales with focus top_store | summary | full_report — pass user_message so dates like '8 July' filter to that day. Default to short answers.",
     exampleResponses: {
       explain:
         "**Sales Dashboard** shows your latest uploaded report — net revenue, top stores, and products. Ask *best store?* for a short answer or *full report* for everything.",

@@ -245,7 +245,7 @@ export function formatSalesSpokenBrief(options?: AssistantSalesOptions): string 
         ? `Latest report${label ? ` (${label})` : ""}`
         : "Today";
 
-  const revenue = `${Math.round(summary.totalRevenue).toLocaleString()} dollars net`;
+  const revenue = `${Math.round(summary.totalRevenue).toLocaleString()} dollars`;
   const units = `${summary.totalTransactions.toLocaleString()} units`;
 
   if (top) {

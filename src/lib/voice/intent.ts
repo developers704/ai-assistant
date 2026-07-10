@@ -264,7 +264,7 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /sales|revenue|top store|top product|best store|best sku|how much (did we|have we) sell|store(s)? performance|transactions today/i.test(
+    /sales|revenue|top store|top product|best store|best sku|how much (did we|have we) sell|store(s)? performance|transactions today|sales (?:of|on|for)/i.test(
       lower
     )
   ) {
