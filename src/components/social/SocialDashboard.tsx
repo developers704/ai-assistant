@@ -34,6 +34,7 @@ import { InstagramOverviewCards } from "./InstagramOverviewCards";
 import { InstagramPostsList } from "./InstagramPostsList";
 import { InstagramCommentsPanel } from "./InstagramCommentsPanel";
 import { InstagramInbox } from "./InstagramInbox";
+import { CompanyLinksSection } from "./CompanyLinksSection";
 import {
   formatIgDate,
   type IgAccount,
@@ -244,6 +245,8 @@ export function SocialDashboard() {
 
           <div className="flex-1 overflow-y-auto min-h-0">
             <PageShellBody>
+              <CompanyLinksSection />
+
               <InstagramAccountHeader account={account} status={status} />
 
               {connected && (
