@@ -8,7 +8,6 @@ export type VoicePrefetchIntent =
   | "task_remove"
   | "task_complete"
   | "contacts"
-  | "daily_briefing"
   | "news"
   | "sports_news"
   | "politics_news"
@@ -104,14 +103,6 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   if (!lower) return null;
 
   if (
-    /daily briefing|morning briefing|what should i focus|give me a briefing|full briefing/i.test(
-      lower
-    )
-  ) {
-    return "daily_briefing";
-  }
-
-  if (
     /(?:generate|create|make)\s+(?:an?\s+)?(?:image|photo|picture)|generate .*(?:necklace|ring|earring|jewel)/i.test(
       lower
     )
@@ -167,7 +158,7 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /open (?:the )?(?:stores?(?:\s+map(?:\s+and\s+info)?)?|store\s+(?:map|locator)|locations?|sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)|go to (?:stores?(?:\s+map(?:\s+and\s+info)?)?|store\s+(?:map|locator)|locations?|sales|calendar|email|dashboard|chat|contacts|images|news|analyst|calculator|settings)/i.test(
+    /open (?:the )?(?:stores?(?:\s+map(?:\s+and\s+info)?)?|store\s+(?:map|locator)|locations?|sales|calendar|email|chat|contacts|images|news|analyst|calculator|settings|social)|go to (?:stores?(?:\s+map(?:\s+and\s+info)?)?|store\s+(?:map|locator)|locations?|sales|calendar|email|chat|contacts|images|news|analyst|calculator|settings|social)/i.test(
       lower
     )
   ) {
@@ -290,13 +281,14 @@ export function extractNavigationPage(text: string): string | null {
     "analyst",
     "calculator",
     "contacts",
-    "dashboard",
     "calendar",
     "images",
     "sales",
     "email",
     "news",
     "chat",
+    "social",
+    "stores",
   ] as const;
   for (const page of pages) {
     if (new RegExp(`\\b${page}\\b`).test(lower)) return page;

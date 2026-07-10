@@ -179,7 +179,6 @@ export function synthesizeOfferExecution(
     sales: "/sales",
     email: "/email",
     calendar: "/calendar",
-    dashboard: "/dashboard",
     analyst: "/analyst",
     images: "/images",
     contacts: "/contacts",

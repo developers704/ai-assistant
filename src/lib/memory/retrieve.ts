@@ -28,7 +28,6 @@ export function retrieveRelevantMemories(query: string, limit = 4): string[] {
   const profile = loadProfileMemory();
   const profileBits = [
     profile.tone ? `Tone: ${profile.tone}` : "",
-    profile.dailyBriefingTime ? `Briefing time: ${profile.dailyBriefingTime}` : "",
   ].filter(Boolean);
 
   const summaries = loadConversationSummaries(2);

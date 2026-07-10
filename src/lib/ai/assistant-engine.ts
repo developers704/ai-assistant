@@ -7,8 +7,6 @@ import type {
   Reminder,
   CalendarEvent,
 } from "@/types";
-import { computeSalesSummary } from "@/lib/mock-data";
-import { mockSalesData } from "@/lib/mock-data";
 import {
   userTimezone,
   isTodayInTimezone,
@@ -67,9 +65,6 @@ function detectIntent(message: string): IntentType {
   }
   if (/what('s| is|s)?\s*(today'?s?\s*)?date|what date|today'?s date|date today/.test(lower)) {
     return "date_query";
-  }
-  if (/focus on today|what do i need|daily briefing|morning briefing|what('s| is) on today|priorities today/.test(lower)) {
-    return "daily_briefing";
   }
   if (/sales report|today('s)? sales|store sales|revenue|sales across|sales data|forecast|show me.*sales/.test(lower)) {
     return "sales_report";
@@ -246,8 +241,6 @@ export function processMessage(message: string, state: AppState): AIResponse {
         speak: true,
       };
     }
-    case "daily_briefing":
-      return generateDailyBriefing(state);
     case "store_list":
       return listStores(message);
     case "sales_report":
@@ -284,7 +277,7 @@ export function processMessage(message: string, state: AppState): AIResponse {
 • **Voice & Chat** — Ask me anything naturally
 • **Email** — Summarize inbox, draft replies, find important messages
 • **Calendar** — View schedule, book/reschedule meetings (with confirmation)
-• **Reminders** — Set tasks, recurring reminders, daily briefings
+• **Reminders** — Set tasks and recurring reminders
 • **Sales Reports** — Daily/weekly sales, store & product analysis
 • **Documents** — Summarize PDFs, contracts, Excel reports
 • **Images** — Generate jewelry product photos, analyze screenshots and dashboards
@@ -300,44 +293,6 @@ Try: "What do I need to focus on today?" or "Summarize my inbox."`,
         speak: true,
       };
   }
-}
-
-function generateDailyBriefing(state: AppState): AIResponse {
-  const tz = userTimezone(state);
-  const todayEvents = state.events.filter((e) => isTodayInTimezone(e.start, tz) && e.status !== "cancelled");
-  const pendingTasks = state.reminders.filter((r) => !r.completed);
-  const summary = computeSalesSummary(mockSalesData);
-  const urgentEmails = state.emails.filter((e) => e.category === "urgent" && !e.isRead);
-
-  const actions: string[] = [];
-  if (urgentEmails.length > 0) actions.push(`respond to urgent email from ${urgentEmails[0].from}`);
-  if (pendingTasks.some((t) => t.title.toLowerCase().includes("supplier") || t.title.toLowerCase().includes("diamond"))) actions.push("follow up with Ahmed on the diamond shipment");
-  if (pendingTasks.some((t) => t.title.toLowerCase().includes("sales"))) actions.push("review daily sales across all 29 locations");
-  if (todayEvents.some((e) => e.title.toLowerCase().includes("texas"))) actions.push("prepare for the Texas expansion meeting at 4 PM");
-  else if (todayEvents.length > 0) actions.push(`confirm the ${new Date(todayEvents[todayEvents.length - 1].start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} meeting`);
-
-  const salesChange = summary.comparisonPreviousDay;
-  const salesNote = salesChange < 0
-    ? `Yesterday's sales were ${Math.abs(salesChange).toFixed(0)}% lower than the previous day.`
-    : `Sales are trending ${salesChange >= 0 ? "up" : "down"} at ${Math.abs(salesChange).toFixed(1)}% vs yesterday.`;
-
-  return {
-    intent: "daily_briefing",
-    message: `Here's your focus for today:
-
-**Schedule:** ${todayEvents.length} meeting${todayEvents.length !== 1 ? "s" : ""} — ${todayEvents.map((e) => e.title).join(", ") || "None scheduled"}
-
-**Tasks:** ${pendingTasks.length} pending item${pendingTasks.length !== 1 ? "s" : ""}
-
-**Sales:** ${salesNote}
-
-**Priority actions:**
-${actions.map((a, i) => `${i + 1}. ${a.charAt(0).toUpperCase() + a.slice(1)}`).join("\n")}
-
-${urgentEmails.length > 0 ? `\n⚠️ **Alert:** Urgent email from ${urgentEmails[0].from} — "${urgentEmails[0].subject}"` : ""}`,
-    speak: true,
-    data: { events: todayEvents.length, tasks: pendingTasks.length, salesChange },
-  };
 }
 
 function generateSalesReport(): AIResponse {
@@ -928,7 +883,6 @@ export function shouldUseRuleEngine(message: string, state?: { pendingActions?: 
     intent === "sales_report" ||
     intent === "calendar_today" ||
     intent === "email_summary" ||
-    intent === "daily_briefing" ||
     intent === "reminder_list" ||
     intent === "date_query"
   );

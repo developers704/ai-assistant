@@ -12,7 +12,6 @@ export interface UserProfile {
     confirmBeforeSend: boolean;
     confirmBeforeCall: boolean;
     confirmBeforeMeeting: boolean;
-    dailyBriefingTime: string;
     voiceEnabled: boolean;
     /** SIM dialer vs magicApp for international calls (India, Pakistan, etc.) */
     defaultCallApp: "sim" | "magicapp";
@@ -320,7 +319,6 @@ export interface AppState {
 
 export type IntentType =
   | "greeting"
-  | "daily_briefing"
   | "sales_report"
   | "schedule_meeting"
   | "email_summary"

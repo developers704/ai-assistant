@@ -31,7 +31,6 @@ export const defaultUser: UserProfile = {
     confirmBeforeSend: true,
     confirmBeforeCall: true,
     confirmBeforeMeeting: true,
-    dailyBriefingTime: "07:30",
     voiceEnabled: true,
     defaultCallApp: "magicapp",
   },

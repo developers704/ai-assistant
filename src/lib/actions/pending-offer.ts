@@ -6,7 +6,6 @@ export type OfferTarget =
   | "sales"
   | "email"
   | "calendar"
-  | "dashboard"
   | "analyst"
   | "images"
   | "contacts"
@@ -17,7 +16,6 @@ const OFFER_PATHS: Record<OfferTarget, string> = {
   sales: "/sales",
   email: "/email",
   calendar: "/calendar",
-  dashboard: "/dashboard",
   analyst: "/analyst",
   images: "/images",
   contacts: "/contacts",
@@ -29,7 +27,6 @@ const OFFER_LABELS: Record<OfferTarget, string> = {
   sales: "Sales Dashboard",
   email: "Email",
   calendar: "Calendar & Tasks",
-  dashboard: "Daily Briefing",
   analyst: "Data Analyst",
   images: "Image Generation",
   contacts: "Contacts",
@@ -81,7 +78,6 @@ export function resolveOpenTargetFromMessage(message: string): OfferTarget | nul
   if (/\bsales\b|\brevenue\b/i.test(lower)) return "sales";
   if (/\bemail\b|\binbox\b|\bmail\b/i.test(lower)) return "email";
   if (/\bcalendar\b|\bmeeting\b|\bschedule\b/i.test(lower)) return "calendar";
-  if (/\bbriefing\b|\bdashboard\b/i.test(lower)) return "dashboard";
   if (/\banalyst\b/i.test(lower)) return "analyst";
   if (/\bimages?\b/i.test(lower)) return "images";
   if (/\bcontacts?\b/i.test(lower)) return "contacts";

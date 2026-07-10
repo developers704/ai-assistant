@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/Icon";
 import {
-  Sun,
   MessageSquare,
   Mail,
   Calendar,
@@ -38,7 +37,6 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/chat", label: "AI Chat", icon: MessageSquare, palette: "violet" },
-  { href: "/dashboard", label: "Daily Briefing", icon: Sun, palette: "amber" },
   { href: "/news", label: "News & Markets", icon: Newspaper, palette: "sky" },
   { href: "/email", label: "Email", icon: Mail, palette: "indigo" },
   { href: "/calendar", label: "Calendar & Tasks", icon: Calendar, palette: "rose" },

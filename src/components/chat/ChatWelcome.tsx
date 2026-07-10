@@ -6,7 +6,6 @@ import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 import { GlassIconTile, type GlassPalette } from "@/components/ui/GlassIconTile";
 import {
   ChevronRight,
-  MessageSquare,
   TrendingUp,
   Mail,
   Calendar,
@@ -21,9 +20,9 @@ export const CHAT_SUGGESTIONS: {
   palette: GlassPalette;
 }[] = [
   {
-    text: "What do I need to focus on today?",
-    icon: MessageSquare,
-    palette: "violet",
+    text: "What's on my calendar today?",
+    icon: Calendar,
+    palette: "rose",
   },
   {
     text: "Show me today's sales across all stores",
@@ -36,11 +35,6 @@ export const CHAT_SUGGESTIONS: {
     palette: "indigo",
   },
   {
-    text: "What's on my calendar today?",
-    icon: Calendar,
-    palette: "amber",
-  },
-  {
     text: "Draft an email to the diamond supplier",
     icon: Gem,
     palette: "fuchsia",
@@ -51,51 +45,6 @@ export const CHAT_SUGGESTIONS: {
     palette: "rose",
   },
 ];
-
-function buildHighlights(state: AppState) {
-  const unread = state.emails.filter((e) => !e.isRead).length;
-  const pendingTasks = state.reminders.filter((r) => !r.completed).length;
-  const todayEvents = state.events.length;
-  return [
-    {
-      label: "Inbox",
-      value: unread > 0 ? `${unread} unread emails` : "Inbox caught up",
-      tone: unread > 5 ? "text-amber-200" : "text-emerald-200",
-    },
-    {
-      label: "Tasks",
-      value: pendingTasks > 0 ? `${pendingTasks} open tasks` : "No pending tasks",
-      tone: "text-violet-200",
-    },
-    {
-      label: "Calendar",
-      value: todayEvents > 0 ? `${todayEvents} events on file` : "Light calendar day",
-      tone: "text-sky-200",
-    },
-  ];
-}
-
-function buildRecentActivity(state: AppState) {
-  const fromChat = state.chatHistory
-    .filter((m) => m.role === "assistant")
-    .slice(-3)
-    .reverse()
-    .map((m) => ({
-      text: m.content.slice(0, 72).replace(/\n/g, " ") + (m.content.length > 72 ? "…" : ""),
-      time: new Date(m.timestamp).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-    }));
-
-  if (fromChat.length > 0) return fromChat;
-
-  return [
-    { text: "Ask Alexa to summarize your inbox", time: "Ready" },
-    { text: "Check today's sales across stores", time: "Ready" },
-    { text: "Draft a follow-up email in one tap", time: "Ready" },
-  ];
-}
 
 interface ChatWelcomeProps {
   state: AppState;
@@ -111,8 +60,6 @@ function greetingForNow(name?: string | null) {
 }
 
 export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps) {
-  const highlights = buildHighlights(state);
-  const recent = buildRecentActivity(state);
   const greeting = greetingForNow(state.user?.name);
 
   return (
@@ -167,37 +114,6 @@ export function ChatWelcome({ state, disabled, onSuggestion }: ChatWelcomeProps)
             />
           </button>
         ))}
-      </div>
-
-      {/* Desktop insight cards */}
-      <div className="hidden lg:grid grid-cols-2 gap-4 mt-8">
-        <div className="glass-panel rounded-2xl p-4 ring-1 ring-white/10">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-3">
-            Recent activity
-          </p>
-          <ul className="space-y-3">
-            {recent.map((item, i) => (
-              <li key={i} className="flex items-start justify-between gap-3 text-sm">
-                <span className="text-ink-secondary line-clamp-2 leading-snug">{item.text}</span>
-                <span className="text-[11px] text-ink-muted shrink-0 tabular-nums">{item.time}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="glass-panel rounded-2xl p-4 ring-1 ring-white/10">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-3">
-            Today&apos;s highlights
-          </p>
-          <ul className="space-y-3">
-            {highlights.map((item) => (
-              <li key={item.label} className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-ink-muted">{item.label}</span>
-                <span className={cn("font-medium text-right", item.tone)}>{item.value}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
     </div>
   );

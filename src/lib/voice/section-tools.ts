@@ -5,12 +5,6 @@ import {
 } from "@/lib/news";
 import { getMetaStatus } from "@/lib/social/meta-client";
 import { getState } from "@/lib/store/server-store";
-import {
-  buildCalendarVoiceScript,
-  getVoiceCalendarEvents,
-} from "@/lib/voice/calendar-data";
-import { buildEmailVoiceScript, getVoiceEmails } from "@/lib/voice/email-data";
-import { buildTasksVoiceScript } from "@/lib/voice/tool-helpers";
 import { getAssistantSalesSummary } from "@/lib/assistant/sales-data";
 import { sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import { fetchMetalMetricSpot, KARAT_PURITY, TROY_OUNCE_GRAMS } from "@/lib/markets/metalmetric";
@@ -114,25 +108,6 @@ export async function getPoliticsHeadlinesScript(): Promise<string> {
   }
   const top = result.news.slice(0, 4);
   return `Top US and world headlines: ${top.map((n) => n.title).join(". ")}. Open News for the full politics feed.`;
-}
-
-export async function buildDailyBriefingScript(): Promise<string> {
-  const [calendar, inbox] = await Promise.all([getVoiceCalendarEvents(), getVoiceEmails()]);
-  const { summary, source, label } = getAssistantSalesSummary();
-  const tasks = buildTasksVoiceScript(getState().reminders);
-
-  const salesLine =
-    source === "report"
-      ? `Latest report${label ? ` ${label}` : ""}: $${summary.totalRevenue.toLocaleString()} net, ${summary.totalTransactions.toLocaleString()} units.`
-      : `Today's sales: $${summary.totalRevenue.toLocaleString()} across ${summary.totalTransactions} transactions.`;
-
-  return [
-    `Daily briefing for Kash.`,
-    buildCalendarVoiceScript(calendar.events, calendar.tz),
-    buildEmailVoiceScript(inbox.emails),
-    tasks,
-    salesLine,
-  ].join(" ");
 }
 
 /** Integration and profile status for Settings voice answers. */

@@ -20,35 +20,6 @@ import {
 interface ReportInsightsProps {
   summary: ReportSummary;
   compact?: boolean;
-  /** Lush executive briefing layout — skips duplicate hero metrics */
-  variant?: "default" | "briefing";
-}
-
-function BriefingMetric({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent: "emerald" | "amber" | "violet";
-}) {
-  const accents = {
-    emerald: "text-emerald-300 font-bold",
-    amber: "text-gold-metric",
-    violet: "text-violet-200 font-bold",
-  };
-  return (
-    <div className="flex-1 min-w-0 px-4 py-3.5 first:pl-0 last:pr-0">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">{label}</p>
-      <p className={cn("text-xl sm:text-2xl mt-1 tabular-nums tracking-tight", accents[accent])}>
-        {value}
-      </p>
-      {sub && <p className="text-[10px] text-white/30 mt-0.5">{sub}</p>}
-    </div>
-  );
 }
 
 function RankedList({
@@ -96,10 +67,9 @@ function RankedList({
   );
 }
 
-export function ReportInsightsCards({ summary, compact, variant = "default" }: ReportInsightsProps) {
+export function ReportInsightsCards({ summary, compact }: ReportInsightsProps) {
   if (summary.source !== "report") return null;
 
-  const isBriefing = variant === "briefing";
   const isStoreSales =
     summary.schema === "store_sales" || summary.reportCategory === "sales";
   const isVendor =
@@ -108,116 +78,14 @@ export function ReportInsightsCards({ summary, compact, variant = "default" }: R
   const isFinancing =
     summary.schema === "financing" || summary.reportCategory === "financing";
 
-  if (isBriefing && isStoreSales) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 px-1">
-          <Sparkles size={13} className="text-emerald-400/70" />
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/40">
-            Report breakdown
-          </p>
-        </div>
-
-        {/* Secondary metrics strip */}
-        <div className="flex flex-col sm:flex-row rounded-2xl ring-1 ring-white/[0.08] bg-white/[0.03] overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06]">
-          <BriefingMetric
-            label="Est. margin"
-            value={formatCurrency(summary.totalMargin ?? 0)}
-            sub={
-              summary.marginRate != null && summary.marginRate > 0
-                ? `${(summary.marginRate * 100).toFixed(1)}% of net`
-                : undefined
-            }
-            accent="amber"
-          />
-          <BriefingMetric
-            label="Line items"
-            value={(summary.transactionCount ?? summary.totalTransactions).toLocaleString()}
-            sub={
-              summary.uniqueTransactions != null
-                ? `${summary.uniqueTransactions.toLocaleString()} transactions`
-                : undefined
-            }
-            accent="violet"
-          />
-          {!compact && (
-            <BriefingMetric
-              label="Net sales"
-              value={formatCurrency(summary.totalRevenue)}
-              accent="emerald"
-            />
-          )}
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {summary.topStores.length > 0 && (
-            <RankedList
-              title="Top stores"
-              icon={Store}
-              iconClass="text-cyan-300/80"
-              items={summary.topStores}
-            />
-          )}
-          {summary.topDesigns && summary.topDesigns.length > 0 && (
-            <RankedList
-              title="Design lines"
-              icon={Gem}
-              iconClass="text-fuchsia-300/80"
-              items={summary.topDesigns}
-            />
-          )}
-          {summary.topClasses && summary.topClasses.length > 0 && (
-            <RankedList
-              title="Metal / class"
-              icon={Layers}
-              iconClass="text-emerald-300/80"
-              items={summary.topClasses}
-            />
-          )}
-        </div>
-
-        {(summary.discountTotal ?? 0) > 0 && (
-          <p className="text-[11px] text-white/30 flex items-center gap-1.5 px-1">
-            <Percent size={11} className="opacity-60" />
-            Discounts {formatCurrency(summary.discountTotal ?? 0)}
-            {summary.grossSales
-              ? ` · ${(((summary.discountTotal ?? 0) / summary.grossSales) * 100).toFixed(1)}% of gross`
-              : ""}
-          </p>
-        )}
-
-        {summary.recommendations.length > 0 && (
-          <section className="relative overflow-hidden rounded-2xl p-[1px] bg-gradient-to-r from-violet-500/40 via-fuchsia-500/30 to-transparent">
-            <div className="rounded-[15px] bg-[#121a28]/90 backdrop-blur-xl p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={14} className="text-fuchsia-400" />
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-fuchsia-300/80">
-                  Insights
-                </p>
-              </div>
-              <ul className="space-y-2.5">
-                {summary.recommendations.slice(0, 4).map((rec) => (
-                  <li key={rec} className="text-sm text-white/65 leading-relaxed pl-3 border-l border-fuchsia-500/30">
-                    {rec}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-        )}
-      </div>
-    );
-  }
-
-  /* ── Default layout (unchanged structure, used on Sales / Analyst pages) ── */
   return (
     <div className="space-y-4">
-      {isStoreSales && !isBriefing && (
+      {isStoreSales && (
         <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25">
           Store sales report
         </span>
       )}
-      {isFinancing && !isBriefing && (
+      {isFinancing && (
         <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/25">
           Financing report
         </span>
@@ -239,7 +107,7 @@ export function ReportInsightsCards({ summary, compact, variant = "default" }: R
         </>
       )}
 
-      {isStoreSales && !isBriefing && (
+      {isStoreSales && (
         <div className={`grid gap-3 ${compact ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2 md:grid-cols-3"}`}>
           <MetricCard label="Net sales" value={formatCurrency(summary.totalRevenue)} accent="emerald" />
           <MetricCard

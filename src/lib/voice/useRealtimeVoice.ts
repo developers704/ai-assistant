@@ -401,15 +401,6 @@ export function useRealtimeVoice(enabled: boolean) {
         }
       }
 
-      if (intent === "daily_briefing") {
-        try {
-          await runTool("get_daily_briefing", {}, "The user asked for a DAILY BRIEFING. Say exactly this:", 320);
-          return;
-        } catch {
-          // fall through
-        }
-      }
-
       if (intent === "sports_news") {
         try {
           await runTool("get_sports_news", {}, "The user asked for SPORTS NEWS. Say exactly this:", 280);

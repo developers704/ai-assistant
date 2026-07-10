@@ -41,7 +41,7 @@ function offeredOpenPage(last: string, memory: WorkingMemory): string | null {
     if (label.includes("calendar")) return "/calendar";
     if (label.includes("analyst")) return "/analyst";
     if (label.includes("contacts")) return "/contacts";
-    if (label.includes("briefing") || label.includes("dashboard")) return "/dashboard";
+    if (label.includes("chat") || label.includes("ai")) return "/chat";
   }
   return null;
 }

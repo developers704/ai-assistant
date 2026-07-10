@@ -386,10 +386,6 @@ const CASES: ChatTestCase[] = [
   { id: "contact-01", category: "contacts", messages: ["find Ross"], assert: { mustInclude: [/Ross|contact/i], noPending: true } },
   { id: "contact-02", category: "contacts", messages: ["Ross phone number"], assert: { mustInclude: [/Ross|contact|phone/i], noPending: true } },
 
-  // Briefing / dashboard
-  { id: "brief-01", category: "briefing", messages: ["daily briefing"], assert: { mustInclude: [/brief|today|calendar|email|sales/i] } },
-  { id: "brief-02", category: "briefing", messages: ["what do I need to focus on today?"], assert: { custom: (t) => (t.response?.message ? null : "no response") } },
-
   // Reject / bare yes
   { id: "edge-01", category: "edge", messages: ["cancel"], assert: { mustInclude: [/cancel/i] } },
   { id: "edge-02", category: "edge", messages: ["yes"], assert: { mustNotInclude: ["What should I confirm"] } },

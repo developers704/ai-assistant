@@ -147,8 +147,6 @@ export function buildExplainThis(
       return buildSectionExplanation(APP_SECTIONS.analyst, false);
     case "news":
       return buildSectionExplanation(APP_SECTIONS.news, false);
-    case "dashboard":
-      return buildSectionExplanation(APP_SECTIONS.dashboard, false);
     default:
       return buildSectionExplanation(ctx.section, false);
   }

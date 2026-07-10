@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { appendFact } from "./store";
 
 const DURABLE_PATTERNS = [
-  /pasand hai|prefer|always|never|priority|chahiye|daily briefing|office nahi/i,
+  /pasand hai|prefer|always|never|priority|chahiye|office nahi/i,
   /short emails|formal tone|roman urdu/i,
 ];
 

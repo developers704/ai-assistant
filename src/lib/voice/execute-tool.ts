@@ -28,7 +28,6 @@ import { filterCalendarEvents } from "@/lib/calendar-utils";
 import { userTimezone } from "@/lib/calendar-dates";
 import { generateGeminiImage } from "@/lib/gemini/image";
 import {
-  buildDailyBriefingScript,
   buildAnalystReportScript,
   buildSettingsStatusScript,
   estimateJewelleryPrice,
@@ -72,7 +71,6 @@ const PAGE_PATHS: Record<string, string> = {
   sales: "/sales",
   calendar: "/calendar",
   email: "/email",
-  dashboard: "/dashboard",
   chat: "/chat",
   contacts: "/contacts",
   images: "/images",
@@ -689,14 +687,6 @@ export async function executeVoiceTool(
       };
     }
 
-    case "get_daily_briefing": {
-      const script = await buildDailyBriefingScript();
-      return {
-        output: JSON.stringify({ spokenAnswer: script }),
-        uiAction: { type: "navigate", path: "/dashboard" },
-      };
-    }
-
     case "get_metal_rates": {
       const rates = await getMarketRatesSummary();
       return {
@@ -1052,8 +1042,8 @@ export async function executeVoiceTool(
     }
 
     case "show_detail_page": {
-      const page = String(args.page ?? "dashboard");
-      const path = PAGE_PATHS[page] ?? "/dashboard";
+      const page = String(args.page ?? "chat");
+      const path = PAGE_PATHS[page] ?? "/chat";
       return {
         output: JSON.stringify({ opened: page, path, spokenAnswer: `Opening ${page}.` }),
         uiAction: { type: "navigate", path },

@@ -62,8 +62,7 @@ const intentCases: Array<[string, string | null]> = [
   // Contacts
   ["find contact Umair", "contacts"],
   ["what is the phone number for Ross", "contacts"],
-  // Briefing / news / rates
-  ["give me my daily briefing", "daily_briefing"],
+  // News / rates
   ["sports news", "sports_news"],
   ["politics news", "politics_news"],
   ["gold price today", "metal_rates"],
@@ -98,7 +97,7 @@ const navCases: Array<[string, string | null]> = [
   ["go to contacts", "contacts"],
   ["open the calculator", "calculator"],
   ["open images", "images"],
-  ["go to the dashboard", "dashboard"],
+  ["go to chat", "chat"],
   ["open news", "news"],
 ];
 for (const [phrase, expected] of navCases) {
@@ -202,13 +201,6 @@ async function toolTests() {
     const { parsed } = await runTool("get_settings_status");
     const spoken = parsed.spokenAnswer ?? parsed.script ?? "";
     check("get_settings_status returns spoken status", spoken.length > 10, spoken.slice(0, 60));
-  }
-
-  // get_daily_briefing
-  {
-    const { parsed } = await runTool("get_daily_briefing");
-    const spoken = parsed.spokenAnswer ?? parsed.script ?? "";
-    check("get_daily_briefing returns spoken briefing", spoken.length > 20, spoken.slice(0, 60));
   }
 
   // unknown tool fails gracefully

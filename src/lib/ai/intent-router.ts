@@ -58,7 +58,7 @@ const DELETE_ALL_MEETINGS =
 const CALENDAR_TYPO = /\b(calender|calendar)\b/i;
 
 const COMPLEX_TRIGGERS =
-  /\b(analyze|analyse|compare|forecast|strategy|recommend|plan my day|executive briefing|summarize everything|sales performance|why did sales|multiple|and then)\b/i;
+  /\b(analyze|analyse|compare|forecast|strategy|recommend|plan my day|summarize everything|sales performance|why did sales|multiple|and then)\b/i;
 
 const MULTI_ACTION =
   /\b(and|aur|then|phir)\b.+\b(email|meeting|calendar|sales|task|draft|schedule|delete)\b/i;
@@ -125,7 +125,7 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   if (COMPLEX_TRIGGERS.test(lower) || MULTI_ACTION.test(lower)) {
     return "complex_planner";
   }
-  if (/\b(29 stores|top 5 issues|everything)\b/i.test(lower) && /\b(compare|analyze|briefing)\b/i.test(lower)) {
+  if (/\b(29 stores|top 5 issues|everything)\b/i.test(lower) && /\b(compare|analyze)\b/i.test(lower)) {
     return "complex_planner";
   }
 

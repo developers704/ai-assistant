@@ -8,7 +8,6 @@ export interface ProfileMemory {
   company?: string;
   role?: string;
   tone?: string;
-  dailyBriefingTime?: string;
   timezone?: string;
   communicationStyle?: string;
 }

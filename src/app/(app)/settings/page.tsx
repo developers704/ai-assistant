@@ -132,8 +132,6 @@ function SettingsContent() {
 
     confirmBeforeMeeting: true,
 
-    dailyBriefingTime: "08:00",
-
     voiceEnabled: true,
 
     defaultCallApp: "magicapp" as "sim" | "magicapp",
@@ -167,8 +165,6 @@ function SettingsContent() {
         confirmBeforeCall: state.user.preferences.confirmBeforeCall,
 
         confirmBeforeMeeting: state.user.preferences.confirmBeforeMeeting,
-
-        dailyBriefingTime: state.user.preferences.dailyBriefingTime,
 
         voiceEnabled: state.user.preferences.voiceEnabled,
 
@@ -388,8 +384,6 @@ function SettingsContent() {
 
         confirmBeforeMeeting: profile.confirmBeforeMeeting,
 
-        dailyBriefingTime: profile.dailyBriefingTime,
-
         voiceEnabled: profile.voiceEnabled,
 
         defaultCallApp: profile.defaultCallApp,
@@ -540,7 +534,7 @@ function SettingsContent() {
 
                   <p className="text-xs text-ink-muted mt-2">
 
-                    The assistant uses these priorities to personalize briefings and recommendations.
+                    The assistant uses these priorities to personalize recommendations.
 
                   </p>
 
@@ -591,18 +585,6 @@ function SettingsContent() {
                     </label>
 
                   ))}
-
-                  <Input
-
-                    label="Daily Briefing Time"
-
-                    type="time"
-
-                    value={profile.dailyBriefingTime}
-
-                    onChange={(e) => setProfile({ ...profile, dailyBriefingTime: e.target.value })}
-
-                  />
 
                 </div>
 

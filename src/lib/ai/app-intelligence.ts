@@ -28,7 +28,7 @@ const WHAT_CAN_IN =
   /\bwhat can you do\b[\s\S]{0,30}\b(in|on|for)\b/i;
 
 const WHAT_IS_SECTION =
-  /\b(what is|what's|whats|explain|tell me about|describe)\b[\s\S]{0,40}\b(data analyst|analyst|news|sales|email|calendar|calculator|contacts|settings|briefing|dashboard|images?|chat)\b/i;
+  /\b(what is|what's|whats|explain|tell me about|describe)\b[\s\S]{0,40}\b(data analyst|analyst|news|sales|email|calendar|calculator|contacts|settings|images?|chat|stores?|social)\b/i;
 
 const EXPLAIN_THIS =
   /\b(explain this|what does this (?:show|mean)|what am i looking at|summarize this (?:page|view|dashboard|report))\b/i;

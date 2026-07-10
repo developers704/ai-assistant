@@ -16,7 +16,6 @@ export function intentForTool(name: string): IntentType {
     get_calendar_today: "calendar_today",
     get_email_summary: "email_summary",
     get_today_sales: "sales_report",
-    get_daily_briefing: "daily_briefing",
     list_tasks: "reminder_list",
     list_contacts: "general",
     get_metal_rates: "general",
@@ -79,9 +78,6 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
         : typeof data.markdown === "string"
           ? data.markdown
           : formatSalesReportMarkdown();
-
-    case "get_daily_briefing":
-      return String(data.spokenAnswer ?? data.markdown ?? "Daily briefing loaded.");
 
     case "list_tasks": {
       const tasks = (data.tasks as Array<{ title: string; dueDate: string; priority: string }>) ?? [];

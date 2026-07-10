@@ -90,7 +90,7 @@ export async function resolveFollowUp(
       (pending?.payload?.path ? String(pending.payload.path) : undefined);
 
     const targetFromMsg = resolveOpenTargetFromMessage(message);
-    const openRoute = route ?? (targetFromMsg ? `/${targetFromMsg === "dashboard" ? "dashboard" : targetFromMsg}` : null);
+    const openRoute = route ?? (targetFromMsg ? `/${targetFromMsg}` : null);
 
     if (openRoute) {
       const section = sectionForPath(openRoute);

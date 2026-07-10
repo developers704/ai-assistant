@@ -4,7 +4,6 @@
 
 export type AppSectionId =
   | "chat"
-  | "dashboard"
   | "news"
   | "email"
   | "calendar"
@@ -81,37 +80,6 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
         "Here I can answer questions, draft emails, schedule meetings, and pull live sales or inbox data — all in one place.",
     },
     aliases: ["ai chat", "chat", "assistant", "alexa"],
-  }),
-
-  dashboard: section({
-    id: "dashboard",
-    label: "Daily Briefing",
-    route: "/dashboard",
-    purpose:
-      "Morning executive snapshot — today's priorities, meetings, urgent email, tasks, and sales pulse in one view.",
-    availableData: [
-      "Today's calendar events",
-      "Urgent / unread email highlights",
-      "Pending tasks",
-      "Sales trend vs yesterday",
-      "AI-generated daily briefing",
-    ],
-    relatedTools: ["get_daily_briefing", "get_calendar_today", "get_email_summary", "get_today_sales"],
-    commonQuestions: [
-      "What's my briefing today?",
-      "What should I focus on?",
-      "Any urgent items?",
-    ],
-    whenToNavigate: "When user wants the full briefing dashboard instead of a chat summary.",
-    whenToClarify: "When user asks for 'briefing' but means a specific area (sales only, email only).",
-    whenToUseLiveTool: "Call get_daily_briefing for a spoken/text executive summary.",
-    exampleResponses: {
-      explain:
-        "**Daily Briefing** pulls your calendar, inbox priorities, tasks, and sales into one executive snapshot. Say **open briefing** or ask *what's my focus today?*",
-      capabilities:
-        "Here I can summarize your day, flag urgent email, list meetings, and highlight sales movement — ask *what's my briefing?*",
-    },
-    aliases: ["daily briefing", "briefing", "dashboard", "morning briefing"],
   }),
 
   news: section({
