@@ -44,8 +44,14 @@ export function isItemPlaceholderSku(sku?: string | null): boolean {
   return isExcludedTopProductSku(sku);
 }
 
-export function filterTopProductSkus<T extends { itemNumber?: string }>(products: T[]): T[] {
-  return products.filter((p) => !isExcludedTopProductSku(p.itemNumber));
+export function filterTopProductSkus<
+  T extends { itemNumber?: string; vendorModel?: string }
+>(products: T[]): T[] {
+  return products.filter((p) => {
+    // Vendor-model rankings already skip excluded SKUs while aggregating.
+    if (p.vendorModel?.trim()) return true;
+    return !isExcludedTopProductSku(p.itemNumber);
+  });
 }
 
 export function sortTopProducts<T extends { revenue: number; units: number }>(products: T[]): T[] {

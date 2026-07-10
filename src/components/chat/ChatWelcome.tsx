@@ -10,7 +10,6 @@ import {
   Mail,
   Calendar,
   Newspaper,
-  LineChart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,14 +34,9 @@ export const CHAT_SUGGESTIONS: {
     palette: "indigo",
   },
   {
-    text: "Show me the latest news",
+    text: "Show me news and markets",
     icon: Newspaper,
     palette: "sky",
-  },
-  {
-    text: "What's happening in the markets?",
-    icon: LineChart,
-    palette: "amber",
   },
 ];
 

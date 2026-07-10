@@ -2,7 +2,7 @@
 
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import type { ReportSummary } from "@/lib/reports/types";
+import type { ReportSummary, RankDimension } from "@/lib/reports/types";
 import {
   CreditCard,
   Gem,
@@ -14,60 +14,16 @@ import {
   Truck,
   Layers,
   TrendingUp,
-  Sparkles,
+  ChevronRight,
 } from "lucide-react";
 
 interface ReportInsightsProps {
   summary: ReportSummary;
   compact?: boolean;
+  onRankClick?: (dimension: RankDimension, value: string) => void;
 }
 
-function RankedList({
-  title,
-  icon: Icon,
-  iconClass,
-  items,
-}: {
-  title: string;
-  icon: typeof Store;
-  iconClass: string;
-  items: { name: string; revenue: number }[];
-}) {
-  const max = items[0]?.revenue ?? 1;
-  return (
-    <section className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.025] p-4 sm:p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]", iconClass)}>
-          <Icon size={14} strokeWidth={1.85} />
-        </span>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-white/60">{title}</h3>
-      </div>
-      <div className="space-y-3">
-        {items.slice(0, 5).map((item, i) => (
-          <div key={item.name}>
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-sm text-white/75 truncate">{item.name}</span>
-              <span className="text-sm font-semibold text-white tabular-nums shrink-0">
-                {formatCurrency(item.revenue)}
-              </span>
-            </div>
-            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-violet-500/60 to-fuchsia-500/40 transition-all duration-500"
-                style={{ width: `${Math.max(8, (item.revenue / max) * 100)}%` }}
-              />
-            </div>
-            {i === 0 && (
-              <span className="sr-only">Rank {i + 1}</span>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export function ReportInsightsCards({ summary, compact }: ReportInsightsProps) {
+export function ReportInsightsCards({ summary, compact, onRankClick }: ReportInsightsProps) {
   if (summary.source !== "report") return null;
 
   const isStoreSales =
@@ -141,19 +97,49 @@ export function ReportInsightsCards({ summary, compact }: ReportInsightsProps) {
           <ListCard title="Pay programs" icon={Wallet} iconColor="text-amber-300/75" items={summary.financingProviders} />
         )}
         {summary.topStores.length > 0 && (
-          <ListCard title="Top stores" icon={Store} iconColor="text-cyan-300/75" items={summary.topStores} />
+          <ListCard
+            title="Top stores"
+            icon={Store}
+            iconColor="text-cyan-300/75"
+            items={summary.topStores}
+            onItemClick={onRankClick ? (name) => onRankClick("store", name) : undefined}
+          />
         )}
         {summary.topDepartments && summary.topDepartments.length > 0 && (
-          <ListCard title="Top departments" icon={Tag} iconColor="text-violet-300/75" items={summary.topDepartments} />
+          <ListCard
+            title="Top departments"
+            icon={Tag}
+            iconColor="text-violet-300/75"
+            items={summary.topDepartments}
+            onItemClick={onRankClick ? (name) => onRankClick("department", name) : undefined}
+          />
         )}
         {summary.topVendors && summary.topVendors.length > 0 && (
-          <ListCard title="Top vendors" icon={Truck} iconColor="text-orange-300/75" items={summary.topVendors} />
+          <ListCard
+            title="Top vendors"
+            icon={Truck}
+            iconColor="text-orange-300/75"
+            items={summary.topVendors}
+            onItemClick={onRankClick ? (name) => onRankClick("vendor", name) : undefined}
+          />
         )}
         {summary.topDesigns && summary.topDesigns.length > 0 && (
-          <ListCard title="Top design lines" icon={Gem} iconColor="text-fuchsia-300/75" items={summary.topDesigns} />
+          <ListCard
+            title="Top design lines"
+            icon={Gem}
+            iconColor="text-fuchsia-300/75"
+            items={summary.topDesigns}
+            onItemClick={onRankClick ? (name) => onRankClick("design", name) : undefined}
+          />
         )}
         {summary.topClasses && summary.topClasses.length > 0 && (
-          <ListCard title="Top metal / class" icon={Layers} iconColor="text-emerald-300/75" items={summary.topClasses} />
+          <ListCard
+            title="Top metal / class"
+            icon={Layers}
+            iconColor="text-emerald-300/75"
+            items={summary.topClasses}
+            onItemClick={onRankClick ? (name) => onRankClick("class", name) : undefined}
+          />
         )}
       </div>
 
@@ -236,30 +222,59 @@ function ListCard({
   icon: Icon,
   iconColor,
   items,
+  onItemClick,
 }: {
   title: string;
   icon: typeof Store;
   iconColor: string;
   items: { name: string; revenue: number; share?: number }[];
+  onItemClick?: (name: string) => void;
 }) {
   return (
     <div className="rounded-3xl p-4 glass-panel">
       <div className="flex items-center gap-2 mb-3">
         <Icon size={14} className={iconColor} strokeWidth={1.85} />
         <p className="text-sm font-semibold text-ink">{title}</p>
+        {onItemClick && (
+          <span className="ml-auto text-[10px] text-white/30 uppercase tracking-wide">
+            Tap for details
+          </span>
+        )}
       </div>
-      <div className="space-y-2">
-        {items.slice(0, 6).map((item) => (
-          <div key={item.name} className="flex justify-between text-sm gap-2">
-            <span className="text-ink-secondary truncate">
-              {item.name}
-              {item.share != null && (
-                <span className="text-ink-muted text-xs"> ({item.share.toFixed(1)}%)</span>
-              )}
-            </span>
-            <span className="font-medium text-ink shrink-0">{formatCurrency(item.revenue)}</span>
-          </div>
-        ))}
+      <div className="space-y-1">
+        {items.slice(0, 6).map((item) => {
+          const content = (
+            <>
+              <span className="text-ink-secondary truncate min-w-0">
+                {item.name}
+                {item.share != null && (
+                  <span className="text-ink-muted text-xs"> ({item.share.toFixed(1)}%)</span>
+                )}
+              </span>
+              <span className="font-medium text-ink shrink-0 flex items-center gap-1">
+                {formatCurrency(item.revenue)}
+                {onItemClick && <ChevronRight size={12} className="text-white/25" />}
+              </span>
+            </>
+          );
+          if (onItemClick) {
+            return (
+              <button
+                key={item.name}
+                type="button"
+                onClick={() => onItemClick(item.name)}
+                className="w-full flex justify-between text-sm gap-2 rounded-lg px-1.5 py-1.5 -mx-1.5 hover:bg-white/[0.06] transition-colors text-left"
+              >
+                {content}
+              </button>
+            );
+          }
+          return (
+            <div key={item.name} className="flex justify-between text-sm gap-2 px-1.5 py-1.5">
+              {content}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

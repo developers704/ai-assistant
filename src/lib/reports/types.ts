@@ -4,6 +4,14 @@ export type ReportPeriod = "daily" | "monthly" | "quarterly" | "half_yearly" | "
 export type ReportCategory = "sales" | "vendor" | "inventory" | "financing" | "custom";
 export type ReportSchema = "generic" | "vendor_pos" | "store_sales" | "financing";
 
+export type RankDimension =
+  | "store"
+  | "department"
+  | "vendor"
+  | "design"
+  | "class"
+  | "vendorModel";
+
 export interface VendorPosRow {
   date: string;
   transactionId: string;
@@ -15,6 +23,7 @@ export interface VendorPosRow {
   style: string;
   description: string;
   vendor: string;
+  vendorModel: string;
   productClass: string;
   subClass: string;
   quantity: number;
@@ -24,6 +33,8 @@ export interface VendorPosRow {
   netRevenue: number;
   margin: number;
   discountRate: number;
+  /** Raw Image Dir. value from CSV (e.g. `\229149.jpg`). */
+  imageDir: string;
 }
 
 export interface StoredReportMeta {

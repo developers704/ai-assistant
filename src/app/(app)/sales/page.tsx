@@ -14,9 +14,13 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import type { SalesSummary } from "@/types";
-import type { ReportSummary } from "@/lib/reports/types";
+import type { RankDimension, ReportSummary } from "@/lib/reports/types";
 import { ReportInsightsCards } from "@/components/reports/ReportInsightsCards";
 import { TopProductsTable } from "@/components/reports/TopProductsTable";
+import {
+  RankDetailDrawer,
+  type RankDetailSelection,
+} from "@/components/reports/RankDetailDrawer";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
 import {
   formatReportDateDisplay,
@@ -36,6 +40,7 @@ export default function SalesPage() {
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [filterDate, setFilterDate] = useState<string>("");
   const [reportId, setReportId] = useState<string | undefined>();
+  const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
 
   useEffect(() => {
     const qs = filterDate ? `?date=${encodeURIComponent(filterDate)}` : "";
@@ -102,6 +107,10 @@ export default function SalesPage() {
           : "Daily performance · Valliani Jewelers";
 
   const maxTopStoreRevenue = Math.max(...summary.topStores.map((s) => s.revenue), 1);
+
+  const openRank = (dimension: RankDimension, value: string) => {
+    setRankDetail({ dimension, value });
+  };
 
   return (
     <PageShell accent="emerald">
@@ -229,7 +238,7 @@ export default function SalesPage() {
           </div>
 
           {reportSummary && dataSource === "report" && (
-            <ReportInsightsCards summary={reportSummary} />
+            <ReportInsightsCards summary={reportSummary} onRankClick={openRank} />
           )}
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
@@ -244,9 +253,11 @@ export default function SalesPage() {
                 </CardHeader>
                 <div className="max-h-[min(28rem,60vh)] overflow-y-auto p-4 space-y-3">
                   {summary.topStores.slice(0, 12).map((store, i) => (
-                    <div
+                    <button
                       key={store.name}
-                      className="grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center"
+                      type="button"
+                      onClick={() => openRank("store", store.name)}
+                      className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
                     >
                       <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
                       <div className="min-w-0">
@@ -270,7 +281,7 @@ export default function SalesPage() {
                         {store.change >= 0 ? "+" : ""}
                         {store.change.toFixed(1)}%
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </Card>
@@ -286,9 +297,11 @@ export default function SalesPage() {
               </CardHeader>
               <div className="max-h-[min(28rem,60vh)] overflow-y-auto p-4 space-y-3">
                 {worstStores.map((store, i) => (
-                  <div
+                  <button
                     key={store.name}
-                    className="grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center"
+                    type="button"
+                    onClick={() => openRank("store", store.name)}
+                    className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
                   >
                     <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
                     <div className="min-w-0">
@@ -312,7 +325,7 @@ export default function SalesPage() {
                       {store.change >= 0 ? "+" : ""}
                       {store.change.toFixed(1)}%
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </Card>
@@ -321,10 +334,12 @@ export default function SalesPage() {
               <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Package size={17} className="text-sky-300" />
-                  {isFinancingReport ? "Top Pay Programs" : "Top SKUs"}
+                  {isFinancingReport ? "Top Pay Programs" : "Top Vendor Models"}
                 </CardTitle>
                 <span className="text-xs text-ink-muted">
-                  {isFinancingReport ? "By net sales amount" : "Top 20 jewelry SKUs by quantity"}
+                  {isFinancingReport
+                    ? "By net sales amount"
+                    : "Top 20 by quantity sold · with revenue & product photos"}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">
@@ -333,6 +348,17 @@ export default function SalesPage() {
             </Card>
           </div>
         </PageShellBody>
+
+      <RankDetailDrawer
+        selection={rankDetail}
+        filterDate={filterDate || undefined}
+        reportId={
+          reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
+            ? reportId
+            : undefined
+        }
+        onClose={() => setRankDetail(null)}
+      />
     </PageShell>
   );
 }

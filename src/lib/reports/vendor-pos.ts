@@ -1,5 +1,6 @@
 import type { SalesSummary } from "@/types";
 import { isExcludedTopProductSku } from "@/lib/utils";
+import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
 
 function parseNumber(raw: unknown): number {
@@ -77,6 +78,8 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   const subClassCol = findCol(columns, [/sub-class/, /sub class/]);
   const discRateCol = findCol(columns, [/disc rate/, /discount rate/]);
   const vendorCol = findCol(columns, [/^vendor\s*name$/, /^vendor\s*#?$/, /^vendor$/]);
+  const vendorModelCol = findCol(columns, [/^vendor\s*model$/]);
+  const imageDirCol = findCol(columns, [/^image\s*dir\.?$/, /^image\s*directory$/, /^image$/]);
   const typeCol = findCol(columns, [/^type$/]);
 
   const rows: VendorPosRow[] = [];
@@ -109,6 +112,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       style: styleCol ? String(rec[styleCol] ?? "").trim() : "",
       description: descCol ? String(rec[descCol] ?? "").trim() || department : department,
       vendor: vendorCol ? String(rec[vendorCol] ?? "").trim().toUpperCase() : "",
+      vendorModel: vendorModelCol ? String(rec[vendorModelCol] ?? "").trim() : "",
       productClass: classCol ? String(rec[classCol] ?? "").trim() || "—" : "—",
       subClass: subClassCol ? String(rec[subClassCol] ?? "").trim() || "—" : "—",
       quantity: qty || 1,
@@ -118,6 +122,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       netRevenue: netCol ? net : gross,
       margin,
       discountRate: discRateCol ? parseNumber(rec[discRateCol]) : 0,
+      imageDir: imageDirCol ? String(rec[imageDirCol] ?? "").trim() : "",
     });
   }
 
@@ -144,32 +149,49 @@ function rankMap(
     .slice(0, limit);
 }
 
-/** Top products for display — excludes SKUs in isExcludedTopProductSku(); totals use all rows. */
+/** Top products for display — group by Vendor Model (qty then revenue). Excluded SKUs still count in totals. */
 function rankProducts(rows: VendorPosRow[], limit = 20) {
   const map = new Map<
     string,
-    { name: string; itemNumber?: string; revenue: number; units: number }
+    {
+      name: string;
+      itemNumber?: string;
+      vendorModel?: string;
+      imageDir?: string;
+      revenue: number;
+      units: number;
+    }
   >();
 
   for (const r of rows) {
     const sku = r.sku?.trim() ?? "";
     const itemNumber = sku || r.itemNumber?.trim() || "";
-    if (!itemNumber || isExcludedTopProductSku(itemNumber)) continue;
+    if (itemNumber && isExcludedTopProductSku(itemNumber)) continue;
+
+    const vendorModel = r.vendorModel?.trim() || "";
+    // Prefer vendor model; fall back to SKU only when model is missing.
+    const key = vendorModel
+      ? `model:${vendorModel.toUpperCase()}`
+      : itemNumber
+        ? `item:${itemNumber}`
+        : "";
+    if (!key) continue;
 
     const label = r.description?.trim();
-    if (!label && !itemNumber) continue;
-
-    const key = `item:${itemNumber}`;
     const existing = map.get(key) || {
-      name: label || itemNumber || "Unknown item",
+      name: label || vendorModel || itemNumber || "Unknown item",
       itemNumber: itemNumber || undefined,
+      vendorModel: vendorModel || undefined,
+      imageDir: r.imageDir?.trim() || undefined,
       revenue: 0,
       units: 0,
     };
 
     map.set(key, {
       name: label || existing.name,
-      itemNumber: itemNumber || existing.itemNumber,
+      itemNumber: existing.itemNumber || itemNumber || undefined,
+      vendorModel: vendorModel || existing.vendorModel,
+      imageDir: existing.imageDir || r.imageDir?.trim() || undefined,
       revenue: existing.revenue + r.netRevenue,
       units: existing.units + r.quantity,
     });
@@ -177,7 +199,11 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
 
   return [...map.values()]
     .sort((a, b) => b.units - a.units || b.revenue - a.revenue)
-    .slice(0, limit);
+    .slice(0, limit)
+    .map((p) => ({
+      ...p,
+      imageUrl: resolveProductImageUrl(p.imageDir),
+    }));
 }
 
 export function summarizeVendorPos(
@@ -397,6 +423,7 @@ export function summarizeVendorPos(
           "SKU #",
           "Style #",
           "Description",
+          "Vendor Model",
           "Vendor Name",
           "Store",
           "Department",
@@ -408,6 +435,7 @@ export function summarizeVendorPos(
           "Sales Amount",
           "Disc Amt",
           "Total",
+          "Image Dir.",
         ]
       : [
           "Transaction Date",
