@@ -104,9 +104,16 @@ function SettingsContent() {
 
   const [disconnecting, setDisconnecting] = useState(false);
 
-  const [socialStatus, setSocialStatus] = useState<{ connected: boolean; hasToken: boolean } | null>(
-    null
-  );
+  const [socialDisconnecting, setSocialDisconnecting] = useState(false);
+
+  const [socialNotice, setSocialNotice] = useState<string | null>(null);
+
+  const [socialStatus, setSocialStatus] = useState<{
+    connected: boolean;
+    hasToken: boolean;
+    disconnected?: boolean;
+    canReconnect?: boolean;
+  } | null>(null);
 
   const [socialLoading, setSocialLoading] = useState(true);
 
@@ -222,7 +229,12 @@ function SettingsContent() {
 
         if (!res.ok) return;
 
-        const data = (await res.json()) as { connected: boolean; hasToken: boolean };
+        const data = (await res.json()) as {
+          connected: boolean;
+          hasToken: boolean;
+          disconnected?: boolean;
+          canReconnect?: boolean;
+        };
 
         if (!cancelled) setSocialStatus(data);
 
@@ -274,6 +286,45 @@ function SettingsContent() {
 
     }
 
+  };
+
+  const refreshSocialStatus = async () => {
+    const res = await fetch("/api/social/instagram/status", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      connected: boolean;
+      hasToken: boolean;
+      disconnected?: boolean;
+      canReconnect?: boolean;
+    };
+    setSocialStatus(data);
+  };
+
+  const handleDisconnectInstagram = async () => {
+    setSocialDisconnecting(true);
+    try {
+      await fetch("/api/social/instagram/disconnect", { method: "POST" });
+      await refreshSocialStatus();
+      setSocialNotice("Instagram disconnected.");
+    } finally {
+      setSocialDisconnecting(false);
+    }
+  };
+
+  const handleReconnectInstagram = async () => {
+    setSocialDisconnecting(true);
+    try {
+      const res = await fetch("/api/social/instagram/reconnect", { method: "POST" });
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setSocialNotice(body.error ?? "Could not reconnect Instagram.");
+        return;
+      }
+      await refreshSocialStatus();
+      setSocialNotice("Instagram reconnected.");
+    } finally {
+      setSocialDisconnecting(false);
+    }
   };
 
 
@@ -348,7 +399,11 @@ function SettingsContent() {
 
           ? "Connected"
 
-          : "Not connected — add Meta env keys",
+          : socialStatus?.disconnected
+
+            ? "Disconnected"
+
+            : "Not connected — add Meta env keys",
 
       variant: socialStatus?.connected ? ("success" as const) : ("warning" as const),
 
@@ -694,9 +749,60 @@ function SettingsContent() {
 
                 </div>
 
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <p className="text-sm font-medium text-ink mb-2">Social (Instagram)</p>
+                  {socialNotice && (
+                    <p className="text-sm text-ink-secondary bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 mb-3">
+                      {socialNotice}
+                    </p>
+                  )}
+                  {socialStatus?.connected ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-ink-muted flex-1 min-w-[200px]">
+                        Instagram Business is connected
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void handleDisconnectInstagram()}
+                        disabled={socialDisconnecting || socialLoading}
+                      >
+                        {socialDisconnecting ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Unlink size={14} />
+                        )}{" "}
+                        Disconnect
+                      </Button>
+                    </div>
+                  ) : socialStatus?.canReconnect ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-ink-muted flex-1 min-w-[200px]">
+                        Disconnected — Meta keys are still on the server
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => void handleReconnectInstagram()}
+                        disabled={socialDisconnecting || socialLoading}
+                      >
+                        {socialDisconnecting ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Link2 size={14} />
+                        )}{" "}
+                        Reconnect
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-ink-muted">
+                      Not connected — add Meta env keys on the server, then refresh.
+                    </p>
+                  )}
+                </div>
+
                 <p className="text-xs text-ink-muted mt-3">
 
-                  Connect Google for inbox, calendar, and contacts sync.
+                  Connect Google for inbox, calendar, and contacts sync. Disconnect Instagram anytime from here or Social.
 
                 </p>
 

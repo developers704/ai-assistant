@@ -7,6 +7,12 @@
  * - Do not import this file into any "use client" component.
  */
 
+import {
+  isMetaDisconnected,
+  disconnectMeta,
+  reconnectMeta,
+} from "@/lib/social/meta-connection-store";
+
 const DEFAULT_TIMEOUT_MS = 12000;
 
 export interface MetaConfig {
@@ -22,14 +28,17 @@ export interface MetaStatus {
   instagramBusinessId: string | null;
   graphVersion: string;
   hasToken: boolean;
+  /** User turned Instagram off in the app (env keys may still exist). */
+  disconnected: boolean;
+  /** Env still has token + business id — Reconnect will work. */
+  canReconnect: boolean;
 }
 
 export type MetaResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string; code?: string; status?: number };
 
-/** Read Meta env config. Never expose the token beyond this module. */
-export function getMetaConfig(): MetaConfig {
+function readEnvMeta(): MetaConfig {
   return {
     graphVersion: process.env.META_GRAPH_VERSION || "v25.0",
     pageId: process.env.META_PAGE_ID || null,
@@ -38,16 +47,46 @@ export function getMetaConfig(): MetaConfig {
   };
 }
 
+/** Read Meta env config. Never expose the token beyond this module. */
+export function getMetaConfig(): MetaConfig {
+  const env = readEnvMeta();
+  if (isMetaDisconnected()) {
+    return { ...env, token: null };
+  }
+  return env;
+}
+
 /** Connection status — safe to send to the client (no token value). */
 export function getMetaStatus(): MetaStatus {
-  const cfg = getMetaConfig();
+  const env = readEnvMeta();
+  const disconnected = isMetaDisconnected();
+  const cfg = disconnected ? { ...env, token: null } : env;
+  const canReconnect = Boolean(env.token && env.igBusinessId);
   return {
     connected: Boolean(cfg.token && cfg.igBusinessId),
     pageId: cfg.pageId,
-    instagramBusinessId: cfg.igBusinessId,
+    instagramBusinessId: disconnected ? null : cfg.igBusinessId,
     graphVersion: cfg.graphVersion,
     hasToken: Boolean(cfg.token),
+    disconnected,
+    canReconnect,
   };
+}
+
+export function disconnectInstagram(): void {
+  disconnectMeta();
+}
+
+export function reconnectInstagram(): { ok: true } | { ok: false; error: string } {
+  const env = readEnvMeta();
+  if (!env.token || !env.igBusinessId) {
+    return {
+      ok: false,
+      error: "Cannot reconnect — Meta env keys are missing on the server.",
+    };
+  }
+  reconnectMeta();
+  return { ok: true };
 }
 
 /** Build a Graph API URL. Token is appended server-side only. */

@@ -7,9 +7,12 @@ import {
   fetchInstagramConversations,
   fetchConversationMessages,
   getMetaStatus,
+  disconnectInstagram,
+  reconnectInstagram,
   verifyWebhookToken,
   type MetaConfig,
 } from "../src/lib/social/meta-client";
+import { isMetaDisconnected } from "../src/lib/social/meta-connection-store";
 import { TOOL_BY_NAME } from "../src/lib/tools/metadata";
 import { routeIntent, intentToTool } from "../src/lib/ai/intent-router";
 import { resolveOpenTargetFromMessage, offerPath } from "../src/lib/actions/pending-offer";
@@ -37,6 +40,8 @@ console.log("══════════════════════�
 const status = getMetaStatus();
 assert("status returns connected boolean", typeof status.connected === "boolean");
 assert("status exposes hasToken (not token)", typeof status.hasToken === "boolean");
+assert("status exposes disconnected flag", typeof status.disconnected === "boolean");
+assert("status exposes canReconnect flag", typeof status.canReconnect === "boolean");
 const statusJson = JSON.stringify(status);
 assert("status never contains an access token value", !/access_token|EAA[A-Za-z0-9]/.test(statusJson), statusJson);
 
@@ -62,6 +67,23 @@ delete process.env.META_TEST_ACCESS_TOKEN;
   const posts = await fetchInstagramPosts();
   assert("posts handles missing token", !posts.ok && posts.code === "NO_TOKEN", JSON.stringify(posts));
   if (savedToken) process.env.META_TEST_ACCESS_TOKEN = savedToken;
+
+  /* 3b. Disconnect / reconnect override (restore previous state after). */
+  const wasDisconnected = isMetaDisconnected();
+  disconnectInstagram();
+  const afterDisconnect = getMetaStatus();
+  assert("disconnect clears connected", afterDisconnect.connected === false);
+  assert("disconnect sets disconnected flag", afterDisconnect.disconnected === true);
+  assert("disconnect keeps canReconnect when env present", afterDisconnect.canReconnect === Boolean(savedToken && process.env.META_IG_BUSINESS_ID));
+  if (savedToken && process.env.META_IG_BUSINESS_ID) {
+    const recon = reconnectInstagram();
+    assert("reconnect succeeds when env present", recon.ok === true);
+    const afterReconnect = getMetaStatus();
+    assert("reconnect restores connected", afterReconnect.connected === true);
+    assert("reconnect clears disconnected flag", afterReconnect.disconnected === false);
+  }
+  if (wasDisconnected) disconnectInstagram();
+  else reconnectInstagram();
 
   /* 4. Tool registry includes all Instagram tools. */
   const igTools = [

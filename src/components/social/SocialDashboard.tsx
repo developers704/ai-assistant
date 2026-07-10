@@ -25,6 +25,9 @@ import {
   RefreshCw,
   AlertCircle,
   Inbox,
+  Unlink,
+  Link2,
+  Loader2,
 } from "lucide-react";
 import { InstagramAccountHeader } from "./InstagramAccountHeader";
 import { InstagramOverviewCards } from "./InstagramOverviewCards";
@@ -71,6 +74,7 @@ export function SocialDashboard() {
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [insights, setInsights] = useState<IgInsight[]>([]);
   const [insightsNote, setInsightsNote] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -80,11 +84,16 @@ export function SocialDashboard() {
     if (st.ok && st.data) setStatus(st.data);
 
     if (!st.data?.connected) {
+      setAccount(null);
+      setPosts([]);
+      setSelected(null);
       setLoading(false);
       setLoadError(
-        st.data?.hasToken
-          ? "Instagram token expired or the business account is not set. Generate a new test token or use OAuth."
-          : "Instagram is not connected. Add Meta env keys or connect via OAuth."
+        st.data?.disconnected
+          ? "Instagram is disconnected. Use Reconnect to restore the Meta link."
+          : st.data?.hasToken
+            ? "Instagram token expired or the business account is not set. Generate a new test token or use OAuth."
+            : "Instagram is not connected. Add Meta env keys or connect via OAuth."
       );
       return;
     }
@@ -143,6 +152,35 @@ export function SocialDashboard() {
   }, []);
 
   const connected = status?.connected ?? false;
+  const canReconnect = Boolean(status?.canReconnect && !connected);
+
+  const handleDisconnect = async () => {
+    setDisconnecting(true);
+    try {
+      await fetch("/api/social/instagram/disconnect", { method: "POST" });
+      setAccount(null);
+      setPosts([]);
+      setSelected(null);
+      await loadAll();
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
+  const handleReconnect = async () => {
+    setDisconnecting(true);
+    try {
+      const res = await fetch("/api/social/instagram/reconnect", { method: "POST" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        setLoadError(body.error ?? "Could not reconnect Instagram.");
+        return;
+      }
+      await loadAll();
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   const [tab, setTab] = useState<"overview" | "inbox">("overview");
 
@@ -162,6 +200,36 @@ export function SocialDashboard() {
                 <Badge variant={connected ? "success" : "warning"}>
                   {connected ? "Connected" : "Not connected"}
                 </Badge>
+                {connected ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void handleDisconnect()}
+                    disabled={disconnecting}
+                    title="Disconnect Instagram"
+                  >
+                    {disconnecting ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Unlink size={14} />
+                    )}{" "}
+                    Disconnect
+                  </Button>
+                ) : canReconnect ? (
+                  <Button
+                    size="sm"
+                    onClick={() => void handleReconnect()}
+                    disabled={disconnecting}
+                    title="Reconnect Instagram"
+                  >
+                    {disconnecting ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Link2 size={14} />
+                    )}{" "}
+                    Reconnect
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
                   variant="outline"

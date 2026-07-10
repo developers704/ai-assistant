@@ -4,6 +4,8 @@ export interface IgStatus {
   instagramBusinessId: string | null;
   graphVersion: string;
   hasToken: boolean;
+  disconnected?: boolean;
+  canReconnect?: boolean;
 }
 
 export interface IgAccount {
