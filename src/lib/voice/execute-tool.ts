@@ -158,8 +158,15 @@ export async function executeVoiceTool(
     case "get_today_sales": {
       const focusArg = String(args.focus ?? "summary");
       const userMessage = args.user_message ? String(args.user_message) : "";
+      const dateArg =
+        typeof args.date === "string" && args.date.trim() ? args.date.trim() : undefined;
       const { detectSalesFocus } = await import("@/lib/ai/sales-focus");
-      const { formatSalesByFocus } = await import("@/lib/assistant/sales-data");
+      const {
+        formatSalesByFocus,
+        formatSalesSpokenBrief,
+        getAssistantSalesSummary: getSales,
+      } = await import("@/lib/assistant/sales-data");
+      const { isValidIsoDate } = await import("@/lib/reports/date-utils");
       const focus = (
         focusArg === "top_store" ||
         focusArg === "top_products" ||
@@ -169,13 +176,20 @@ export async function executeVoiceTool(
           : detectSalesFocus(userMessage || focusArg)
       ) as "top_store" | "top_products" | "summary" | "full_report";
 
-      const { summary, source, label, vendorCode } = getAssistantSalesSummary();
+      const salesOpts = {
+        filterDate: dateArg && isValidIsoDate(dateArg) ? dateArg : undefined,
+        userMessage: userMessage || undefined,
+      };
+      const { summary, source, label, vendorCode, filterDate, dateMissing } =
+        getSales(salesOpts);
       const topStores = summary.topStores.slice(0, 5);
       const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 5);
-      const synthesizedAnswer = formatSalesByFocus(focus);
+      const synthesizedAnswer = formatSalesByFocus(focus, salesOpts);
 
       let spoken: string;
-      if (focus === "top_store" && topStores[0]) {
+      if (dateMissing || filterDate || focus === "summary") {
+        spoken = formatSalesSpokenBrief(salesOpts);
+      } else if (focus === "top_store" && topStores[0]) {
         spoken = `Your top store is ${topStores[0].name} at ${topStores[0].revenue.toLocaleString()} dollars net.`;
       } else if (focus === "top_products" && topProducts[0]) {
         spoken = `Your top SKU by quantity is ${topProducts[0].itemNumber}, ${topProducts[0].units} units sold, about ${topProducts[0].revenue.toLocaleString()} dollars revenue.`;
@@ -184,11 +198,12 @@ export async function executeVoiceTool(
           ? `Full report${label ? ` ${label}` : ""}: ${summary.totalRevenue.toLocaleString()} dollars net, ${summary.totalTransactions.toLocaleString()} units across ${summary.topStores.length} stores.`
           : `Demo sales data: ${summary.totalRevenue.toLocaleString()} dollars. Upload a CSV in Data Analyst for live numbers.`;
       } else {
-        spoken =
-          source === "report"
-            ? `Latest report${label ? ` ${label}` : ""}: ${summary.totalRevenue.toLocaleString()} dollars net across ${summary.totalTransactions.toLocaleString()} units.`
-            : `Today's sales are $${summary.totalRevenue.toLocaleString()} across ${summary.totalTransactions} transactions. Demo data until a CSV is uploaded.`;
+        spoken = formatSalesSpokenBrief(salesOpts);
       }
+
+      const salesPath = filterDate
+        ? `/sales?date=${encodeURIComponent(filterDate)}`
+        : "/sales";
 
       return {
         output: JSON.stringify({
@@ -196,6 +211,8 @@ export async function executeVoiceTool(
           reportLabel: label,
           vendorCode,
           focus,
+          filterDate: filterDate ?? null,
+          dateMissing: dateMissing ?? false,
           synthesizedAnswer,
           totalRevenue: summary.totalRevenue,
           totalTransactions: summary.totalTransactions,
@@ -212,13 +229,15 @@ export async function executeVoiceTool(
           })),
           spokenAnswer: spoken,
           markdown:
-            focus === "full_report" ? formatSalesReportMarkdown() : synthesizedAnswer,
+            focus === "full_report"
+              ? formatSalesReportMarkdown(salesOpts)
+              : synthesizedAnswer,
           note:
             source === "report"
-              ? `From uploaded report${vendorCode ? ` (${vendorCode})` : ""}.`
+              ? `From uploaded report${vendorCode ? ` (${vendorCode})` : ""}${filterDate ? ` · ${filterDate}` : ""}.`
               : "Demo POS data — upload CSV in Data Analyst.",
         }),
-        uiAction: { type: "navigate", path: "/sales" },
+        uiAction: { type: "navigate", path: salesPath },
       };
     }
 

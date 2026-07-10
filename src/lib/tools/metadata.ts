@@ -9,16 +9,23 @@ const emptyParams = { type: "object", properties: {}, additionalProperties: fals
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: "get_today_sales",
-    description: "REQUIRED before sales or revenue questions. Returns latest uploaded report or demo summary.",
+    description:
+      "REQUIRED before sales or revenue questions. Returns latest uploaded report or a single day when the user names a date (e.g. July 8). Pass user_message so the date can be parsed.",
     category: "sales",
     riskLevel: "safe",
     requiresConfirmation: false,
     allowedInVoice: true,
     allowedInChat: true,
     opensPage: "/sales",
-    whenToUse: "User asks about sales, revenue, top products, stores, MHVR, or uploaded CSV.",
+    whenToUse:
+      "User asks about sales, revenue, top products, stores, MHVR, uploaded CSV, or sales on a specific date (e.g. show sales of 8 July).",
     whenNotToUse: "Never guess sales numbers from memory.",
-    examplePhrases: ["how are sales today", "top products", "revenue this week"],
+    examplePhrases: [
+      "how are sales today",
+      "top products",
+      "show sales of 8 july",
+      "sales on July 8",
+    ],
     costNotes: "No LLM — reads local report.",
     parameters: {
       type: "object",
@@ -26,9 +33,18 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         focus: {
           type: "string",
           enum: ["top_store", "top_products", "summary", "full_report"],
-          description: "top_store = best store; top_products = best SKUs by qty; summary = brief; full_report = complete breakdown",
+          description:
+            "top_store = best store; top_products = best SKUs by qty; summary = brief; full_report = complete breakdown",
         },
-        user_message: { type: "string", description: "Original user question for focus inference" },
+        user_message: {
+          type: "string",
+          description:
+            "Original user question — used to infer focus and specific dates like '8 july'",
+        },
+        date: {
+          type: "string",
+          description: "Optional ISO date YYYY-MM-DD to filter the report to one day",
+        },
       },
       additionalProperties: false,
     },

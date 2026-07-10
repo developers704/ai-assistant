@@ -1,30 +1,87 @@
 import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { getLatestReportWithSummary } from "@/lib/reports/store";
+import {
+  extractSalesDateFromMessage,
+  formatReportDateLong,
+  isValidIsoDate,
+} from "@/lib/reports/date-utils";
 import type { ReportSummary } from "@/lib/reports/types";
 import type { SalesSummary } from "@/types";
 import { formatCurrency, formatPieceCount, sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import type { SalesFocus } from "@/lib/ai/sales-focus";
 
-export function getAssistantSalesSummary(): {
+export type AssistantSalesOptions = {
+  /** ISO YYYY-MM-DD — filter report to this day */
+  filterDate?: string;
+  /** Raw user message — used to infer a day when filterDate not set */
+  userMessage?: string;
+};
+
+export function getAssistantSalesSummary(options?: AssistantSalesOptions): {
   summary: SalesSummary | ReportSummary;
   source: "report" | "mock";
   label?: string;
   vendorCode?: string;
+  filterDate?: string;
+  availableDates: string[];
+  dateMissing?: boolean;
 } {
-  const latest = getLatestReportWithSummary();
+  const unfiltered = getLatestReportWithSummary();
+  const availableDates = unfiltered?.availableDates ?? [];
+
+  let filterDate =
+    options?.filterDate && isValidIsoDate(options.filterDate) ? options.filterDate : undefined;
+
+  if (!filterDate && options?.userMessage) {
+    filterDate = extractSalesDateFromMessage(options.userMessage, availableDates) ?? undefined;
+  }
+
+  if (filterDate && availableDates.length > 0 && !availableDates.includes(filterDate)) {
+    return {
+      summary: unfiltered!.summary,
+      source: "report",
+      label: unfiltered!.meta.label,
+      vendorCode: unfiltered!.summary.vendorCode ?? unfiltered!.meta.vendorCode ?? undefined,
+      filterDate,
+      availableDates,
+      dateMissing: true,
+    };
+  }
+
+  const latest = filterDate
+    ? getLatestReportWithSummary({ filterDate })
+    : unfiltered;
+
   if (latest) {
+    const dayLabel = filterDate ? formatReportDateLong(filterDate) : undefined;
     return {
       summary: latest.summary,
       source: "report",
-      label: latest.meta.label,
+      label: dayLabel ?? latest.meta.label,
       vendorCode: latest.summary.vendorCode ?? latest.meta.vendorCode ?? undefined,
+      filterDate,
+      availableDates: latest.availableDates,
     };
   }
-  return { summary: computeSalesSummary(mockSalesData), source: "mock" };
+  return {
+    summary: computeSalesSummary(mockSalesData),
+    source: "mock",
+    availableDates: [],
+  };
 }
 
-export function formatTopStoreAnswer(): string {
-  const { summary, source, label } = getAssistantSalesSummary();
+function periodSuffix(source: "report" | "mock", label?: string, filterDate?: string): string {
+  if (source !== "report") return " (demo data)";
+  if (filterDate) return ` (${formatReportDateLong(filterDate)})`;
+  return label ? ` (${label})` : " (latest report)";
+}
+
+export function formatTopStoreAnswer(options?: AssistantSalesOptions): string {
+  const { summary, source, label, filterDate, dateMissing, availableDates } =
+    getAssistantSalesSummary(options);
+  if (dateMissing && filterDate) {
+    return formatMissingDate(filterDate, availableDates);
+  }
   const top = summary.topStores[0];
   if (!top) {
     return "I don't have store-level sales data right now. Upload a sales report in Data Analyst or open the Sales Dashboard.";
@@ -35,24 +92,28 @@ export function formatTopStoreAnswer(): string {
       ? ((top.revenue / summary.totalRevenue) * 100).toFixed(1)
       : null;
 
-  const period =
-    source === "report" ? (label ? ` (${label})` : " (latest report)") : " (demo data)";
-
   let answer = `Top store is **${top.name}** with **${formatCurrency(top.revenue)}** net sales`;
   if (share) {
     answer += `, about **${share}%** of total net sales`;
   }
-  answer += `${period}. Want full store breakdown?`;
+  answer += `${periodSuffix(source, label, filterDate)}. Want full store breakdown?`;
   return answer;
 }
 
-export function formatSalesSummaryBrief(): string {
-  const { summary, source, label, vendorCode } = getAssistantSalesSummary();
+export function formatSalesSummaryBrief(options?: AssistantSalesOptions): string {
+  const { summary, source, label, vendorCode, filterDate, dateMissing, availableDates } =
+    getAssistantSalesSummary(options);
+  if (dateMissing && filterDate) {
+    return formatMissingDate(filterDate, availableDates);
+  }
   const changeIcon = summary.comparisonPreviousDay >= 0 ? "↑" : "↓";
   const top = summary.topStores[0];
+  const dayPart = filterDate
+    ? formatReportDateLong(filterDate)
+    : label ?? "latest report";
   const header =
     source === "report"
-      ? `**Sales** — ${vendorCode ? `${vendorCode} · ` : ""}${label ?? "latest report"}`
+      ? `**Sales** — ${vendorCode ? `${vendorCode} · ` : ""}${dayPart}`
       : "**Sales** _(demo data)_";
 
   let md = `${header}
@@ -68,8 +129,12 @@ export function formatSalesSummaryBrief(): string {
   return md;
 }
 
-export function formatTopProductsAnswer(): string {
-  const { summary, source, label } = getAssistantSalesSummary();
+export function formatTopProductsAnswer(options?: AssistantSalesOptions): string {
+  const { summary, source, label, filterDate, dateMissing, availableDates } =
+    getAssistantSalesSummary(options);
+  if (dateMissing && filterDate) {
+    return formatMissingDate(filterDate, availableDates);
+  }
   const top = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 5);
   if (!top.length) {
     return "I don't have product-level data right now. Upload a sales report or open the Sales Dashboard.";
@@ -77,33 +142,39 @@ export function formatTopProductsAnswer(): string {
   const lines = top.map(
     (p, i) => `${i + 1}. **${p.itemNumber}** — ${formatPieceCount(p.units)} sold, ${formatCurrency(p.revenue)}`
   );
-  const period = source === "report" ? (label ? ` (${label})` : "") : " _(demo)_";
-  return `**Top SKUs by quantity**${period}\n\n${lines.join("\n")}`;
+  return `**Top SKUs by quantity**${periodSuffix(source, label, filterDate)}\n\n${lines.join("\n")}`;
 }
 
-export function formatSalesByFocus(focus: SalesFocus): string {
+export function formatSalesByFocus(focus: SalesFocus, options?: AssistantSalesOptions): string {
   switch (focus) {
     case "top_store":
-      return formatTopStoreAnswer();
+      return formatTopStoreAnswer(options);
     case "top_products":
-      return formatTopProductsAnswer();
+      return formatTopProductsAnswer(options);
     case "summary":
-      return formatSalesSummaryBrief();
+      return formatSalesSummaryBrief(options);
     case "full_report":
     default:
-      return formatSalesReportMarkdown();
+      return formatSalesReportMarkdown(options);
   }
 }
 
-export function formatSalesReportMarkdown(): string {
-  const { summary, source, label, vendorCode } = getAssistantSalesSummary();
+export function formatSalesReportMarkdown(options?: AssistantSalesOptions): string {
+  const { summary, source, label, vendorCode, filterDate, dateMissing, availableDates } =
+    getAssistantSalesSummary(options);
+  if (dateMissing && filterDate) {
+    return formatMissingDate(filterDate, availableDates);
+  }
   const changeIcon = summary.comparisonPreviousDay >= 0 ? "↑" : "↓";
   const topStores = summary.topStores.slice(0, 5);
   const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 5);
 
+  const dayPart = filterDate
+    ? formatReportDateLong(filterDate)
+    : label ?? "Uploaded report";
   const header =
     source === "report"
-      ? `**Sales Summary** — ${vendorCode ? `${vendorCode} · ` : ""}${label ?? "Uploaded report"}`
+      ? `**Sales Summary** — ${vendorCode ? `${vendorCode} · ` : ""}${dayPart}`
       : "**Today's Sales Summary** _(demo data — upload CSV in Data Analyst)_";
 
   let md = `${header}
@@ -142,4 +213,43 @@ export function formatSalesReportMarkdown(): string {
   }
 
   return md;
+}
+
+function formatMissingDate(filterDate: string, availableDates: string[]): string {
+  const asked = formatReportDateLong(filterDate);
+  const range =
+    availableDates.length > 0
+      ? ` Available days in the report: ${formatReportDateLong(availableDates[0])} – ${formatReportDateLong(availableDates[availableDates.length - 1])}.`
+      : "";
+  return `I don't have sales data for **${asked}**.${range} Try another date from the report, or open the Sales Dashboard.`;
+}
+
+/** Short 2–3 sentence spoken summary for voice. */
+export function formatSalesSpokenBrief(options?: AssistantSalesOptions): string {
+  const { summary, source, filterDate, dateMissing, availableDates, label } =
+    getAssistantSalesSummary(options);
+
+  if (dateMissing && filterDate) {
+    const asked = formatReportDateLong(filterDate);
+    if (availableDates.length) {
+      return `I don't have sales for ${asked}. The report covers ${formatReportDateLong(availableDates[0])} through ${formatReportDateLong(availableDates[availableDates.length - 1])}.`;
+    }
+    return `I don't have sales for ${asked}.`;
+  }
+
+  const top = summary.topStores[0];
+  const day =
+    filterDate != null
+      ? `On ${formatReportDateLong(filterDate)}`
+      : source === "report"
+        ? `Latest report${label ? ` (${label})` : ""}`
+        : "Today";
+
+  const revenue = `${Math.round(summary.totalRevenue).toLocaleString()} dollars net`;
+  const units = `${summary.totalTransactions.toLocaleString()} units`;
+
+  if (top) {
+    return `${day}, net sales were ${revenue} across ${units}. Top store was ${top.name} at ${Math.round(top.revenue).toLocaleString()} dollars.`;
+  }
+  return `${day}, net sales were ${revenue} across ${units}.`;
 }
