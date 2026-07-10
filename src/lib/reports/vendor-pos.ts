@@ -1,5 +1,5 @@
 import type { SalesSummary } from "@/types";
-import { isExcludedTopProductSku } from "@/lib/utils";
+import { filterExcludedSalesRows, isExcludedSalesSku } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
 
@@ -105,16 +105,17 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       date: date ?? "",
       transactionId: txnId,
       storeName: store || "Unknown store",
-      department: department || "Uncategorized",
-      design: designCol ? String(rec[designCol] ?? "").trim() || "—" : "—",
+      // Keep blank — excluded later by filterExcludedSalesRows (do not invent "Uncategorized")
+      department,
+      design: designCol ? String(rec[designCol] ?? "").trim() : "",
       itemNumber: itemCol ? String(rec[itemCol] ?? "").trim() : sku,
       sku,
       style: styleCol ? String(rec[styleCol] ?? "").trim() : "",
       description: descCol ? String(rec[descCol] ?? "").trim() || department : department,
       vendor: vendorCol ? String(rec[vendorCol] ?? "").trim().toUpperCase() : "",
       vendorModel: vendorModelCol ? String(rec[vendorModelCol] ?? "").trim() : "",
-      productClass: classCol ? String(rec[classCol] ?? "").trim() || "—" : "—",
-      subClass: subClassCol ? String(rec[subClassCol] ?? "").trim() || "—" : "—",
+      productClass: classCol ? String(rec[classCol] ?? "").trim() : "",
+      subClass: subClassCol ? String(rec[subClassCol] ?? "").trim() : "",
       quantity: qty || 1,
       inventoryCost,
       grossSales: gross,
@@ -136,20 +137,41 @@ function rankMap(
   units: (r: VendorPosRow) => number,
   limit = 8
 ) {
-  const map = new Map<string, { revenue: number; units: number }>();
+  const map = new Map<
+    string,
+    { revenue: number; units: number; imageDir?: string; imageRevenue: number }
+  >();
   for (const r of rows) {
-    const k = key(r);
+    const k = key(r).trim();
     if (!k || k === "—") continue;
-    const ex = map.get(k) || { revenue: 0, units: 0 };
-    map.set(k, { revenue: ex.revenue + value(r), units: ex.units + units(r) });
+    const ex = map.get(k) || { revenue: 0, units: 0, imageRevenue: -1 };
+    const next = {
+      revenue: ex.revenue + value(r),
+      units: ex.units + units(r),
+      imageDir: ex.imageDir,
+      imageRevenue: ex.imageRevenue,
+    };
+    // Keep image from the highest-revenue line that has an Image Dir.
+    const dir = r.imageDir?.trim();
+    if (dir && r.netRevenue > next.imageRevenue) {
+      next.imageDir = dir;
+      next.imageRevenue = r.netRevenue;
+    }
+    map.set(k, next);
   }
   return [...map.entries()]
-    .map(([name, stats]) => ({ name, ...stats }))
+    .map(([name, stats]) => ({
+      name,
+      revenue: stats.revenue,
+      units: stats.units,
+      imageDir: stats.imageDir,
+      imageUrl: resolveProductImageUrl(stats.imageDir) ?? undefined,
+    }))
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, limit);
 }
 
-/** Top products for display — group by Vendor Model (qty then revenue). Excluded SKUs still count in totals. */
+/** Top products for display — group by Vendor Model (qty then revenue). */
 function rankProducts(rows: VendorPosRow[], limit = 20) {
   const map = new Map<
     string,
@@ -166,10 +188,9 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
   for (const r of rows) {
     const sku = r.sku?.trim() ?? "";
     const itemNumber = sku || r.itemNumber?.trim() || "";
-    if (itemNumber && isExcludedTopProductSku(itemNumber)) continue;
+    if (itemNumber && isExcludedSalesSku(itemNumber)) continue;
 
     const vendorModel = r.vendorModel?.trim() || "";
-    // Prefer vendor model; fall back to SKU only when model is missing.
     const key = vendorModel
       ? `model:${vendorModel.toUpperCase()}`
       : itemNumber
@@ -214,6 +235,9 @@ export function summarizeVendorPos(
     reportId?: string;
     reportLabel?: string;
     filterDate?: string;
+    filterStore?: string;
+    filterDepartment?: string;
+    filterDesign?: string;
     schema?: "vendor_pos" | "store_sales";
     reportCategory?: import("./types").ReportCategory;
   }
@@ -224,19 +248,37 @@ export function summarizeVendorPos(
   const dateTo = dates[dates.length - 1] ?? null;
   const reportDate = opts.filterDate ?? dateTo;
 
-  let periodRows = rows;
+  let periodRows = filterExcludedSalesRows(rows);
   let compareRows: VendorPosRow[] = [];
 
   if (opts.filterDate) {
-    periodRows = rows.filter((r) => r.date === opts.filterDate);
+    periodRows = periodRows.filter((r) => r.date === opts.filterDate);
     const idx = dates.indexOf(opts.filterDate);
     if (idx > 0) {
-      compareRows = rows.filter((r) => r.date === dates[idx - 1]);
+      compareRows = filterExcludedSalesRows(rows).filter((r) => r.date === dates[idx - 1]);
     }
   } else if (opts.period === "daily" && dates.length === 1) {
-    periodRows = rows.filter((r) => r.date === dateTo);
+    periodRows = periodRows.filter((r) => r.date === dateTo);
   } else if (opts.period === "daily" && dates.length === 2) {
-    compareRows = rows.filter((r) => r.date === dates[dates.length - 2]);
+    compareRows = filterExcludedSalesRows(rows).filter(
+      (r) => r.date === dates[dates.length - 2]
+    );
+  }
+
+  if (opts.filterStore) {
+    const needle = opts.filterStore.trim().toLowerCase();
+    periodRows = periodRows.filter((r) => r.storeName.trim().toLowerCase() === needle);
+    compareRows = compareRows.filter((r) => r.storeName.trim().toLowerCase() === needle);
+  }
+  if (opts.filterDepartment) {
+    const needle = opts.filterDepartment.trim().toLowerCase();
+    periodRows = periodRows.filter((r) => r.department.trim().toLowerCase() === needle);
+    compareRows = compareRows.filter((r) => r.department.trim().toLowerCase() === needle);
+  }
+  if (opts.filterDesign) {
+    const needle = opts.filterDesign.trim().toLowerCase();
+    periodRows = periodRows.filter((r) => r.design.trim().toLowerCase() === needle);
+    compareRows = compareRows.filter((r) => r.design.trim().toLowerCase() === needle);
   }
 
   const totalRevenue = periodRows.reduce((s, r) => s + r.netRevenue, 0);
@@ -274,6 +316,8 @@ export function summarizeVendorPos(
     name: s.name,
     revenue: s.revenue,
     change: storeChange(s.name, s.revenue),
+    imageDir: s.imageDir,
+    imageUrl: s.imageUrl,
   }));
 
   const worstStores = [...allStoresRanked]
@@ -283,6 +327,8 @@ export function summarizeVendorPos(
       name: s.name,
       revenue: s.revenue,
       change: storeChange(s.name, s.revenue),
+      imageDir: s.imageDir,
+      imageUrl: s.imageUrl,
     }));
 
   const topDepartments = rankMap(

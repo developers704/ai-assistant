@@ -152,8 +152,8 @@ export interface SalesSummary {
   averageOrderValue: number;
   comparisonPreviousDay: number;
   comparisonPreviousWeek: number;
-  topStores: { name: string; revenue: number; change: number }[];
-  worstStores: { name: string; revenue: number; change: number }[];
+  topStores: { name: string; revenue: number; change: number; imageDir?: string; imageUrl?: string | null }[];
+  worstStores: { name: string; revenue: number; change: number; imageDir?: string; imageUrl?: string | null }[];
   topProducts: {
     name: string;
     itemNumber?: string;

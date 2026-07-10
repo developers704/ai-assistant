@@ -65,11 +65,11 @@ export interface ReportSummary extends SalesSummary {
   discountTotal?: number;
   avgDiscountRate?: number;
   dateRange?: { from: string; to: string };
-  topDepartments?: { name: string; revenue: number; units: number }[];
-  topDesigns?: { name: string; revenue: number; units: number }[];
-  topVendors?: { name: string; revenue: number; units: number }[];
-  topClasses?: { name: string; revenue: number; units: number }[];
-  topSubClasses?: { name: string; revenue: number; units: number }[];
+  topDepartments?: { name: string; revenue: number; units: number; imageDir?: string; imageUrl?: string | null }[];
+  topDesigns?: { name: string; revenue: number; units: number; imageDir?: string; imageUrl?: string | null }[];
+  topVendors?: { name: string; revenue: number; units: number; imageDir?: string; imageUrl?: string | null }[];
+  topClasses?: { name: string; revenue: number; units: number; imageDir?: string; imageUrl?: string | null }[];
+  topSubClasses?: { name: string; revenue: number; units: number; imageDir?: string; imageUrl?: string | null }[];
   totalInventoryCost?: number;
   totalMargin?: number;
   marginRate?: number;

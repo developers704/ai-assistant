@@ -1,5 +1,5 @@
 ---
-description: Sales report uploads and Top 20 product exclusion rules (always apply)
+description: Sales report uploads and excluded-row rules (always apply)
 alwaysApply: true
 ---
 
@@ -7,9 +7,9 @@ alwaysApply: true
 
 **Every uploaded or replaced sales CSV must follow these rules** — bundled seed (`data/reports/Sales-Report.csv`), Data Analyst upload, and API `POST /api/reports`.
 
-## Top 20 products — hide only, never exclude from totals
+## Excluded rows — remove from the report entirely
 
-Excluded SKUs are **hidden from Top 20 products** (Sales Dashboard, voice, chat, Data Analyst) but **must still count** in total revenue, store rankings, departments, vendors, margins, and all other aggregates.
+These rows are treated as **deleted** from the sales report. They must **not** appear in Top 20, Top vendors, stores, departments, designs, metal/class, margins, revenue totals, rank-detail, voice, or chat.
 
 ### Exclusion rules (match on SKU # or Item #)
 
@@ -20,14 +20,15 @@ Excluded SKUs are **hidden from Top 20 products** (Sales Dashboard, voice, chat,
 | Starts with `MLB-` | Mulberry lifetime / care plans |
 | `JVS-200940` | Watch battery service (repair, not product) |
 | `217365`, `217286`, `159004` | Legacy excluded SKUs |
+| Blank / empty **Department** | Incomplete line — drop the row |
 
 ### Implementation (do not bypass on upload)
 
-- **Single source of truth:** `isExcludedTopProductSku()` + `EXCLUDED_TOP_PRODUCT_SKUS` in `src/lib/utils.ts`
-- **On every summarize/upload:** `rankProducts()` in `src/lib/reports/vendor-pos.ts` skips excluded SKUs
-- **On every display:** `filterTopProductSkus()` in sales page, `TopProductsTable`, voice, assistant, context builder
+- **Single source of truth:** `isExcludedSalesSku()` + `isExcludedSalesRow()` + `filterExcludedSalesRows()` in `src/lib/utils.ts`
+- **On every summarize/upload:** filter `periodRows` (and `compareRows`) in `summarizeVendorPos()` via `filterExcludedSalesRows()`
+- **On rank-detail:** filter rows in `/api/reports/rank-detail` the same way
 
-When adding exclusions, update `src/lib/utils.ts` only. Never filter excluded rows out of `periodRows` or revenue totals.
+When adding exclusions, update `src/lib/utils.ts` only.
 
 ## Bundled default report
 

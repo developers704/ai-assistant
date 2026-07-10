@@ -19,11 +19,10 @@ export function formatPieceCount(units: number): string {
 }
 
 /**
- * SKUs hidden from Top 20 products only — applies to every uploaded/seeeded sales CSV.
- * Still counted in total revenue, stores, departments, and all other report sections.
+ * Rows removed from the sales report entirely (all aggregates + Top 20).
  * See .cursor/rules/sales-report.mdc
  */
-const EXCLUDED_TOP_PRODUCT_SKUS = new Set([
+const EXCLUDED_SALES_SKUS = new Set([
   "ITEM",
   "250000",
   "217365",
@@ -32,25 +31,48 @@ const EXCLUDED_TOP_PRODUCT_SKUS = new Set([
   "JVS-200940",
 ]);
 
-export function isExcludedTopProductSku(sku?: string | null): boolean {
+/** True when SKU / Item # matches an excluded product rule. */
+export function isExcludedSalesSku(sku?: string | null): boolean {
   const normalized = (sku ?? "").trim().toUpperCase();
   if (!normalized) return false;
-  if (EXCLUDED_TOP_PRODUCT_SKUS.has(normalized)) return true;
+  if (EXCLUDED_SALES_SKUS.has(normalized)) return true;
   if (normalized.startsWith("MLB-")) return true;
   return false;
 }
 
+/** @deprecated Use isExcludedSalesSku — kept for older call sites. */
+export function isExcludedTopProductSku(sku?: string | null): boolean {
+  return isExcludedSalesSku(sku);
+}
+
 export function isItemPlaceholderSku(sku?: string | null): boolean {
-  return isExcludedTopProductSku(sku);
+  return isExcludedSalesSku(sku);
+}
+
+/** True when a parsed sales row should be dropped from the report. */
+export function isExcludedSalesRow(row: {
+  sku?: string | null;
+  itemNumber?: string | null;
+  department?: string | null;
+}): boolean {
+  const dept = (row.department ?? "").trim();
+  if (!dept || dept === "—" || /^uncategorized$/i.test(dept)) return true;
+  const sku = (row.sku ?? "").trim() || (row.itemNumber ?? "").trim();
+  return isExcludedSalesSku(sku);
+}
+
+export function filterExcludedSalesRows<
+  T extends { sku?: string | null; itemNumber?: string | null; department?: string | null }
+>(rows: T[]): T[] {
+  return rows.filter((r) => !isExcludedSalesRow(r));
 }
 
 export function filterTopProductSkus<
-  T extends { itemNumber?: string; vendorModel?: string }
+  T extends { itemNumber?: string; vendorModel?: string; sku?: string }
 >(products: T[]): T[] {
   return products.filter((p) => {
-    // Vendor-model rankings already skip excluded SKUs while aggregating.
-    if (p.vendorModel?.trim()) return true;
-    return !isExcludedTopProductSku(p.itemNumber);
+    const sku = p.itemNumber || p.sku;
+    return !isExcludedSalesSku(sku);
   });
 }
 

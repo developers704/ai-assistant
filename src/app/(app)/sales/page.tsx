@@ -18,6 +18,7 @@ import type { SalesSummary } from "@/types";
 import type { RankDimension, ReportSummary } from "@/lib/reports/types";
 import { ReportInsightsCards } from "@/components/reports/ReportInsightsCards";
 import { TopProductsTable } from "@/components/reports/TopProductsTable";
+import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import {
   RankDetailDrawer,
   type RankDetailSelection,
@@ -42,11 +43,22 @@ export default function SalesPage() {
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
   const [dataSource, setDataSource] = useState<"mock" | "report">("mock");
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [availableStores, setAvailableStores] = useState<string[]>([]);
+  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+  const [availableDesigns, setAvailableDesigns] = useState<string[]>([]);
   const [filterDate, setFilterDate] = useState<string>(() =>
     dateFromUrl && isValidIsoDate(dateFromUrl) ? dateFromUrl : ""
   );
+  const [filterStore, setFilterStore] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("");
+  const [filterDesign, setFilterDesign] = useState("");
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
+  const [storePreview, setStorePreview] = useState<{
+    src: string;
+    alt: string;
+    subtitle?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (dateFromUrl && isValidIsoDate(dateFromUrl) && dateFromUrl !== filterDate) {
@@ -55,7 +67,12 @@ export default function SalesPage() {
   }, [dateFromUrl, filterDate]);
 
   useEffect(() => {
-    const qs = filterDate ? `?date=${encodeURIComponent(filterDate)}` : "";
+    const params = new URLSearchParams();
+    if (filterDate) params.set("date", filterDate);
+    if (filterStore) params.set("store", filterStore);
+    if (filterDepartment) params.set("department", filterDepartment);
+    if (filterDesign) params.set("design", filterDesign);
+    const qs = params.toString() ? `?${params}` : "";
     fetch(`/api/sales${qs}`)
       .then((r) => r.json())
       .then((d) => {
@@ -64,14 +81,20 @@ export default function SalesPage() {
         if (d.source === "report") {
           setReportSummary(d.summary as ReportSummary);
           setAvailableDates(d.availableDates ?? []);
+          setAvailableStores(d.availableStores ?? []);
+          setAvailableDepartments(d.availableDepartments ?? []);
+          setAvailableDesigns(d.availableDesigns ?? []);
           setReportId(d.report?.id ?? filterDate ?? d.reportDate ?? "latest");
         } else {
           setReportSummary(null);
           setAvailableDates([]);
+          setAvailableStores([]);
+          setAvailableDepartments([]);
+          setAvailableDesigns([]);
           setReportId(undefined);
         }
       });
-  }, [filterDate]);
+  }, [filterDate, filterStore, filterDepartment, filterDesign]);
 
   useEffect(() => {
     void syncUiSelection({
@@ -140,8 +163,12 @@ export default function SalesPage() {
             subtitle={pageSubtitle}
             action={
               <div className="flex flex-wrap items-center gap-2 justify-end">
-                {(availableDates.length > 0 || reportSummary?.dateRange) && (
-                  <div className="flex items-center gap-2">
+                {(availableDates.length > 0 ||
+                  availableStores.length > 0 ||
+                  availableDepartments.length > 0 ||
+                  availableDesigns.length > 0 ||
+                  reportSummary?.dateRange) && (
+                  <div className="flex flex-wrap items-center gap-2 justify-end">
                     <CalendarDays size={15} className="text-ink-muted shrink-0" />
                     <select
                       value={filterDate}
@@ -164,6 +191,51 @@ export default function SalesPage() {
                         </option>
                       ))}
                     </select>
+                    {availableStores.length > 0 && (
+                      <select
+                        value={filterStore}
+                        onChange={(e) => setFilterStore(e.target.value)}
+                        className={selectClass}
+                        aria-label="Filter by store"
+                      >
+                        <option value="">All stores</option>
+                        {availableStores.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {availableDepartments.length > 0 && (
+                      <select
+                        value={filterDepartment}
+                        onChange={(e) => setFilterDepartment(e.target.value)}
+                        className={selectClass}
+                        aria-label="Filter by department"
+                      >
+                        <option value="">All departments</option>
+                        {availableDepartments.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {availableDesigns.length > 0 && (
+                      <select
+                        value={filterDesign}
+                        onChange={(e) => setFilterDesign(e.target.value)}
+                        className={selectClass}
+                        aria-label="Filter by design"
+                      >
+                        <option value="">All designs</option>
+                        {availableDesigns.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 )}
                 {dataSource === "report" && (
@@ -269,9 +341,17 @@ export default function SalesPage() {
                       key={store.name}
                       type="button"
                       onClick={() => openRank("store", store.name)}
-                      className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
+                      className="w-full grid grid-cols-[1.25rem_2.5rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_2.75rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
                     >
                       <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
+                      <ProductThumb
+                        size="sm"
+                        imageDir={store.imageDir}
+                        imageUrl={store.imageUrl}
+                        alt={store.name}
+                        subtitle={formatCurrency(store.revenue)}
+                        onOpen={(src, alt, subtitle) => setStorePreview({ src, alt, subtitle })}
+                      />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-ink truncate mb-1.5">{store.name}</p>
                         <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -313,9 +393,17 @@ export default function SalesPage() {
                     key={store.name}
                     type="button"
                     onClick={() => openRank("store", store.name)}
-                    className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
+                    className="w-full grid grid-cols-[1.25rem_2.5rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_2.75rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
                   >
                     <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
+                    <ProductThumb
+                      size="sm"
+                      imageDir={store.imageDir}
+                      imageUrl={store.imageUrl}
+                      alt={store.name}
+                      subtitle={formatCurrency(store.revenue)}
+                      onOpen={(src, alt, subtitle) => setStorePreview({ src, alt, subtitle })}
+                    />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-ink truncate mb-1.5">{store.name}</p>
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -364,6 +452,9 @@ export default function SalesPage() {
       <RankDetailDrawer
         selection={rankDetail}
         filterDate={filterDate || undefined}
+        filterStore={filterStore || undefined}
+        filterDepartment={filterDepartment || undefined}
+        filterDesign={filterDesign || undefined}
         reportId={
           reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
             ? reportId
@@ -371,6 +462,14 @@ export default function SalesPage() {
         }
         onClose={() => setRankDetail(null)}
       />
+      {storePreview && (
+        <ProductLightbox
+          src={storePreview.src}
+          alt={storePreview.alt}
+          subtitle={storePreview.subtitle}
+          onClose={() => setStorePreview(null)}
+        />
+      )}
     </PageShell>
   );
 }

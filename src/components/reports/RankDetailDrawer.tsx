@@ -68,6 +68,9 @@ export type RankDetailSelection = {
 type RankDetailDrawerProps = {
   selection: RankDetailSelection | null;
   filterDate?: string;
+  filterStore?: string;
+  filterDepartment?: string;
+  filterDesign?: string;
   reportId?: string;
   onClose: () => void;
 };
@@ -102,6 +105,9 @@ function MiniList({
 export function RankDetailDrawer({
   selection,
   filterDate,
+  filterStore,
+  filterDepartment,
+  filterDesign,
   reportId,
   onClose,
 }: RankDetailDrawerProps) {
@@ -120,6 +126,9 @@ export function RankDetailDrawer({
       value: selection.value,
     });
     if (filterDate) params.set("date", filterDate);
+    if (filterStore) params.set("store", filterStore);
+    if (filterDepartment) params.set("department", filterDepartment);
+    if (filterDesign) params.set("design", filterDesign);
     if (reportId) params.set("id", reportId);
 
     let cancelled = false;
@@ -144,7 +153,7 @@ export function RankDetailDrawer({
     return () => {
       cancelled = true;
     };
-  }, [selection, filterDate, reportId]);
+  }, [selection, filterDate, filterStore, filterDepartment, filterDesign, reportId]);
 
   useEffect(() => {
     if (!selection) return;

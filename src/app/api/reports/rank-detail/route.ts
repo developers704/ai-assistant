@@ -7,6 +7,7 @@ import {
 } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
+import { filterExcludedSalesRows } from "@/lib/utils";
 import type { VendorPosRow, RankDimension } from "@/lib/reports/types";
 
 export const runtime = "nodejs";
@@ -35,6 +36,9 @@ export async function GET(req: Request) {
   const dimension = searchParams.get("dimension") as RankDimension | null;
   const value = searchParams.get("value")?.trim() ?? "";
   const date = searchParams.get("date")?.trim() || undefined;
+  const store = searchParams.get("store")?.trim() || undefined;
+  const department = searchParams.get("department")?.trim() || undefined;
+  const design = searchParams.get("design")?.trim() || undefined;
   const id = searchParams.get("id")?.trim() || undefined;
 
   const allowed: RankDimension[] = [
@@ -71,15 +75,25 @@ export async function GET(req: Request) {
     header: true,
     skipEmptyLines: true,
   });
-  const { rows } = parseVendorPosRows(parsed.data ?? []);
-  const needle = value.toLowerCase();
+  let rows = filterExcludedSalesRows(parseVendorPosRows(parsed.data ?? []).rows);
+  if (date) rows = rows.filter((r) => r.date === date);
+  if (store) {
+    const needle = store.toLowerCase();
+    rows = rows.filter((r) => r.storeName.trim().toLowerCase() === needle);
+  }
+  if (department) {
+    const needle = department.toLowerCase();
+    rows = rows.filter((r) => r.department.trim().toLowerCase() === needle);
+  }
+  if (design) {
+    const needle = design.toLowerCase();
+    rows = rows.filter((r) => r.design.trim().toLowerCase() === needle);
+  }
 
-  let matched = rows.filter(
+  const needle = value.toLowerCase();
+  const matched = rows.filter(
     (r) => dimensionValue(r, dimension).trim().toLowerCase() === needle
   );
-  if (date) {
-    matched = matched.filter((r) => r.date === date);
-  }
 
   const revenue = matched.reduce((s, r) => s + r.netRevenue, 0);
   const units = matched.reduce((s, r) => s + r.quantity, 0);

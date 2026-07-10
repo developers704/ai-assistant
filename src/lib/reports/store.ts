@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { summarizeCsvText, extractReportDates } from "./summarize-csv";
+import { summarizeCsvText, extractReportDimensions } from "./summarize-csv";
 import { enrichStoreSalesCsvDates } from "./enrich-sales-dates";
 import { datesInIsoRange, isoToUsDate } from "./date-utils";
 import type { ReportSummary, StoredReportMeta } from "./types";
@@ -232,21 +232,29 @@ export function clearAllReports(): number {
   return reports.length;
 }
 
-export function getLatestReportWithSummary(options?: { filterDate?: string }): {
+export function getLatestReportWithSummary(options?: {
+  filterDate?: string;
+  filterStore?: string;
+  filterDepartment?: string;
+  filterDesign?: string;
+}): {
   meta: StoredReportMeta;
   summary: ReportSummary;
   csv: string;
   availableDates: string[];
+  availableStores: string[];
+  availableDepartments: string[];
+  availableDesigns: string[];
 } | null {
   ensureSeedReport();
   const meta = getLatestReportMeta();
   if (!meta) return null;
   const csv = readReportCsv(meta.id);
   if (!csv) return null;
-  const availableDates = extractReportDates(csv);
-  const resolvedDates =
-    availableDates.length > 0
-      ? availableDates
+  const dims = extractReportDimensions(csv);
+  const availableDates =
+    dims.dates.length > 0
+      ? dims.dates
       : meta.dateRange
         ? datesInIsoRange(meta.dateRange.from, meta.dateRange.to)
         : [];
@@ -257,8 +265,19 @@ export function getLatestReportWithSummary(options?: { filterDate?: string }): {
     reportPeriod: meta.reportPeriod,
     reportCategory: meta.reportCategory,
     filterDate: options?.filterDate,
+    filterStore: options?.filterStore,
+    filterDepartment: options?.filterDepartment,
+    filterDesign: options?.filterDesign,
   });
-  return { meta, summary, csv, availableDates: resolvedDates };
+  return {
+    meta,
+    summary,
+    csv,
+    availableDates,
+    availableStores: dims.stores,
+    availableDepartments: dims.departments,
+    availableDesigns: dims.designs,
+  };
 }
 
 export function getReportSummaryForSales(): ReportSummary | null {

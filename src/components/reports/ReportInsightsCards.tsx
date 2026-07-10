@@ -1,8 +1,9 @@
 "use client";
 
-import { formatCurrency } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { formatCurrency, cn } from "@/lib/utils";
 import type { ReportSummary, RankDimension } from "@/lib/reports/types";
+import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import {
   CreditCard,
   Gem,
@@ -23,7 +24,21 @@ interface ReportInsightsProps {
   onRankClick?: (dimension: RankDimension, value: string) => void;
 }
 
+type RankItem = {
+  name: string;
+  revenue: number;
+  share?: number;
+  imageDir?: string;
+  imageUrl?: string | null;
+};
+
 export function ReportInsightsCards({ summary, compact, onRankClick }: ReportInsightsProps) {
+  const [preview, setPreview] = useState<{
+    src: string;
+    alt: string;
+    subtitle?: string;
+  } | null>(null);
+
   if (summary.source !== "report") return null;
 
   const isStoreSales =
@@ -33,6 +48,9 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
     (summary.schema === "vendor_pos" || summary.reportCategory === "vendor");
   const isFinancing =
     summary.schema === "financing" || summary.reportCategory === "financing";
+
+  const openPreview = (src: string, alt: string, subtitle?: string) =>
+    setPreview({ src, alt, subtitle });
 
   return (
     <div className="space-y-4">
@@ -91,10 +109,10 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
 
       <div className={`grid gap-4 ${compact ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
         {isFinancing && summary.paymentMethods && summary.paymentMethods.length > 0 && (
-          <ListCard title="Payment methods" icon={CreditCard} iconColor="text-indigo-300" items={summary.paymentMethods} />
+          <ListCard title="Payment methods" icon={CreditCard} iconColor="text-indigo-300" items={summary.paymentMethods} onOpenImage={openPreview} />
         )}
         {isFinancing && summary.financingProviders && summary.financingProviders.length > 0 && (
-          <ListCard title="Pay programs" icon={Wallet} iconColor="text-amber-300/75" items={summary.financingProviders} />
+          <ListCard title="Pay programs" icon={Wallet} iconColor="text-amber-300/75" items={summary.financingProviders} onOpenImage={openPreview} />
         )}
         {summary.topStores.length > 0 && (
           <ListCard
@@ -103,6 +121,7 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
             iconColor="text-cyan-300/75"
             items={summary.topStores}
             onItemClick={onRankClick ? (name) => onRankClick("store", name) : undefined}
+            onOpenImage={openPreview}
           />
         )}
         {summary.topDepartments && summary.topDepartments.length > 0 && (
@@ -112,6 +131,7 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
             iconColor="text-violet-300/75"
             items={summary.topDepartments}
             onItemClick={onRankClick ? (name) => onRankClick("department", name) : undefined}
+            onOpenImage={openPreview}
           />
         )}
         {summary.topVendors && summary.topVendors.length > 0 && (
@@ -121,6 +141,7 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
             iconColor="text-orange-300/75"
             items={summary.topVendors}
             onItemClick={onRankClick ? (name) => onRankClick("vendor", name) : undefined}
+            onOpenImage={openPreview}
           />
         )}
         {summary.topDesigns && summary.topDesigns.length > 0 && (
@@ -130,6 +151,7 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
             iconColor="text-fuchsia-300/75"
             items={summary.topDesigns}
             onItemClick={onRankClick ? (name) => onRankClick("design", name) : undefined}
+            onOpenImage={openPreview}
           />
         )}
         {summary.topClasses && summary.topClasses.length > 0 && (
@@ -139,6 +161,7 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
             iconColor="text-emerald-300/75"
             items={summary.topClasses}
             onItemClick={onRankClick ? (name) => onRankClick("class", name) : undefined}
+            onOpenImage={openPreview}
           />
         )}
       </div>
@@ -167,6 +190,15 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
             ))}
           </ul>
         </div>
+      )}
+
+      {preview && (
+        <ProductLightbox
+          src={preview.src}
+          alt={preview.alt}
+          subtitle={preview.subtitle}
+          onClose={() => setPreview(null)}
+        />
       )}
     </div>
   );
@@ -223,12 +255,14 @@ function ListCard({
   iconColor,
   items,
   onItemClick,
+  onOpenImage,
 }: {
   title: string;
   icon: typeof Store;
   iconColor: string;
-  items: { name: string; revenue: number; share?: number }[];
+  items: RankItem[];
   onItemClick?: (name: string) => void;
+  onOpenImage: (src: string, alt: string, subtitle?: string) => void;
 }) {
   return (
     <div className="rounded-3xl p-4 glass-panel">
@@ -245,7 +279,15 @@ function ListCard({
         {items.slice(0, 6).map((item) => {
           const content = (
             <>
-              <span className="text-ink-secondary truncate min-w-0">
+              <ProductThumb
+                size="sm"
+                imageDir={item.imageDir}
+                imageUrl={item.imageUrl}
+                alt={item.name}
+                subtitle={formatCurrency(item.revenue)}
+                onOpen={onOpenImage}
+              />
+              <span className="text-ink-secondary truncate min-w-0 flex-1">
                 {item.name}
                 {item.share != null && (
                   <span className="text-ink-muted text-xs"> ({item.share.toFixed(1)}%)</span>
@@ -263,14 +305,14 @@ function ListCard({
                 key={item.name}
                 type="button"
                 onClick={() => onItemClick(item.name)}
-                className="w-full flex justify-between text-sm gap-2 rounded-lg px-1.5 py-1.5 -mx-1.5 hover:bg-white/[0.06] transition-colors text-left"
+                className="w-full flex items-center justify-between text-sm gap-2 rounded-lg px-1.5 py-1.5 -mx-1.5 hover:bg-white/[0.06] transition-colors text-left"
               >
                 {content}
               </button>
             );
           }
           return (
-            <div key={item.name} className="flex justify-between text-sm gap-2 px-1.5 py-1.5">
+            <div key={item.name} className="flex items-center justify-between text-sm gap-2 px-1.5 py-1.5">
               {content}
             </div>
           );

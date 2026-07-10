@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import type { SalesSummary } from "@/types";
+import { filterExcludedSalesRows } from "@/lib/utils";
 import {
   detectReportCategory,
   detectReportPeriod,
@@ -278,6 +279,9 @@ export interface SummarizeOptions {
   reportCategory?: ReportCategory;
   /** ISO date YYYY-MM-DD — show metrics for this day only. */
   filterDate?: string;
+  filterStore?: string;
+  filterDepartment?: string;
+  filterDesign?: string;
 }
 
 export function summarizeCsvText(
@@ -346,6 +350,9 @@ export function summarizeCsvText(
       reportId: meta?.reportId,
       reportLabel: meta?.reportLabel,
       filterDate: meta?.filterDate,
+      filterStore: meta?.filterStore,
+      filterDepartment: meta?.filterDepartment,
+      filterDesign: meta?.filterDesign,
       schema: "store_sales",
       reportCategory: "sales",
     });
@@ -371,6 +378,9 @@ export function summarizeCsvText(
       reportId: meta?.reportId,
       reportLabel: meta?.reportLabel,
       filterDate: meta?.filterDate,
+      filterStore: meta?.filterStore,
+      filterDepartment: meta?.filterDepartment,
+      filterDesign: meta?.filterDesign,
       schema: "vendor_pos",
       reportCategory: "vendor",
     });
@@ -405,6 +415,17 @@ export function summarizeCsvText(
 
 /** Unique transaction dates in a report CSV (ISO YYYY-MM-DD, sorted). */
 export function extractReportDates(csvText: string): string[] {
+  return extractReportDimensions(csvText).dates;
+}
+
+/** Unique filter values from a report CSV (after excluded-row rules). */
+export function extractReportDimensions(csvText: string): {
+  dates: string[];
+  stores: string[];
+  departments: string[];
+  designs: string[];
+} {
+  const empty = { dates: [] as string[], stores: [] as string[], departments: [] as string[], designs: [] as string[] };
   try {
     const parsed = Papa.parse<Record<string, unknown>>(csvText, {
       header: true,
@@ -415,27 +436,43 @@ export function extractReportDates(csvText: string): string[] {
     const records = parsed.data.filter((row) =>
       Object.values(row).some((v) => v != null && String(v).trim() !== "")
     );
-    if (records.length === 0) return [];
+    if (records.length === 0) return empty;
 
     const columns = Object.keys(records[0]).map((c) => c.trim());
 
     if (isFinancingReportFormat(columns)) {
       const { rows } = parseFinancingRows(records);
-      return [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
+      return {
+        dates: [...new Set(rows.map((r) => r.date).filter(Boolean))].sort(),
+        stores: [...new Set(rows.map((r) => r.store).filter(Boolean))].sort(),
+        departments: [],
+        designs: [],
+      };
     }
 
-    if (isStoreSalesCsv(columns) || isStoreSalesFormat(columns)) {
+    if (
+      isStoreSalesCsv(columns) ||
+      isStoreSalesFormat(columns) ||
+      isVendorPosFormat(columns)
+    ) {
       const { rows } = parseVendorPosRows(records);
-      return [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
+      const kept = filterExcludedSalesRows(rows);
+      return {
+        dates: [...new Set(kept.map((r) => r.date).filter(Boolean))].sort(),
+        stores: [...new Set(kept.map((r) => r.storeName).filter(Boolean))].sort((a, b) =>
+          a.localeCompare(b)
+        ),
+        departments: [...new Set(kept.map((r) => r.department).filter(Boolean))].sort((a, b) =>
+          a.localeCompare(b)
+        ),
+        designs: [...new Set(kept.map((r) => r.design).filter(Boolean))].sort((a, b) =>
+          a.localeCompare(b)
+        ),
+      };
     }
 
-    if (isVendorPosFormat(columns)) {
-      const { rows } = parseVendorPosRows(records);
-      return [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
-    }
-
-    return [];
+    return empty;
   } catch {
-    return [];
+    return empty;
   }
 }
