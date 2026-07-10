@@ -35,6 +35,7 @@ type RankDetailResponse = {
   };
   lineItems: Array<{
     date: string;
+    transactionId?: string;
     storeName: string;
     department: string;
     design: string;
@@ -294,7 +295,7 @@ export function RankDetailDrawer({
               <ul className="max-h-80 overflow-y-auto divide-y divide-white/5">
                 {data.lineItems.map((row, i) => (
                   <li
-                    key={`${row.transactionId}-${row.sku}-${i}`}
+                    key={`${row.transactionId ?? row.date}-${row.sku}-${i}`}
                     className={cn(
                       "px-3 py-2.5 text-sm",
                       i % 2 === 0 ? "bg-white/[0.015]" : ""
