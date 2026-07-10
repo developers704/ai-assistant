@@ -9,8 +9,8 @@ import {
   TrendingUp,
   Mail,
   Calendar,
-  Gem,
-  Bell,
+  Newspaper,
+  LineChart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,14 +35,14 @@ export const CHAT_SUGGESTIONS: {
     palette: "indigo",
   },
   {
-    text: "Draft an email to the diamond supplier",
-    icon: Gem,
-    palette: "fuchsia",
+    text: "Show me the latest news",
+    icon: Newspaper,
+    palette: "sky",
   },
   {
-    text: "Remind me to review Baybrook Mall lease tomorrow",
-    icon: Bell,
-    palette: "rose",
+    text: "What's happening in the markets?",
+    icon: LineChart,
+    palette: "amber",
   },
 ];
 
