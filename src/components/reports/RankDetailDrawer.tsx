@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { formatCurrency, formatPieceCount, formatProductDisplayName, cn } from "@/lib/utils";
-import { X, ImageOff } from "lucide-react";
+import { X } from "lucide-react";
 import type { RankDimension } from "@/lib/reports/types";
+import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 
 type RankDetailResponse = {
   dimension: RankDimension;
@@ -114,11 +115,17 @@ export function RankDetailDrawer({
   const [data, setData] = useState<RankDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{
+    src: string;
+    alt: string;
+    subtitle?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!selection) {
       setData(null);
       setError(null);
+      setPreview(null);
       return;
     }
     const params = new URLSearchParams({
@@ -253,45 +260,39 @@ export function RankDetailDrawer({
 
           {b && b.models.length > 0 && (
             <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-3">
-              {/* <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-3">
                 Top vendor models
-              </p> */}
+              </p>
               <ul className="space-y-2.5">
-                {b.models.slice(0, 10).map((m) => (
-                  <li key={m.vendorModel} className="flex items-center gap-3">
-                    {m.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={m.imageUrl}
-                        alt=""
-                        className="h-10 w-10 rounded-lg object-cover ring-1 ring-white/10 bg-white/[0.04]"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = "none";
-                        }}
+                {b.models.slice(0, 10).map((m) => {
+                  const label = formatProductDisplayName(m.name);
+                  return (
+                    <li key={m.vendorModel} className="flex items-center gap-3">
+                      <ProductThumb
+                        imageUrl={m.imageUrl}
+                        alt={label}
+                        subtitle={m.vendorModel}
+                        onOpen={(src, alt, subtitle) =>
+                          setPreview({ src, alt, subtitle })
+                        }
                       />
-                    ) : (
-                      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-white/10 text-white/25">
-                        <ImageOff size={14} />
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-ink truncate">
-                        {formatProductDisplayName(m.name)}
-                      </p>
-                      <p className="text-[11px] font-mono text-cyan-300/80">
-                        {m.vendorModel}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm tabular-nums text-ink">
-                        {formatCurrency(m.revenue)}
-                      </p>
-                      <p className="text-[11px] text-white/40 tabular-nums">
-                        {formatPieceCount(m.units)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-ink truncate">{label}</p>
+                        <p className="text-[11px] font-mono text-cyan-300/80">
+                          {m.vendorModel}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm tabular-nums text-ink">
+                          {formatCurrency(m.revenue)}
+                        </p>
+                        <p className="text-[11px] text-white/40 tabular-nums">
+                          {formatPieceCount(m.units)}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -337,6 +338,15 @@ export function RankDetailDrawer({
           )}
         </div>
       </aside>
+
+      {preview && (
+        <ProductLightbox
+          src={preview.src}
+          alt={preview.alt}
+          subtitle={preview.subtitle}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </div>
   );
 }

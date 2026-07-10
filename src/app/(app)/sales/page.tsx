@@ -18,7 +18,6 @@ import type { SalesSummary } from "@/types";
 import type { RankDimension, ReportSummary } from "@/lib/reports/types";
 import { ReportInsightsCards } from "@/components/reports/ReportInsightsCards";
 import { TopProductsTable } from "@/components/reports/TopProductsTable";
-import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import {
   RankDetailDrawer,
   type RankDetailSelection,
@@ -54,11 +53,6 @@ export default function SalesPage() {
   const [filterDesign, setFilterDesign] = useState("");
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
-  const [storePreview, setStorePreview] = useState<{
-    src: string;
-    alt: string;
-    subtitle?: string;
-  } | null>(null);
 
   useEffect(() => {
     if (dateFromUrl && isValidIsoDate(dateFromUrl) && dateFromUrl !== filterDate) {
@@ -341,17 +335,9 @@ export default function SalesPage() {
                       key={store.name}
                       type="button"
                       onClick={() => openRank("store", store.name)}
-                      className="w-full grid grid-cols-[1.25rem_2.5rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_2.75rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
+                      className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
                     >
                       <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
-                      <ProductThumb
-                        size="sm"
-                        imageDir={store.imageDir}
-                        imageUrl={store.imageUrl}
-                        alt={store.name}
-                        subtitle={formatCurrency(store.revenue)}
-                        onOpen={(src, alt, subtitle) => setStorePreview({ src, alt, subtitle })}
-                      />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-ink truncate mb-1.5">{store.name}</p>
                         <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -393,17 +379,9 @@ export default function SalesPage() {
                     key={store.name}
                     type="button"
                     onClick={() => openRank("store", store.name)}
-                    className="w-full grid grid-cols-[1.25rem_2.5rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_2.75rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
+                    className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
                   >
                     <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
-                    <ProductThumb
-                      size="sm"
-                      imageDir={store.imageDir}
-                      imageUrl={store.imageUrl}
-                      alt={store.name}
-                      subtitle={formatCurrency(store.revenue)}
-                      onOpen={(src, alt, subtitle) => setStorePreview({ src, alt, subtitle })}
-                    />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-ink truncate mb-1.5">{store.name}</p>
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -462,14 +440,6 @@ export default function SalesPage() {
         }
         onClose={() => setRankDetail(null)}
       />
-      {storePreview && (
-        <ProductLightbox
-          src={storePreview.src}
-          alt={storePreview.alt}
-          subtitle={storePreview.subtitle}
-          onClose={() => setStorePreview(null)}
-        />
-      )}
     </PageShell>
   );
 }
