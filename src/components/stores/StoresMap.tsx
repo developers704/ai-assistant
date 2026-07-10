@@ -48,12 +48,17 @@ function FitView({
   routePositions,
   userLocation,
   focusRoute,
+  focusUser,
+  focusUserTick,
 }: {
   stores: StoreDirectoryEntry[];
   selectedId: string | null;
   routePositions: [number, number][] | null;
   userLocation: { latitude: number; longitude: number } | null;
   focusRoute: boolean;
+  /** When true, center on the user (e.g. just enabled location) */
+  focusUser: boolean;
+  focusUserTick: number;
 }) {
   const map = useMap();
 
@@ -64,6 +69,12 @@ function FitView({
         bounds.extend([userLocation.latitude, userLocation.longitude]);
       }
       map.fitBounds(bounds, { padding: [56, 56], maxZoom: 12, animate: true });
+      return;
+    }
+
+    // Just got location (or user tapped "show me") — fly there even if far from US stores
+    if (focusUser && userLocation) {
+      map.flyTo([userLocation.latitude, userLocation.longitude], 12, { duration: 0.8 });
       return;
     }
 
@@ -87,7 +98,7 @@ function FitView({
       return;
     }
     map.fitBounds(L.latLngBounds(points), { padding: [48, 48], maxZoom: 8 });
-  }, [map, stores, selectedId, routePositions, userLocation, focusRoute]);
+  }, [map, stores, selectedId, routePositions, userLocation, focusRoute, focusUser, focusUserTick]);
 
   return null;
 }
@@ -105,6 +116,10 @@ export type StoresMapProps = {
   userLocation?: { latitude: number; longitude: number } | null;
   /** Driving path [lat,lng][] from OSRM — falls back to straight line */
   routePositions?: [number, number][] | null;
+  /** Fly map to user location (Pakistan, etc.) */
+  focusUser?: boolean;
+  /** Increment to re-trigger fly-to-user */
+  focusUserTick?: number;
 };
 
 export function StoresMap({
@@ -116,6 +131,8 @@ export function StoresMap({
   routeFromUser = false,
   userLocation = null,
   routePositions = null,
+  focusUser = false,
+  focusUserTick = 0,
 }: StoresMapProps) {
   const mappable = useMemo(
     () => stores.filter((s) => s.latitude != null && s.longitude != null),
@@ -172,14 +189,16 @@ export function StoresMap({
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         <FitView
           stores={mappable}
-          selectedId={focusRoute ? null : selectedId}
+          selectedId={focusRoute || focusUser ? null : selectedId}
           routePositions={linePositions}
           userLocation={userLocation}
           focusRoute={focusRoute}
+          focusUser={focusUser && !focusRoute}
+          focusUserTick={focusUserTick}
         />
 
         {linePositions && linePositions.length >= 2 && (
@@ -211,28 +230,31 @@ export function StoresMap({
           <>
             <CircleMarker
               center={[userLocation.latitude, userLocation.longitude]}
-              radius={18}
+              radius={28}
               pathOptions={{
-                color: "#22d3ee",
+                color: "#06b6d4",
                 fillColor: "#22d3ee",
-                fillOpacity: 0.12,
-                weight: 1,
-                opacity: 0.4,
+                fillOpacity: 0.15,
+                weight: 1.5,
+                opacity: 0.55,
               }}
             />
             <CircleMarker
               center={[userLocation.latitude, userLocation.longitude]}
-              radius={7}
+              radius={9}
               pathOptions={{
-                color: "#fff",
-                fillColor: "#22d3ee",
+                color: "#ffffff",
+                fillColor: "#06b6d4",
                 fillOpacity: 1,
-                weight: 2.5,
+                weight: 3,
               }}
             >
               <Popup>
                 <div className="text-sm">
                   <p className="font-semibold text-slate-900">You are here</p>
+                  <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
+                    {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+                  </p>
                 </div>
               </Popup>
             </CircleMarker>

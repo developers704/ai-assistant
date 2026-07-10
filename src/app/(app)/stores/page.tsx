@@ -91,7 +91,10 @@ export default function StoresPage() {
   const [distanceFromId, setDistanceFromId] = useState<string>("");
   const [distanceToId, setDistanceToId] = useState<string>("");
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ready" | "denied">("idle");
+  const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ready" | "denied" | "unsupported">("idle");
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [focusUser, setFocusUser] = useState(false);
+  const [focusUserTick, setFocusUserTick] = useState(0);
   const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
 
@@ -113,12 +116,20 @@ export default function StoresPage() {
     setDistanceFromId((prev) => prev || selectedId);
   }, [selectedId]);
 
-  const requestLocation = useCallback(() => {
+  const requestLocation = useCallback((opts?: { recenter?: boolean }) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("unsupported");
+      setGeoError("This browser does not support location.");
+      return;
+    }
+    // Secure context required (https or localhost)
+    if (typeof window !== "undefined" && !window.isSecureContext) {
       setGeoStatus("denied");
+      setGeoError("Location needs HTTPS (or localhost). Open the app over a secure URL.");
       return;
     }
     setGeoStatus("loading");
+    setGeoError(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation({
@@ -126,9 +137,22 @@ export default function StoresPage() {
           longitude: pos.coords.longitude,
         });
         setGeoStatus("ready");
+        if (opts?.recenter !== false) {
+          setFocusUser(true);
+          setFocusUserTick((t) => t + 1);
+        }
       },
-      () => setGeoStatus("denied"),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60_000 }
+      (err) => {
+        setGeoStatus("denied");
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeoError("Location permission denied — allow it in the browser address bar, then try again.");
+        } else if (err.code === err.TIMEOUT) {
+          setGeoError("Location timed out — try again outdoors or with Wi‑Fi.");
+        } else {
+          setGeoError("Could not get your location. Try again.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30_000 }
     );
   }, []);
 
@@ -283,6 +307,7 @@ export default function StoresPage() {
 
   const handleSelectStore = (id: string) => {
     setSelectedId(id);
+    setFocusUser(false);
   };
 
   const setAsDestination = (id: string) => {
@@ -305,7 +330,14 @@ export default function StoresPage() {
             <div className="flex flex-wrap items-center gap-2 justify-end">
               <button
                 type="button"
-                onClick={requestLocation}
+                onClick={() => {
+                  if (geoStatus === "ready" && userLocation) {
+                    setFocusUser(true);
+                    setFocusUserTick((t) => t + 1);
+                  } else {
+                    requestLocation({ recenter: true });
+                  }
+                }}
                 disabled={geoStatus === "loading"}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-all",
@@ -320,9 +352,9 @@ export default function StoresPage() {
                   <LocateFixed size={13} />
                 )}
                 {geoStatus === "ready"
-                  ? "Location on"
-                  : geoStatus === "denied"
-                    ? "Location blocked"
+                  ? "Show my location"
+                  : geoStatus === "denied" || geoStatus === "unsupported"
+                    ? "Retry location"
                     : "Use my location"}
               </button>
               {stores.length > 0 && (
@@ -488,9 +520,17 @@ export default function StoresPage() {
                 </label>
               </div>
 
-              {geoStatus === "denied" && (
-                <p className="mt-3 text-xs text-rose-300/80">
-                  Location permission denied — enable it in browser settings to measure from you.
+              {geoError && (
+                <p className="mt-3 text-xs text-rose-300/90">{geoError}</p>
+              )}
+
+              {geoStatus === "ready" && userLocation && nearestFromMe[0] && (
+                <p className="mt-3 text-xs text-cyan-200/70">
+                  You&apos;re on the map
+                  {nearestFromMe[0].distanceMiles >= 100
+                    ? ` · ~${Math.round(nearestFromMe[0].distanceMiles).toLocaleString()} mi from nearest Valliani store`
+                    : ` · nearest store ${nearestFromMe[0].distanceMiles} mi away`}
+                  . Tap <span className="text-cyan-100 font-medium">Show my location</span> anytime to fly there.
                 </p>
               )}
 
@@ -532,6 +572,8 @@ export default function StoresPage() {
                 routeFromUser={routeFromUser}
                 userLocation={userLocation}
                 routePositions={routeResult?.positions ?? null}
+                focusUser={focusUser}
+                focusUserTick={focusUserTick}
               />
 
               {/* Floating distance chip on map */}

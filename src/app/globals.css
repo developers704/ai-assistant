@@ -955,26 +955,26 @@
   @apply bg-white/35;
 }
 
-/* Stores map — dark premium basemap + violet pins */
+/* Stores map — colorful Voyager basemap + violet pins */
 .stores-map-shell .leaflet-container {
-  background: #0b0a14;
+  background: #d4e6f1;
   font-family: inherit;
 }
 .stores-map-shell .leaflet-control-zoom a {
-  background: rgba(15, 10, 30, 0.92) !important;
-  color: #e9d5ff !important;
-  border-color: rgba(167, 139, 250, 0.25) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #5b21b6 !important;
+  border-color: rgba(139, 92, 246, 0.25) !important;
 }
 .stores-map-shell .leaflet-control-zoom a:hover {
-  background: rgba(76, 29, 149, 0.85) !important;
+  background: #f5f3ff !important;
 }
 .stores-map-shell .leaflet-control-attribution {
-  background: rgba(11, 10, 20, 0.85) !important;
-  color: rgba(196, 181, 253, 0.45);
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: rgba(15, 23, 42, 0.5);
   font-size: 10px;
 }
 .stores-map-shell .leaflet-control-attribution a {
-  color: rgba(167, 139, 250, 0.75);
+  color: rgba(109, 40, 217, 0.85);
 }
 .stores-map-marker {
   background: transparent !important;
