@@ -8,6 +8,7 @@ import {
   cn,
   filterTopProductSkus,
 } from "@/lib/utils";
+import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { ImageOff } from "lucide-react";
 
 export interface TopProductRow {
@@ -28,11 +29,24 @@ interface TopProductsTableProps {
 const ROW_GRID =
   "grid grid-cols-1 sm:grid-cols-[2rem_3.25rem_5.5rem_minmax(0,1fr)_4.5rem_6.5rem] lg:grid-cols-[2rem_3.5rem_6.5rem_minmax(0,2fr)_4.5rem_7rem] gap-x-3 gap-y-1";
 
-function ProductThumb({ src, alt }: { src?: string | null; alt: string }) {
+function ProductThumb({
+  imageDir,
+  imageUrl,
+  alt,
+}: {
+  imageDir?: string;
+  imageUrl?: string | null;
+  alt: string;
+}) {
   const [failed, setFailed] = useState(false);
+  // Prefer client-side resolve so NEXT_PUBLIC_* from the browser build is used.
+  const src = resolveProductImageUrl(imageDir) || imageUrl || null;
   if (!src || failed) {
     return (
-      <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-white/10 text-white/25">
+      <span
+        className="flex h-11 w-11 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-white/10 text-white/25"
+        title={src ? `Image not found: ${src}` : "No image path in report"}
+      >
         <ImageOff size={14} />
       </span>
     );
@@ -93,7 +107,11 @@ export function TopProductsTable({
                 {i + 1}
               </span>
 
-              <ProductThumb src={product.imageUrl} alt={displayName || model} />
+              <ProductThumb
+                imageDir={product.imageDir}
+                imageUrl={product.imageUrl}
+                alt={displayName || model}
+              />
 
               <span className="font-mono text-[11px] text-cyan-300/90 tabular-nums break-all">
                 {model}

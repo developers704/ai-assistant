@@ -244,9 +244,9 @@ export function RankDetailDrawer({
 
           {b && b.models.length > 0 && (
             <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-3">
+              {/* <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-3">
                 Top vendor models
-              </p>
+              </p> */}
               <ul className="space-y-2.5">
                 {b.models.slice(0, 10).map((m) => (
                   <li key={m.vendorModel} className="flex items-center gap-3">
