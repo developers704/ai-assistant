@@ -1,12 +1,14 @@
 import type { StoreDirectoryEntry } from "@/lib/stores/types";
 
+export type LatLng = { latitude: number; longitude: number };
+
 export function canCalculateDistance(store: StoreDirectoryEntry): boolean {
   return typeof store.latitude === "number" && typeof store.longitude === "number";
 }
 
 export function haversineMiles(
-  a: Pick<StoreDirectoryEntry, "latitude" | "longitude">,
-  b: Pick<StoreDirectoryEntry, "latitude" | "longitude">
+  a: Pick<StoreDirectoryEntry, "latitude" | "longitude"> | LatLng,
+  b: Pick<StoreDirectoryEntry, "latitude" | "longitude"> | LatLng
 ): number | null {
   if (
     typeof a.latitude !== "number" ||
@@ -28,12 +30,18 @@ export function haversineMiles(
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+export function roundMiles(miles: number | null): number | null {
+  if (miles == null || Number.isNaN(miles)) return null;
+  return Math.round(miles * 10) / 10;
+}
+
 export function sortStoresByDistance(
-  source: StoreDirectoryEntry,
+  source: StoreDirectoryEntry | LatLng,
   stores: StoreDirectoryEntry[]
 ): Array<{ store: StoreDirectoryEntry; distanceMiles: number }> {
+  const sourceId = "id" in source ? source.id : null;
   const ranked = stores
-    .filter((s) => s.id !== source.id)
+    .filter((s) => (sourceId ? s.id !== sourceId : true))
     .map((s) => ({ store: s, distance: haversineMiles(source, s) }))
     .filter((x): x is { store: StoreDirectoryEntry; distance: number } => x.distance != null)
     .sort((a, b) => a.distance - b.distance);

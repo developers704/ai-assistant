@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { PageHeader } from "@/components/layout/Sidebar";
 import {
@@ -18,7 +18,7 @@ import {
   getStoreOpenStatus,
   getWeeklyHoursRows,
 } from "@/lib/stores/store-hours";
-import { haversineMiles } from "@/lib/stores/distance";
+import { haversineMiles, roundMiles, sortStoresByDistance } from "@/lib/stores/distance";
 import {
   MapPin,
   Phone,
@@ -28,6 +28,10 @@ import {
   Star,
   MessageSquare,
   Route,
+  Navigation,
+  LocateFixed,
+  ArrowRight,
+  Loader2,
 } from "lucide-react";
 
 const StoresMap = dynamic(
@@ -35,8 +39,8 @@ const StoresMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full min-h-[320px] items-center justify-center rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.08]">
-        <p className="text-sm text-white/40 animate-pulse">Loading map…</p>
+      <div className="flex h-full min-h-[320px] items-center justify-center rounded-[1.25rem] bg-violet-500/[0.06] ring-1 ring-violet-400/20">
+        <p className="text-sm text-violet-200/50 animate-pulse">Loading map…</p>
       </div>
     ),
   }
@@ -53,6 +57,17 @@ type StoresApiResponse = {
     byState?: Record<string, number>;
   };
 };
+
+type UserLocation = { latitude: number; longitude: number };
+
+type RouteResult = {
+  positions: [number, number][];
+  distanceMiles: number;
+  durationMinutes: number;
+  mode: "driving" | "straight";
+};
+
+const MY_LOCATION = "__me__";
 
 function statusVariant(store: StoreDirectoryEntry): "success" | "warning" | "default" {
   const status = getStoreOpenStatus(store);
@@ -75,6 +90,10 @@ export default function StoresPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [distanceFromId, setDistanceFromId] = useState<string>("");
   const [distanceToId, setDistanceToId] = useState<string>("");
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ready" | "denied">("idle");
+  const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/stores")
@@ -93,6 +112,25 @@ export default function StoresPage() {
     if (!selectedId) return;
     setDistanceFromId((prev) => prev || selectedId);
   }, [selectedId]);
+
+  const requestLocation = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("denied");
+      return;
+    }
+    setGeoStatus("loading");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        setGeoStatus("ready");
+      },
+      () => setGeoStatus("denied"),
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60_000 }
+    );
+  }, []);
 
   const states = useMemo(() => {
     const set = new Set(stores.map((s) => s.stateCode).filter(Boolean));
@@ -126,33 +164,167 @@ export default function StoresPage() {
   const soonCount = stores.filter((s) => /soon/i.test(s.status)).length;
   const mappedCount = stores.filter((s) => s.latitude != null && s.longitude != null).length;
 
-  const distanceMiles = useMemo(() => {
-    if (!distanceFromId || !distanceToId || distanceFromId === distanceToId) return null;
-    const from = stores.find((s) => s.id === distanceFromId);
-    const to = stores.find((s) => s.id === distanceToId);
-    if (!from || !to) return null;
-    const miles = haversineMiles(from, to);
-    return miles == null ? null : Math.round(miles * 10) / 10;
-  }, [stores, distanceFromId, distanceToId]);
+  const routeFromUser = distanceFromId === MY_LOCATION;
+  const fromStore = stores.find((s) => s.id === distanceFromId) ?? null;
+  const toStore = stores.find((s) => s.id === distanceToId) ?? null;
+
+  const straightMiles = useMemo(() => {
+    if (!distanceToId) return null;
+    if (routeFromUser) {
+      if (!userLocation || !toStore) return null;
+      return roundMiles(haversineMiles(userLocation, toStore));
+    }
+    if (!fromStore || !toStore || distanceFromId === distanceToId) return null;
+    return roundMiles(haversineMiles(fromStore, toStore));
+  }, [routeFromUser, userLocation, fromStore, toStore, distanceFromId, distanceToId]);
+
+  const distanceToSelected = useMemo(() => {
+    if (!userLocation || !selected) return null;
+    return roundMiles(haversineMiles(userLocation, selected));
+  }, [userLocation, selected]);
+
+  const nearestFromMe = useMemo(() => {
+    if (!userLocation) return [];
+    return sortStoresByDistance(userLocation, stores).slice(0, 3);
+  }, [userLocation, stores]);
+
+  // Fetch driving route when A + B are set
+  useEffect(() => {
+    let cancelled = false;
+
+    const start =
+      routeFromUser && userLocation
+        ? userLocation
+        : fromStore?.latitude != null && fromStore?.longitude != null
+          ? { latitude: fromStore.latitude, longitude: fromStore.longitude }
+          : null;
+    const end =
+      toStore?.latitude != null && toStore?.longitude != null
+        ? { latitude: toStore.latitude, longitude: toStore.longitude }
+        : null;
+
+    if (!start || !end || (distanceFromId && distanceFromId === distanceToId && !routeFromUser)) {
+      setRouteResult(null);
+      return;
+    }
+
+    setRouteLoading(true);
+    const qs = new URLSearchParams({
+      fromLat: String(start.latitude),
+      fromLng: String(start.longitude),
+      toLat: String(end.latitude),
+      toLng: String(end.longitude),
+    });
+
+    fetch(`/api/stores/route?${qs}`)
+      .then(async (r) => {
+        const data = await r.json();
+        if (cancelled) return;
+        if (data.ok && Array.isArray(data.positions) && data.positions.length >= 2) {
+          setRouteResult({
+            positions: data.positions,
+            distanceMiles: data.distanceMiles,
+            durationMinutes: data.durationMinutes,
+            mode: "driving",
+          });
+        } else if (straightMiles != null) {
+          setRouteResult({
+            positions: [
+              [start.latitude, start.longitude],
+              [end.latitude, end.longitude],
+            ],
+            distanceMiles: straightMiles,
+            durationMinutes: 0,
+            mode: "straight",
+          });
+        } else {
+          setRouteResult(null);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        if (straightMiles != null) {
+          setRouteResult({
+            positions: [
+              [start.latitude, start.longitude],
+              [end.latitude, end.longitude],
+            ],
+            distanceMiles: straightMiles,
+            durationMinutes: 0,
+            mode: "straight",
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRouteLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    routeFromUser,
+    userLocation,
+    fromStore,
+    toStore,
+    distanceFromId,
+    distanceToId,
+    straightMiles,
+  ]);
 
   const storeOptions = useMemo(
     () =>
-      [...stores].sort((a, b) =>
-        (a.mall || a.name).localeCompare(b.mall || b.name)
-      ),
+      [...stores].sort((a, b) => (a.mall || a.name).localeCompare(b.mall || b.name)),
     [stores]
   );
 
+  const displayMiles = routeResult?.distanceMiles ?? straightMiles;
+  const displayMode = routeResult?.mode ?? (straightMiles != null ? "straight" : null);
+
+  const handleSelectStore = (id: string) => {
+    setSelectedId(id);
+  };
+
+  const setAsDestination = (id: string) => {
+    setDistanceToId(id);
+    setSelectedId(id);
+    if (!distanceFromId) {
+      setDistanceFromId(userLocation ? MY_LOCATION : id);
+    }
+  };
+
   return (
-    <PageShell accent="sky">
+    <PageShell accent="violet">
       <PageShellHeader>
         <PageHeader
           gradient
           eyebrow="Locations"
           title="Stores Map & Info"
-          subtitle="Valliani Jewelers locations · Google ratings & reviews"
+          subtitle="Find stores · drive routes · distance from you"
           action={
             <div className="flex flex-wrap items-center gap-2 justify-end">
+              <button
+                type="button"
+                onClick={requestLocation}
+                disabled={geoStatus === "loading"}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-all",
+                  geoStatus === "ready"
+                    ? "bg-cyan-500/20 text-cyan-100 ring-1 ring-cyan-400/40"
+                    : "bg-violet-500/20 text-violet-100 ring-1 ring-violet-400/35 hover:bg-violet-500/30"
+                )}
+              >
+                {geoStatus === "loading" ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <LocateFixed size={13} />
+                )}
+                {geoStatus === "ready"
+                  ? "Location on"
+                  : geoStatus === "denied"
+                    ? "Location blocked"
+                    : "Use my location"}
+              </button>
               {stores.length > 0 && (
                 <Badge variant="success">{stores.length} locations</Badge>
               )}
@@ -162,8 +334,8 @@ export default function StoresPage() {
       </PageShellHeader>
 
       <PageShellBody>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-          <LushMetric label="Total stores" value={String(stores.length || "—")} accent="sky" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <LushMetric label="Total stores" value={String(stores.length || "—")} accent="violet" />
           <LushMetric
             label="Open now"
             value={String(openNowCount)}
@@ -183,17 +355,18 @@ export default function StoresPage() {
           />
         </div>
 
+        {/* Search */}
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <div className="relative flex-1">
             <Search
               size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-violet-300/50"
             />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search mall, city, phone…"
-              className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm bg-white/[0.04] ring-1 ring-white/10 text-ink placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm bg-white/[0.04] ring-1 ring-white/10 text-ink placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-400/35"
             />
           </div>
           <select
@@ -211,65 +384,135 @@ export default function StoresPage() {
           </select>
         </div>
 
+        {/* Route planner */}
         {!loading && stores.length > 0 && (
-          <div className="rounded-2xl ring-1 ring-white/[0.08] bg-white/[0.03] p-4 sm:p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Route size={15} className="text-sky-300/80" />
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/50">
-                Distance between stores
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto] gap-2 sm:gap-3 items-end">
-              <label className="block min-w-0">
-                <span className="text-[11px] text-white/40 mb-1 block">From</span>
-                <select
-                  value={distanceFromId}
-                  onChange={(e) => setDistanceFromId(e.target.value)}
-                  className="select-dark w-full px-3 py-2.5 rounded-xl text-sm"
-                >
-                  <option value="">Select store…</option>
-                  {storeOptions.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.mall || s.name}
-                      {s.city ? ` · ${s.city}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <span className="hidden sm:block text-white/30 pb-2.5 text-center">→</span>
-              <label className="block min-w-0">
-                <span className="text-[11px] text-white/40 mb-1 block">To</span>
-                <select
-                  value={distanceToId}
-                  onChange={(e) => setDistanceToId(e.target.value)}
-                  className="select-dark w-full px-3 py-2.5 rounded-xl text-sm"
-                >
-                  <option value="">Select store…</option>
-                  {storeOptions.map((s) => (
-                    <option key={s.id} value={s.id} disabled={s.id === distanceFromId}>
-                      {s.mall || s.name}
-                      {s.city ? ` · ${s.city}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="rounded-xl bg-sky-500/10 ring-1 ring-sky-400/20 px-4 py-2.5 min-w-[7.5rem] text-center">
-                {distanceMiles != null ? (
-                  <>
-                    <p className="text-lg font-semibold text-sky-200 tabular-nums leading-none">
-                      {distanceMiles}
-                      <span className="text-sm font-medium ml-1">mi</span>
+          <div className="stores-route-card rounded-[1.25rem] p-[1px]">
+            <div className="rounded-[1.2rem] bg-[#0b0a14]/90 backdrop-blur-xl p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/20 ring-1 ring-violet-400/30">
+                    <Route size={15} className="text-violet-200" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-violet-200/70">
+                      Route &amp; distance
                     </p>
-                    <p className="text-[10px] text-white/35 mt-1">straight-line</p>
-                  </>
-                ) : distanceFromId && distanceToId && distanceFromId === distanceToId ? (
-                  <p className="text-xs text-white/40">Same store</p>
-                ) : distanceFromId && distanceToId ? (
-                  <p className="text-xs text-white/40">Need map pins</p>
-                ) : (
-                  <p className="text-xs text-white/40">Pick both</p>
+                    <p className="text-[11px] text-white/35">
+                      Pick A → B — map draws the drive path
+                    </p>
+                  </div>
+                </div>
+                {displayMiles != null && (
+                  <div className="rounded-xl bg-violet-500/15 ring-1 ring-violet-400/30 px-4 py-2 text-center min-w-[6.5rem]">
+                    {routeLoading ? (
+                      <Loader2 size={16} className="mx-auto animate-spin text-violet-200" />
+                    ) : (
+                      <>
+                        <p className="text-xl font-semibold text-violet-100 tabular-nums leading-none">
+                          {displayMiles}
+                          <span className="text-sm font-medium ml-1">mi</span>
+                        </p>
+                        <p className="text-[10px] text-violet-200/50 mt-1">
+                          {displayMode === "driving"
+                            ? routeResult?.durationMinutes
+                              ? `~${routeResult.durationMinutes} min drive`
+                              : "driving"
+                            : "straight-line"}
+                        </p>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-2 sm:gap-3 items-end">
+                <label className="block min-w-0">
+                  <span className="text-[11px] text-violet-200/45 mb-1.5 flex items-center gap-1.5">
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-violet-500 text-[9px] font-bold text-white">
+                      A
+                    </span>
+                    From
+                  </span>
+                  <select
+                    value={distanceFromId}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === MY_LOCATION && geoStatus !== "ready") {
+                        requestLocation();
+                      }
+                      setDistanceFromId(v);
+                    }}
+                    className="select-dark w-full px-3 py-2.5 rounded-xl text-sm"
+                  >
+                    <option value="">Select start…</option>
+                    <option value={MY_LOCATION}>
+                      {geoStatus === "ready" ? "📍 My location" : "📍 My location (enable)"}
+                    </option>
+                    {storeOptions.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.mall || s.name}
+                        {s.city ? ` · ${s.city}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="hidden sm:flex items-center justify-center pb-2.5 text-violet-300/40">
+                  <ArrowRight size={18} />
+                </div>
+
+                <label className="block min-w-0">
+                  <span className="text-[11px] text-violet-200/45 mb-1.5 flex items-center gap-1.5">
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-fuchsia-500 text-[9px] font-bold text-white">
+                      B
+                    </span>
+                    To
+                  </span>
+                  <select
+                    value={distanceToId}
+                    onChange={(e) => setDistanceToId(e.target.value)}
+                    className="select-dark w-full px-3 py-2.5 rounded-xl text-sm"
+                  >
+                    <option value="">Select destination…</option>
+                    {storeOptions.map((s) => (
+                      <option
+                        key={s.id}
+                        value={s.id}
+                        disabled={!routeFromUser && s.id === distanceFromId}
+                      >
+                        {s.mall || s.name}
+                        {s.city ? ` · ${s.city}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {geoStatus === "denied" && (
+                <p className="mt-3 text-xs text-rose-300/80">
+                  Location permission denied — enable it in browser settings to measure from you.
+                </p>
+              )}
+
+              {nearestFromMe.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="text-[11px] text-white/35 self-center">Nearest to you:</span>
+                  {nearestFromMe.map(({ store, distanceMiles }) => (
+                    <button
+                      key={store.id}
+                      type="button"
+                      onClick={() => {
+                        setDistanceFromId(MY_LOCATION);
+                        setDistanceToId(store.id);
+                        setSelectedId(store.id);
+                      }}
+                      className="rounded-full px-2.5 py-1 text-[11px] font-medium bg-cyan-500/10 text-cyan-100 ring-1 ring-cyan-400/25 hover:bg-cyan-500/20 transition-colors"
+                    >
+                      {store.mall || store.name} · {distanceMiles} mi
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -277,23 +520,57 @@ export default function StoresPage() {
         {loading ? (
           <div className="py-16 text-center text-ink-muted animate-pulse">Loading stores…</div>
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] gap-4 sm:gap-5 min-h-[28rem]">
-            <div className="h-[min(52vh,28rem)] xl:h-auto xl:min-h-[28rem]">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] gap-4 sm:gap-5">
+            {/* Map hero */}
+            <div className="relative h-[min(58vh,32rem)] xl:h-auto xl:min-h-[36rem] xl:sticky xl:top-4">
               <StoresMap
                 stores={filtered}
                 selectedId={selectedId}
-                onSelect={setSelectedId}
+                onSelect={handleSelectStore}
+                routeFromId={routeFromUser ? null : distanceFromId || null}
+                routeToId={distanceToId || null}
+                routeFromUser={routeFromUser}
+                userLocation={userLocation}
+                routePositions={routeResult?.positions ?? null}
               />
+
+              {/* Floating distance chip on map */}
+              {displayMiles != null && distanceToId && (
+                <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 z-[500]">
+                  <div className="pointer-events-auto rounded-full bg-[#0b0a14]/92 backdrop-blur-xl px-4 py-2 ring-1 ring-violet-400/40 shadow-[0_8px_32px_rgba(139,92,246,0.35)] flex items-center gap-2">
+                    <Navigation size={14} className="text-violet-300" />
+                    <span className="text-sm font-semibold text-white tabular-nums">
+                      {displayMiles} mi
+                    </span>
+                    <span className="text-[11px] text-violet-200/55">
+                      {displayMode === "driving" ? "drive" : "line"}
+                      {routeResult?.durationMinutes
+                        ? ` · ~${routeResult.durationMinutes} min`
+                        : ""}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
+            {/* Detail + list */}
             <div className="flex flex-col gap-4 min-h-0">
               {selected && (
-                <StoreDetailCard store={selected} />
+                <StoreDetailCard
+                  store={selected}
+                  distanceFromUser={distanceToSelected}
+                  onRouteFromMe={() => {
+                    if (geoStatus !== "ready") requestLocation();
+                    setDistanceFromId(MY_LOCATION);
+                    setDistanceToId(selected.id);
+                  }}
+                  onSetAsB={() => setAsDestination(selected.id)}
+                />
               )}
 
-              <div className="rounded-2xl ring-1 ring-white/[0.07] bg-white/[0.025] overflow-hidden flex flex-col min-h-0 max-h-[min(40vh,22rem)] xl:max-h-none xl:flex-1">
+              <div className="rounded-[1.25rem] ring-1 ring-violet-400/15 bg-white/[0.025] overflow-hidden flex flex-col min-h-0 max-h-[min(42vh,24rem)] xl:max-h-none xl:flex-1">
                 <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white/50">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-violet-200/50">
                     Store list
                   </p>
                   <span className="text-[11px] text-white/35">{filtered.length}</span>
@@ -301,14 +578,19 @@ export default function StoresPage() {
                 <ul className="overflow-y-auto divide-y divide-white/5 flex-1">
                   {filtered.map((store) => {
                     const active = store.id === selectedId;
+                    const fromMe =
+                      userLocation &&
+                      roundMiles(haversineMiles(userLocation, store));
                     return (
                       <li key={store.id}>
                         <button
                           type="button"
-                          onClick={() => setSelectedId(store.id)}
+                          onClick={() => handleSelectStore(store.id)}
                           className={cn(
                             "w-full text-left px-4 py-3 transition-colors",
-                            active ? "bg-sky-500/15" : "hover:bg-white/[0.04]"
+                            active
+                              ? "bg-violet-500/20"
+                              : "hover:bg-violet-500/[0.08]"
                           )}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -321,9 +603,11 @@ export default function StoresPage() {
                                 {typeof store.googleRating === "number" && (
                                   <span className="text-amber-300/80 ml-1.5">
                                     · {store.googleRating.toFixed(1)}★
-                                    {typeof store.googleReviewCount === "number"
-                                      ? ` (${store.googleReviewCount})`
-                                      : ""}
+                                  </span>
+                                )}
+                                {fromMe != null && (
+                                  <span className="text-cyan-300/70 ml-1.5">
+                                    · {fromMe} mi away
                                   </span>
                                 )}
                               </p>
@@ -351,16 +635,26 @@ export default function StoresPage() {
   );
 }
 
-function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
+function StoreDetailCard({
+  store,
+  distanceFromUser,
+  onRouteFromMe,
+  onSetAsB,
+}: {
+  store: StoreDirectoryEntry;
+  distanceFromUser: number | null;
+  onRouteFromMe: () => void;
+  onSetAsB: () => void;
+}) {
   const openStatus = getStoreOpenStatus(store);
   const hoursLabel = formatTodayHoursLabel(store);
   const weeklyHours = getWeeklyHoursRows(store);
 
   return (
-    <div className="rounded-2xl ring-1 ring-white/[0.08] bg-white/[0.03] p-4 sm:p-5 space-y-3">
+    <div className="rounded-[1.25rem] ring-1 ring-violet-400/20 bg-gradient-to-b from-violet-500/[0.08] to-white/[0.02] p-4 sm:p-5 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35 mb-1">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200/45 mb-1">
             Selected store
           </p>
           <h2 className="text-lg font-semibold text-ink leading-snug">
@@ -373,9 +667,19 @@ function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
         <Badge variant={statusVariant(store)}>{openStatus.label}</Badge>
       </div>
 
+      {distanceFromUser != null && (
+        <div className="flex items-center gap-2 rounded-xl bg-cyan-500/10 ring-1 ring-cyan-400/25 px-3 py-2">
+          <LocateFixed size={14} className="text-cyan-300 shrink-0" />
+          <p className="text-sm text-cyan-100">
+            <span className="font-semibold tabular-nums">{distanceFromUser} mi</span>
+            <span className="text-cyan-200/60 ml-1.5">from your location</span>
+          </p>
+        </div>
+      )}
+
       {(store.address || store.fullAddress) && (
         <p className="flex items-start gap-2 text-sm text-white/70">
-          <MapPin size={15} className="text-sky-300/80 shrink-0 mt-0.5" />
+          <MapPin size={15} className="text-violet-300/80 shrink-0 mt-0.5" />
           <span>{store.fullAddress || store.address}</span>
         </p>
       )}
@@ -397,6 +701,24 @@ function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
         </p>
       )}
 
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onRouteFromMe}
+          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold bg-violet-500/25 text-violet-100 ring-1 ring-violet-400/35 hover:bg-violet-500/35 transition-all"
+        >
+          <Navigation size={13} />
+          Route from me
+        </button>
+        <button
+          type="button"
+          onClick={onSetAsB}
+          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold bg-white/[0.06] text-white/80 ring-1 ring-white/10 hover:bg-white/[0.1] transition-all"
+        >
+          Set as B
+        </button>
+      </div>
+
       {weeklyHours.some((row) => row.hours) && (
         <div className="rounded-xl bg-white/[0.025] ring-1 ring-white/[0.06] overflow-hidden">
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/35 border-b border-white/5">
@@ -408,13 +730,13 @@ function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
                 key={row.key}
                 className={cn(
                   "flex items-center justify-between gap-3 px-3 py-1.5 text-sm",
-                  row.isToday ? "bg-amber-500/10" : ""
+                  row.isToday ? "bg-violet-500/15" : ""
                 )}
               >
                 <span
                   className={cn(
                     "text-white/50",
-                    row.isToday && "text-amber-200/90 font-medium"
+                    row.isToday && "text-violet-200 font-medium"
                   )}
                 >
                   {row.label}
@@ -423,7 +745,7 @@ function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
                 <span
                   className={cn(
                     "tabular-nums text-white/70",
-                    row.isToday && "text-amber-100 font-medium"
+                    row.isToday && "text-violet-100 font-medium"
                   )}
                 >
                   {row.hours ?? "—"}
@@ -442,9 +764,7 @@ function StoreDetailCard({ store }: { store: StoreDirectoryEntry }) {
           {typeof store.googleRating === "number" ? (
             <p className="text-sm font-semibold text-amber-200 mt-1 tabular-nums">
               {store.googleRating.toFixed(1)}
-              <span className="text-white/35 font-normal text-xs ml-1.5">
-                / 5
-              </span>
+              <span className="text-white/35 font-normal text-xs ml-1.5">/ 5</span>
             </p>
           ) : (
             <p className="text-xs text-white/40 mt-1">Not synced yet</p>

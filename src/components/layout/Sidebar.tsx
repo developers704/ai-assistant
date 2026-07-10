@@ -41,7 +41,7 @@ const navItems: NavItem[] = [
   { href: "/email", label: "Email", icon: Mail, palette: "indigo" },
   { href: "/calendar", label: "Calendar & Tasks", icon: Calendar, palette: "rose" },
   { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
-  { href: "/stores", label: "Stores Map & Info", icon: MapPinned, palette: "sky" },
+  { href: "/stores", label: "Stores Map & Info", icon: MapPinned, palette: "violet" },
   { href: "/calculator", label: "Price Calculator", icon: Calculator, palette: "amber" },
   { href: "/analyst", label: "Data Analyst", icon: Database, palette: "cyan" },
   { href: "/images", label: "Image Generation", icon: Wand2, palette: "fuchsia" },
