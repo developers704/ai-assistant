@@ -92,72 +92,87 @@ export function VoiceSession() {
           ? "text-rose-300"
           : "text-ink-muted";
 
-  const orbLevel = Math.max(audioLevel, isSpeaking ? 0.45 : 0, isBusy ? 0.2 : 0);
+  const orbLevel = Math.max(audioLevel, isSpeaking ? 0.5 : 0, isBusy ? 0.22 : 0);
   const hasTranscript = Boolean(userTranscript || assistantTranscript);
 
   return (
-    <div className="flex flex-col items-center justify-between min-h-full px-4 sm:px-6 py-10 sm:py-14 safe-area-bottom">
-      <div className="flex-shrink-0 text-center w-full max-w-xl">
-        <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-          Hi {firstName}, what&apos;s on your mind?
+    <div className="voice-stage relative flex flex-col items-center justify-between min-h-full px-4 sm:px-6 py-10 sm:py-14 safe-area-bottom overflow-hidden">
+      {/* Atmosphere */}
+      <div className="pointer-events-none absolute inset-0 voice-stage-glow" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 voice-stage-vignette" aria-hidden />
+
+      <div className="relative flex-shrink-0 text-center w-full max-w-xl z-10">
+        <p className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.28em] text-violet-300/60 mb-3">
+          Voice
+        </p>
+        <h1 className="font-display text-3xl sm:text-4xl font-semibold text-white tracking-tight">
+          Hi {firstName}
         </h1>
-        <p className="mt-2 text-sm text-ink-muted">Speak naturally — Alexa is listening</p>
+        <p className="mt-2 text-sm text-ink-muted">What&apos;s on your mind?</p>
       </div>
 
-      <div className="relative flex-1 flex items-center justify-center min-h-[320px] w-full my-6">
+      <div className="relative flex-1 flex items-center justify-center min-h-[300px] w-full my-4 z-10">
+        <div
+          className="pointer-events-none absolute left-1/2 top-[58%] -translate-x-1/2 w-[70%] max-w-sm h-16 rounded-[100%] bg-violet-500/15 blur-2xl"
+          aria-hidden
+        />
+
         {isLive && (
           <>
+            <span className="voice-ring voice-ring-violet" style={{ width: "175%", height: "175%", left: "-37.5%", top: "-37.5%" }} />
             <span
-              className="voice-ring"
-              style={{ width: "200%", height: "200%", left: "-50%", top: "-50%" }}
+              className="voice-ring voice-ring-violet"
+              style={{
+                width: "220%",
+                height: "220%",
+                left: "-60%",
+                top: "-60%",
+                animationDelay: "0.75s",
+              }}
             />
             <span
-              className="voice-ring"
+              className="voice-ring voice-ring-violet"
               style={{
-                width: "250%",
-                height: "250%",
-                left: "-75%",
-                top: "-75%",
-                animationDelay: "0.7s",
+                width: "265%",
+                height: "265%",
+                left: "-82.5%",
+                top: "-82.5%",
+                animationDelay: "1.5s",
               }}
             />
           </>
         )}
-        <PlasmaOrb
-          audioLevel={orbLevel}
-          className={cn(
-            "relative h-56 w-56 sm:h-72 sm:w-72 transition-transform duration-200",
-            isSpeaking && "scale-110",
-            isLive && audioLevel > 0.08 && "scale-105"
-          )}
-        />
-      </div>
 
-      <div className="w-full max-w-2xl flex-shrink-0 flex flex-col items-center gap-5 pb-4">
-        {/* Jewelry-image-style gradient shell */}
         <div
           className={cn(
-            "relative w-full rounded-[1.75rem] p-[1.5px] transition-all duration-500",
-            isLive || isSpeaking || hasTranscript
-              ? "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 shadow-[0_0_60px_rgba(168,85,247,0.35),0_20px_50px_rgba(15,23,42,0.5)]"
-              : "bg-gradient-to-r from-violet-500/50 via-fuchsia-500/40 to-cyan-400/30 shadow-[0_12px_48px_rgba(139,92,246,0.2)]"
+            "relative transition-transform duration-300 ease-out",
+            isSpeaking && "scale-[1.06]",
+            isLive && audioLevel > 0.1 && "scale-[1.03]"
           )}
         >
-          <div className="relative overflow-hidden rounded-[1.65rem] bg-[#121a28]/95 backdrop-blur-2xl min-h-[140px]">
-            <div className="pointer-events-none absolute -top-20 -right-16 h-48 w-48 rounded-full bg-fuchsia-500/20 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-24 -left-12 h-56 w-56 rounded-full bg-violet-600/15 blur-3xl" />
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(139,92,246,0.12),transparent)]" />
+          <PlasmaOrb
+            density="high"
+            audioLevel={orbLevel}
+            className="lumen-orb-hero relative h-56 w-56 sm:h-72 sm:w-72"
+          />
+        </div>
+      </div>
 
-            <div className="relative px-4 sm:px-5 pt-4 sm:pt-5 pb-3 sm:pb-4">
+      <div className="relative w-full max-w-xl flex-shrink-0 flex flex-col items-center gap-4 pb-4 z-10">
+        <div className="voice-panel w-full">
+          <div className="relative overflow-hidden rounded-2xl min-h-[132px]">
+            <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-40 w-64 rounded-full bg-violet-500/15 blur-3xl" />
+
+            <div className="relative px-4 sm:px-5 pt-4 sm:pt-5 pb-3">
               <div className="flex items-center justify-between gap-2 mb-3">
-                <p className={cn("text-sm font-semibold flex items-center gap-2", statusTone)}>
+                <p className={cn("text-sm font-medium flex items-center gap-2 tracking-wide", statusTone)}>
                   {isLive && (
-                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)] animate-pulse" />
                   )}
                   {statusLabel}
                 </p>
                 {isSpeaking && (
-                  <span className="voice-eq" aria-hidden>
+                  <span className="voice-eq voice-eq-violet" aria-hidden>
                     <span />
                     <span />
                     <span />
@@ -193,7 +208,7 @@ export function VoiceSession() {
               )}
 
               {!hasTranscript && !error && (
-                <p className="text-base text-ink-muted text-left min-h-[3rem]">
+                <p className="text-[15px] text-ink-muted text-left min-h-[2.75rem] leading-relaxed">
                   {isBusy
                     ? "Thinking…"
                     : isSpeaking
@@ -203,7 +218,7 @@ export function VoiceSession() {
               )}
 
               {hasTranscript && (
-                <div className="space-y-3 max-h-52 overflow-y-auto text-left border-t border-white/8 pt-3 mt-1">
+                <div className="space-y-3 max-h-52 overflow-y-auto text-left border-t border-white/[0.06] pt-3 mt-1">
                   {userTranscript && (
                     <div className="flex justify-end">
                       <div className="chat-bubble-user max-w-[90%] rounded-2xl rounded-br-md px-4 py-3">
@@ -214,7 +229,7 @@ export function VoiceSession() {
                   {assistantTranscript && (
                     <div className="flex justify-start">
                       <div className="chat-bubble-ai max-w-[95%] rounded-2xl rounded-tl-md px-4 py-3">
-                        <p className="text-xs uppercase tracking-wide text-violet-300/80 mb-1">
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-violet-300/70 mb-1.5">
                           Alexa
                         </p>
                         <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap">
@@ -227,7 +242,7 @@ export function VoiceSession() {
               )}
             </div>
 
-            <div className="relative flex items-center justify-end gap-3 px-4 sm:px-5 pb-4 pt-2 border-t border-white/8">
+            <div className="relative flex items-center justify-end gap-3 px-4 sm:px-5 pb-4 pt-2 border-t border-white/[0.06]">
               <button
                 type="button"
                 onClick={handleEnd}

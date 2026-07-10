@@ -16,9 +16,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 /**
  * Floating voice pill shown on every page (except /voice) while a voice
- * session is live. Lets the boss keep talking after Alexa navigates —
- * e.g. "show today sales" → sales page opens, summary plays, and the
- * mic stays hot for follow-ups like "which store was best?".
+ * session is live. Lets the boss keep talking after Alexa navigates.
  */
 export function VoiceMiniHud() {
   const router = useRouter();
@@ -41,8 +39,8 @@ export function VoiceMiniHud() {
       className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] w-[min(480px,calc(100vw-1.5rem))] safe-area-bottom"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0)" }}
     >
-      <div className="rounded-[1.5rem] p-[1.5px] bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 shadow-[0_8px_40px_rgba(168,85,247,0.4)]">
-        <div className="flex items-center gap-3 rounded-[1.4rem] bg-[#0b1120]/95 backdrop-blur-2xl px-3 py-2.5">
+      <div className="voice-panel rounded-2xl shadow-[0_12px_40px_rgba(2,6,23,0.5),0_0_32px_rgba(139,92,246,0.2)]">
+        <div className="flex items-center gap-3 rounded-[0.95rem] px-3 py-2.5">
           <button
             type="button"
             onClick={() => router.push("/voice")}
@@ -50,6 +48,7 @@ export function VoiceMiniHud() {
             className="shrink-0"
           >
             <PlasmaOrb
+              density="low"
               audioLevel={Math.max(audioLevel, isSpeaking ? 0.45 : 0)}
               className={cn(
                 "h-10 w-10 transition-transform",
