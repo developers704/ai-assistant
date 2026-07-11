@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   deleteReport,
   getLatestReportMeta,
-  getLatestReportWithSummary,
   listReports,
   saveReport,
 } from "@/lib/reports/store";
+import { clearSalesWorkingMemory } from "@/lib/sales/sales-working-memory";
 
 export const runtime = "nodejs";
 
@@ -50,7 +50,22 @@ export async function POST(req: NextRequest) {
       reportPeriod: reportPeriod as import("@/lib/reports/types").ReportPeriod | undefined,
       reportCategory: reportCategory as import("@/lib/reports/types").ReportCategory | undefined,
     });
-    return NextResponse.json({ report: meta, summary });
+
+    // New store-sales upload becomes the live source for dashboard / chat / voice
+    const isLiveSales =
+      meta.schema === "store_sales" || meta.reportCategory === "sales";
+    if (isLiveSales) {
+      clearSalesWorkingMemory();
+    }
+
+    return NextResponse.json({
+      report: meta,
+      summary,
+      liveForSales: isLiveSales,
+      message: isLiveSales
+        ? "Saved as the latest sales report. Sales Dashboard, chat, and voice will use this file."
+        : "Report saved.",
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to save report";
     return NextResponse.json({ error: message }, { status: 400 });
