@@ -140,7 +140,7 @@ async function main() {
   /* Date unavailable handling */
   const far = resolveDateRange(
     { type: "custom", startDate: "1999-01-01", endDate: "1999-01-01" },
-    ["2026-07-01", "2026-07-09"]
+    ["2026-07-01", "2026-07-10"]
   );
   assert(
     "Unavailable date detected",

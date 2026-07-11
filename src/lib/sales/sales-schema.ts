@@ -8,7 +8,6 @@ export const DEFAULT_METRICS: SalesMetric[] = [
   "discounts",
   "units_sold",
   "transactions",
-  "estimated_margin",
 ];
 
 export const DEFAULT_INCLUDE: NonNullable<SalesQueryInput["include"]> = {

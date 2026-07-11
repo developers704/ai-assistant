@@ -237,7 +237,7 @@ const REGRESSION_CASES: ChatTestCase[] = [
     category: "regression",
     messages: ["Which store is best?"],
     assert: {
-      mustInclude: ["VJ-MOD"],
+      mustInclude: ["VJ-SERRA"],
       mustNotInclude: ["Open Sales Dashboard", "Confirmation required"],
       noPending: true,
     },
@@ -319,13 +319,13 @@ const CASES: ChatTestCase[] = [
   { id: "cal-08", category: "calendar", messages: ["what meetings do i have"], assert: { noPending: true } },
 
   // Sales — data in chat
-  { id: "sales-01", category: "sales", messages: ["Which store is best?"], assert: { mustInclude: ["VJ-MOD", "Want full store breakdown"], noPending: true } },
-  { id: "sales-02", category: "sales", messages: ["show me best store with sales"], assert: { mustInclude: ["VJ-MOD"], noPending: true } },
+  { id: "sales-01", category: "sales", messages: ["Which store is best?"], assert: { mustInclude: ["VJ-SERRA", "Want full store breakdown"], noPending: true } },
+  { id: "sales-02", category: "sales", messages: ["show me best store with sales"], assert: { mustInclude: ["VJ-SERRA"], noPending: true } },
   { id: "sales-03", category: "sales", messages: ["top store sales"], assert: { mustInclude: [/store|VJ-|DBC/i], noPending: true } },
   { id: "sales-04", category: "sales", messages: ["today's sales"], assert: { mustInclude: [/sales|revenue|\$/i], noPending: true } },
   { id: "sales-05", category: "sales", messages: ["full sales report"], assert: { mustInclude: [/Sales|revenue|store/i], noPending: true } },
-  { id: "sales-06", category: "sales", messages: ["i want to see one store with top sales"], assert: { mustInclude: ["VJ-MOD"], noPending: true } },
-  { id: "sales-07", category: "sales", messages: ["which store has the highest revenue"], assert: { mustInclude: [/VJ-MOD|store/i], noPending: true } },
+  { id: "sales-06", category: "sales", messages: ["i want to see one store with top sales"], assert: { mustInclude: ["VJ-SERRA"], noPending: true } },
+  { id: "sales-07", category: "sales", messages: ["which store has the highest revenue"], assert: { mustInclude: [/VJ-SERRA|store/i], noPending: true } },
   {
     id: "sales-08",
     category: "sales-followup",

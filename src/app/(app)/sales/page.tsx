@@ -175,7 +175,7 @@ export default function SalesPage() {
       : isFinancingReport
         ? "Payment mix, financing programs, and store performance"
         : isStoreSalesReport
-          ? "Company-wide store sales · departments, vendors & margin"
+          ? "Company-wide store sales · departments, vendors & designs"
           : "Daily performance · Valliani Jewelers";
 
   const maxTopStoreRevenue = Math.max(...summary.topStores.map((s) => s.revenue), 1);
@@ -334,25 +334,19 @@ export default function SalesPage() {
               label={
                 isFinancingReport
                   ? "Total Profit"
-                  : isStoreSalesReport
-                    ? "Est. Margin"
-                    : "Avg. Sale Value"
+                  : "Avg. Sale Value"
               }
               value={
                 isFinancingReport
                   ? formatCurrency(reportSummary?.totalProfit ?? 0)
-                  : isStoreSalesReport
-                    ? formatCurrency(reportSummary?.totalMargin ?? 0)
-                    : formatCurrency(summary.averageOrderValue)
+                  : formatCurrency(summary.averageOrderValue)
               }
               accent="amber"
               footer={
                 <p className="text-sm text-white/35">
                   {isFinancingReport
                     ? `Avg sale ${formatCurrency(summary.averageOrderValue)}`
-                    : isStoreSalesReport && reportSummary?.marginRate
-                      ? `${(reportSummary.marginRate * 100).toFixed(1)}% margin · avg ${formatCurrency(summary.averageOrderValue)}`
-                      : `+${summary.comparisonPreviousWeek.toFixed(1)}% vs last week`}
+                    : `+${summary.comparisonPreviousWeek.toFixed(1)}% vs last week`}
                 </p>
               }
             />

@@ -61,9 +61,6 @@ export function formatSalesTextAnswer(result: Omit<SalesQueryResult, "spokenAnsw
   const lines: string[] = [
     `For **${scope}**: **${money(s.netSales)}** net sales from **${formatPieceCount(s.unitsSold ?? 0)}** across **${(s.transactions ?? 0).toLocaleString()}** transactions.`,
   ];
-  if (s.estimatedMargin != null) {
-    lines[0] += ` Estimated margin **${money(s.estimatedMargin)}**.`;
-  }
 
   const r = result.rankings;
   const b = result.breakdowns;

@@ -383,11 +383,6 @@ export function summarizeVendorPos(
     recommendations.push(
       `Store sales: ${formatMoney(totalRevenue)} net across ${uniqueTransactions || periodRows.length} transactions, ${totalUnits.toLocaleString()} units.`
     );
-    if (totalMargin > 0) {
-      recommendations.push(
-        `Estimated margin: ${formatMoney(totalMargin)} (${(marginRate * 100).toFixed(1)}% of net sales).`
-      );
-    }
   } else if (opts.period !== "daily" || dates.length <= 1) {
     recommendations.push(
       `${periodLabel(opts.period)} ${vendor} report: ${totalUnits.toLocaleString()} units, ${formatMoney(totalRevenue)} net across ${dates.length || 1} day(s).`

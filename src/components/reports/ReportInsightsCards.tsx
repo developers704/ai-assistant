@@ -62,15 +62,13 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
         </>
       )}
 
-      {isStoreSales && (
+          {isStoreSales && (
         <div className={`grid gap-3 ${compact ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2 md:grid-cols-3"}`}>
           <MetricCard label="Net sales" value={formatCurrency(summary.totalRevenue)} accent="emerald" />
           <MetricCard
-            label="Est. margin"
-            value={formatCurrency(summary.totalMargin ?? 0)}
-            sub={summary.marginRate != null && summary.marginRate > 0 ? `${(summary.marginRate * 100).toFixed(1)}% of net` : undefined}
+            label="Discounts"
+            value={formatCurrency(summary.discountTotal ?? 0)}
             accent="amber"
-            icon={TrendingUp}
           />
           <MetricCard
             label="Line items"

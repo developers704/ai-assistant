@@ -215,7 +215,6 @@ export function RankDetailDrawer({
               {[
                 { label: "Net sales", value: formatCurrency(t.revenue) },
                 { label: "Units", value: formatPieceCount(t.units) },
-                { label: "Est. margin", value: formatCurrency(t.margin) },
                 { label: "Gross", value: formatCurrency(t.grossSales) },
                 { label: "Discounts", value: formatCurrency(t.discountTotal) },
                 {

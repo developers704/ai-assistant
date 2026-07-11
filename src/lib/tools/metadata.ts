@@ -175,7 +175,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: "get_top_vendor_models",
-    description: "Top vendor models by revenue, quantity, or margin with optional filters.",
+    description: "Top vendor models by revenue or quantity with optional filters.",
     category: "sales",
     riskLevel: "safe",
     requiresConfirmation: false,
@@ -193,7 +193,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         designs: { type: "array", items: { type: "string" } },
         departments: { type: "array", items: { type: "string" } },
         stores: { type: "array", items: { type: "string" } },
-        sort_by: { type: "string", enum: ["revenue", "quantity", "margin"] },
+        sort_by: { type: "string", enum: ["revenue", "quantity"] },
         limit: { type: "number" },
         navigate: { type: "boolean" },
       },

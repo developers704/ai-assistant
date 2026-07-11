@@ -42,8 +42,6 @@ const METRIC_KEYS: (keyof SalesMetricSummary)[] = [
   "discountRate",
   "unitsSold",
   "transactions",
-  "estimatedMargin",
-  "marginRate",
   "averageTicket",
   "averageUnitPrice",
 ];

@@ -187,10 +187,6 @@ export function formatSalesReportMarkdown(options?: AssistantSalesOptions): stri
     md += `\n**Gross sales:** ${formatCurrency(summary.grossSales)} · **Net:** ${formatCurrency(summary.totalRevenue)} · **Discounts:** ${formatCurrency(summary.discountTotal ?? 0)}`;
   }
 
-  if (source === "report" && "totalMargin" in summary && summary.totalMargin != null && summary.totalMargin > 0) {
-    md += `\n**Est. margin:** ${formatCurrency(summary.totalMargin)}${summary.marginRate ? ` (${(summary.marginRate * 100).toFixed(1)}%)` : ""}`;
-  }
-
   if (topStores.length > 0) {
     md += `\n\n**Top stores:**\n${topStores
       .map((s, i) => `${i + 1}. ${s.name} — ${formatCurrency(s.revenue)}${s.change ? ` (${s.change >= 0 ? "+" : ""}${s.change.toFixed(1)}%)` : ""}`)

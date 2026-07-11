@@ -40,7 +40,7 @@ function buildSuggestions(schema: TableSchema): string[] {
       "Top 10 stores by net sales (Total)",
       "Sales by Department",
       "Top vendors by revenue (Vendor Name)",
-      "Total margin: SUM(Total) minus SUM(Inventory Cost)",
+      "Top products by Item # / SKU #",
       "Daily net sales trend by Transaction Date",
     ].slice(0, 5);
   }

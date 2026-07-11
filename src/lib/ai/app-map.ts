@@ -197,11 +197,11 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
     label: "Sales Dashboard",
     route: "/sales",
     purpose:
-      "Store-level POS sales from uploaded CSV — revenue, top stores/products, margins, and trends.",
+      "Store-level POS sales from uploaded CSV — revenue, top stores/products, and trends.",
     availableData: [
       "Latest uploaded sales report",
       "Top stores & products",
-      "Net/gross revenue, discounts, margin",
+      "Net/gross revenue and discounts",
       "Selected report metadata",
     ],
     relatedTools: ["get_today_sales", "open_data_analyst"],
