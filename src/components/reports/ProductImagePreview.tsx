@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   resolveProductImageCandidates,
   resolveProductImageUrl,
@@ -19,7 +20,10 @@ export function ProductLightbox({
   subtitle?: string;
   onClose: () => void;
 }) {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -32,32 +36,41 @@ export function ProductLightbox({
     };
   }, [onClose]);
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-8">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8"
+      role="dialog"
+      aria-modal="true"
+      aria-label={alt || "Product image"}
+    >
       <button
         type="button"
-        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
         aria-label="Close image preview"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-3xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative z-10 flex max-h-[min(90vh,880px)] w-full max-w-3xl flex-col">
         <button
           type="button"
           onClick={onClose}
-          className="absolute -top-10 right-0 sm:-right-2 rounded-full bg-white/10 p-2 text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+          className="absolute -top-11 right-0 z-20 rounded-full bg-white/10 p-2 text-white/80 hover:bg-white/20 hover:text-white transition-colors"
           aria-label="Close"
         >
           <X size={18} />
         </button>
-        <div className="overflow-hidden rounded-2xl ring-1 ring-white/15 bg-[#0f1624] shadow-2xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt={alt}
-            className="max-h-[min(78vh,720px)] w-full object-contain bg-black/40"
-          />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring-1 ring-white/15 bg-[#0f1624] shadow-2xl">
+          <div className="flex min-h-0 flex-1 items-center justify-center bg-black/50 p-3 sm:p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={alt}
+              className="max-h-[min(72vh,680px)] max-w-full object-contain"
+            />
+          </div>
           {(alt || subtitle) && (
-            <div className="px-4 py-3 border-t border-white/10">
+            <div className="shrink-0 px-4 py-3 border-t border-white/10 bg-[#0f1624]">
               {alt && <p className="text-sm text-ink font-medium line-clamp-2">{alt}</p>}
               {subtitle && (
                 <p className="text-[11px] font-mono text-cyan-300/80 mt-0.5">{subtitle}</p>
@@ -66,7 +79,8 @@ export function ProductLightbox({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
