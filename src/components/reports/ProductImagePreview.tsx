@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { resolveProductImageUrl } from "@/lib/reports/product-image";
+import {
+  resolveProductImageCandidates,
+  resolveProductImageUrl,
+} from "@/lib/reports/product-image";
 import { ImageOff, X, ZoomIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -84,11 +87,23 @@ export function ProductThumb({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const [failed, setFailed] = useState(false);
-  const src = resolveProductImageUrl(imageDir) || imageUrl || null;
+  const candidates = (() => {
+    const fromDir = resolveProductImageCandidates(imageDir);
+    if (fromDir.length) return fromDir;
+    if (imageUrl) {
+      // Server may have baked a .jpg URL — also try .webp
+      const webp = imageUrl.replace(/\.(jpe?g|png|gif)(\?.*)?$/i, ".webp$2");
+      return webp !== imageUrl ? [webp, imageUrl] : [imageUrl];
+    }
+    const resolved = resolveProductImageUrl(imageDir);
+    return resolved ? [resolved] : [];
+  })();
+
+  const [idx, setIdx] = useState(0);
+  const src = candidates[idx] ?? null;
   const box = size === "sm" ? "h-9 w-9" : "h-11 w-11";
 
-  if (!src || failed) {
+  if (!src || idx >= candidates.length) {
     return (
       <span
         className={cn(
@@ -96,7 +111,7 @@ export function ProductThumb({
           box,
           className
         )}
-        title={src ? `Image not found: ${src}` : "No image"}
+        title={candidates[0] ? `Image not found: ${candidates[0]}` : "No image"}
       >
         <ImageOff size={size === "sm" ? 12 : 14} />
       </span>
@@ -123,7 +138,7 @@ export function ProductThumb({
         src={src}
         alt={alt}
         loading="lazy"
-        onError={() => setFailed(true)}
+        onError={() => setIdx((i) => i + 1)}
         className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-110"
       />
       <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/35 transition-colors">
