@@ -85,19 +85,126 @@ export function sortTopProductsByUnits<T extends { revenue: number; units: numbe
   return [...products].sort((a, b) => b.units - a.units || b.revenue - a.revenue);
 }
 
-/** Readable product line — title-case when feed is ALL CAPS. */
+/** Readable product line — cleans POS feed quirks and title-cases ALL CAPS. */
 export function formatProductDisplayName(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  const letters = trimmed.replace(/[^A-Za-z]/g, "");
-  if (letters.length > 0 && letters === letters.toUpperCase()) {
-    return trimmed
-      .toLowerCase()
-      .split(/\s+/)
-      .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ""))
-      .join(" ");
+  let s = name.trim();
+  if (!s) return "";
+
+  s = s
+    .replace(/\uFFFD/g, " ")
+    .replace(/\\+"/g, '"')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[\u00A0\u202F\u2007]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // (NO WARRANTY) / NO�WARRANTY / NO-WARRANTY
+  s = s.replace(/\(?\s*NO[\s\-]*WARRANTY\s*\)?/gi, "(No Warranty)");
+
+  // Metal + quoted tag: 14KT"OVANI-COLLECTION" → 14KT Ovani Collection
+  s = s.replace(
+    /\b((?:10|14|18)KT|(?:10|14|18)KY|SS|YG|WG|RG|SILVER)\s*"([^"]+)"/gi,
+    (_m, metal: string, brand: string) =>
+      `${normalizeMetalPrefix(metal)} ${titleCaseWords(brand.replace(/[_]+/g, " ").replace(/-/g, " "))}`
+  );
+
+  // Remaining quoted phrases: "LAB-GROWN" → Lab Grown
+  s = s.replace(/"([^"]+)"/g, (_m, inner: string) =>
+    titleCaseWords(String(inner).replace(/[_]+/g, " ").replace(/-/g, " "))
+  );
+
+  // Glued metal prefix: 14KTSomething → 14KT Something
+  s = s.replace(
+    /\b((?:10|14|18)KT|(?:10|14|18)KY|SS)(?=[A-Za-z])/gi,
+    (_m, metal: string) => `${normalizeMetalPrefix(metal)} `
+  );
+
+  s = s.replace(/\s+/g, " ").trim();
+
+  // Protect parentheticals so spaces inside don't break title-case
+  const protectedParts: string[] = [];
+  s = s.replace(/\([^)]*\)/g, (m) => {
+    const normalized = /^\(\s*no\s+warranty\s*\)$/i.test(m) ? "(No Warranty)" : m;
+    const idx = protectedParts.length;
+    protectedParts.push(normalized);
+    return `\u0000${idx}\u0000`;
+  });
+
+  // Title-case the full line (POS feeds are usually ALL CAPS)
+  const letters = s.replace(/[^A-Za-z\u0000]/g, "");
+  const alphaOnly = letters.replace(/\u0000/g, "");
+  const mostlyUpper =
+    alphaOnly.length > 0 &&
+    alphaOnly.replace(/[a-z]/g, "").length >= alphaOnly.length * 0.6;
+  if (mostlyUpper) {
+    s = titleCaseWords(s);
   }
-  return trimmed;
+
+  s = s.replace(/\u0000(\d+)\u0000/g, (_m, i) => protectedParts[Number(i)] ?? "");
+
+  // Keep metal codes / certs uppercase after title-case
+  s = s.replace(
+    /\b((?:10|14|18)kt|(?:10|14|18)ky|ss|yg|wg|rg)\b/gi,
+    (m) => normalizeMetalPrefix(m)
+  );
+  s = s.replace(/\b(igi|gia|cz|uv|pc)\b/gi, (m) => m.toUpperCase());
+  s = s.replace(/\b(\d+(?:\.\d+)?)\s*ct\b/gi, "$1ct");
+  // Known brand / design tokens from Valliani POS
+  s = s.replace(
+    /\b(linknlock|novello|ovani|love-spell|love spell|labgrown|lab grown)\b/gi,
+    (m) => {
+      const key = m.toLowerCase().replace(/\s+/g, "-");
+      const map: Record<string, string> = {
+        linknlock: "LinknLock",
+        novello: "Novello",
+        ovani: "Owani",
+        "love-spell": "Love-Spell",
+        labgrown: "Lab-Grown",
+        "lab-grown": "Lab-Grown",
+      };
+      return map[key] ?? m;
+    }
+  );
+
+  return s;
+}
+
+function normalizeMetalPrefix(raw: string): string {
+  const u = raw.toUpperCase();
+  if (u === "SS" || u === "YG" || u === "WG" || u === "RG") return u;
+  if (/^(10|14|18)KT$/.test(u)) return u;
+  if (/^(10|14|18)KY$/.test(u)) return u;
+  return u;
+}
+
+function titleCaseWords(text: string): string {
+  const keepLower = new Set(["a", "an", "and", "or", "of", "the", "with", "for", "to"]);
+  return text
+    .split(/\s+/)
+    .map((word, i) => {
+      if (!word) return "";
+      if (/^\([^)]*\)$/.test(word)) {
+        // Keep already-normalized (No Warranty)
+        if (/^\(no warranty\)$/i.test(word)) return "(No Warranty)";
+        return `(${titleCaseWords(word.slice(1, -1))})`;
+      }
+      const bare = word.replace(/[^A-Za-z0-9.]/g, "");
+      if (/^\d/.test(bare)) return word; // 1.00ct, 36mm
+      const lowerCore = word.toLowerCase().replace(/[^a-z]/g, "");
+      if (i > 0 && keepLower.has(lowerCore)) return word.toLowerCase();
+      // Hyphenated: yellow-gold → Yellow-Gold
+      if (word.includes("-")) {
+        return word
+          .split("-")
+          .map((part) =>
+            part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : ""
+          )
+          .join("-");
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
 }
 
 export function formatTime(dateStr: string): string {

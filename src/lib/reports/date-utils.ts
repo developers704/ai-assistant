@@ -1,14 +1,21 @@
-/** ISO date YYYY-MM-DD → display MM/DD/YY */
+/** ISO date YYYY-MM-DD → display e.g. "Fri · 07/10/26" */
 export function formatReportDateDisplay(isoDate: string): string {
+  if (!isValidIsoDate(isoDate)) {
+    const [y, m, d] = isoDate.split("-");
+    if (!y || !m || !d) return isoDate;
+    return `${m}/${d}/${y.slice(-2)}`;
+  }
+  const date = new Date(`${isoDate}T12:00:00`);
+  const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
   const [y, m, d] = isoDate.split("-");
-  if (!y || !m || !d) return isoDate;
-  return `${m}/${d}/${y.slice(-2)}`;
+  return `${weekday} · ${m}/${d}/${y.slice(-2)}`;
 }
 
-/** Friendly spoken/chat label, e.g. "July 8, 2026" */
+/** Friendly spoken/chat label, e.g. "Wednesday, July 8, 2026" */
 export function formatReportDateLong(isoDate: string): string {
   if (!isValidIsoDate(isoDate)) return isoDate;
   return new Date(`${isoDate}T12:00:00`).toLocaleDateString("en-US", {
+    weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",

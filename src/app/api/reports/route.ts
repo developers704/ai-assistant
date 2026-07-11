@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   deleteReport,
+  getLatestReportMeta,
   getLatestReportWithSummary,
   listReports,
   saveReport,
@@ -12,7 +13,7 @@ export async function GET() {
   const reports = listReports();
   return NextResponse.json({
     reports,
-    latest: reports[0] ?? null,
+    latest: getLatestReportMeta() ?? reports[0] ?? null,
   });
 }
 

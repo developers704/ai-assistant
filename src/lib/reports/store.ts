@@ -124,15 +124,12 @@ export function listReports(): StoredReportMeta[] {
 }
 
 export function getLatestReportMeta(): StoredReportMeta | null {
-  const list = listReports();
-  const bundledSales = list.find(
-    (r) =>
-      isBundledSalesReport(r) &&
-      (r.schema === "store_sales" || r.reportCategory === "sales")
+  const list = listReports(); // newest uploadedAt first
+  // Prefer the most recently uploaded store-sales report so Data Analyst
+  // uploads update Sales Dashboard, chat, voice, and rank-detail.
+  const storeSales = list.find(
+    (r) => r.schema === "store_sales" || r.reportCategory === "sales"
   );
-  if (bundledSales) return bundledSales;
-
-  const storeSales = list.find((r) => r.schema === "store_sales" || r.reportCategory === "sales");
   return storeSales ?? list[0] ?? null;
 }
 

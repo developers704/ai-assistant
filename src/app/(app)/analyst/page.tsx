@@ -147,7 +147,9 @@ export default function AnalystPage() {
 
   const welcomeMessage = (fileName: string, rowCount: number, colCount: number, saved?: boolean) =>
     `Loaded "${fileName}" — ${rowCount.toLocaleString()} rows and ${colCount} columns.${
-      saved ? " Saved to daily reports — Dashboard will use this data." : ""
+      saved
+        ? " Saved as the latest report — Sales Dashboard, chat, and voice will use this data."
+        : ""
     } Ask me anything: totals, top/low sellers, trends, breakdowns, or forecasts.`;
 
   const applySchema = (s: TableSchema, saved?: boolean, reportId?: string | null) => {
@@ -225,7 +227,7 @@ export default function AnalystPage() {
     const target = savedReports.find((r) => r.id === id);
     if (!target) return;
     const confirmed = window.confirm(
-      `Remove "${target.label}" from saved reports?\n\nThis will not affect your Dashboard until you upload a new report.`
+      `Remove "${target.label}" from saved reports?\n\nIf this is the latest sales report, Sales Dashboard / chat / voice will fall back to the next newest report.`
     );
     if (!confirmed) return;
 

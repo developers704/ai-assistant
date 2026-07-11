@@ -48,6 +48,7 @@ export default function SalesPage() {
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
   const [dataSource, setDataSource] = useState<"mock" | "report">("mock");
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [availableStores, setAvailableStores] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
@@ -122,6 +123,11 @@ export default function SalesPage() {
           setAvailableDepartments(d.availableDepartments ?? []);
           setAvailableDesigns(d.availableDesigns ?? []);
           setReportId(d.report?.id ?? filterDate ?? d.reportDate ?? "latest");
+          // Drop stale date filter if the new latest report doesn't include it
+          const dates: string[] = d.availableDates ?? [];
+          if (filterDate && dates.length && !dates.includes(filterDate)) {
+            setFilterDate("");
+          }
         } else {
           setReportSummary(null);
           setAvailableDates([]);
@@ -131,7 +137,22 @@ export default function SalesPage() {
           setReportId(undefined);
         }
       });
-  }, [filterDate, filterStore, filterDepartment, filterDesign]);
+  }, [filterDate, filterStore, filterDepartment, filterDesign, refreshNonce]);
+
+  // Pick up a newly uploaded report when returning to this tab/page
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        setRefreshNonce((n) => n + 1);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, []);
 
   useEffect(() => {
     void syncUiSelection({
