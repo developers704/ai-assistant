@@ -181,7 +181,7 @@ export function resolveDateRange(
 
   if (intersecting.length === 0) {
     return {
-      type: type === "report_all" ? "report_all" : (type as SalesDateRangeType),
+      type: type as SalesResolvedDateRange["type"],
       startDate: start,
       endDate: end,
       label: labelRange(start, end, String(type)),
@@ -194,7 +194,7 @@ export function resolveDateRange(
   }
 
   return {
-    type: type === "report_all" ? "report_all" : (type as SalesDateRangeType),
+    type: type as SalesResolvedDateRange["type"],
     startDate: intersecting[0],
     endDate: intersecting[intersecting.length - 1],
     label: labelRange(intersecting[0], intersecting[intersecting.length - 1], String(type)),

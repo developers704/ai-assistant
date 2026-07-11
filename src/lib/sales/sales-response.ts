@@ -2,7 +2,6 @@ import { formatCurrency, formatPieceCount } from "@/lib/utils";
 import type {
   SalesBreakdownRow,
   SalesComparisonResult,
-  SalesMetricSummary,
   SalesQueryFilters,
   SalesQueryResult,
   SalesResolvedDateRange,

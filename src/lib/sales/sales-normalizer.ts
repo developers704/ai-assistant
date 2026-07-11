@@ -185,6 +185,7 @@ export function matchMany(
       };
     } else {
       // Suggest closest if any weak matches
+      const noneMessage = m.status === "none" ? m.message : `I could not find "${raw}".`;
       const suggestions = known
         .map((k) => ({ k, s: scoreMatch(raw, k) }))
         .filter((x) => x.s >= 50)
@@ -198,7 +199,7 @@ export function matchMany(
           field: fieldLabel as keyof SalesQueryFilters,
           message: suggestions.length
             ? `I could not find "${raw}". Did you mean ${suggestions.join(", ")}?`
-            : m.message,
+            : noneMessage,
           options: suggestions,
         },
       };

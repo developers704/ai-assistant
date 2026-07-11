@@ -133,7 +133,7 @@ export async function resolveFollowUp(
     });
     return formatResponseForChannel(
       {
-        intent: "sales.query",
+        intent: "sales_report",
         message: synth.message,
         speak: true,
         data: result.navigateTo ? { navigate: result.navigateTo } : undefined,

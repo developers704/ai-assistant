@@ -168,16 +168,8 @@ export function compareEntitySlices(
 }
 
 export function inferComparisonEntityType(
-  comparison: NonNullable<SalesQueryInput["comparison"]>,
-  filters: {
-    stores: string[];
-    departments: string[];
-    designs: string[];
-    vendors: string[];
-    classes: string[];
-  }
+  comparison: NonNullable<SalesQueryInput["comparison"]>
 ): SalesEntityType {
   if (comparison.entityType) return comparison.entityType;
-  // Heuristic: if entities look like designs already in filters context, etc.
   return "store";
 }
