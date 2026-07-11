@@ -166,12 +166,20 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   }
 
   if (TOP_STORE.test(lower) || ONE_TOP_STORE.test(lower) || /\bwhich\s+store\b.*\b(sales|revenue|best|top)\b/i.test(lower)) {
-    return "sales.top_store";
+    // Named store + sales (e.g. "MOD store", "Great Mall") is a filtered query, not top-store
+    if (!/\b(best|top|highest|which)\b/i.test(lower) || /\b(of|for|at)\s+\w+/i.test(lower)) {
+      if (/\b(mod|great\s*mall|valley\s*fair|vj-|dbc-|serra|livermore|culver)\b/i.test(lower)) {
+        return "sales.query";
+      }
+    }
+    if (/\b(best|top|highest|which|leading)\b/i.test(lower)) {
+      return "sales.top_store";
+    }
   }
 
   // Sales Intelligence — filtered / compare / entity questions (before generic sales)
   const SALES_ENTITY =
-    /\b(novell?o|ovani|ovanny|ladys?\s+ring|ladies\s+ring|gents?\s+ring|gold\s+chain|earrings?|rolex|mhvr|kma|kgs|14\s*k(?:t|arat)?|10\s*k(?:t|arat)?|18\s*k(?:t|arat)?|great\s*mall|valley\s*fair)\b/i;
+    /\b(novell?o|ovani|ovanny|lads?\s+ring|ladys?\s+ring|ladies\s+ring|gents?\s+ring|gold\s+chain|earrings?|rolex|mhvr|kma|kgs|14\s*k(?:t|arat)?|10\s*k(?:t|arat)?|18\s*k(?:t|arat)?|great\s*mall|valley\s*fair|(?:vj[-\s]?)?mod|vj-\w+|dbc-\w+)\b/i;
   const SALES_FOLLOWUP =
     /\b(now by|by department|by store|by vendor|by design|by class|what about|same for|ab |hisaab|top vendor models?|top models?|break it down|lowest five|top five)\b/i;
   const SALES_COMPARE =
@@ -218,7 +226,7 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "email.summary";
   }
 
-  if (/\b(sales|revenue|top product|mhvr|csv report|novell?o|ovani|ladys?\s+ring|discount rate|margin)\b/i.test(lower)) {
+  if (/\b(sales|revenue|top product|mhvr|csv report|novell?o|ovani|ladys?\s+ring|lads?\s+ring|discount rate|margin)\b/i.test(lower)) {
     if (/\b(correlation|correlated|forecast|anomaly|predict|trend model|segment)\b/i.test(lower)) {
       return "sales.analysis";
     }
@@ -226,10 +234,14 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
       return "sales.analysis";
     }
     if (FULL_SALES_REPORT.test(lower)) return "sales.read";
-    if (/\b(store|location)\b/i.test(lower) && !SALES_ENTITY.test(lower) && !SALES_FOLLOWUP.test(lower)) {
+    // "sales of MOD store" / named entity → query_sales, not top_store
+    if (SALES_ENTITY.test(lower) || SALES_FOLLOWUP.test(lower) || /\b(by department|by vendor|by design|by class|of\s+\w+\s+store)\b/i.test(lower)) {
+      return "sales.query";
+    }
+    if (/\b(store|location)\b/i.test(lower) && /\b(best|top|highest|which)\b/i.test(lower)) {
       return "sales.top_store";
     }
-    if (SALES_ENTITY.test(lower) || SALES_FOLLOWUP.test(lower) || /\b(by department|by vendor|by design|by class)\b/i.test(lower)) {
+    if (/\b(store|location)\b/i.test(lower)) {
       return "sales.query";
     }
     return "sales.read";

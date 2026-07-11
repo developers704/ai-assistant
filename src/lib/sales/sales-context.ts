@@ -10,11 +10,22 @@ import { getSalesWorkingMemory } from "./sales-working-memory";
 const RESET =
   /\b(reset|start over|clear filters|clear sales|show all|sab dikhao|filters? hatao)\b/i;
 
+const FOLLOW_UP =
+  /\b(now by|by department|by store|by vendor|by design|by class|what about|same for|ab |hisaab|hisab se|top vendor models?|top models?|break it down|lowest five|top five|show more|open details|remove |clear )\b/i;
+
 export function isSalesReset(message: string): boolean {
   return RESET.test(message);
 }
 
-/** Merge a new partial query with prior sales memory (follow-up retention). */
+export function isSalesFollowUp(message: string): boolean {
+  return FOLLOW_UP.test(message);
+}
+
+/**
+ * Merge a new partial query with prior sales memory.
+ * Follow-ups keep prior filters; fresh entity questions replace them
+ * so stale filters (from earlier bugs/sessions) cannot zero out results.
+ */
 export function mergeWithSalesMemory(
   input: SalesQueryInput,
   memory: SalesWorkingMemoryState = getSalesWorkingMemory()
@@ -22,6 +33,9 @@ export function mergeWithSalesMemory(
   if (input.resetContext || (input.userMessage && isSalesReset(input.userMessage))) {
     return { ...input, resetContext: true };
   }
+
+  const msg = input.userMessage ?? "";
+  const followUp = Boolean(msg && isSalesFollowUp(msg));
 
   const hasExplicitFilters =
     (input.stores?.length ?? 0) > 0 ||
@@ -36,6 +50,35 @@ export function mergeWithSalesMemory(
   const hasDate = Boolean(input.dateRange?.type || input.dateRange?.startDate);
   const hasGroupBy = Boolean(input.groupBy?.length);
 
+  // Fresh standalone query with its own entities — do not inherit other dimensions
+  if (hasExplicitFilters && !followUp) {
+    return {
+      ...input,
+      dateRange: hasDate
+        ? input.dateRange
+        : memory.lastDateRange
+          ? {
+              type:
+                memory.lastDateRange.type === "report_all"
+                  ? "all_dates"
+                  : memory.lastDateRange.type,
+              startDate: memory.lastDateRange.startDate ?? undefined,
+              endDate: memory.lastDateRange.endDate ?? undefined,
+            }
+          : input.dateRange,
+      // Keep only what this message set — clear other dimensions
+      stores: input.stores ?? [],
+      departments: input.departments ?? [],
+      designs: input.designs ?? [],
+      vendors: input.vendors ?? [],
+      classes: input.classes ?? [],
+      metrics: input.metrics?.length ? input.metrics : memory.lastMetrics,
+      groupBy: hasGroupBy ? input.groupBy : undefined,
+      comparison: input.comparison,
+    };
+  }
+
+  // Follow-up / no new entities — inherit prior filters
   return {
     ...input,
     dateRange: hasDate
@@ -57,17 +100,7 @@ export function mergeWithSalesMemory(
     classes: input.classes?.length ? input.classes : memory.lastClasses,
     metrics: input.metrics?.length ? input.metrics : memory.lastMetrics,
     groupBy: hasGroupBy ? input.groupBy : memory.lastGroupBy,
-    comparison: input.comparison ?? memory.lastComparison,
-    // If user only changed groupBy via follow-up, keep filters from memory even when input empty
-    ...(hasExplicitFilters
-      ? {}
-      : {
-          stores: input.stores ?? memory.lastStores,
-          departments: input.departments ?? memory.lastDepartments,
-          designs: input.designs ?? memory.lastDesigns,
-          vendors: input.vendors ?? memory.lastVendors,
-          classes: input.classes ?? memory.lastClasses,
-        }),
+    comparison: input.comparison ?? (followUp ? memory.lastComparison : undefined),
   };
 }
 
@@ -109,9 +142,6 @@ export function detectRemoveFilters(message: string): Partial<SalesQueryFilters>
   if (/\b(remove|clear|drop)\s+design\b/i.test(lower)) patch.designs = [];
   if (/\b(remove|clear|drop)\s+store\b/i.test(lower)) patch.stores = [];
   if (/\b(remove|clear|drop)\s+class\b/i.test(lower)) patch.classes = [];
-  if (/\bshow all dates\b/i.test(lower)) {
-    // handled as date reset by caller
-  }
   return patch;
 }
 

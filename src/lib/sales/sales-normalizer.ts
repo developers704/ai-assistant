@@ -36,7 +36,7 @@ const ALIAS_HINTS: Array<{ pattern: RegExp; preferIncludes: string[] }> = [
   { pattern: /\bnovell?o(?:\s+collection)?\b/i, preferIncludes: ["novello"] },
   { pattern: /\bovann?i(?:\s+brand)?\b/i, preferIncludes: ["ovani"] },
   {
-    pattern: /\b(?:lady'?s?|ladies|women'?s?)\s+rings?\b/i,
+    pattern: /\b(?:lady'?s?|ladies|lads|women'?s?)\s+rings?\b/i,
     preferIncludes: ["ladys ring", "lady ring"],
   },
   {
@@ -51,6 +51,7 @@ const ALIAS_HINTS: Array<{ pattern: RegExp; preferIncludes: string[] }> = [
   { pattern: /\b(?:women|womens|female)\b(?!\s+ring)/i, preferIncludes: ["women"] },
   { pattern: /\bgreat\s*mall\b/i, preferIncludes: ["great mall", "dbc-gm", "gm"] },
   { pattern: /\bvalley\s*fair\b/i, preferIncludes: ["valley fair", "val"] },
+  { pattern: /\b(?:vj[-\s]?)?mod(?:esto)?\b/i, preferIncludes: ["vj-mod", "mod"] },
   { pattern: /\bcull?ver\b/i, preferIncludes: ["culver"] },
   { pattern: /\brolex\b/i, preferIncludes: ["rolex"] },
 ];
@@ -329,6 +330,43 @@ export function extractEntitiesFromMessage(
   collect(index.stores, "stores");
   collect(index.vendors, "vendors");
   collect(index.classes, "classes");
+
+  // Fuzzy token pass for leftover store/vendor codes (e.g. "MOD", "MHVR")
+  if (!hits.some((h) => h.key === "stores")) {
+    const tokens = normalizeKey(message)
+      .split(" ")
+      .filter((t) => t.length >= 3 && !/^(show|sales?|sale|the|of|for|and|with|from|july|june|august|today|yesterday|store|stores)$/.test(t));
+    for (const token of tokens) {
+      const m = matchEntity(token, index.stores, "store");
+      if ((m.status === "exact" || m.status === "fuzzy") && m.score >= 80) {
+        hits.push({ key: "stores", value: m.value, score: m.score });
+        break;
+      }
+    }
+  }
+  if (!hits.some((h) => h.key === "vendors")) {
+    const tokens = normalizeKey(message)
+      .split(" ")
+      .filter((t) => t.length >= 3);
+    for (const token of tokens) {
+      const m = matchEntity(token, index.vendors, "vendor");
+      if ((m.status === "exact" || m.status === "fuzzy") && m.score >= 90) {
+        hits.push({ key: "vendors", value: m.value, score: m.score });
+        break;
+      }
+    }
+  }
+
+  // Fuzzy department for typos like "lads ring"
+  if (!hits.some((h) => h.key === "departments")) {
+    const ringPhrase = message.match(/\b([a-z']+\s+rings?)\b/i);
+    if (ringPhrase) {
+      const m = matchEntity(ringPhrase[1], index.departments, "department");
+      if ((m.status === "exact" || m.status === "fuzzy") && m.score >= 75) {
+        hits.push({ key: "departments", value: m.value, score: m.score });
+      }
+    }
+  }
 
   // Drop weaker/substring collisions (e.g. class "LADYS" when department "LADYS RING" matched)
   hits.sort((a, b) => b.score - a.score);
