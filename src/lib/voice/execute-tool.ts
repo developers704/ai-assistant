@@ -241,6 +241,233 @@ export async function executeVoiceTool(
       };
     }
 
+    case "query_sales":
+    case "compare_sales":
+    case "get_sales_entity_details":
+    case "get_top_vendor_models":
+    case "apply_sales_dashboard_filters": {
+      const { querySales } = await import("@/lib/sales/query-sales");
+      const { salesDashboardToQuery } = await import("@/lib/sales/sales-dashboard-state");
+      const userMessage = args.user_message ? String(args.user_message) : "";
+
+      if (name === "compare_sales") {
+        const left = String(args.left ?? "");
+        const right = String(args.right ?? "");
+        const result = await querySales({
+          userMessage: userMessage || `Compare ${left} and ${right}`,
+          comparison: {
+            mode: "compare_entities",
+            entityType: args.entity_type as
+              | "store"
+              | "department"
+              | "design"
+              | "vendor"
+              | "class"
+              | "product"
+              | undefined,
+            entities: left && right ? [left, right] : undefined,
+          },
+          display: {
+            navigateToSales: args.navigate !== false && (args.navigate === true || /\b(show|open|dikhao)\b/i.test(userMessage)),
+            applyDashboardFilters: true,
+          },
+        });
+        const path = result.dashboardState
+          ? salesDashboardToQuery(result.dashboardState)
+          : "/sales";
+        return {
+          output: JSON.stringify({
+            ...result,
+            synthesizedAnswer: result.textAnswer,
+            spokenAnswer: result.spokenAnswer,
+          }),
+          uiAction:
+            result.dashboardState && (args.navigate === true || /\b(show|open|dikhao)\b/i.test(userMessage))
+              ? { type: "navigate", path }
+              : undefined,
+        };
+      }
+
+      if (name === "get_sales_entity_details") {
+        const entityType = String(args.entity_type || "store") as
+          | "store"
+          | "department"
+          | "design"
+          | "vendor"
+          | "class"
+          | "product";
+        const entityName = String(args.entity_name || "");
+        const filterKey =
+          entityType === "store"
+            ? "stores"
+            : entityType === "department"
+              ? "departments"
+              : entityType === "design"
+                ? "designs"
+                : entityType === "vendor"
+                  ? "vendors"
+                  : entityType === "class"
+                    ? "classes"
+                    : "products";
+        const result = await querySales({
+          userMessage,
+          [filterKey]: entityName ? [entityName] : undefined,
+          groupBy: ["store", "department", "vendor", "design", "class", "vendor_model"],
+          display: {
+            navigateToSales: args.navigate !== false,
+            applyDashboardFilters: true,
+            openDetailPanel: true,
+            detailType: entityType === "product" ? "design" : entityType,
+            detailValue: entityName,
+          },
+        });
+        const path = result.dashboardState
+          ? salesDashboardToQuery(result.dashboardState)
+          : "/sales";
+        return {
+          output: JSON.stringify({
+            ...result,
+            synthesizedAnswer: result.textAnswer,
+            spokenAnswer: result.spokenAnswer,
+          }),
+          uiAction: { type: "navigate", path },
+        };
+      }
+
+      if (name === "get_top_vendor_models") {
+        const result = await querySales({
+          userMessage,
+          vendors: Array.isArray(args.vendors) ? (args.vendors as string[]) : undefined,
+          designs: Array.isArray(args.designs) ? (args.designs as string[]) : undefined,
+          departments: Array.isArray(args.departments)
+            ? (args.departments as string[])
+            : undefined,
+          stores: Array.isArray(args.stores) ? (args.stores as string[]) : undefined,
+          groupBy: ["vendor_model"],
+          include: { topVendorModels: true, summary: true },
+          limit: typeof args.limit === "number" ? args.limit : 10,
+          display: {
+            navigateToSales: Boolean(args.navigate) || /\b(show|dikhao|open)\b/i.test(userMessage),
+            applyDashboardFilters: true,
+          },
+        });
+        const path = result.dashboardState
+          ? salesDashboardToQuery(result.dashboardState)
+          : "/sales";
+        return {
+          output: JSON.stringify({
+            ...result,
+            synthesizedAnswer: result.textAnswer,
+            spokenAnswer: result.spokenAnswer,
+            topVendorModels: result.rankings?.topVendorModels ?? result.breakdowns?.byVendorModel,
+          }),
+          uiAction:
+            args.navigate === true || /\b(show|dikhao|open)\b/i.test(userMessage)
+              ? { type: "navigate", path }
+              : undefined,
+        };
+      }
+
+      if (name === "apply_sales_dashboard_filters") {
+        const result = await querySales({
+          userMessage,
+          designs: Array.isArray(args.designs) ? (args.designs as string[]) : undefined,
+          departments: Array.isArray(args.departments)
+            ? (args.departments as string[])
+            : undefined,
+          stores: Array.isArray(args.stores) ? (args.stores as string[]) : undefined,
+          vendors: Array.isArray(args.vendors) ? (args.vendors as string[]) : undefined,
+          classes: Array.isArray(args.classes) ? (args.classes as string[]) : undefined,
+          dateRange: args.date
+            ? { type: "custom", startDate: String(args.date), endDate: String(args.date) }
+            : undefined,
+          display: { navigateToSales: true, applyDashboardFilters: true },
+        });
+        const path = result.dashboardState
+          ? salesDashboardToQuery(result.dashboardState)
+          : "/sales";
+        return {
+          output: JSON.stringify({
+            success: true,
+            navigateTo: path,
+            synthesizedAnswer: result.textAnswer,
+            spokenAnswer: result.spokenAnswer || "Opening the Sales dashboard with your filters.",
+            dashboardState: result.dashboardState,
+          }),
+          uiAction: { type: "navigate", path },
+        };
+      }
+
+      // query_sales
+      const result = await querySales({
+        userMessage,
+        designs: Array.isArray(args.designs) ? (args.designs as string[]) : undefined,
+        departments: Array.isArray(args.departments)
+          ? (args.departments as string[])
+          : undefined,
+        stores: Array.isArray(args.stores) ? (args.stores as string[]) : undefined,
+        vendors: Array.isArray(args.vendors) ? (args.vendors as string[]) : undefined,
+        classes: Array.isArray(args.classes) ? (args.classes as string[]) : undefined,
+        groupBy: Array.isArray(args.groupBy)
+          ? (args.groupBy as Array<
+              | "date"
+              | "store"
+              | "department"
+              | "design"
+              | "vendor"
+              | "class"
+              | "product"
+              | "sku"
+              | "vendor_model"
+            >)
+          : undefined,
+        dateRange: args.date_type
+          ? {
+              type: String(args.date_type) as
+                | "today"
+                | "yesterday"
+                | "this_week"
+                | "last_week"
+                | "this_month"
+                | "last_month"
+                | "all_dates"
+                | "custom",
+              startDate: args.start_date ? String(args.start_date) : undefined,
+              endDate: args.end_date ? String(args.end_date) : undefined,
+            }
+          : args.start_date
+            ? {
+                type: "custom",
+                startDate: String(args.start_date),
+                endDate: String(args.end_date ?? args.start_date),
+              }
+            : undefined,
+        limit: typeof args.limit === "number" ? args.limit : undefined,
+        display: {
+          navigateToSales:
+            args.navigate === true ||
+            (args.navigate !== false && /\b(show|dikhao|open|kholo)\b/i.test(userMessage)),
+          applyDashboardFilters: true,
+        },
+      });
+      const path = result.dashboardState
+        ? salesDashboardToQuery(result.dashboardState)
+        : "/sales";
+      const shouldNav = Boolean(
+        args.navigate === true ||
+          result.dashboardState &&
+            (args.navigate !== false && /\b(show|dikhao|open|kholo)\b/i.test(userMessage))
+      );
+      return {
+        output: JSON.stringify({
+          ...result,
+          synthesizedAnswer: result.textAnswer,
+          spokenAnswer: result.spokenAnswer,
+        }),
+        uiAction: shouldNav ? { type: "navigate", path } : undefined,
+      };
+    }
+
     case "get_email_summary": {
       const { emails, googleConnected, source } = await getVoiceEmails();
       const script = buildEmailVoiceScript(emails);

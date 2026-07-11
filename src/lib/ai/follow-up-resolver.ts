@@ -107,6 +107,41 @@ export async function resolveFollowUp(
     }
   }
 
+  // Sales Intelligence follow-ups — retain prior filters via query_sales memory
+  const SALES_FOLLOWUP =
+    /\b(now by|by department|by store|by vendor|by design|by class|what about|same for|ab |hisaab se|top vendor models?|top models?|break it down|lowest five|top five|show more|open details|remove vendor|clear department|show all dates|reset sales)\b/i;
+  const { getSalesWorkingMemory } = await import("@/lib/sales/sales-working-memory");
+  const salesMem = getSalesWorkingMemory();
+  if (
+    SALES_FOLLOWUP.test(lower) &&
+    (salesMem.lastSalesQuery ||
+      salesMem.lastDesigns?.length ||
+      salesMem.lastDepartments?.length ||
+      salesMem.lastStores?.length ||
+      salesMem.lastVendors?.length)
+  ) {
+    const result = await executeTool(
+      "query_sales",
+      { user_message: message },
+      { source: channel }
+    );
+    const synth = synthesizeToolResponse({
+      toolName: "query_sales",
+      result,
+      userMessage: message,
+      channel,
+    });
+    return formatResponseForChannel(
+      {
+        intent: "sales.query",
+        message: synth.message,
+        speak: true,
+        data: result.navigateTo ? { navigate: result.navigateTo } : undefined,
+      },
+      channel
+    );
+  }
+
   if (path === "/email" && REPLY_THIS.test(lower) && state.uiContext?.selectedEmailId) {
     const result = await executeTool(
       "draft_email_reply",

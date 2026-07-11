@@ -7,6 +7,8 @@ export type RoutedIntent =
   | "email.draft"
   | "sales.read"
   | "sales.top_store"
+  | "sales.query"
+  | "sales.compare"
   | "sales.analysis"
   | "contacts.search"
   | "task.create"
@@ -122,6 +124,14 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "calendar.delete_all";
   }
 
+  // Simple sales entity compare — before complex_planner (which also matches "compare")
+  if (
+    /\bcompare\b[\s\S]{0,80}\b(and|with|vs\.?|versus|aur)\b/i.test(lower) &&
+    !/\b(correlation|correlated|forecast|anomaly|predict|segment|strategy|plan my day)\b/i.test(lower)
+  ) {
+    return "sales.compare";
+  }
+
   if (COMPLEX_TRIGGERS.test(lower) || MULTI_ACTION.test(lower)) {
     return "complex_planner";
   }
@@ -159,6 +169,33 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "sales.top_store";
   }
 
+  // Sales Intelligence — filtered / compare / entity questions (before generic sales)
+  const SALES_ENTITY =
+    /\b(novell?o|ovani|ovanny|ladys?\s+ring|ladies\s+ring|gents?\s+ring|gold\s+chain|earrings?|rolex|mhvr|kma|kgs|14\s*k(?:t|arat)?|10\s*k(?:t|arat)?|18\s*k(?:t|arat)?|great\s*mall|valley\s*fair)\b/i;
+  const SALES_FOLLOWUP =
+    /\b(now by|by department|by store|by vendor|by design|by class|what about|same for|ab |hisaab|top vendor models?|top models?|break it down|lowest five|top five)\b/i;
+  const SALES_COMPARE =
+    /\bcompare\b[\s\S]{0,80}\b(and|with|vs\.?|versus|aur)\b/i;
+
+  if (
+    SALES_COMPARE.test(lower) &&
+    !/\b(correlation|forecast|anomaly|predict|segment)\b/i.test(lower)
+  ) {
+    return "sales.compare";
+  }
+
+  if (
+    (SALES_ENTITY.test(lower) || SALES_FOLLOWUP.test(lower)) &&
+    (/\b(sales|revenue|margin|discount|units?|sold|batao|dikhao|show|kitni|kitna)\b/i.test(lower) ||
+      SALES_FOLLOWUP.test(lower) ||
+      /\b(novell?o|ovani|ladys?\s+ring|mhvr)\b/i.test(lower))
+  ) {
+    if (/\b(correlation|correlated|forecast|anomaly|predict|trend model)\b/i.test(lower)) {
+      return "sales.analysis";
+    }
+    return "sales.query";
+  }
+
   if (/\b(gold|silver|metal)\b.*\b(price|rate)\b/i.test(lower) || /\bkitne ka gold\b/i.test(lower)) {
     return "news.gold";
   }
@@ -181,10 +218,20 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "email.summary";
   }
 
-  if (/\b(sales|revenue|top product|mhvr|csv report)\b/i.test(lower)) {
-    if (/\b(analyze|trend|forecast|compare)\b/i.test(lower)) return "sales.analysis";
+  if (/\b(sales|revenue|top product|mhvr|csv report|novell?o|ovani|ladys?\s+ring|discount rate|margin)\b/i.test(lower)) {
+    if (/\b(correlation|correlated|forecast|anomaly|predict|trend model|segment)\b/i.test(lower)) {
+      return "sales.analysis";
+    }
+    if (/\b(analyze|trend)\b/i.test(lower) && !SALES_ENTITY.test(lower)) {
+      return "sales.analysis";
+    }
     if (FULL_SALES_REPORT.test(lower)) return "sales.read";
-    if (/\b(store|location)\b/i.test(lower)) return "sales.top_store";
+    if (/\b(store|location)\b/i.test(lower) && !SALES_ENTITY.test(lower) && !SALES_FOLLOWUP.test(lower)) {
+      return "sales.top_store";
+    }
+    if (SALES_ENTITY.test(lower) || SALES_FOLLOWUP.test(lower) || /\b(by department|by vendor|by design|by class)\b/i.test(lower)) {
+      return "sales.query";
+    }
     return "sales.read";
   }
 
@@ -262,6 +309,8 @@ export function intentToTool(intent: RoutedIntent): string | null {
     "email.draft": "draft_email_reply",
     "sales.read": "get_today_sales",
     "sales.top_store": "get_today_sales",
+    "sales.query": "query_sales",
+    "sales.compare": "compare_sales",
     "sales.analysis": "open_data_analyst",
     "contacts.search": "list_contacts",
     "task.create": "add_task",

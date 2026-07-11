@@ -38,6 +38,13 @@ export default function SalesPage() {
   const { sendChat } = useApp();
   const searchParams = useSearchParams();
   const dateFromUrl = searchParams.get("date");
+  const storeFromUrl = searchParams.get("store");
+  const departmentFromUrl = searchParams.get("department");
+  const designFromUrl = searchParams.get("design");
+  const vendorFromUrl = searchParams.get("vendor");
+  const classFromUrl = searchParams.get("class");
+  const detailTypeFromUrl = searchParams.get("detail");
+  const detailValueFromUrl = searchParams.get("detailValue");
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
   const [dataSource, setDataSource] = useState<"mock" | "report">("mock");
@@ -48,9 +55,9 @@ export default function SalesPage() {
   const [filterDate, setFilterDate] = useState<string>(() =>
     dateFromUrl && isValidIsoDate(dateFromUrl) ? dateFromUrl : ""
   );
-  const [filterStore, setFilterStore] = useState("");
-  const [filterDepartment, setFilterDepartment] = useState("");
-  const [filterDesign, setFilterDesign] = useState("");
+  const [filterStore, setFilterStore] = useState(() => storeFromUrl ?? "");
+  const [filterDepartment, setFilterDepartment] = useState(() => departmentFromUrl ?? "");
+  const [filterDesign, setFilterDesign] = useState(() => designFromUrl ?? "");
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
 
@@ -58,7 +65,43 @@ export default function SalesPage() {
     if (dateFromUrl && isValidIsoDate(dateFromUrl) && dateFromUrl !== filterDate) {
       setFilterDate(dateFromUrl);
     }
-  }, [dateFromUrl, filterDate]);
+    if (storeFromUrl != null && storeFromUrl !== filterStore) setFilterStore(storeFromUrl);
+    if (departmentFromUrl != null && departmentFromUrl !== filterDepartment) {
+      setFilterDepartment(departmentFromUrl);
+    }
+    if (designFromUrl != null && designFromUrl !== filterDesign) setFilterDesign(designFromUrl);
+  }, [
+    dateFromUrl,
+    storeFromUrl,
+    departmentFromUrl,
+    designFromUrl,
+    filterDate,
+    filterStore,
+    filterDepartment,
+    filterDesign,
+  ]);
+
+  useEffect(() => {
+    if (
+      detailTypeFromUrl &&
+      detailValueFromUrl &&
+      ["store", "department", "vendor", "design", "class", "vendorModel"].includes(detailTypeFromUrl)
+    ) {
+      setRankDetail({
+        dimension: detailTypeFromUrl as RankDimension,
+        value: detailValueFromUrl,
+      });
+    }
+  }, [detailTypeFromUrl, detailValueFromUrl]);
+
+  // vendor/class URL params open detail when present (dashboard may not have vendor/class selects yet)
+  useEffect(() => {
+    if (vendorFromUrl) {
+      setRankDetail({ dimension: "vendor", value: vendorFromUrl });
+    } else if (classFromUrl) {
+      setRankDetail({ dimension: "class", value: classFromUrl });
+    }
+  }, [vendorFromUrl, classFromUrl]);
 
   useEffect(() => {
     const params = new URLSearchParams();

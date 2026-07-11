@@ -37,6 +37,11 @@ const FAST_READ_TOOLS = new Set([
   "get_calendar_today",
   "get_email_summary",
   "get_today_sales",
+  "query_sales",
+  "compare_sales",
+  "get_sales_entity_details",
+  "get_top_vendor_models",
+  "apply_sales_dashboard_filters",
   "list_tasks",
   "list_contacts",
   "get_metal_rates",
@@ -250,6 +255,17 @@ export async function tryRoutedResponse(
             ? { user_message: message, query: message }
             : toolName === "get_today_sales"
               ? buildSalesToolArgs(message, routed)
+              : toolName === "query_sales" ||
+                  toolName === "compare_sales" ||
+                  toolName === "get_top_vendor_models" ||
+                  toolName === "apply_sales_dashboard_filters"
+                ? { user_message: message }
+                : toolName === "get_sales_entity_details"
+                  ? {
+                      user_message: message,
+                      entity_type: "design",
+                      entity_name: message,
+                    }
               : { user_message: message };
     const result = await executeTool(toolName, args, { source: channel });
     validateToolResult(result);

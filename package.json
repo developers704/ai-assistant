@@ -14,7 +14,11 @@
     "stores:reviews": "npx tsx scripts/sync-store-reviews.ts",
     "test:stores": "npx tsx scripts/test-store-intelligence.ts",
     "test:social": "npx tsx scripts/test-social-instagram.ts",
-    "test:voice": "npx tsx scripts/test-voice-flow.ts"
+    "test:voice": "npx tsx scripts/test-voice-flow.ts",
+    "test:sales-intelligence": "npx tsx scripts/test-sales-intelligence.ts",
+    "test:sales-followups": "npx tsx scripts/test-sales-followups.ts",
+    "test:sales-voice": "npx tsx scripts/test-sales-voice.ts",
+    "test:sales-dashboard-sync": "npx tsx scripts/test-sales-dashboard-sync.ts"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.33.1-dev45.0",

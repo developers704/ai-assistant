@@ -16,6 +16,11 @@ export function intentForTool(name: string): IntentType {
     get_calendar_today: "calendar_today",
     get_email_summary: "email_summary",
     get_today_sales: "sales_report",
+    query_sales: "sales_report",
+    compare_sales: "sales_report",
+    get_sales_entity_details: "sales_report",
+    get_top_vendor_models: "sales_report",
+    apply_sales_dashboard_filters: "sales_report",
     list_tasks: "reminder_list",
     list_contacts: "general",
     get_metal_rates: "general",
@@ -73,11 +78,18 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
     }
 
     case "get_today_sales":
+    case "query_sales":
+    case "compare_sales":
+    case "get_sales_entity_details":
+    case "get_top_vendor_models":
+    case "apply_sales_dashboard_filters":
       return typeof data.synthesizedAnswer === "string"
         ? data.synthesizedAnswer
-        : typeof data.markdown === "string"
-          ? data.markdown
-          : formatSalesReportMarkdown();
+        : typeof data.textAnswer === "string"
+          ? data.textAnswer
+          : typeof data.markdown === "string"
+            ? data.markdown
+            : formatSalesReportMarkdown();
 
     case "list_tasks": {
       const tasks = (data.tasks as Array<{ title: string; dueDate: string; priority: string }>) ?? [];
