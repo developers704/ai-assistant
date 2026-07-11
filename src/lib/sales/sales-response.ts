@@ -41,7 +41,13 @@ export function formatSalesTextAnswer(result: Omit<SalesQueryResult, "spokenAnsw
     return `${result.clarification.message}${opts}`;
   }
   if (result.error) return result.error;
-  if (!result.ok && result.warnings?.length) return result.warnings.join(" ");
+
+  // Comparison-only answers (no shared AND filter slice)
+  if (result.comparison) {
+    const lines = [formatComparisonBlock(result.comparison)];
+    if (result.warnings?.length) lines.push(`_${result.warnings.join(" ")}_`);
+    return lines.join("\n\n");
+  }
 
   const s = result.summary;
   if (!s || result.availability.matchingRowCount === 0) {
@@ -57,10 +63,6 @@ export function formatSalesTextAnswer(result: Omit<SalesQueryResult, "spokenAnsw
   ];
   if (s.estimatedMargin != null) {
     lines[0] += ` Estimated margin **${money(s.estimatedMargin)}**.`;
-  }
-
-  if (result.comparison) {
-    lines.push(formatComparisonBlock(result.comparison));
   }
 
   const r = result.rankings;
@@ -131,6 +133,15 @@ export function formatSalesSpokenAnswer(result: Omit<SalesQueryResult, "spokenAn
     return `${result.clarification.message} ${result.clarification.options.slice(0, 3).join(", or ")}`.trim();
   }
   if (result.error) return result.error;
+
+  if (result.comparison) {
+    const c = result.comparison;
+    const ln = c.left.summary.netSales ?? 0;
+    const rn = c.right.summary.netSales ?? 0;
+    const scope = filterLabel(result.query.filters, result.query.resolvedDateRange);
+    return `${c.left.label} generated ${Math.round(ln).toLocaleString()} dollars in net sales versus ${Math.round(rn).toLocaleString()} at ${c.right.label} for ${scope}.`;
+  }
+
   if (!result.summary || result.availability.matchingRowCount === 0) {
     return (
       result.warnings?.[0] ??
@@ -140,13 +151,6 @@ export function formatSalesSpokenAnswer(result: Omit<SalesQueryResult, "spokenAn
 
   const s = result.summary;
   const scope = filterLabel(result.query.filters, result.query.resolvedDateRange);
-
-  if (result.comparison) {
-    const c = result.comparison;
-    const ln = c.left.summary.netSales ?? 0;
-    const rn = c.right.summary.netSales ?? 0;
-    return `${c.left.label} generated ${Math.round(ln).toLocaleString()} dollars in net sales versus ${Math.round(rn).toLocaleString()} at ${c.right.label} for ${scope}.`;
-  }
 
   const topStore = result.breakdowns?.byStore?.[0] ?? result.rankings?.topStores?.[0];
   let spoken = `For ${scope}, net sales were ${Math.round(s.netSales ?? 0).toLocaleString()} dollars from ${(s.unitsSold ?? 0).toLocaleString()} units.`;

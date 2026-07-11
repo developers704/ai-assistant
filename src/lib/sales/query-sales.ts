@@ -14,7 +14,7 @@ import type {
   SalesQueryResult,
 } from "./sales-types";
 import { DEFAULT_INCLUDE, emptyFilters, normalizeGroupBy, normalizeMetrics, wantsShow, wantsTellOnly } from "./sales-schema";
-import { buildEntityIndex, extractEntitiesFromMessage, normalizeFilterInputs, matchEntity } from "./sales-normalizer";
+import { buildEntityIndex, extractEntitiesFromMessage, extractComparisonPair, normalizeFilterInputs, matchEntity } from "./sales-normalizer";
 import { resolveDateRange } from "./sales-date-resolver";
 import { filterRows, groupRows, summarizeRows } from "./sales-aggregate";
 import { compareEntitySlices } from "./sales-comparison";
@@ -62,16 +62,30 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
   const extracted = extractEntitiesFromMessage(msg, index);
   const groupBy = input.groupBy?.length ? input.groupBy : detectGroupByFromMessage(msg);
 
-  // Comparison phrases
+  // Comparison phrases — entities go into comparison only, not AND filters
   let comparison = input.comparison;
-  const compareMatch = msg.match(
-    /\bcompare\s+(.+?)\s+(?:and|with|vs\.?|versus|aur)\s+(.+?)(?:\s+for\b|\s+on\b|[.?!]|$)/i
-  );
-  if (compareMatch && !comparison) {
+  const pair = !comparison?.entities?.length ? extractComparisonPair(msg) : null;
+  if (pair && !comparison) {
     comparison = {
       mode: "compare_entities",
-      entities: [compareMatch[1].trim(), compareMatch[2].trim()],
+      entities: [pair.left, pair.right],
     };
+  }
+
+  // When comparing two entities of the same type, strip those fields from filters
+  // so we don't AND "store=Great Mall" onto a Great Mall vs Valley Fair compare.
+  if (comparison?.entities?.length === 2) {
+    const entityType = inferCompareEntityType(
+      comparison.entities[0],
+      comparison.entities[1],
+      index
+    );
+    if (entityType === "store") delete extracted.stores;
+    if (entityType === "department") delete extracted.departments;
+    if (entityType === "design") delete extracted.designs;
+    if (entityType === "vendor") delete extracted.vendors;
+    if (entityType === "class") delete extracted.classes;
+    comparison = { ...comparison, entityType };
   }
 
   // "what about X" — replace primary entity of same type if memory had one
@@ -80,7 +94,6 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
   );
   if (whatAbout) {
     const name = whatAbout[1].trim();
-    // Skip pure group-by follow-ups like "by store"
     if (!/^by\s+/i.test(name)) {
       const asDesign = matchEntity(name, index.designs, "design");
       const asDept = matchEntity(name, index.departments, "department");
@@ -88,8 +101,12 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
       const asStore = matchEntity(name, index.stores, "store");
       if (asDesign.status === "exact" || asDesign.status === "fuzzy") {
         extracted.designs = [asDesign.value];
+        delete extracted.departments;
+        delete extracted.classes;
       } else if (asDept.status === "exact" || asDept.status === "fuzzy") {
         extracted.departments = [asDept.value];
+        delete extracted.classes;
+        delete extracted.designs;
       } else if (asVendor.status === "exact" || asVendor.status === "fuzzy") {
         extracted.vendors = [asVendor.value];
       } else if (asStore.status === "exact" || asStore.status === "fuzzy") {
@@ -449,7 +466,7 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     lastDashboardState: dashboardState,
   });
 
-  if (filtered.length === 0) {
+  if (filtered.length === 0 && !comparison) {
     warnings.push(
       `I found no matching sales for that filter combination in ${loaded.reportName ?? "the loaded report"}.`
     );

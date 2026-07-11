@@ -256,7 +256,24 @@ export function normalizeFilterInputs(
   return { filters, warnings };
 }
 
-/** Extract likely entity mentions from free text using the report index. */
+/** True if `needle` appears as a whole word/phrase in `haystack` (normalized). */
+function containsPhrase(haystack: string, needle: string): boolean {
+  const h = normalizeKey(haystack);
+  const n = normalizeKey(needle);
+  if (!n) return false;
+  if (n.length <= 3) {
+    // Short codes (EA, GM, KMA) — require token equality, never substring
+    return h.split(" ").includes(n) || h.split(" ").includes(n.replace(/-/g, ""));
+  }
+  const escaped = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  return new RegExp(`(?:^|\\s)${escaped}(?:\\s|$)`).test(h);
+}
+
+/**
+ * Extract likely entity mentions from free text using the report index.
+ * Uses word-boundary matching so short codes like "EA" / "GMS" do not
+ * falsely match inside "Great Mall" / "sales".
+ */
 export function extractEntitiesFromMessage(
   message: string,
   index: EntityIndex
@@ -275,57 +292,78 @@ export function extractEntitiesFromMessage(
     classes: string[];
   }> = {};
 
-  const tryField = (
-    known: string[],
-    key: "stores" | "departments" | "designs" | "vendors" | "classes"
-  ) => {
-    // Prefer longer names first to avoid partial collisions
+  type Hit = {
+    key: "stores" | "departments" | "designs" | "vendors" | "classes";
+    value: string;
+    score: number;
+  };
+  const hits: Hit[] = [];
+
+  const collect = (known: string[], key: Hit["key"]) => {
     const sorted = [...known].sort((a, b) => b.length - a.length);
     for (const name of sorted) {
-      const m = matchEntity(name, [name], key);
-      if (m.status !== "exact" && m.status !== "fuzzy") continue;
-      // Check if message mentions this entity (alias or name)
-      const nk = normalizeKey(name);
-      const msg = normalizeKey(message);
-      if (msg.includes(nk) || ALIAS_HINTS.some((h) => h.pattern.test(message) && h.preferIncludes.some((p) => nk.includes(normalizeKey(p))))) {
-        // For aliases, verify alias actually appears
-        const aliasHit = ALIAS_HINTS.find(
-          (h) =>
-            h.pattern.test(message) &&
-            h.preferIncludes.some((p) => nk.includes(normalizeKey(p)))
-        );
-        const direct = msg.includes(nk) || msg.includes(nk.replace(/\s/g, ""));
-        if (!direct && !aliasHit) continue;
-        if (aliasHit && !aliasHit.pattern.test(message) && !direct) continue;
-        out[key] = [name];
-        return;
-      }
+      if (!containsPhrase(message, name)) continue;
+      hits.push({ key, value: name, score: normalizeKey(name).length });
+      break; // longest match only per field
     }
-    // Alias-only pass
-    for (const hint of ALIAS_HINTS) {
-      if (!hint.pattern.test(message)) continue;
-      const hits = known.filter((k) =>
-        hint.preferIncludes.some((p) => normalizeKey(k).includes(normalizeKey(p)))
-      );
-      if (hits.length === 1) {
-        out[key] = [hits[0]];
-        return;
-      }
-      if (hits.length > 1) {
-        const best = hits
+    if (!hits.some((h) => h.key === key)) {
+      for (const hint of ALIAS_HINTS) {
+        if (!hint.pattern.test(message)) continue;
+        const matched = known.filter((k) =>
+          hint.preferIncludes.some((p) => normalizeKey(k).includes(normalizeKey(p)))
+        );
+        if (!matched.length) continue;
+        const best = matched
           .map((h) => ({ h, s: scoreMatch(hint.preferIncludes[0], h) }))
           .sort((a, b) => b.s - a.s)[0];
-        if (best) out[key] = [best.h];
-        return;
+        if (best) {
+          hits.push({ key, value: best.h, score: normalizeKey(best.h).length + 50 });
+        }
+        break;
       }
     }
   };
 
-  tryField(index.designs, "designs");
-  tryField(index.departments, "departments");
-  tryField(index.vendors, "vendors");
-  tryField(index.classes, "classes");
-  tryField(index.stores, "stores");
+  collect(index.departments, "departments");
+  collect(index.designs, "designs");
+  collect(index.stores, "stores");
+  collect(index.vendors, "vendors");
+  collect(index.classes, "classes");
+
+  // Drop weaker/substring collisions (e.g. class "LADYS" when department "LADYS RING" matched)
+  hits.sort((a, b) => b.score - a.score);
+  const accepted: Hit[] = [];
+  for (const hit of hits) {
+    const nk = normalizeKey(hit.value);
+    const dominated = accepted.some((a) => {
+      const an = normalizeKey(a.value);
+      return an !== nk && (an.includes(nk) || nk.includes(an));
+    });
+    if (dominated) continue;
+    if (accepted.some((a) => a.key === hit.key)) continue;
+    accepted.push(hit);
+  }
+
+  for (const hit of accepted) {
+    out[hit.key] = [hit.value];
+  }
 
   return out;
+}
+
+/** Parse "compare A and/aur/vs B" entity pair from a message. */
+export function extractComparisonPair(message: string): { left: string; right: string } | null {
+  const m = message.match(
+    /\bcompare\s+(.+?)\s+(?:and|with|vs\.?|versus|aur)\s+(.+?)(?:\s+for\b|\s+on\b|[.?!]|$)/i
+  );
+  if (!m) return null;
+  const clean = (s: string) =>
+    s
+      .replace(/\b(sales?|revenue|net|figures?|numbers?|ki|ke|ka)\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const left = clean(m[1]);
+  const right = clean(m[2]);
+  if (!left || !right) return null;
+  return { left, right };
 }
