@@ -90,7 +90,7 @@ export function TopProductsTable({
                   {model}
                 </span>
 
-                <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words whitespace-normal sm:col-span-1 col-span-full -mt-1 sm:mt-0">
+                <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words whitespace-normal line-clamp-3 sm:col-span-1 col-span-full -mt-1 sm:mt-0">
                   {displayName}
                   {product.itemNumber && product.vendorModel && (
                     <span className="block text-[11px] text-ink-muted/80 mt-1 font-mono font-normal tracking-normal">

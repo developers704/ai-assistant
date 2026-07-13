@@ -276,7 +276,9 @@ export function RankDetailDrawer({
                         }
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] text-ink/95 font-medium leading-snug tracking-[0.01em] truncate">{label}</p>
+                        <p className="text-[13px] text-ink/95 font-medium leading-snug tracking-[0.01em] line-clamp-2">
+                          {label}
+                        </p>
                         <p className="text-[11px] font-mono text-cyan-300/80">
                           {m.vendorModel}
                         </p>
@@ -311,7 +313,7 @@ export function RankDetailDrawer({
                     )}
                   >
                     <div className="flex justify-between gap-2">
-                      <p className="text-[13px] text-ink/95 font-medium leading-snug tracking-[0.01em] truncate">
+                      <p className="text-[13px] text-ink/95 font-medium leading-snug tracking-[0.01em] line-clamp-2">
                         {formatProductDisplayName(row.description)}
                       </p>
                       <span className="tabular-nums text-ink shrink-0">

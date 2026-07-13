@@ -150,15 +150,20 @@ export function formatProductDisplayName(name: string): string {
   );
   s = s.replace(/\b(igi|gia|cz|uv|pc)\b/gi, (m) => m.toUpperCase());
   s = s.replace(/\b(\d+(?:\.\d+)?)\s*ct\b/gi, "$1ct");
+  // Fix common POS misspellings before brand casing
+  s = s.replace(/\bowani\b/gi, "Ovani");
   // Known brand / design tokens from Valliani POS
   s = s.replace(
-    /\b(linknlock|novello|ovani|love-spell|love spell|labgrown|lab grown)\b/gi,
+    /\b(linknlock|link\s*n\s*lock|novello|ovani|diani|aanika|love-spell|love spell|lab-?grown|lab grown)\b/gi,
     (m) => {
-      const key = m.toLowerCase().replace(/\s+/g, "-");
+      const key = m.toLowerCase().replace(/\s+/g, "-").replace(/-+/g, "-");
       const map: Record<string, string> = {
         linknlock: "LinknLock",
+        "link-n-lock": "LinknLock",
         novello: "Novello",
-        ovani: "Owani",
+        ovani: "Ovani",
+        diani: "Diani",
+        aanika: "Aanika",
         "love-spell": "Love-Spell",
         labgrown: "Lab-Grown",
         "lab-grown": "Lab-Grown",
@@ -166,6 +171,13 @@ export function formatProductDisplayName(name: string): string {
       return map[key] ?? m;
     }
   );
+
+  // Tighten collection / atelier labels
+  s = s.replace(/-Collection\b/gi, " Collection");
+  s = s.replace(/-Atelier\b/gi, " Atelier");
+
+  // Tighten spacing around punctuation leftovers
+  s = s.replace(/\s{2,}/g, " ").trim();
 
   return s;
 }
