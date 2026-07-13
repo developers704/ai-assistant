@@ -29,6 +29,7 @@ STRICT RULES — accuracy is critical, business decisions depend on it:
 5. "Selling" metrics: prefer a revenue/amount column if one exists, otherwise quantity/units. State which metric you used in "explanation".
 6. Aggregate with SUM/COUNT/AVG/MIN/MAX as appropriate and GROUP BY the dimension columns. Give aggregates clear aliases (e.g. SUM("Revenue") AS total_revenue).
 7. Dates: if a date-like column is stored as text, convert with try_cast(... AS DATE) or strptime. For monthly grouping use strftime(<date>, '%Y-%m') AS period. For daily use strftime(<date>, '%Y-%m-%d'). Always GROUP BY and ORDER BY the period ascending.
+7a. DATE YEAR RESOLUTION (critical): When the user says a day/month WITHOUT a year (e.g. "10 July", "July 10", "7/10"), you MUST use the year from the date column's dateMin/dateMax in the schema — NEVER invent 2023/2024 or any year outside the data range. If dateMin/dateMax span one year, use that year. Prefer the year of dateMax when ambiguous. "today"/"yesterday" use the schema "today" field. Example: data range 2026-07-01..2026-07-12 and user says "10 july" → filter DATE '2026-07-10'.
 8. Text filters should be robust: use case-insensitive matching, e.g. lower("Category") LIKE '%ring%'.
 9. FORECASTING: if the user asks to forecast/predict/project future values, set taskType="forecast". The SQL must return exactly two columns: the period (formatted as in rule 7) and the aggregated numeric value, ordered by period ascending, covering ALL available history. Set forecastPeriods to the number of future periods requested (default 6). Set chartType="line".
 10. Chart choice: bar for rankings/comparisons, line/area for trends over time, pie for share-of-total with <= 10 groups, none for single values or wide detail tables. xKey/yKeys must be aliases that appear in the SQL result.
@@ -96,11 +97,9 @@ export async function POST(req: NextRequest) {
     { role: "system", content: SYSTEM_PROMPT },
     {
       role: "user",
-      content: `Table "data" schema (${body.schema.rowCount} rows):\n${JSON.stringify(
-        body.schema.columns,
-        null,
-        2
-      )}`,
+      content: `Table "data" schema (${body.schema.rowCount} rows)${
+        body.schema.today ? `; today=${body.schema.today}` : ""
+      }:\n${JSON.stringify(body.schema.columns, null, 2)}\n\nWhen filtering dates without an explicit year, use the year from dateMin/dateMax on date columns (never invent years outside that range).`,
     },
   ];
 

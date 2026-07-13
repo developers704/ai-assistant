@@ -240,6 +240,25 @@ export async function loadCSVFromText(fileName: string, text: string): Promise<T
       }
     }
 
+    const dateCols = describe.filter((c) => kindFromDuckType(c.type) === "date");
+    const dateBounds = new Map<string, { min: string; max: string }>();
+    for (const col of dateCols) {
+      const q = quoteIdent(col.name);
+      try {
+        const boundsRes = await conn.query(
+          `SELECT min(${q})::VARCHAR AS mn, max(${q})::VARCHAR AS mx FROM data WHERE ${q} IS NOT NULL`
+        );
+        const row = boundsRes.toArray()[0]?.toJSON() as Record<string, unknown> | undefined;
+        const mn = row?.mn != null ? String(normalizeValue(row.mn)).slice(0, 10) : "";
+        const mx = row?.mx != null ? String(normalizeValue(row.mx)).slice(0, 10) : "";
+        if (/^\d{4}-\d{2}-\d{2}$/.test(mn) && /^\d{4}-\d{2}-\d{2}$/.test(mx)) {
+          dateBounds.set(col.name, { min: mn, max: mx });
+        }
+      } catch {
+        // skip unbound date columns
+      }
+    }
+
     const columns: ColumnInfo[] = describe.map((c, i) => {
       const samples: string[] = [];
       for (const row of previewRows) {
@@ -250,6 +269,7 @@ export async function loadCSVFromText(fileName: string, text: string): Promise<T
       }
       const conversion = conversions.notes.get(c.name);
       const distincts = distinctValues.get(c.name);
+      const bounds = dateBounds.get(c.name);
       return {
         name: c.name,
         type: c.type,
@@ -260,6 +280,7 @@ export async function loadCSVFromText(fileName: string, text: string): Promise<T
           ? { convertedFrom: "text" as const, conversionFailures: conversion.failed }
           : {}),
         ...(distincts ? { distinctValues: distincts } : {}),
+        ...(bounds ? { dateMin: bounds.min, dateMax: bounds.max } : {}),
       };
     });
 

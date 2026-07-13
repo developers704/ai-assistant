@@ -12,6 +12,9 @@ export interface ColumnInfo {
   conversionFailures?: number;
   /** Complete list of distinct values, for low-cardinality text columns (categories). */
   distinctValues?: string[];
+  /** Inclusive min/max for date columns (ISO YYYY-MM-DD). */
+  dateMin?: string;
+  dateMax?: string;
 }
 
 export interface TableSchema {
@@ -60,6 +63,8 @@ export interface AnalystMessage {
 /** Compact schema representation sent to the LLM (never the full data). */
 export interface SchemaForLLM {
   rowCount: number;
+  /** Calendar "today" in the app timezone (YYYY-MM-DD) — use when user says today/yesterday. */
+  today?: string;
   columns: {
     name: string;
     type: string;
@@ -67,18 +72,27 @@ export interface SchemaForLLM {
     samples: string[];
     /** Present when the column is a category with a known, complete value list. */
     allValues?: string[];
+    /** Inclusive date bounds for date columns (ISO YYYY-MM-DD). */
+    dateMin?: string;
+    dateMax?: string;
   }[];
 }
 
-export function toSchemaForLLM(schema: TableSchema): SchemaForLLM {
+export function toSchemaForLLM(schema: TableSchema, today?: string): SchemaForLLM {
+  const todayIso =
+    today ??
+    new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
   return {
     rowCount: schema.rowCount,
+    today: todayIso,
     columns: schema.columns.map((c) => ({
       name: c.name,
       type: c.type,
       kind: c.kind,
       samples: c.sampleValues.slice(0, 5),
       ...(c.distinctValues ? { allValues: c.distinctValues } : {}),
+      ...(c.dateMin ? { dateMin: c.dateMin } : {}),
+      ...(c.dateMax ? { dateMax: c.dateMax } : {}),
     })),
   };
 }
