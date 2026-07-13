@@ -19,7 +19,13 @@ export type VoicePrefetchIntent =
   | "store_nearest"
   | "store_directory"
   | "settings"
-  | "navigation";
+  | "navigation"
+  | "session_control";
+
+/** Deterministic-only intents when ALEXA_LIMITED_VOICE_FASTPATH is on. */
+export type VoiceFastPathOnly =
+  | "navigation"
+  | "session_control";
 
 /** Fix common Realtime speech-to-text mishearings before intent detection. */
 export function normalizeVoiceTranscript(text: string): string {
@@ -31,7 +37,43 @@ export function normalizeVoiceTranscript(text: string): string {
   t = t.replace(/make a graph/gi, "make a draft");
   t = t.replace(/draft (?:of )?this seen/gi, "draft of this email");
   t = t.replace(/this scene/gi, "this email");
+  t = t.replace(/\bnovelo\b/gi, "novello");
+  t = t.replace(/\bgray mall\b/gi, "great mall");
   return t;
+}
+
+/**
+ * Limited fast-path: stop/cancel/mute/open-section only.
+ * Complex business requests must go through the Realtime model / orchestrator.
+ */
+export function detectLimitedVoiceFastPath(text: string): VoicePrefetchIntent | null {
+  const lower = normalizeVoiceTranscript(text).toLowerCase().trim();
+  if (!lower) return null;
+
+  if (
+    /^(stop|cancel|never\s*mind|nevermind|shut up|be quiet|end (?:the )?(?:session|call)|mute|unmute|go back)\b/i.test(
+      lower
+    )
+  ) {
+    return "session_control";
+  }
+
+  if (
+    /^(yes|yeah|yep|confirm|do it|go ahead|send it|please send)\.?$/i.test(lower) ||
+    /^(no|nope|reject|don't|do not)\.?$/i.test(lower)
+  ) {
+    return "session_control";
+  }
+
+  if (
+    /^(open|go to|show|take me to)\s+(the\s+)?(stores?(?:\s+map)?|sales|calendar|email|chat|contacts|images|news|analyst|calculator|settings|social)\b/i.test(
+      lower
+    )
+  ) {
+    return "navigation";
+  }
+
+  return null;
 }
 
 export function extractTaskQuery(text: string): string | null {
@@ -99,6 +141,11 @@ const CALENDAR_READ =
   /(?:what'?s|whats|show|list|view|see|tell me)\b[\s\S]{0,40}\b(?:today|tomorrow|my)?\s*(?:schedule|calendar|calender|meetings?|appointments?|events?)\b/i;
 
 export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
+  // When limited fast-path is enabled (env), only deterministic commands bypass the model.
+  if (process.env.ALEXA_LIMITED_VOICE_FASTPATH === "true") {
+    return detectLimitedVoiceFastPath(text);
+  }
+
   const lower = normalizeVoiceTranscript(text).toLowerCase().trim();
   if (!lower) return null;
 

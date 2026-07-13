@@ -22,11 +22,22 @@ function missingTopicMessage(query: string): string | null {
   const focus = detectPolicyFocus(query);
   if (focus === "privacy") {
     return (
-      "I don't have Valliani Jewelers' **privacy policy** in the loaded company knowledge. " +
-      "Please check [vallianijewelers.com](https://www.vallianijewelers.com) or email orders@vallianijewelers.com."
+      "I couldn't load the privacy policy from company knowledge right now. " +
+      "Please check https://www.vallianijewelers.com or email orders@vallianijewelers.com."
     );
   }
   return null;
+}
+
+const PRIVACY_POLICY_CHUNK_ID = "vj_privacy_policy";
+
+/** General “show privacy policy” asks → full summary; niche terms use retrieval. */
+function isFullPrivacyPolicyQuery(query: string): boolean {
+  const q = query.toLowerCase();
+  if (detectPolicyFocus(query) !== "privacy") return false;
+  return !/\b(ccpa|cpra|cookie|children|retention|california|opt[- ]?out|delete|deletion)\b/i.test(
+    q
+  );
 }
 
 const OVERVIEW_SECTION_IDS = [
@@ -95,6 +106,17 @@ export function buildCompanyKnowledgeAnswer(query: string): {
       chunkCount: OVERVIEW_SECTION_IDS.length,
       mode: "overview",
     };
+  }
+
+  if (isFullPrivacyPolicyQuery(query)) {
+    const main = loadAllRagChunks().find((c) => c.id === PRIVACY_POLICY_CHUNK_ID);
+    if (main) {
+      return {
+        markdown: `**${main.title}**\n\n${cleanChunkText(main)}`,
+        chunkCount: 1,
+        mode: "retrieved",
+      };
+    }
   }
 
   // Let retrieveKnowledge pick a focused topK (1–2 for specific policies).

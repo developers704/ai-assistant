@@ -7,13 +7,9 @@ import { getState, setState, clearChatHistory } from "@/lib/store/server-store";
 import { getEnrichedState, applyGoogleCacheToState, getIntegrationsMeta } from "@/lib/google/sync";
 
 import {
-
   processMessage,
-
   executeSideEffects,
-
   shouldUseRuleEngine,
-
 } from "@/lib/ai/assistant-engine";
 
 import { isLLMChatConfigured, processMessageWithLLM } from "@/lib/ai/llm-chat";
@@ -21,20 +17,55 @@ import { isImageGenerateRequest } from "@/lib/images/generate-jewellery-image";
 import { processImageGenerate } from "@/lib/ai/image-generate";
 
 import { processAlexaMessage } from "@/lib/ai/process-message";
+import { processAlexaTurn } from "@/lib/alexa/orchestrator";
+import { AlexaFlags } from "@/lib/alexa/flags";
 import { appendConversationSummary } from "@/lib/memory/store";
 import type { AIResponse, ChatMessage } from "@/types";
-
-
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-
-
 async function resolveResponse(
   message: string,
   state: Awaited<ReturnType<typeof getEnrichedState>>
-): Promise<{ response: AIResponse; engine: "rules" | "llm" | "llm-fallback" | "router" }> {
+): Promise<{
+  response: AIResponse;
+  engine: "rules" | "llm" | "llm-fallback" | "router" | "orchestrator";
+}> {
+  // Unified orchestrator path (feature-flagged)
+  if (AlexaFlags.unifiedOrchestrator()) {
+    const turn = await processAlexaTurn({
+      channel: "chat",
+      conversationId: "chat-main",
+      message,
+      currentRoute: state.uiContext?.currentPath,
+    });
+
+    if (!turn.deferToLegacy && turn.textAnswer) {
+      return {
+        response: {
+          intent: "general",
+          message: turn.textAnswer,
+          speak: true,
+          pendingAction: state.pendingActions[0],
+          data: turn.uiAction?.route
+            ? {
+                navigate: turn.uiAction.route,
+                filters: turn.uiAction.filters,
+                alexaDomain: turn.intent.domain,
+                alexaAction: turn.intent.action,
+              }
+            : {
+                alexaDomain: turn.intent.domain,
+                alexaAction: turn.intent.action,
+              },
+        },
+        engine: "orchestrator",
+      };
+    }
+    // deferToLegacy → continue into legacy chain once
+  }
+
   const routed = await processAlexaMessage(message, state);
   if (routed) {
     return { response: routed, engine: "router" };

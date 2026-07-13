@@ -1,0 +1,11 @@
+export { processAlexaTurn } from "@/lib/alexa/orchestrator";
+export { AlexaFlags } from "@/lib/alexa/flags";
+export * from "@/lib/alexa/types";
+export { normalizeAlexaInput } from "@/lib/alexa/input-normalizer";
+export { resolveAlexaIntent } from "@/lib/alexa/intent-resolver";
+export { resolveEntitiesFromText } from "@/lib/alexa/entity-resolver";
+export { selectRelevantTools, pickPrimaryTool } from "@/lib/alexa/tool-selector";
+export { evaluateActionPolicy } from "@/lib/alexa/policy-engine";
+export { composeAlexaResponse } from "@/lib/alexa/response-composer";
+export { resolveNavigation, SECTION_ROUTES } from "@/lib/alexa/navigation-resolver";
+export { isLiveDataIntent, assertRagAllowed } from "@/lib/alexa/rag-guard";

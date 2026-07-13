@@ -256,6 +256,7 @@ export async function executeConfirmedPending(
 }
 
 export function getChatOpenAITools(): OpenAI.ChatCompletionTool[] {
+  // Schemas come from TOOL_DEFINITIONS — same source as canonical-registry.
   return Array.from(TOOL_BY_NAME.values())
     .filter((t) => t.allowedInChat)
     .map((t) => ({
@@ -274,6 +275,7 @@ export function getVoiceOpenAITools(): Array<{
   description: string;
   parameters: Record<string, unknown>;
 }> {
+  // Schemas come from TOOL_DEFINITIONS — same source as canonical-registry.
   return Array.from(TOOL_BY_NAME.values())
     .filter((t) => t.allowedInVoice)
     .map((t) => ({

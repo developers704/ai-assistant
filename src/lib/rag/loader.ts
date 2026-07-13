@@ -6,6 +6,18 @@ const KNOWLEDGE_DIR = path.join(process.cwd(), "data", "knowledge", "valliani");
 
 let cachedChunks: RagChunk[] | null = null;
 let cachedConfig: RagIngestionConfig | null = null;
+let cachedChunksMtime = 0;
+
+function knowledgeMtime(): number {
+  const files = ["chunks.jsonl", "faq_pairs.jsonl", "rag_ingestion_config.json"];
+  let latest = 0;
+  for (const name of files) {
+    const filePath = path.join(KNOWLEDGE_DIR, name);
+    if (!fs.existsSync(filePath)) continue;
+    latest = Math.max(latest, fs.statSync(filePath).mtimeMs);
+  }
+  return latest;
+}
 
 function readJsonl<T>(filename: string): T[] {
   const filePath = path.join(KNOWLEDGE_DIR, filename);
@@ -19,7 +31,8 @@ function readJsonl<T>(filename: string): T[] {
 }
 
 export function loadRagConfig(): RagIngestionConfig {
-  if (cachedConfig) return cachedConfig;
+  const mtime = knowledgeMtime();
+  if (cachedConfig && mtime === cachedChunksMtime) return cachedConfig;
   const configPath = path.join(KNOWLEDGE_DIR, "rag_ingestion_config.json");
   if (!fs.existsSync(configPath)) {
     cachedConfig = { retrieval: { top_k: 5 } };
@@ -30,7 +43,8 @@ export function loadRagConfig(): RagIngestionConfig {
 }
 
 export function loadAllRagChunks(): RagChunk[] {
-  if (cachedChunks) return cachedChunks;
+  const mtime = knowledgeMtime();
+  if (cachedChunks && mtime === cachedChunksMtime) return cachedChunks;
 
   const rawChunks = readJsonl<Omit<RagChunk, "source">>("chunks.jsonl");
   const faqs = readJsonl<RagFaqPair>("faq_pairs.jsonl");
@@ -50,6 +64,9 @@ export function loadAllRagChunks(): RagChunk[] {
   }));
 
   cachedChunks = [...fromChunks, ...fromFaqs];
+  cachedChunksMtime = mtime;
+  // Config may have changed with the same knowledge refresh.
+  cachedConfig = null;
   return cachedChunks;
 }
 

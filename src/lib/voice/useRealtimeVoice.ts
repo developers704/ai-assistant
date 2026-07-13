@@ -58,6 +58,7 @@ export function useRealtimeVoice(enabled: boolean) {
   const turnCountRef = useRef(0);
   const sessionActiveRef = useRef(false);
   const processingToolRef = useRef(false);
+  const executedToolCallIdsRef = useRef<Set<string>>(new Set());
   const processingResponseRef = useRef(false);
   const pendingResponseRef = useRef(false);
   const responseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -578,6 +579,7 @@ export function useRealtimeVoice(enabled: boolean) {
     sessionStartRef.current = null;
     turnCountRef.current = 0;
     processingToolRef.current = false;
+    executedToolCallIdsRef.current.clear();
   }, [clearResponseTimer, disableMic, stopLevelMeter]);
 
   const disconnect = useCallback(() => {
@@ -611,6 +613,21 @@ export function useRealtimeVoice(enabled: boolean) {
     async (name: string, callId: string, argsJson: string) => {
       const dc = dcRef.current;
       if (!dc || processingToolRef.current) return;
+
+      // Duplicate Realtime tool-call protection
+      if (executedToolCallIdsRef.current.has(callId)) {
+        sendEvent(dc, {
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify({ success: true, spokenAnswer: "Already handled.", duplicate: true }),
+          },
+        });
+        return;
+      }
+      executedToolCallIdsRef.current.add(callId);
+
       processingToolRef.current = true;
       setStatus("thinking");
       disableMic();
@@ -619,7 +636,7 @@ export function useRealtimeVoice(enabled: boolean) {
         const res = await fetch("/api/voice/tools", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, arguments: argsJson, callId }),
+          body: JSON.stringify({ name, arguments: argsJson, call_id: callId }),
         });
         const data = await res.json();
         applyUiAction(data.uiAction as VoiceUiAction | undefined);

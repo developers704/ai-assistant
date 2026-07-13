@@ -82,6 +82,17 @@ const PAGE_PATHS: Record<string, string> = {
   social: "/social",
 };
 
+/** Prefer canonical APP_SECTIONS routes when available. */
+function resolvePagePath(page: string): string {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { resolveSectionRoute } = require("@/lib/alexa/navigation-resolver") as typeof import("@/lib/alexa/navigation-resolver");
+    return resolveSectionRoute(page) ?? PAGE_PATHS[page] ?? "/chat";
+  } catch {
+    return PAGE_PATHS[page] ?? "/chat";
+  }
+}
+
 function formatInstagramDate(iso?: string | null): string {
   if (!iso) return "unknown date";
   const d = new Date(iso);
@@ -1289,7 +1300,7 @@ export async function executeVoiceTool(
 
     case "show_detail_page": {
       const page = String(args.page ?? "chat");
-      const path = PAGE_PATHS[page] ?? "/chat";
+      const path = resolvePagePath(page);
       return {
         output: JSON.stringify({ opened: page, path, spokenAnswer: `Opening ${page}.` }),
         uiAction: { type: "navigate", path },

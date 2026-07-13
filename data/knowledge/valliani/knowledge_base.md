@@ -45,6 +45,14 @@ Main online return address: Valliani Jewelers, 302 Great Mall Drive, Milpitas, C
 
 Metadata: `{"company": "Valliani Jewelers", "source_file": "Vallaini Company Overview.docx", "source_type": "company_overview_docx", "language": "en", "freshness": "verify live store list and policies against official website before production use", "tags": ["returns", "address"], "answer_policy": "answer directly using this source; avoid adding facts not in source"}`
 
+## Privacy Policy Summary
+
+Effective Date: March 28, 2026.
+
+Valliani Jewelers respects customer privacy and protects personal information collected through its website, online services, purchases, and customer interactions. Valliani does not sell personal information. Payments are processed by third-party PCI-compliant providers; full card details are not stored. Customers may request access, correction, deletion, and related rights under applicable law (including CCPA/CPRA for California residents). See company knowledge chunk `vj_privacy_policy` for the full summary sections (collection, use, sharing, cookies, retention, security, children’s privacy, international users, and policy updates).
+
+Metadata: `{"company": "Valliani Jewelers", "source_file": "Privacy Policy Summary 2026-03-28", "source_type": "privacy_policy", "language": "en", "freshness": "effective 2026-03-28", "tags": ["privacy", "policy", "ccpa", "cookies"], "answer_policy": "Answer using this privacy policy summary only; do not invent additional privacy terms."}`
+
 ## Location answer guardrail
 
 Valliani Jewelers serves customers across California, Texas, Arizona, and Nevada. Because official pages and third-party sources may show different counts, chatbot responses should say: 'Valliani Jewelers has multiple store locations across California, Texas, Arizona, and Nevada. Please use our Find a Store page for the most current location list.' Find Store page: https://www.vallianijewelers.com/pages/find-your-location

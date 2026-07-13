@@ -28,7 +28,7 @@
     "Preserve product taxonomy abbreviations exactly unless a business glossary confirms expansions.",
     "When policies conflict, official website and latest policy pages should outrank this overview document.",
     "Answer only the policy the user asked for. Never substitute return/shipping for privacy, or dump unrelated policy sections.",
-    "If privacy policy is not in retrieved sources, say it is unavailable in company knowledge and point to the website/support — do not invent one."
+    "When answering privacy questions, use the Privacy Policy Summary (effective March 28, 2026) from company knowledge."
   ],
   "suggested_answer_style": "Direct answer first, then concise supporting detail. For a specific policy request, answer that policy only. For uncertain or changing facts, recommend checking the official link or support contact."
 }
