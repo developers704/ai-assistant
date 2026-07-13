@@ -15,10 +15,31 @@ interface ChatBubbleProps {
   onEdit?: (updates: { preview: string; subject?: string }) => Promise<boolean> | boolean;
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+const LINK_CLASS =
+  "text-violet-300 underline underline-offset-2 hover:text-violet-200 break-all";
+
 function renderMarkdown(text: string) {
   const lines = text.split("\n");
   return lines.map((line, i) => {
-    let content = line;
+    let content = escapeHtml(line);
+    // [label](https://...)
+    content = content.replace(
+      /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+      `<a href="$2" target="_blank" rel="noopener noreferrer" class="${LINK_CLASS}">$1</a>`
+    );
+    // Bare https URLs (skip ones already inside href=")
+    content = content.replace(
+      /(^|[\s(])(https?:\/\/[^\s<]+)/g,
+      `$1<a href="$2" target="_blank" rel="noopener noreferrer" class="${LINK_CLASS}">$2</a>`
+    );
     content = content.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-ink">$1</strong>');
     content = content.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
     if (line.startsWith("• ") || line.startsWith("- ")) {
