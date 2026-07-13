@@ -49,7 +49,6 @@ export default function SalesPage() {
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
   const [dataSource, setDataSource] = useState<"mock" | "report">("mock");
   const [refreshNonce, setRefreshNonce] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [availableStores, setAvailableStores] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
@@ -182,23 +181,11 @@ export default function SalesPage() {
   const isStoreSalesReport =
     reportSummary?.schema === "store_sales" || reportSummary?.reportCategory === "sales";
 
-  const subtitleDate =
-    filterDate && reportSummary?.dateRange
-      ? formatReportDateDisplay(filterDate)
-      : reportSummary?.dateRange
-        ? formatReportDateRange(reportSummary.dateRange.from, reportSummary.dateRange.to)
-        : null;
-
-  const pageSubtitle =
-    dataSource === "report" && reportSummary?.reportLabel
-      ? subtitleDate
-        ? `${reportSummary.reportLabel} · ${subtitleDate}`
-        : reportSummary.reportLabel
-      : isFinancingReport
-        ? "Payment mix, financing programs, and store performance"
-        : isStoreSalesReport
-          ? "Company-wide store sales · departments, vendors & designs"
-          : "Daily performance · Valliani Jewelers";
+  const pageSubtitle = isFinancingReport
+    ? "Payment mix, financing programs, and store performance"
+    : isStoreSalesReport
+      ? "Company-wide store sales · departments, vendors & designs"
+      : "Daily performance · Valliani Jewelers";
 
   const maxTopStoreRevenue = Math.max(...summary.topStores.map((s) => s.revenue), 1);
 
@@ -300,26 +287,6 @@ export default function SalesPage() {
                 {dataSource === "report" && (
                   <Badge variant="success">Live report</Badge>
                 )}
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={refreshing}
-                  onClick={async () => {
-                    setRefreshing(true);
-                    try {
-                      await fetch("/api/sales/refresh", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ force: true }),
-                      });
-                      setRefreshNonce((n) => n + 1);
-                    } finally {
-                      setRefreshing(false);
-                    }
-                  }}
-                >
-                  {refreshing ? "Refreshing…" : "Refresh Sales Data"}
-                </Button>
                 <Button size="sm" onClick={() => sendChat("Show me today's sales across all stores")}>
                   Ask Assistant
                 </Button>
