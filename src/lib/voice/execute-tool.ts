@@ -57,6 +57,10 @@ import {
 import { draftInstagramCaption, draftCommentReply } from "@/lib/social/instagram-drafts";
 import { sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import { resolveMeetingToolArgs } from "@/lib/ai/meeting-parse";
+import { openingSpokenForSection, APP_SECTIONS, type AppSectionId } from "@/lib/ai/app-map";
+import { updateUiContext } from "@/lib/store/ui-context";
+import { buildSectionContextBlock, buildSectionRuntimeContext } from "@/lib/ai/section-context";
+import { updateWorkingMemory } from "@/lib/memory/working-memory";
 import type { CalendarEvent, Contact, Reminder } from "@/types";
 
 import type { VoiceUiAction } from "@/lib/voice/types";
@@ -1002,6 +1006,18 @@ export async function executeVoiceTool(
 
     case "open_data_analyst": {
       const userMessage = args.user_message ? String(args.user_message) : undefined;
+      const openOnly =
+        !userMessage ||
+        /^(?:please\s+)?(?:open|go to|take me to|show(?:\s+me)?)\b/i.test(userMessage.trim());
+      if (openOnly) {
+        return {
+          output: JSON.stringify({
+            spokenAnswer: openingSpokenForSection("analyst"),
+            hasReport: getAssistantSalesSummary().source === "report",
+          }),
+          uiAction: { type: "navigate", path: "/analyst" },
+        };
+      }
       const script = buildAnalystReportScript(userMessage);
       return {
         output: JSON.stringify({
@@ -1260,7 +1276,11 @@ export async function executeVoiceTool(
 
     case "open_social_dashboard": {
       return {
-        output: JSON.stringify({ opened: "social", path: "/social", spokenAnswer: "Opening the Social dashboard." }),
+        output: JSON.stringify({
+          opened: "social",
+          path: "/social",
+          spokenAnswer: openingSpokenForSection("social"),
+        }),
         uiAction: { type: "navigate", path: "/social" },
       };
     }
@@ -1301,8 +1321,26 @@ export async function executeVoiceTool(
     case "show_detail_page": {
       const page = String(args.page ?? "chat");
       const path = resolvePagePath(page);
+      const spokenAnswer = openingSpokenForSection(page);
+      updateUiContext({ currentPath: path, lastOpenedPage: path });
+      updateWorkingMemory({ currentPage: path, lastTopic: page });
+      const state = getState();
+      const sectionCtx = buildSectionRuntimeContext(state);
+      const sectionBrief = buildSectionContextBlock(sectionCtx);
+      const section = APP_SECTIONS[page as AppSectionId];
       return {
-        output: JSON.stringify({ opened: page, path, spokenAnswer: `Opening ${page}.` }),
+        output: JSON.stringify({
+          opened: page,
+          path,
+          spokenAnswer,
+          // For the model only — do NOT speak this; use on follow-up questions.
+          sectionBrief,
+          availableData: section?.availableData ?? [],
+          relatedTools: section?.relatedTools ?? [],
+          speakOnly: spokenAnswer,
+          instruction:
+            "Speak ONLY the spokenAnswer line. Do not summarize the section. On later questions while here, use relatedTools and sectionBrief.",
+        }),
         uiAction: { type: "navigate", path },
       };
     }

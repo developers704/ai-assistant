@@ -17,6 +17,7 @@ import {
 } from "@/lib/actions/confirmation";
 import { getState } from "@/lib/store/server-store";
 import { resolveMeetingToolArgs } from "@/lib/ai/meeting-parse";
+import { openingSpokenForSection } from "@/lib/ai/app-map";
 
 function parseLegacyOutput(output: string): Record<string, unknown> {
   try {
@@ -197,8 +198,12 @@ export async function executeConfirmedPending(
       toolName: "show_detail_page",
       status: "success",
       confidence: 1,
-      spokenAnswer: `Opening ${pending.preview}.`,
-      textAnswer: `Opening **${pending.preview}** for you.`,
+      spokenAnswer: openingSpokenForSection(
+        String(pending.payload.sectionId ?? pending.preview ?? "chat")
+      ),
+      textAnswer: openingSpokenForSection(
+        String(pending.payload.sectionId ?? pending.preview ?? "chat")
+      ),
       navigateTo: path,
     };
   }

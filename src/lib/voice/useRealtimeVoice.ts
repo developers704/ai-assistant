@@ -337,8 +337,8 @@ export function useRealtimeVoice(enabled: boolean) {
             await runTool(
               "show_detail_page",
               { page },
-              "The user asked to OPEN A PAGE. Navigate them there and give a VERY BRIEF 1 sentence confirmation. Say exactly this:",
-              80
+              "The user asked to OPEN A PAGE. Speak ONLY the spokenAnswer from the tool — one short Opening line, no summary. Say exactly this:",
+              60
             );
             return;
           } catch {
@@ -488,7 +488,7 @@ export function useRealtimeVoice(enabled: boolean) {
       sendEvent(dc, {
         type: "response.create",
         response: {
-          instructions: `${STOP_INSTRUCTION}\n\nUse ONE appropriate tool for what the user asked. If they ask to see a section, use the \`show_detail_page\` tool to navigate them there. After speaking the result, stop. Keep your answer VERY BRIEF (1-2 sentences) unless asked for details. Never ask follow-up questions or take extra actions while the user is silent.`,
+          instructions: `${STOP_INSTRUCTION}\n\nUse ONE appropriate tool for what the user asked. If they ask to OPEN a section, use \`show_detail_page\` and speak ONLY the Opening line from the tool — no summary. After a section is open, answer follow-ups with that section's tools (especially Sales, News & Markets, Email). Keep answers brief unless asked for details. Never ask follow-up questions or take extra actions while the user is silent.`,
           max_output_tokens: 220,
         },
       });

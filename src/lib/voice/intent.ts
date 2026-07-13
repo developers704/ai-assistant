@@ -65,15 +65,28 @@ export function detectLimitedVoiceFastPath(text: string): VoicePrefetchIntent | 
     return "session_control";
   }
 
-  if (
-    /^(open|go to|show|take me to)\s+(the\s+)?(stores?(?:\s+map)?|sales|calendar|email|chat|contacts|images|news|analyst|calculator|settings|social)\b/i.test(
-      lower
-    )
-  ) {
+  if (isOpenSectionRequest(lower) && extractNavigationPage(lower)) {
     return "navigation";
   }
 
   return null;
+}
+
+/** True when the user is asking to open/navigate to a section (not asking for data). */
+export function isOpenSectionRequest(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  if (/^(?:please\s+)?(?:open|go to|take me to|navigate to)\b/i.test(lower)) {
+    return true;
+  }
+  // "show me …" only when the whole phrase is essentially a section open
+  if (
+    /^(?:please\s+)?show(?:\s+me)?\s+(?:the\s+|my\s+)?(?:sales(?:\s+today|\s+dashboard)?|news(?:\s+and\s+markets)?|ai\s+chat|chat|email|inbox|calendar|calender|stores?(?:\s+and\s+map|\s+map)?|price\s+calculator|calculator|data\s+analyst|analyst|image\s+generation|images|social|contacts?|settings)\.?$/i.test(
+      lower
+    )
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function extractTaskQuery(text: string): string | null {
@@ -149,6 +162,11 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   const lower = normalizeVoiceTranscript(text).toLowerCase().trim();
   if (!lower) return null;
 
+  // Open/navigate a section — always before sales/email/news data intents.
+  if (isOpenSectionRequest(lower) && extractNavigationPage(lower)) {
+    return "navigation";
+  }
+
   if (
     /(?:generate|create|make)\s+(?:an?\s+)?(?:image|photo|picture)|generate .*(?:necklace|ring|earring|jewel)/i.test(
       lower
@@ -202,14 +220,6 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
     )
   ) {
     return "analyst";
-  }
-
-  if (
-    /open (?:the )?(?:stores?(?:\s+map(?:\s+and\s+info)?)?|store\s+(?:map|locator)|locations?|sales|calendar|email|chat|contacts|images|news|analyst|calculator|settings|social)|go to (?:stores?(?:\s+map(?:\s+and\s+info)?)?|store\s+(?:map|locator)|locations?|sales|calendar|email|chat|contacts|images|news|analyst|calculator|settings|social)/i.test(
-      lower
-    )
-  ) {
-    return "navigation";
   }
 
   if (
@@ -293,7 +303,7 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   }
 
   if (
-    /summarize.*(?:email|inbox)|email summary|important emails?|my (email|inbox)|inbox summary|unread emails?|check (my )?email|emails? to reply|any (new )?mail|open (?:the |my )?email|show (?:the |my )?email|go to email/i.test(
+    /summarize.*(?:email|inbox)|email summary|important emails?|my (email|inbox)|inbox summary|unread emails?|check (my )?email|emails? to reply|any (new )?mail/i.test(
       lower
     )
   ) {
@@ -322,23 +332,29 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
 }
 
 export function extractNavigationPage(text: string): string | null {
-  const lower = text.toLowerCase();
-  const pages = [
-    "settings",
-    "analyst",
-    "calculator",
-    "contacts",
-    "calendar",
-    "images",
-    "sales",
-    "email",
-    "news",
-    "chat",
-    "social",
-    "stores",
-  ] as const;
-  for (const page of pages) {
-    if (new RegExp(`\\b${page}\\b`).test(lower)) return page;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { resolveOpenSectionId } = require("@/lib/ai/app-map") as typeof import("@/lib/ai/app-map");
+    return resolveOpenSectionId(text);
+  } catch {
+    const lower = text.toLowerCase();
+    const pages = [
+      "settings",
+      "analyst",
+      "calculator",
+      "contacts",
+      "calendar",
+      "images",
+      "sales",
+      "email",
+      "news",
+      "chat",
+      "social",
+      "stores",
+    ] as const;
+    for (const page of pages) {
+      if (new RegExp(`\\b${page}\\b`).test(lower)) return page;
+    }
+    return null;
   }
-  return null;
 }

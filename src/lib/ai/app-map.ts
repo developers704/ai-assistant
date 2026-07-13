@@ -114,7 +114,15 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
       capabilities:
         "Here I can fetch industry headlines, live gold and silver rates, and summarize market news. Try *what's gold at today?* or *jewelry industry news*.",
     },
-    aliases: ["news", "markets", "market", "gold", "silver", "industry news"],
+    aliases: [
+      "news",
+      "news and markets",
+      "markets",
+      "market",
+      "gold",
+      "silver",
+      "industry news",
+    ],
   }),
 
   email: section({
@@ -221,7 +229,13 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
       capabilities:
         "Here I can tell you top stores, revenue, and product leaders from your latest report. Try *best store with sales?* — I'll keep it concise unless you ask for a full breakdown.",
     },
-    aliases: ["sales", "sales dashboard", "revenue", "pos"],
+    aliases: [
+      "sales today",
+      "sales dashboard",
+      "sales",
+      "revenue",
+      "pos",
+    ],
   }),
 
   stores: section({
@@ -256,7 +270,7 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
         "I can look up any store's address, phone, or hours, or open the **Stores Map** so you can browse pins by state.",
     },
     aliases: [
-      "stores",
+      "stores and map",
       "stores map",
       "store map",
       "store locator",
@@ -264,6 +278,7 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
       "store locations",
       "find a store",
       "stores map and info",
+      "stores",
     ],
   }),
 
@@ -481,4 +496,66 @@ export function sectionFromMessage(message: string): AppSectionDefinition | null
 
 export function sectionIdFromPath(path: string): AppSectionId {
   return sectionForPath(path).id;
+}
+
+/** Short spoken line when opening a section — no summary. */
+export const SECTION_OPEN_SPOKEN: Record<AppSectionId, string> = {
+  sales: "Opening Sales Today.",
+  news: "Opening News and Markets.",
+  chat: "Opening AI Chat.",
+  email: "Opening Email.",
+  calendar: "Opening Calendar.",
+  stores: "Opening Stores and Map.",
+  calculator: "Opening Price Calculator.",
+  analyst: "Opening Data Analyst.",
+  images: "Opening Image Generation.",
+  social: "Opening Social.",
+  contacts: "Opening Contacts.",
+  settings: "Opening Settings.",
+};
+
+export function openingSpokenForSection(sectionId: string): string {
+  const id = sectionId as AppSectionId;
+  if (SECTION_OPEN_SPOKEN[id]) return SECTION_OPEN_SPOKEN[id];
+  const sec = APP_SECTIONS[id];
+  return sec ? `Opening ${sec.label}.` : `Opening ${sectionId}.`;
+}
+
+/** Resolve navigation target from open/go-to phrases (longest aliases first). */
+export function resolveOpenSectionId(message: string): AppSectionId | null {
+  const lower = message.toLowerCase().trim();
+  if (!lower) return null;
+
+  /** Too ambiguous for navigation matching alone. */
+  const weak = new Set([
+    "gold",
+    "silver",
+    "market",
+    "csv",
+    "generate",
+    "pos",
+    "mail",
+    "assistant",
+    "alexa",
+    "pricing",
+    "estimate",
+    "upload",
+    "sql",
+    "duckdb",
+  ]);
+
+  const scored: { id: AppSectionId; len: number }[] = [];
+  for (const sec of APP_SECTION_LIST) {
+    for (const alias of sec.aliases) {
+      const a = alias.toLowerCase();
+      if (a.length < 3 || weak.has(a)) continue;
+      if (lower.includes(a)) scored.push({ id: sec.id, len: a.length });
+    }
+    if (new RegExp(`\\b${sec.id}\\b`).test(lower)) {
+      scored.push({ id: sec.id, len: sec.id.length + 10 });
+    }
+  }
+  if (scored.length === 0) return null;
+  scored.sort((a, b) => b.len - a.len);
+  return scored[0].id;
 }

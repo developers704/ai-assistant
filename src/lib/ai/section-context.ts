@@ -157,8 +157,37 @@ export function buildSectionContextBlock(ctx: SectionRuntimeContext): string {
   const lines = [
     `SECTION: ${ctx.section.label} (${ctx.section.route})`,
     `PURPOSE: ${ctx.section.purpose}`,
+    `DATA AVAILABLE: ${ctx.section.availableData.join("; ")}`,
     `TOOLS: ${ctx.section.relatedTools.join(", ")}`,
+    `WHEN TO USE TOOLS: ${ctx.section.whenToUseLiveTool}`,
   ];
+
+  if (ctx.sectionId === "sales") {
+    const { summary, source, label } = getAssistantSalesSummary();
+    const topStore = summary.topStores[0];
+    const topProduct = summary.topProducts?.[0];
+    lines.push(
+      `SALES EXPERT MODE: You know this dashboard — revenue, stores, products, departments, vendors, date filters. Always call get_today_sales for numbers; never invent.`
+    );
+    lines.push(
+      `REPORT SNAPSHOT (${source}${label ? `, ${label}` : ""}): net ${formatCurrency(summary.totalRevenue)}, ${summary.totalTransactions.toLocaleString()} units` +
+        (topStore ? `; top store ${topStore.name}` : "") +
+        (topProduct ? `; top product ${topProduct.name}` : "")
+    );
+  }
+
+  if (ctx.sectionId === "news") {
+    lines.push(
+      `NEWS & MARKETS EXPERT MODE: Industry headlines, live gold/silver, markets/sports/politics tabs. Use get_industry_news, get_metal_rates, get_sports_news, get_politics_news — never guess prices or headlines.`
+    );
+  }
+
+  if (ctx.sectionId === "email") {
+    lines.push(
+      `EMAIL EXPERT MODE: Inbox unread/urgent/needs-reply and drafts. Use get_email_summary and draft_email_reply; never invent senders or subjects.`
+    );
+  }
+
   if (ctx.selectedEmail) lines.push(`SELECTED EMAIL: ${ctx.selectedEmail.from} — ${ctx.selectedEmail.subject}`);
   if (ctx.selectedMeeting) lines.push(`SELECTED MEETING: ${ctx.selectedMeeting.title}`);
   if (ctx.selectedContact) lines.push(`SELECTED CONTACT: ${ctx.selectedContact.name}`);

@@ -856,15 +856,22 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: "show_detail_page",
-    description: "Navigate to an app section.",
+    description:
+      "Navigate to an app section. Speak ONLY 'Opening {Section}.' — never summarize on open.",
     category: "navigation",
     riskLevel: "safe",
     requiresConfirmation: false,
     allowedInVoice: true,
     allowedInChat: true,
-    whenToUse: "Open/go to a page.",
+    whenToUse:
+      "User says open/go to/take me to a section (Sales Today, News and Markets, Email, etc.).",
     whenNotToUse: "Prefer specific tools when user wants data not navigation.",
-    examplePhrases: ["open sales", "go to email"],
+    examplePhrases: [
+      "open sales today",
+      "open news and markets",
+      "go to email",
+      "open price calculator",
+    ],
     parameters: {
       type: "object",
       properties: {
