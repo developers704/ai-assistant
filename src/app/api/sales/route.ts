@@ -6,7 +6,7 @@ import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import { querySales } from "@/lib/sales/query-sales";
 import { reportSummaryFromQueryResult } from "@/lib/sales/dashboard-bridge";
 import { ensureActiveSalesVersion } from "@/lib/sales/refresh/service";
-import { setActiveSalesContext } from "@/lib/sales/active-context";
+import { setActiveSalesContext, clearActiveSalesContext } from "@/lib/sales/active-context";
 import { readActivePointer } from "@/lib/sales/data/version-store";
 
 export async function GET(req: NextRequest) {
@@ -21,7 +21,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid date. Use MM/DD/YY or YYYY-MM-DD." }, { status: 400 });
   }
 
-  // Publish dashboard filter state for Chat/Voice inheritance
+  // Publish dashboard filter state for Chat/Voice inheritance.
+  // Empty filters must clear prior chat/voice context (do not retain stale store/design).
+  if (!filterDate && !filterStore && !filterDepartment && !filterDesign) {
+    clearActiveSalesContext();
+  }
   setActiveSalesContext({
     dateRange: filterDate
       ? {
@@ -34,6 +38,8 @@ export async function GET(req: NextRequest) {
     stores: filterStore ? [filterStore] : [],
     departments: filterDepartment ? [filterDepartment] : [],
     designs: filterDesign ? [filterDesign] : [],
+    vendors: [],
+    classes: [],
     dataVersion: readActivePointer().activeVersion ?? undefined,
   });
 
@@ -49,6 +55,9 @@ export async function GET(req: NextRequest) {
         departments: filterDepartment ? [filterDepartment] : undefined,
         designs: filterDesign ? [filterDesign] : undefined,
         resetContext: true,
+        // Top Vendor Models: top 20 by pieces sold (matches Sales Dashboard label).
+        limit: 20,
+        sortBy: "quantity",
         include: {
           summary: true,
           breakdown: true,

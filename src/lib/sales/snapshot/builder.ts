@@ -42,10 +42,11 @@ function toRanking(
     | "sku"
     | "vendor_model",
   type: SalesDashboardSnapshot["rankings"]["stores"][number]["type"],
-  limit = 25
+  limit = 25,
+  sortBy: "netSales" | "unitsSold" | "estimatedMargin" = "netSales"
 ) {
   const totalNet = rows.reduce((s, r) => s + r.netRevenue, 0) || 1;
-  return groupRows(rows, by, limit).map((r, i) => ({
+  return groupRows(rows, by, limit, sortBy, "desc").map((r, i) => ({
     rank: i + 1,
     label: r.name,
     type,
@@ -339,9 +340,9 @@ export function buildSalesDashboardSnapshot(args: {
       vendors: toRanking(args.rows, "vendor", "vendor"),
       classes: toRanking(args.rows, "class", "class"),
       metals: [],
-      products: toRanking(args.rows, "product", "product"),
+      products: toRanking(args.rows, "product", "product", 25, "unitsSold"),
       skus: toRanking(args.rows, "sku", "sku"),
-      vendorModels: toRanking(args.rows, "vendor_model", "vendor_model"),
+      vendorModels: toRanking(args.rows, "vendor_model", "vendor_model", 25, "unitsSold"),
       salesPeople: [],
     },
     comparisons: {

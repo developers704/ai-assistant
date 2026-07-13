@@ -9,12 +9,13 @@ export function getTopVendorModels(
     limit?: number;
   }
 ): SalesBreakdownRow[] {
+  // Dashboard + voice default: Top 20 by pieces sold (revenue as tiebreaker).
   const sortBy =
-    opts?.sortBy === "quantity"
-      ? "unitsSold"
+    opts?.sortBy === "revenue"
+      ? "netSales"
       : opts?.sortBy === "margin"
         ? "estimatedMargin"
-        : "netSales";
+        : "unitsSold";
   return groupRows(rows, "vendor_model", opts?.limit ?? 20, sortBy, "desc");
 }
 
@@ -23,10 +24,10 @@ export function getTopProducts(
   opts?: { sortBy?: "revenue" | "quantity" | "margin"; limit?: number }
 ): SalesBreakdownRow[] {
   const sortBy =
-    opts?.sortBy === "quantity"
-      ? "unitsSold"
+    opts?.sortBy === "revenue"
+      ? "netSales"
       : opts?.sortBy === "margin"
         ? "estimatedMargin"
-        : "netSales";
+        : "unitsSold";
   return groupRows(rows, "product", opts?.limit ?? 20, sortBy, "desc");
 }

@@ -20,10 +20,10 @@ const SEED_CANDIDATES: {
   {
     fileName: "Sales-Report.csv",
     path: path.join(process.cwd(), "data", "reports", "Sales-Report.csv"),
-    label: "Store Sales Report 1–10 July",
+    label: "Store Sales Report July 1–12",
     reportPeriod: "custom",
-    reportDate: "2026-07-10",
-    dateRange: { from: "2026-07-01", to: "2026-07-10" },
+    reportDate: "2026-07-12",
+    dateRange: { from: "2026-07-01", to: "2026-07-12" },
   },
 ];
 
@@ -44,7 +44,7 @@ function readSeedCsv():
   for (const seed of SEED_CANDIDATES) {
     if (!fs.existsSync(seed.path)) continue;
     const csvText = enrichStoreSalesCsvDates(fs.readFileSync(seed.path, "utf-8"), {
-      fallbackDate: seed.dateRange?.to ? isoToUsDate(seed.dateRange.to) : "7/10/2026",
+      fallbackDate: seed.dateRange?.to ? isoToUsDate(seed.dateRange.to) : "7/12/2026",
     });
     if (csvText.trim()) {
       return {

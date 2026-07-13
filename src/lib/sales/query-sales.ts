@@ -85,6 +85,8 @@ function loadReportRows(): {
 
 function inheritDashboardContext(input: SalesQueryInput): SalesQueryInput {
   if (!isSalesUnifiedIntelligenceEnabled()) return input;
+  // Dashboard loads + explicit resets must not pick up stale chat/voice filters.
+  if (input.resetContext) return input;
   // Compare queries must not inherit dashboard filters (would AND conflicting entities).
   if (input.comparison?.entities?.length) return input;
 
@@ -354,7 +356,8 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   const metrics = normalizeMetrics(input.metrics);
   const groupBy = normalizeGroupBy(input.groupBy);
   const include = { ...DEFAULT_INCLUDE, ...input.include };
-  const limit = input.limit ?? 10;
+  // Top vendor models / products need 20 for the Sales Dashboard ranking table.
+  const limit = input.limit ?? (include.topVendorModels || include.topProducts ? 20 : 10);
 
   const baseQuery = {
     resolvedDateRange: {
@@ -552,9 +555,21 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   if (include.topDesigns) rankings.topDesigns = groupRows(filtered, "design", limit);
   if (include.topVendors) rankings.topVendors = groupRows(filtered, "vendor", limit);
   if (include.topClasses) rankings.topClasses = groupRows(filtered, "class", limit);
-  if (include.topProducts) rankings.topProducts = getTopProducts(filtered, { limit });
+  const productSort =
+    input.sortBy === "revenue" || input.sortBy === "netSales"
+      ? "revenue"
+      : input.sortBy === "margin" || input.sortBy === "estimatedMargin"
+        ? "margin"
+        : "quantity";
+
+  if (include.topProducts) {
+    rankings.topProducts = getTopProducts(filtered, { limit, sortBy: productSort });
+  }
   if (include.topVendorModels) {
-    rankings.topVendorModels = getTopVendorModels(filtered, { limit });
+    rankings.topVendorModels = getTopVendorModels(filtered, {
+      limit,
+      sortBy: productSort,
+    });
     if (!breakdowns.byVendorModel && groupBy.includes("vendor_model")) {
       breakdowns.byVendorModel = rankings.topVendorModels;
     }

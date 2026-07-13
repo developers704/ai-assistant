@@ -122,10 +122,16 @@ export function groupRows(
     };
   });
 
+  const secondary: "netSales" | "unitsSold" =
+    sortBy === "unitsSold" ? "netSales" : "unitsSold";
+
   list.sort((a, b) => {
     const av = a[sortBy] ?? 0;
     const bv = b[sortBy] ?? 0;
-    return sortDirection === "asc" ? av - bv : bv - av;
+    if (av !== bv) return sortDirection === "asc" ? av - bv : bv - av;
+    const as = a[secondary] ?? 0;
+    const bs = b[secondary] ?? 0;
+    return sortDirection === "asc" ? as - bs : bs - as;
   });
 
   return list.slice(0, limit);
