@@ -59,11 +59,13 @@ export function buildCompanyKnowledgeVoiceAnswer(query: string): {
     };
   }
 
-  const chunks = retrieveKnowledge(trimmed, 5);
+  const chunks = retrieveKnowledge(trimmed);
   if (chunks.length === 0) {
     return {
       spokenAnswer:
+        answer.markdown ||
         "I couldn't find that in our company knowledge. For policies or store details, contact support or check the official site.",
+      markdown: answer.markdown,
       available: true,
       chunkCount: 0,
       context: "",

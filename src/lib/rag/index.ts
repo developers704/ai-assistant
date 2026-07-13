@@ -4,5 +4,8 @@ export {
   formatRetrievedContext,
   getRagGuardrails,
   getRagAnswerStyle,
+  detectPolicyFocus,
+  isNarrowKnowledgeQuery,
 } from "./retrieve";
+export type { PolicyFocus } from "./retrieve";
 export type { RagChunk, RetrievedChunk, RagIngestionConfig } from "./types";

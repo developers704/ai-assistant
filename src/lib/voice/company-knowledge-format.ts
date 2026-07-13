@@ -1,6 +1,9 @@
 import { loadAllRagChunks } from "@/lib/rag/loader";
 import type { RetrievedChunk } from "@/lib/rag/types";
-import { retrieveKnowledge } from "@/lib/rag/retrieve";
+import {
+  detectPolicyFocus,
+  retrieveKnowledge,
+} from "@/lib/rag/retrieve";
 
 /** Broad “tell me everything” / company overview prompts. */
 export function isBroadCompanyOverviewQuery(query: string): boolean {
@@ -13,6 +16,17 @@ export function isBroadCompanyOverviewQuery(query: string): boolean {
     /\babout valliani jewelers?\b/i.test(lower) ||
     /\bwho is valliani\b/i.test(lower)
   );
+}
+
+function missingTopicMessage(query: string): string | null {
+  const focus = detectPolicyFocus(query);
+  if (focus === "privacy") {
+    return (
+      "I don't have Valliani Jewelers' **privacy policy** in the loaded company knowledge. " +
+      "Please check [vallianijewelers.com](https://www.vallianijewelers.com) or email orders@vallianijewelers.com."
+    );
+  }
+  return null;
 }
 
 const OVERVIEW_SECTION_IDS = [
@@ -50,9 +64,15 @@ ${sections.join("\n\n")}
 _Ask about stores in a specific state, return policy, house brands, or contact details for more._`;
 }
 
-export function formatKnowledgeChunksForChat(chunks: RetrievedChunk[]): string {
+export function formatKnowledgeChunksForChat(
+  chunks: RetrievedChunk[],
+  query?: string
+): string {
   if (chunks.length === 0) {
-    return "I couldn't find that in our company knowledge. Try asking about stores, policies, brands, or contact info.";
+    return (
+      (query && missingTopicMessage(query)) ||
+      "I couldn't find that in our company knowledge. Try asking about stores, policies, brands, or contact info."
+    );
   }
 
   if (chunks.length === 1) {
@@ -77,9 +97,10 @@ export function buildCompanyKnowledgeAnswer(query: string): {
     };
   }
 
-  const chunks = retrieveKnowledge(query, 5);
+  // Let retrieveKnowledge pick a focused topK (1–2 for specific policies).
+  const chunks = retrieveKnowledge(query);
   return {
-    markdown: formatKnowledgeChunksForChat(chunks),
+    markdown: formatKnowledgeChunksForChat(chunks, query),
     chunkCount: chunks.length,
     mode: "retrieved",
   };
