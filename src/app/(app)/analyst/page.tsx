@@ -9,6 +9,7 @@ import { SavedReportsPanel } from "@/components/analyst/SavedReportsPanel";
 import { ResultTable } from "@/components/analyst/ResultTable";
 import { ResultChart, ForecastChart } from "@/components/analyst/ResultChart";
 import { loadCSV, loadCSVFromText, runQuery, validateReadOnlySQL } from "@/lib/analyst/duckdb";
+import { isEmptyAggregateResult, repairAnalystSql } from "@/lib/analyst/sql-repair";
 import { computeForecast } from "@/lib/analyst/forecast";
 import { toSchemaForLLM } from "@/lib/analyst/types";
 import type { AnalystMessage, AnalystPlan, QueryResult, TableSchema } from "@/lib/analyst/types";
@@ -100,8 +101,13 @@ function buildSuggestions(schema: TableSchema): string[] {
 function summarizeResult(plan: AnalystPlan, result: QueryResult): string {
   if (result.rows.length === 1 && result.columns.length === 1) {
     const v = result.rows[0][result.columns[0]];
+    if (v == null || v === "") {
+      return `${plan.title}: $0 (no matching rows)`;
+    }
     const formatted =
-      typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : String(v);
+      typeof v === "number"
+        ? v.toLocaleString("en-US", { maximumFractionDigits: 2 })
+        : String(v);
     return `${plan.title}: ${formatted}`;
   }
   return `${plan.title} — ${result.rows.length.toLocaleString()} row${
@@ -309,15 +315,45 @@ export default function AnalystPage() {
     const validationError = validateReadOnlySQL(plan.sql);
     if (validationError) throw new Error(validationError);
 
-    const result = await runQuery(plan.sql);
+    const repairedSql = repairAnalystSql(plan.sql, schema!);
+    const planToRun = repairedSql !== plan.sql ? { ...plan, sql: repairedSql } : plan;
+    let result = await runQuery(planToRun.sql);
 
-    if (plan.taskType === "forecast") {
-      const forecastData = computeForecast(result, plan.forecastPeriods ?? 6);
+    // If a scalar aggregate came back null/empty, ask the model to fix filters once.
+    if (isEmptyAggregateResult(result.rows) && planToRun.sql) {
+      try {
+        const fixed = await callAnalystAPI(
+          // keep original user question context via history; nudge explicitly
+          `The previous SQL returned no matching rows (NULL/empty aggregate). Fix date and Design filters for Valliani store sales CSV. Use lower(trim("Design")) and robust Transaction Date casting (US m/d/Y like 7/10/2026 = 10 July). Original SQL:\n${planToRun.sql}`,
+          planToRun.sql,
+          "Query returned no matching rows (NULL aggregate or 0 rows)."
+        );
+        if (fixed.sql) {
+          const fixedSql = repairAnalystSql(fixed.sql, schema!);
+          const retry = await runQuery(fixedSql);
+          if (!isEmptyAggregateResult(retry.rows) || retry.rows.length > 1) {
+            result = retry;
+            return {
+              id: uuidv4(),
+              role: "assistant",
+              content: `${summarizeResult(fixed, result)} ${fixed.explanation}`,
+              plan: { ...fixed, sql: fixedSql },
+              result,
+            };
+          }
+        }
+      } catch {
+        // keep first result
+      }
+    }
+
+    if (planToRun.taskType === "forecast") {
+      const forecastData = computeForecast(result, planToRun.forecastPeriods ?? 6);
       return {
         id: uuidv4(),
         role: "assistant",
-        content: `${plan.title} — forecast for the next ${plan.forecastPeriods ?? 6} periods, based on ${result.rows.length.toLocaleString()} historical periods. ${plan.explanation}`,
-        plan,
+        content: `${planToRun.title} — forecast for the next ${planToRun.forecastPeriods ?? 6} periods, based on ${result.rows.length.toLocaleString()} historical periods. ${planToRun.explanation}`,
+        plan: planToRun,
         result,
         forecastData,
       };
@@ -326,8 +362,8 @@ export default function AnalystPage() {
     return {
       id: uuidv4(),
       role: "assistant",
-      content: `${summarizeResult(plan, result)} ${plan.explanation}`,
-      plan,
+      content: `${summarizeResult(planToRun, result)} ${planToRun.explanation}`,
+      plan: planToRun,
       result,
     };
   };
