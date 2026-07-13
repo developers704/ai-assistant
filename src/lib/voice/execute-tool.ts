@@ -178,50 +178,12 @@ export async function executeVoiceTool(
 
       const { isSalesUnifiedIntelligenceEnabled } = await import("@/lib/sales/flags");
       if (isSalesUnifiedIntelligenceEnabled()) {
-        const { ensureActiveSalesVersion } = await import("@/lib/sales/refresh/service");
-        const { querySales } = await import("@/lib/sales/query-sales");
-        const { isValidIsoDate } = await import("@/lib/reports/date-utils");
-        await ensureActiveSalesVersion();
-        const result = await querySales({
-          userMessage: userMessage || undefined,
-          dateRange:
-            dateArg && isValidIsoDate(dateArg)
-              ? { type: "custom", startDate: dateArg, endDate: dateArg }
-              : undefined,
-          display: { navigateToSales: true, applyDashboardFilters: true },
-        });
-        const path = result.dashboardState
-          ? (await import("@/lib/sales/sales-dashboard-state")).salesDashboardToQuery(
-              result.dashboardState
-            )
-          : dateArg
-            ? `/sales?date=${encodeURIComponent(dateArg)}`
-            : "/sales";
-        return {
-          output: JSON.stringify({
-            source: result.availability.reportName ? "report" : "none",
-            focus: focusArg,
-            filterDate: dateArg ?? result.query.resolvedDateRange.startDate,
-            synthesizedAnswer: result.textAnswer,
-            spokenAnswer: result.spokenAnswer,
-            markdown: result.textAnswer,
-            totalRevenue: result.summary?.netSales ?? 0,
-            totalTransactions: result.summary?.unitsSold ?? 0,
-            averageOrderValue: Math.round(result.summary?.averageUnitPrice ?? 0),
-            dataVersion: result.freshness?.dataVersion ?? null,
-            dataThrough: result.freshness?.dataThrough ?? null,
-            coverage: result.coverage,
-            warnings: result.warnings,
-            topStores: (result.rankings?.topStores ?? []).slice(0, 5).map((s) => ({
-              name: s.name,
-              revenue: Math.round(s.netSales),
-            })),
-            note: result.freshness?.dataThrough
-              ? `Data through ${result.freshness.dataThrough}.`
-              : undefined,
-          }),
-          uiAction: { type: "navigate", path },
-        };
+        try {
+          const { ensureActiveSalesVersion } = await import("@/lib/sales/refresh/service");
+          await ensureActiveSalesVersion();
+        } catch {
+          // Fall through to legacy sales formatters even if version refresh fails.
+        }
       }
 
       const { detectSalesFocus } = await import("@/lib/ai/sales-focus");
