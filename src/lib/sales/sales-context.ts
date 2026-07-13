@@ -34,8 +34,37 @@ export function mergeWithSalesMemory(
     return { ...input, resetContext: true };
   }
 
+  // Never inherit entity filters onto a compare — operands are OR slices.
+  if (input.comparison?.entities?.length) {
+    return {
+      ...input,
+      stores: [],
+      departments: [],
+      designs: [],
+      vendors: [],
+      classes: [],
+      products: [],
+      skus: [],
+      vendorModels: [],
+      dateRange: input.dateRange?.type || input.dateRange?.startDate
+        ? input.dateRange
+        : memory.lastDateRange
+          ? {
+              type:
+                memory.lastDateRange.type === "report_all"
+                  ? "all_dates"
+                  : memory.lastDateRange.type,
+              startDate: memory.lastDateRange.startDate ?? undefined,
+              endDate: memory.lastDateRange.endDate ?? undefined,
+            }
+          : input.dateRange,
+    };
+  }
+
   const msg = input.userMessage ?? "";
-  const followUp = Boolean(msg && isSalesFollowUp(msg));
+  // "top vendor models for X" is a fresh vendor query, not a follow-up
+  const freshVendorModels = /\btop\s+vendor\s+models?\b/i.test(msg) && /\bfor\b/i.test(msg);
+  const followUp = Boolean(msg && isSalesFollowUp(msg) && !freshVendorModels);
 
   const hasExplicitFilters =
     (input.stores?.length ?? 0) > 0 ||
@@ -51,7 +80,7 @@ export function mergeWithSalesMemory(
   const hasGroupBy = Boolean(input.groupBy?.length);
 
   // Fresh standalone query with its own entities — do not inherit other dimensions
-  if (hasExplicitFilters && !followUp) {
+  if ((hasExplicitFilters || freshVendorModels) && !followUp) {
     return {
       ...input,
       dateRange: hasDate
@@ -107,10 +136,14 @@ export function mergeWithSalesMemory(
 export function detectGroupByFromMessage(message: string): SalesGroupBy[] {
   const lower = message.toLowerCase();
   const out: SalesGroupBy[] = [];
-  if (/\b(by|according to|hisaab|hisab)\s+(stores?|store)\b/i.test(lower) || /\bstore ke hisaab\b/i.test(lower)) {
+  if (
+    /\b(by|according to|hisaab|hisab)\s+(stores?|store)\b/i.test(lower) ||
+    /\bstore ke hisaab\b/i.test(lower) ||
+    /\btop\s+\d*\s*stores?\b/i.test(lower)
+  ) {
     out.push("store");
   }
-  if (/\b(by|according to)\s+departments?\b/i.test(lower) || /\bdepartment ke hisaab\b/i.test(lower)) {
+  if (/\b(by|according to)\s+departments?\b/i.test(lower) || /\bdepartment ke hisaab\b/i.test(lower) || /\bdepartment\s+breakdown\b/i.test(lower)) {
     out.push("department");
   }
   if (/\b(by|according to)\s+(designs?|design lines?)\b/i.test(lower) || /\bdesign ke hisaab\b/i.test(lower)) {
@@ -125,10 +158,21 @@ export function detectGroupByFromMessage(message: string): SalesGroupBy[] {
   if (/\b(by|according to)\s+date\b/i.test(lower) || /\bdaily\b/i.test(lower)) {
     out.push("date");
   }
+  if (/\b(by|according to)\s+skus?\b/i.test(lower) || /\bsales\s+by\s+sku\b/i.test(lower)) {
+    out.push("sku");
+  }
   if (/\b(vendor models?|top models?|top products?)\b/i.test(lower)) {
     out.push("vendor_model");
   }
   return out;
+}
+
+/** Parse "top N" limit from a message. */
+export function detectLimitFromMessage(message: string): number | undefined {
+  const m = message.match(/\btop\s+(\d+)\b/i);
+  if (!m) return undefined;
+  const n = Number(m[1]);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 50) : undefined;
 }
 
 export function detectRemoveFilters(message: string): Partial<SalesQueryFilters> & { clearAll?: boolean } {

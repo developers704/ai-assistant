@@ -25,7 +25,7 @@ import {
   formatSalesSpokenAnswer,
   formatSalesTextAnswer,
 } from "./sales-response";
-import { mergeWithSalesMemory, detectGroupByFromMessage, detectRemoveFilters, isSalesReset } from "./sales-context";
+import { mergeWithSalesMemory, detectGroupByFromMessage, detectRemoveFilters, isSalesReset, detectLimitFromMessage } from "./sales-context";
 import { updateSalesWorkingMemory, clearSalesWorkingMemory } from "./sales-working-memory";
 import { applyAndPersistDashboardState, buildDashboardState } from "./sales-dashboard-state";
 import { isSalesUnifiedIntelligenceEnabled } from "./flags";
@@ -85,6 +85,9 @@ function loadReportRows(): {
 
 function inheritDashboardContext(input: SalesQueryInput): SalesQueryInput {
   if (!isSalesUnifiedIntelligenceEnabled()) return input;
+  // Compare queries must not inherit dashboard filters (would AND conflicting entities).
+  if (input.comparison?.entities?.length) return input;
+
   const ctx = getActiveSalesContext();
   const hasExplicit =
     (input.stores?.length ?? 0) > 0 ||
@@ -122,6 +125,47 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
 
   const extracted = extractEntitiesFromMessage(msg, index);
   const groupBy = input.groupBy?.length ? input.groupBy : detectGroupByFromMessage(msg);
+  const limitFromMsg = detectLimitFromMessage(msg);
+
+  // Explicit "X design" / "design X" even when unknown to the index
+  if (!extracted.designs?.length) {
+    const designNamed =
+      msg.match(/\b([A-Za-z0-9][A-Za-z0-9\-]{1,40})\s+design\b/i) ||
+      msg.match(/\bdesign\s+([A-Za-z0-9][A-Za-z0-9\-]{1,40})\b/i);
+    if (designNamed?.[1] && !/^(the|a|an|by|for|of|and|sales?)$/i.test(designNamed[1])) {
+      extracted.designs = [designNamed[1].toUpperCase()];
+    }
+  }
+
+  // Explicit "at/in Unknown Mall" when store not resolved from index
+  if (!extracted.stores?.length) {
+    const atPlace =
+      msg.match(
+        /\b(?:at|in)\s+((?:[A-Za-z0-9][A-Za-z0-9'\-]*(?:\s+[A-Za-z0-9][A-Za-z0-9'\-]*){0,4})\s*(?:mall|store|plaza|center))\b/i
+      ) ||
+      msg.match(/\bsales\s+(?:at|in)\s+([A-Za-z0-9][A-Za-z0-9'\-\s]{1,40}?)\s*[.?!]?$/i);
+    if (atPlace?.[1] && !/^(this|last|the|a|an)\b/i.test(atPlace[1])) {
+      const candidate = atPlace[1].trim();
+      if (!/^\d{4}$/.test(candidate) && !/^(july|june|august|today|yesterday)/i.test(candidate)) {
+        extracted.stores = [candidate];
+      }
+    }
+  }
+
+  // "top vendor models for MHVR" — prefer vendor over store
+  if (/\btop\s+vendor\s+models?\b/i.test(msg) || /\btop\s+models?\s+for\b/i.test(msg)) {
+    const forVendor = msg.match(/\bfor\s+([A-Za-z0-9][A-Za-z0-9\-]{1,20})\b/i);
+    if (forVendor?.[1]) {
+      const asVendor = matchEntity(forVendor[1], index.vendors, "vendor");
+      if (asVendor.status === "exact" || asVendor.status === "fuzzy") {
+        extracted.vendors = [asVendor.value];
+        delete extracted.stores;
+      } else if (!extracted.vendors?.length) {
+        extracted.vendors = [forVendor[1].toUpperCase()];
+        delete extracted.stores;
+      }
+    }
+  }
 
   // Comparison phrases — entities go into comparison only, not AND filters
   let comparison = input.comparison;
@@ -133,19 +177,18 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
     };
   }
 
-  // When comparing two entities of the same type, strip those fields from filters
-  // so we don't AND "store=Great Mall" onto a Great Mall vs Valley Fair compare.
+  // When comparing two entities, never AND them into filters — compare is OR slices.
   if (comparison?.entities?.length === 2) {
     const entityType = inferCompareEntityType(
       comparison.entities[0],
       comparison.entities[1],
       index
     );
-    if (entityType === "store") delete extracted.stores;
-    if (entityType === "department") delete extracted.departments;
-    if (entityType === "design") delete extracted.designs;
-    if (entityType === "vendor") delete extracted.vendors;
-    if (entityType === "class") delete extracted.classes;
+    delete extracted.stores;
+    delete extracted.departments;
+    delete extracted.designs;
+    delete extracted.vendors;
+    delete extracted.classes;
     comparison = { ...comparison, entityType };
   }
 
@@ -193,6 +236,7 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
     vendors: input.vendors?.length ? input.vendors : extracted.vendors,
     classes: input.classes?.length ? input.classes : extracted.classes,
     groupBy,
+    limit: input.limit ?? limitFromMsg,
     comparison,
     display,
   };
@@ -390,7 +434,7 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     };
   }
 
-  const filtered = filterRows(loaded.rows, {
+  let filtered = filterRows(loaded.rows, {
     dates: dateResolved.type === "report_all" ? undefined : dateResolved.dates,
     stores: norm.filters.stores,
     departments: norm.filters.departments,
@@ -402,8 +446,21 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     products: norm.filters.products,
   });
 
-  const summary = summarizeRows(filtered);
   const warnings = [...norm.warnings];
+  const msgLower = (input.userMessage ?? "").toLowerCase();
+  if (
+    /\bmargin\b/.test(msgLower) &&
+    /\b(missing|absent|null|without|no)\b[\s\S]{0,20}\bcost\b|\bcost\b[\s\S]{0,20}\b(missing|absent|null)\b/.test(
+      msgLower
+    )
+  ) {
+    filtered = filtered.filter((r) => !r.inventoryCost || r.inventoryCost === 0);
+    warnings.push(
+      "Showing lines where estimated cost is missing or zero. Estimated margin is not exact cost-based margin."
+    );
+  }
+
+  const summary = summarizeRows(filtered);
 
   // Comparison
   let comparison = undefined as SalesQueryResult["comparison"];

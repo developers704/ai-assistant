@@ -300,6 +300,18 @@ export function detectRelativeDate(
   if (/\b(last 30 days|past 30 days)\b/i.test(lower)) {
     return { type: "past_30_days", start: addDays(today, -29), end: today };
   }
+  // Bare year e.g. "sales for 2035"
+  const yearOnly = lower.match(/\b(?:for|in)\s+(\d{4})\b/);
+  if (yearOnly) {
+    const y = Number(yearOnly[1]);
+    if (y >= 1990 && y <= 2100) {
+      return {
+        type: "custom",
+        start: `${y}-01-01`,
+        end: `${y}-12-31`,
+      };
+    }
+  }
   if (/\b(all dates|sab dates|poori report|full report period|show all dates)\b/i.test(lower)) {
     return null; // caller treats as all
   }

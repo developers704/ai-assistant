@@ -54,6 +54,7 @@ const ALIAS_HINTS: Array<{ pattern: RegExp; preferIncludes: string[] }> = [
   { pattern: /\b(?:vj[-\s]?)?mod(?:esto)?\b/i, preferIncludes: ["vj-mod", "mod"] },
   { pattern: /\bcull?ver\b/i, preferIncludes: ["culver"] },
   { pattern: /\brolex\b/i, preferIncludes: ["rolex"] },
+  { pattern: /\bmhvr\b/i, preferIncludes: ["mhvr"] },
 ];
 
 function levenshtein(a: string, b: string): number {
@@ -134,13 +135,25 @@ export function matchEntity(
 
   const scored = known
     .map((k) => ({ k, s: scoreMatch(q, k) }))
-    .filter((x) => x.s >= 65)
+    .filter((x) => x.s >= (/store/i.test(fieldLabel) ? 80 : 65))
     .sort((a, b) => b.s - a.s);
 
-  if (!scored.length) {
+  if (!scored.length || /\bunknown\b/i.test(q)) {
     return {
       status: "none",
       message: `I could not find "${q}" in ${fieldLabel}.`,
+    };
+  }
+
+  // Stores need a stronger fuzzy match so "Unknown Mall" never becomes "Great Mall"
+  const fuzzyFloor = /store/i.test(fieldLabel) ? 88 : 65;
+  if (scored[0].s < fuzzyFloor && scored[0].s < 95) {
+    const suggestions = scored.slice(0, 3).map((x) => x.k);
+    return {
+      status: "none",
+      message: suggestions.length
+        ? `I could not find "${q}" in ${fieldLabel}. Did you mean ${suggestions.join(", ")}?`
+        : `I could not find "${q}" in ${fieldLabel}.`,
     };
   }
 
@@ -398,6 +411,10 @@ export function extractComparisonPair(message: string): { left: string; right: s
   const clean = (s: string) =>
     s
       .replace(/\b(sales?|revenue|net|figures?|numbers?|ki|ke|ka)\b/gi, "")
+      .replace(
+        /\b(this|last|next|past)\s+(month|week|year|quarter)|year\s+to\s+date|ytd|today|yesterday|aaj|kal|parson\b/gi,
+        ""
+      )
       .replace(/\s+/g, " ")
       .trim();
   const left = clean(m[1]);

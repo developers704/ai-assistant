@@ -165,12 +165,21 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "calendar.create";
   }
 
+  // Ranked top-N stores → query_sales (before single top-store)
+  if (/\btop\s+\d+\s+stores?\b/i.test(lower)) {
+    return "sales.query";
+  }
+
   if (TOP_STORE.test(lower) || ONE_TOP_STORE.test(lower) || /\bwhich\s+store\b.*\b(sales|revenue|best|top)\b/i.test(lower)) {
     // Named store + sales (e.g. "MOD store", "Great Mall") is a filtered query, not top-store
     if (!/\b(best|top|highest|which)\b/i.test(lower) || /\b(of|for|at)\s+\w+/i.test(lower)) {
       if (/\b(mod|great\s*mall|valley\s*fair|vj-|dbc-|serra|livermore|culver)\b/i.test(lower)) {
         return "sales.query";
       }
+    }
+    // "top stores" plural without a number still → ranked query
+    if (/\btop\s+stores?\b/i.test(lower) && !/\b(best|which)\b/i.test(lower)) {
+      return "sales.query";
     }
     if (/\b(best|top|highest|which|leading)\b/i.test(lower)) {
       return "sales.top_store";
@@ -181,7 +190,7 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   const SALES_ENTITY =
     /\b(novell?o|ovani|ovanny|lads?\s+ring|ladys?\s+ring|ladies\s+ring|gents?\s+ring|gold\s+chain|earrings?|rolex|mhvr|kma|kgs|14\s*k(?:t|arat)?|10\s*k(?:t|arat)?|18\s*k(?:t|arat)?|great\s*mall|valley\s*fair|(?:vj[-\s]?)?mod|vj-\w+|dbc-\w+)\b/i;
   const SALES_FOLLOWUP =
-    /\b(now by|by department|by store|by vendor|by design|by class|what about|same for|ab |hisaab|top vendor models?|top models?|break it down|lowest five|top five)\b/i;
+    /\b(now by|by department|by store|by vendor|by design|by class|by sku|what about|same for|ab |hisaab|top vendor models?|top models?|break it down|lowest five|top five)\b/i;
   const SALES_COMPARE =
     /\bcompare\b[\s\S]{0,80}\b(and|with|vs\.?|versus|aur)\b/i;
 
@@ -190,6 +199,34 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     !/\b(correlation|forecast|anomaly|predict|segment)\b/i.test(lower)
   ) {
     return "sales.compare";
+  }
+
+  // Top vendor models for a vendor
+  if (/\btop\s+vendor\s+models?\b/i.test(lower) || /\btop\s+models?\s+for\b/i.test(lower)) {
+    return "sales.query";
+  }
+
+  // Design/dept/vendor/class + sales (even unknown entity names)
+  if (
+    /\b(design|department|vendor|class|sku)\b[\s\S]{0,40}\bsales\b/i.test(lower) ||
+    /\bsales\b[\s\S]{0,40}\b(design|department|vendor|class|sku)\b/i.test(lower)
+  ) {
+    return "sales.query";
+  }
+
+  // Sales at/in/for a mall or store name
+  if (/\bsales\b[\s\S]{0,40}\b(at|in|for)\b[\s\S]{0,40}\b(mall|store|location)\b/i.test(lower)) {
+    return "sales.query";
+  }
+
+  // Year-only / explicit out-of-range date with sales
+  if (/\bsales\b[\s\S]{0,30}\b(for|in)\s+\d{4}\b/i.test(lower) || /\b(for|in)\s+\d{4}\b[\s\S]{0,20}\bsales\b/i.test(lower)) {
+    return "sales.query";
+  }
+
+  // Margin / cost questions need the query engine
+  if (/\bmargin\b/i.test(lower) && /\b(cost|missing|where|estimated)\b/i.test(lower)) {
+    return "sales.query";
   }
 
   if (
@@ -234,8 +271,18 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
       return "sales.analysis";
     }
     if (FULL_SALES_REPORT.test(lower)) return "sales.read";
-    // "sales of MOD store" / named entity → query_sales, not top_store
-    if (SALES_ENTITY.test(lower) || SALES_FOLLOWUP.test(lower) || /\b(by department|by vendor|by design|by class|of\s+\w+\s+store)\b/i.test(lower)) {
+    // Filtered / entity / date / mall / margin → query engine
+    if (
+      SALES_ENTITY.test(lower) ||
+      SALES_FOLLOWUP.test(lower) ||
+      /\b(by department|by vendor|by design|by class|by sku|of\s+\w+\s+store|top\s+\d+\s+stores?|vendor models?)\b/i.test(
+        lower
+      ) ||
+      /\b(design|department|vendor|class|sku)\b/i.test(lower) ||
+      /\b(at|in|for)\b[\s\S]{0,40}\b(mall|store|location)\b/i.test(lower) ||
+      /\b(for|in)\s+\d{4}\b/i.test(lower) ||
+      /\bmargin\b/i.test(lower)
+    ) {
       return "sales.query";
     }
     if (/\b(store|location)\b/i.test(lower) && /\b(best|top|highest|which)\b/i.test(lower)) {

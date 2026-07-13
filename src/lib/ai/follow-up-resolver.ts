@@ -109,10 +109,13 @@ export async function resolveFollowUp(
 
   // Sales Intelligence follow-ups — retain prior filters via query_sales memory
   const SALES_FOLLOWUP =
-    /\b(now by|by department|by store|by vendor|by design|by class|what about|same for|ab |hisaab se|top vendor models?|top models?|break it down|lowest five|top five|show more|open details|remove vendor|clear department|show all dates|reset sales)\b/i;
+    /\b(now by|by department|by store|by vendor|by design|by class|by sku|what about|same for|ab |hisaab se|break it down|lowest five|top five|show more|open details|remove vendor|clear department|show all dates|reset sales)\b/i;
+  // Fresh "top vendor models for X" is not a follow-up
+  const freshVendorModels = /\btop\s+vendor\s+models?\b/i.test(lower) && /\bfor\b/i.test(lower);
   const { getSalesWorkingMemory } = await import("@/lib/sales/sales-working-memory");
   const salesMem = getSalesWorkingMemory();
   if (
+    !freshVendorModels &&
     SALES_FOLLOWUP.test(lower) &&
     (salesMem.lastSalesQuery ||
       salesMem.lastDesigns?.length ||
