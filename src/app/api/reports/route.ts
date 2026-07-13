@@ -56,6 +56,12 @@ export async function POST(req: NextRequest) {
       meta.schema === "store_sales" || meta.reportCategory === "sales";
     if (isLiveSales) {
       clearSalesWorkingMemory();
+      try {
+        const { refreshSalesData } = await import("@/lib/sales/refresh/service");
+        await refreshSalesData({ force: true, clearMemory: true });
+      } catch (err) {
+        console.warn("Sales intelligence refresh failed after upload:", err);
+      }
     }
 
     return NextResponse.json({

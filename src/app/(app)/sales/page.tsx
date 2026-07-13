@@ -49,6 +49,7 @@ export default function SalesPage() {
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
   const [dataSource, setDataSource] = useState<"mock" | "report">("mock");
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [availableStores, setAvailableStores] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
@@ -299,6 +300,26 @@ export default function SalesPage() {
                 {dataSource === "report" && (
                   <Badge variant="success">Live report</Badge>
                 )}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={refreshing}
+                  onClick={async () => {
+                    setRefreshing(true);
+                    try {
+                      await fetch("/api/sales/refresh", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ force: true }),
+                      });
+                      setRefreshNonce((n) => n + 1);
+                    } finally {
+                      setRefreshing(false);
+                    }
+                  }}
+                >
+                  {refreshing ? "Refreshing…" : "Refresh Sales Data"}
+                </Button>
                 <Button size="sm" onClick={() => sendChat("Show me today's sales across all stores")}>
                   Ask Assistant
                 </Button>

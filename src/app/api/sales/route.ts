@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import { getLatestReportWithSummary } from "@/lib/reports/store";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
+import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
+import { querySales } from "@/lib/sales/query-sales";
+import { reportSummaryFromQueryResult } from "@/lib/sales/dashboard-bridge";
+import { ensureActiveSalesVersion } from "@/lib/sales/refresh/service";
+import { setActiveSalesContext } from "@/lib/sales/active-context";
+import { readActivePointer } from "@/lib/sales/data/version-store";
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -13,6 +19,73 @@ export async function GET(req: NextRequest) {
 
   if (dateParam && (!filterDate || !isValidIsoDate(filterDate))) {
     return NextResponse.json({ error: "Invalid date. Use MM/DD/YY or YYYY-MM-DD." }, { status: 400 });
+  }
+
+  // Publish dashboard filter state for Chat/Voice inheritance
+  setActiveSalesContext({
+    dateRange: filterDate
+      ? {
+          preset: "custom",
+          from: filterDate,
+          to: filterDate,
+          timezone: process.env.BUSINESS_TIMEZONE || "America/Los_Angeles",
+        }
+      : undefined,
+    stores: filterStore ? [filterStore] : [],
+    departments: filterDepartment ? [filterDepartment] : [],
+    designs: filterDesign ? [filterDesign] : [],
+    dataVersion: readActivePointer().activeVersion ?? undefined,
+  });
+
+  if (isSalesUnifiedIntelligenceEnabled()) {
+    await ensureActiveSalesVersion();
+    const latestMeta = getLatestReportWithSummary();
+    if (latestMeta) {
+      const result = await querySales({
+        dateRange: filterDate
+          ? { type: "custom", startDate: filterDate, endDate: filterDate }
+          : { type: "all_dates" },
+        stores: filterStore ? [filterStore] : undefined,
+        departments: filterDepartment ? [filterDepartment] : undefined,
+        designs: filterDesign ? [filterDesign] : undefined,
+        resetContext: true,
+        include: {
+          summary: true,
+          breakdown: true,
+          topStores: true,
+          lowestStores: true,
+          topDepartments: true,
+          topDesigns: true,
+          topVendors: true,
+          topClasses: true,
+          topProducts: true,
+          topVendorModels: true,
+        },
+      });
+
+      const summary = reportSummaryFromQueryResult(result, latestMeta.meta);
+      return NextResponse.json({
+        summary,
+        report: latestMeta.meta,
+        data: [],
+        source: "report",
+        reportLabel: summary.reportLabel,
+        reportDate: summary.reportDate,
+        vendorCode: summary.vendorCode,
+        reportPeriod: summary.reportPeriod,
+        availableDates: latestMeta.availableDates,
+        availableStores: latestMeta.availableStores,
+        availableDepartments: latestMeta.availableDepartments,
+        availableDesigns: latestMeta.availableDesigns,
+        filterDate: filterDate ?? null,
+        filterStore: filterStore ?? null,
+        filterDepartment: filterDepartment ?? null,
+        filterDesign: filterDesign ?? null,
+        dataVersion: result.freshness?.dataVersion ?? null,
+        dataThrough: result.freshness?.dataThrough ?? null,
+        engine: "sales_unified",
+      });
+    }
   }
 
   const latest = getLatestReportWithSummary({

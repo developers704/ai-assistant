@@ -15,7 +15,7 @@ import type {
 } from "./sales-types";
 import { DEFAULT_INCLUDE, emptyFilters, normalizeGroupBy, normalizeMetrics, wantsShow, wantsTellOnly } from "./sales-schema";
 import { buildEntityIndex, extractEntitiesFromMessage, extractComparisonPair, normalizeFilterInputs, matchEntity } from "./sales-normalizer";
-import { resolveDateRange } from "./sales-date-resolver";
+import { resolveDateRange, todayIso } from "./sales-date-resolver";
 import { filterRows, groupRows, summarizeRows } from "./sales-aggregate";
 import { compareEntitySlices } from "./sales-comparison";
 import { getTopVendorModels, getTopProducts } from "./sales-product-analysis";
@@ -28,6 +28,10 @@ import {
 import { mergeWithSalesMemory, detectGroupByFromMessage, detectRemoveFilters, isSalesReset } from "./sales-context";
 import { updateSalesWorkingMemory, clearSalesWorkingMemory } from "./sales-working-memory";
 import { applyAndPersistDashboardState, buildDashboardState } from "./sales-dashboard-state";
+import { isSalesUnifiedIntelligenceEnabled } from "./flags";
+import { readActivePointer, readNormalizedRows, readVersionMetadata } from "./data/version-store";
+import { getActiveSalesContext } from "./active-context";
+import { formatReportDateLong } from "@/lib/reports/date-utils";
 
 function loadReportRows(): {
   rows: VendorPosRow[];
@@ -35,7 +39,29 @@ function loadReportRows(): {
   reportStart: string | null;
   reportEnd: string | null;
   dates: string[];
+  dataVersion: string | null;
+  refreshedAt: string | null;
 } | null {
+  if (isSalesUnifiedIntelligenceEnabled()) {
+    const pointer = readActivePointer();
+    const versionRows = pointer.activeVersion ? readNormalizedRows(pointer.activeVersion) : null;
+    if (versionRows?.length) {
+      const meta = pointer.activeVersion
+        ? readVersionMetadata(pointer.activeVersion)
+        : null;
+      const dates = [...new Set(versionRows.map((r) => r.date).filter(Boolean))].sort();
+      return {
+        rows: versionRows,
+        reportName: meta?.fileName ?? "Sales Intelligence",
+        reportStart: meta?.dateRange.from ?? dates[0] ?? null,
+        reportEnd: meta?.dateRange.to ?? dates[dates.length - 1] ?? null,
+        dates,
+        dataVersion: pointer.activeVersion,
+        refreshedAt: meta?.refreshedAt ?? pointer.activatedAt,
+      };
+    }
+  }
+
   const latest = getLatestReportWithSummary();
   if (!latest) return null;
   const csv = latest.csv;
@@ -52,6 +78,41 @@ function loadReportRows(): {
     reportStart: latest.meta.dateRange?.from ?? dates[0] ?? null,
     reportEnd: latest.meta.dateRange?.to ?? dates[dates.length - 1] ?? null,
     dates,
+    dataVersion: readActivePointer().activeVersion,
+    refreshedAt: readActivePointer().activatedAt,
+  };
+}
+
+function inheritDashboardContext(input: SalesQueryInput): SalesQueryInput {
+  if (!isSalesUnifiedIntelligenceEnabled()) return input;
+  const ctx = getActiveSalesContext();
+  const hasExplicit =
+    (input.stores?.length ?? 0) > 0 ||
+    (input.departments?.length ?? 0) > 0 ||
+    (input.designs?.length ?? 0) > 0 ||
+    (input.vendors?.length ?? 0) > 0 ||
+    (input.classes?.length ?? 0) > 0 ||
+    Boolean(input.dateRange?.type && input.dateRange.type !== "all_dates") ||
+    Boolean(input.dateRange?.startDate);
+
+  // Only fill missing filters from dashboard context
+  return {
+    ...input,
+    stores: input.stores?.length ? input.stores : ctx.stores,
+    departments: input.departments?.length ? input.departments : ctx.departments,
+    designs: input.designs?.length ? input.designs : ctx.designs,
+    vendors: input.vendors?.length ? input.vendors : ctx.vendors,
+    classes: input.classes?.length ? input.classes : ctx.classes,
+    dateRange:
+      hasExplicit || input.dateRange
+        ? input.dateRange
+        : ctx.dateRange?.from && ctx.dateRange?.to
+          ? {
+              type: "custom",
+              startDate: ctx.dateRange.from,
+              endDate: ctx.dateRange.to,
+            }
+          : input.dateRange,
   };
 }
 
@@ -205,6 +266,7 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   }
 
   let input = enrichInputFromMessage(rawInput, index);
+  input = inheritDashboardContext(input);
   input = mergeWithSalesMemory(input);
 
   // Apply remove-filter follow-ups
@@ -287,6 +349,13 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   }
 
   if (dateResolved.unavailableReason) {
+    const askedToday =
+      dateResolved.type === "today" ||
+      (input.userMessage != null && /\b(today|aaj)\b/i.test(input.userMessage));
+    const freshnessWarning =
+      askedToday && loaded.reportEnd && loaded.reportEnd < todayIso()
+        ? `The latest sales report contains data through ${formatReportDateLong(loaded.reportEnd)}. Today's sales have not been loaded yet.`
+        : dateResolved.unavailableReason;
     const partial = {
       ok: false,
       query: baseQuery,
@@ -298,7 +367,21 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
         matchingRowCount: 0,
       },
       summary: null,
-      warnings: [dateResolved.unavailableReason, ...norm.warnings],
+      warnings: [freshnessWarning, ...norm.warnings],
+      freshness: {
+        dataVersion: loaded.dataVersion,
+        dataThrough: loaded.reportEnd,
+        refreshedAt: loaded.refreshedAt,
+        source: loaded.reportName,
+      },
+      coverage: {
+        complete: false,
+        requestedFrom: dateResolved.startDate,
+        requestedTo: dateResolved.endDate,
+        availableFrom: loaded.reportStart,
+        availableTo: loaded.reportEnd,
+        warning: freshnessWarning,
+      },
     };
     return {
       ...partial,
@@ -488,6 +571,19 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     comparison,
     dashboardState,
     warnings: warnings.length ? warnings : undefined,
+    freshness: {
+      dataVersion: loaded.dataVersion,
+      dataThrough: loaded.reportEnd,
+      refreshedAt: loaded.refreshedAt,
+      source: loaded.reportName,
+    },
+    coverage: {
+      complete: true,
+      requestedFrom: dateResolved.startDate,
+      requestedTo: dateResolved.endDate,
+      availableFrom: loaded.reportStart,
+      availableTo: loaded.reportEnd,
+    },
   };
 
   let textAnswer = formatSalesTextAnswer(partial);

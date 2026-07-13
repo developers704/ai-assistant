@@ -24,7 +24,8 @@
     "test:sales-intelligence": "npx tsx scripts/test-sales-intelligence.ts",
     "test:sales-followups": "npx tsx scripts/test-sales-followups.ts",
     "test:sales-voice": "npx tsx scripts/test-sales-voice.ts",
-    "test:sales-dashboard-sync": "npx tsx scripts/test-sales-dashboard-sync.ts"
+    "test:sales-dashboard-sync": "npx tsx scripts/test-sales-dashboard-sync.ts",
+    "test:sales-unified": "vitest run tests/sales"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.33.1-dev45.0",

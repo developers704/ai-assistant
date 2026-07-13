@@ -175,6 +175,55 @@ export async function executeVoiceTool(
       const userMessage = args.user_message ? String(args.user_message) : "";
       const dateArg =
         typeof args.date === "string" && args.date.trim() ? args.date.trim() : undefined;
+
+      const { isSalesUnifiedIntelligenceEnabled } = await import("@/lib/sales/flags");
+      if (isSalesUnifiedIntelligenceEnabled()) {
+        const { ensureActiveSalesVersion } = await import("@/lib/sales/refresh/service");
+        const { querySales } = await import("@/lib/sales/query-sales");
+        const { isValidIsoDate } = await import("@/lib/reports/date-utils");
+        await ensureActiveSalesVersion();
+        const result = await querySales({
+          userMessage: userMessage || undefined,
+          dateRange:
+            dateArg && isValidIsoDate(dateArg)
+              ? { type: "custom", startDate: dateArg, endDate: dateArg }
+              : undefined,
+          display: { navigateToSales: true, applyDashboardFilters: true },
+        });
+        const path = result.dashboardState
+          ? (await import("@/lib/sales/sales-dashboard-state")).salesDashboardToQuery(
+              result.dashboardState
+            )
+          : dateArg
+            ? `/sales?date=${encodeURIComponent(dateArg)}`
+            : "/sales";
+        return {
+          output: JSON.stringify({
+            source: result.availability.reportName ? "report" : "none",
+            focus: focusArg,
+            filterDate: dateArg ?? result.query.resolvedDateRange.startDate,
+            synthesizedAnswer: result.textAnswer,
+            spokenAnswer: result.spokenAnswer,
+            markdown: result.textAnswer,
+            totalRevenue: result.summary?.netSales ?? 0,
+            totalTransactions: result.summary?.unitsSold ?? 0,
+            averageOrderValue: Math.round(result.summary?.averageUnitPrice ?? 0),
+            dataVersion: result.freshness?.dataVersion ?? null,
+            dataThrough: result.freshness?.dataThrough ?? null,
+            coverage: result.coverage,
+            warnings: result.warnings,
+            topStores: (result.rankings?.topStores ?? []).slice(0, 5).map((s) => ({
+              name: s.name,
+              revenue: Math.round(s.netSales),
+            })),
+            note: result.freshness?.dataThrough
+              ? `Data through ${result.freshness.dataThrough}.`
+              : undefined,
+          }),
+          uiAction: { type: "navigate", path },
+        };
+      }
+
       const { detectSalesFocus } = await import("@/lib/ai/sales-focus");
       const {
         formatSalesByFocus,
@@ -261,6 +310,8 @@ export async function executeVoiceTool(
     case "get_sales_entity_details":
     case "get_top_vendor_models":
     case "apply_sales_dashboard_filters": {
+      const { ensureActiveSalesVersion } = await import("@/lib/sales/refresh/service");
+      await ensureActiveSalesVersion();
       const { querySales } = await import("@/lib/sales/query-sales");
       const { salesDashboardToQuery } = await import("@/lib/sales/sales-dashboard-state");
       const userMessage = args.user_message ? String(args.user_message) : "";
@@ -480,6 +531,108 @@ export async function executeVoiceTool(
           spokenAnswer: result.spokenAnswer,
         }),
         uiAction: shouldNav ? { type: "navigate", path } : undefined,
+      };
+    }
+
+    case "get_sales_snapshot": {
+      const { ensureActiveSalesVersion } = await import("@/lib/sales/refresh/service");
+      await ensureActiveSalesVersion();
+      const { readActiveSnapshot } = await import("@/lib/sales/data/version-store");
+      const { compactSnapshotSummary } = await import("@/lib/sales/snapshot/builder");
+      const snapshot = readActiveSnapshot();
+      if (!snapshot) {
+        return {
+          output: JSON.stringify({
+            success: false,
+            spokenAnswer: "No sales snapshot is available yet. Upload a report or refresh sales data.",
+          }),
+        };
+      }
+      const compact = compactSnapshotSummary(snapshot);
+      const spoken = `Sales snapshot through ${compact.dataThrough ?? "unknown"}: ${Math.round(compact.summary.netSales).toLocaleString()} dollars net, ${compact.summary.units.toLocaleString()} units.`;
+      return {
+        output: JSON.stringify({
+          success: true,
+          snapshot: compact,
+          spokenAnswer: spoken,
+          markdown: spoken,
+        }),
+        uiAction: { type: "navigate", path: "/sales" },
+      };
+    }
+
+    case "get_sales_data_status": {
+      const { ensureActiveSalesVersion } = await import("@/lib/sales/refresh/service");
+      await ensureActiveSalesVersion();
+      const { getActiveSalesStatus } = await import("@/lib/sales/data/version-store");
+      const status = getActiveSalesStatus();
+      const meta = status.metadata;
+      const spoken = meta
+        ? `Active sales version ${meta.dataVersion}. Data through ${meta.dataThrough ?? "unknown"}, ${meta.validRowCount.toLocaleString()} valid rows.`
+        : "No active sales version is loaded yet.";
+      return {
+        output: JSON.stringify({
+          success: Boolean(meta),
+          ...status,
+          spokenAnswer: spoken,
+          markdown: spoken,
+        }),
+      };
+    }
+
+    case "get_sales_insights": {
+      const { ensureActiveSalesVersion } = await import("@/lib/sales/refresh/service");
+      await ensureActiveSalesVersion();
+      const { readActiveSnapshot } = await import("@/lib/sales/data/version-store");
+      const snapshot = readActiveSnapshot();
+      if (!snapshot) {
+        return {
+          output: JSON.stringify({
+            success: false,
+            spokenAnswer: "No sales insights yet — refresh sales data first.",
+          }),
+        };
+      }
+      const top = snapshot.insights.topPerformers[0];
+      const weak = snapshot.insights.weakPerformers[0];
+      const lowMargin = snapshot.insights.highSalesLowMarginEntities[0];
+      const spoken = [
+        top?.description,
+        weak?.description,
+        lowMargin?.description,
+      ]
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" ");
+      return {
+        output: JSON.stringify({
+          success: true,
+          insights: snapshot.insights,
+          spokenAnswer: spoken || "Insights are ready on the Sales Dashboard.",
+          markdown: spoken || "Insights are ready on the Sales Dashboard.",
+        }),
+        uiAction: { type: "navigate", path: "/sales" },
+      };
+    }
+
+    case "refresh_sales_data": {
+      const { refreshSalesData } = await import("@/lib/sales/refresh/service");
+      const result = await refreshSalesData({
+        force: args.force !== false,
+        clearMemory: true,
+      });
+      const spoken = result.success
+        ? result.skipped
+          ? "Sales data is already up to date."
+          : `Sales data refreshed. Version ${result.dataVersion} with ${result.validRows.toLocaleString()} rows through ${result.dateRange.to ?? "the latest date"}.`
+        : `I couldn't refresh sales data. ${result.errors[0] ?? "Please try again."}`;
+      return {
+        output: JSON.stringify({
+          ...result,
+          spokenAnswer: spoken,
+          markdown: spoken,
+        }),
+        uiAction: result.success ? { type: "navigate", path: "/sales" } : undefined,
       };
     }
 

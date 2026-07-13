@@ -149,9 +149,54 @@ export function resolveDateRange(
       break;
     }
     case "last_7_days":
+    case "past_7_days":
       end = today;
       start = addDays(today, -6);
       break;
+    case "past_30_days":
+      end = today;
+      start = addDays(today, -29);
+      break;
+    case "day_before_yesterday": {
+      const d = addDays(today, -2);
+      start = d;
+      end = d;
+      break;
+    }
+    case "year_to_date": {
+      const p = zonedParts();
+      start = isoFromParts(p.y, 1, 1);
+      end = today;
+      break;
+    }
+    case "last_year": {
+      const p = zonedParts();
+      start = isoFromParts(p.y - 1, 1, 1);
+      end = isoFromParts(p.y - 1, 12, 31);
+      break;
+    }
+    case "this_quarter": {
+      const p = zonedParts();
+      const qStartMonth = Math.floor((p.m - 1) / 3) * 3 + 1;
+      start = isoFromParts(p.y, qStartMonth, 1);
+      end = today;
+      break;
+    }
+    case "last_quarter": {
+      const p = zonedParts();
+      const qStartMonth = Math.floor((p.m - 1) / 3) * 3 + 1;
+      let ly = p.y;
+      let lm = qStartMonth - 3;
+      if (lm < 1) {
+        lm += 12;
+        ly -= 1;
+      }
+      start = isoFromParts(ly, lm, 1);
+      const endMonth = lm + 2;
+      const lastDay = new Date(Date.UTC(ly, endMonth, 0)).getUTCDate();
+      end = isoFromParts(ly, endMonth, lastDay);
+      break;
+    }
     case "all_dates":
       start = null;
       end = null;
@@ -212,6 +257,10 @@ export function detectRelativeDate(
   if (/\b(today|aaj)\b/i.test(lower)) {
     return { type: "today", start: today, end: today };
   }
+  if (/\b(day before yesterday|parson|parso[nm]?)\b/i.test(lower)) {
+    const d = addDays(today, -2);
+    return { type: "day_before_yesterday", start: d, end: d };
+  }
   // kal = yesterday for sales (unless clearly future)
   if (/\b(yesterday|kal)\b/i.test(lower) && !/\b(tomorrow|future)\b/i.test(lower)) {
     const y = addDays(today, -1);
@@ -241,8 +290,15 @@ export function detectRelativeDate(
       end: isoFromParts(ly, lm, lastDay),
     };
   }
-  if (/\b(last 7 days|past week|pichlay 7)\b/i.test(lower)) {
+  if (/\b(year to date|ytd|is saal)\b/i.test(lower)) {
+    const p = zonedParts();
+    return { type: "year_to_date", start: isoFromParts(p.y, 1, 1), end: today };
+  }
+  if (/\b(last 7 days|past 7 days|past week|pichlay 7)\b/i.test(lower)) {
     return { type: "last_7_days", start: addDays(today, -6), end: today };
+  }
+  if (/\b(last 30 days|past 30 days)\b/i.test(lower)) {
+    return { type: "past_30_days", start: addDays(today, -29), end: today };
   }
   if (/\b(all dates|sab dates|poori report|full report period|show all dates)\b/i.test(lower)) {
     return null; // caller treats as all

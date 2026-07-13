@@ -3,10 +3,17 @@
 export type SalesDateRangeType =
   | "today"
   | "yesterday"
+  | "day_before_yesterday"
   | "this_week"
   | "last_week"
   | "this_month"
   | "last_month"
+  | "this_quarter"
+  | "last_quarter"
+  | "year_to_date"
+  | "last_year"
+  | "past_7_days"
+  | "past_30_days"
   | "all_dates"
   | "custom"
   | "last_7_days"
@@ -231,6 +238,21 @@ export interface SalesQueryResult {
   textAnswer: string;
   warnings?: string[];
   error?: string;
+  /** Active sales intelligence version + freshness (unified path). */
+  freshness?: {
+    dataVersion: string | null;
+    dataThrough: string | null;
+    refreshedAt: string | null;
+    source?: string | null;
+  };
+  coverage?: {
+    complete: boolean;
+    requestedFrom?: string | null;
+    requestedTo?: string | null;
+    availableFrom?: string | null;
+    availableTo?: string | null;
+    warning?: string;
+  };
 }
 
 export interface SalesWorkingMemoryState {
