@@ -1,10 +1,11 @@
 /** Flagship realtime voice model — best tool calling + natural speech. */
 export const VOICE_REALTIME_MODEL =
-  process.env.OPENAI_REALTIME_MODEL ?? "gpt-realtime-1.5";
+  process.env.OPENAI_REALTIME_MODEL ?? "gpt-realtime-2.0";
 
 /** Tried in order when creating a voice session (first match wins). */
 export const VOICE_REALTIME_MODEL_FALLBACKS = [
   process.env.OPENAI_REALTIME_MODEL,
+  "gpt-realtime-2.0",
   "gpt-realtime-1.5",
   "gpt-realtime",
   "gpt-realtime-mini",
