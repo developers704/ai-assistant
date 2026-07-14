@@ -1,7 +1,14 @@
 import type { SalesSummary } from "@/types";
 import { filterExcludedSalesRows, isExcludedSalesSku } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
+import { isValidIsoDate } from "@/lib/reports/date-utils";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
+
+function shiftIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 function parseNumber(raw: unknown): number {
   if (raw == null || raw === "") return 0;
@@ -235,6 +242,9 @@ export function summarizeVendorPos(
     reportId?: string;
     reportLabel?: string;
     filterDate?: string;
+    /** Inclusive ISO range (overrides single filterDate when both set). */
+    filterDateFrom?: string;
+    filterDateTo?: string;
     filterStore?: string;
     filterDepartment?: string;
     filterDesign?: string;
@@ -260,7 +270,26 @@ export function summarizeVendorPos(
   let periodRows = filterExcludedSalesRows(rows);
   let compareRows: VendorPosRow[] = [];
 
-  if (opts.filterDate) {
+  const rangeFrom = opts.filterDateFrom;
+  const rangeTo = opts.filterDateTo;
+  const hasRange =
+    Boolean(rangeFrom && rangeTo && isValidIsoDate(rangeFrom) && isValidIsoDate(rangeTo));
+
+  if (hasRange && rangeFrom && rangeTo) {
+    const from = rangeFrom <= rangeTo ? rangeFrom : rangeTo;
+    const to = rangeFrom <= rangeTo ? rangeTo : rangeFrom;
+    periodRows = periodRows.filter((r) => r.date && r.date >= from && r.date <= to);
+    // Prior period of equal length for % change when possible
+    const spanDays =
+      Math.round(
+        (Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86400000
+      ) + 1;
+    const prevEnd = shiftIso(from, -1);
+    const prevStart = shiftIso(prevEnd, -(spanDays - 1));
+    compareRows = filterExcludedSalesRows(rows).filter(
+      (r) => r.date && r.date >= prevStart && r.date <= prevEnd
+    );
+  } else if (opts.filterDate) {
     periodRows = periodRows.filter((r) => r.date === opts.filterDate);
     const idx = dates.indexOf(opts.filterDate);
     if (idx > 0) {

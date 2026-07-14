@@ -231,6 +231,8 @@ export function clearAllReports(): number {
 
 export function getLatestReportWithSummary(options?: {
   filterDate?: string;
+  filterDateFrom?: string;
+  filterDateTo?: string;
   filterStore?: string;
   filterDepartment?: string;
   filterDesign?: string;
@@ -266,6 +268,8 @@ export function getLatestReportWithSummary(options?: {
     reportPeriod: meta.reportPeriod,
     reportCategory: meta.reportCategory,
     filterDate: options?.filterDate,
+    filterDateFrom: options?.filterDateFrom,
+    filterDateTo: options?.filterDateTo,
     filterStore: options?.filterStore,
     filterDepartment: options?.filterDepartment,
     filterDesign: options?.filterDesign,

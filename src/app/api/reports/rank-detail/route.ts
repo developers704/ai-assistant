@@ -45,6 +45,8 @@ export async function GET(req: Request) {
   const dimension = searchParams.get("dimension") as RankDimension | null;
   const value = searchParams.get("value")?.trim() ?? "";
   const date = searchParams.get("date")?.trim() || undefined;
+  const from = searchParams.get("from")?.trim() || undefined;
+  const to = searchParams.get("to")?.trim() || undefined;
   const store = searchParams.get("store")?.trim() || undefined;
   const department = searchParams.get("department")?.trim() || undefined;
   const design = searchParams.get("design")?.trim() || undefined;
@@ -87,7 +89,13 @@ export async function GET(req: Request) {
     skipEmptyLines: true,
   });
   let rows = filterExcludedSalesRows(parseVendorPosRows(parsed.data ?? []).rows);
-  if (date) rows = rows.filter((r) => r.date === date);
+  if (from && to) {
+    const a = from <= to ? from : to;
+    const b = from <= to ? to : from;
+    rows = rows.filter((r) => r.date && r.date >= a && r.date <= b);
+  } else if (date) {
+    rows = rows.filter((r) => r.date === date);
+  }
   if (store) {
     const needle = normalizeFilterKey(store);
     rows = rows.filter((r) => normalizeFilterKey(r.storeName) === needle);

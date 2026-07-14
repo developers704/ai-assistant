@@ -279,6 +279,8 @@ export interface SummarizeOptions {
   reportCategory?: ReportCategory;
   /** ISO date YYYY-MM-DD — show metrics for this day only. */
   filterDate?: string;
+  filterDateFrom?: string;
+  filterDateTo?: string;
   filterStore?: string;
   filterDepartment?: string;
   filterDesign?: string;
@@ -352,6 +354,8 @@ export function summarizeCsvText(
       reportId: meta?.reportId,
       reportLabel: meta?.reportLabel,
       filterDate: meta?.filterDate,
+      filterDateFrom: meta?.filterDateFrom,
+      filterDateTo: meta?.filterDateTo,
       filterStore: meta?.filterStore,
       filterDepartment: meta?.filterDepartment,
       filterDesign: meta?.filterDesign,
@@ -382,6 +386,8 @@ export function summarizeCsvText(
       reportId: meta?.reportId,
       reportLabel: meta?.reportLabel,
       filterDate: meta?.filterDate,
+      filterDateFrom: meta?.filterDateFrom,
+      filterDateTo: meta?.filterDateTo,
       filterStore: meta?.filterStore,
       filterDepartment: meta?.filterDepartment,
       filterDesign: meta?.filterDesign,

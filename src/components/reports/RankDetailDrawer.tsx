@@ -69,6 +69,8 @@ export type RankDetailSelection = {
 type RankDetailDrawerProps = {
   selection: RankDetailSelection | null;
   filterDate?: string;
+  filterDateFrom?: string;
+  filterDateTo?: string;
   filterStore?: string;
   filterDepartment?: string;
   filterDesign?: string;
@@ -108,6 +110,8 @@ function MiniList({
 export function RankDetailDrawer({
   selection,
   filterDate,
+  filterDateFrom,
+  filterDateTo,
   filterStore,
   filterDepartment,
   filterDesign,
@@ -136,7 +140,12 @@ export function RankDetailDrawer({
       dimension: selection.dimension,
       value: selection.value,
     });
-    if (filterDate) params.set("date", filterDate);
+    if (filterDateFrom && filterDateTo) {
+      params.set("from", filterDateFrom);
+      params.set("to", filterDateTo);
+    } else if (filterDate) {
+      params.set("date", filterDate);
+    }
     // Don't re-apply the same dimension as a global AND filter (avoids empty matches).
     if (filterStore && selection.dimension !== "store") params.set("store", filterStore);
     if (filterDepartment && selection.dimension !== "department") {
@@ -172,6 +181,8 @@ export function RankDetailDrawer({
   }, [
     selection,
     filterDate,
+    filterDateFrom,
+    filterDateTo,
     filterStore,
     filterDepartment,
     filterDesign,
@@ -212,6 +223,7 @@ export function RankDetailDrawer({
               {selection.value}
             </h2>
             {(filterDate ||
+              filterDateFrom ||
               (filterStore && selection.dimension !== "store") ||
               (filterDepartment && selection.dimension !== "department") ||
               (filterDesign && selection.dimension !== "design") ||
@@ -226,7 +238,13 @@ export function RankDetailDrawer({
                   : ""}
                 {filterDesign && selection.dimension !== "design" ? ` · design ${filterDesign}` : ""}
                 {filterStore && selection.dimension !== "store" ? ` · store ${filterStore}` : ""}
-                {filterDate ? ` · ${filterDate}` : ""}
+                {filterDateFrom && filterDateTo
+                  ? filterDateFrom === filterDateTo
+                    ? ` · ${filterDateFrom}`
+                    : ` · ${filterDateFrom} → ${filterDateTo}`
+                  : filterDate
+                    ? ` · ${filterDate}`
+                    : ""}
               </p>
             )}
           </div>

@@ -1,6 +1,7 @@
 import { filterExcludedSalesRows } from "@/lib/utils";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { getLatestReportWithSummary } from "@/lib/reports/store";
+import { datesInIsoRange, isValidIsoDate } from "@/lib/reports/date-utils";
 import Papa from "papaparse";
 import { readActivePointer, readNormalizedRows } from "@/lib/sales/data/version-store";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
@@ -45,6 +46,8 @@ export interface SalesVisualizationPayload {
   };
   applied: {
     date?: string;
+    dateFrom?: string;
+    dateTo?: string;
     store?: string;
     department?: string;
     design?: string;
@@ -97,6 +100,8 @@ function toChartRows(rows: ReturnType<typeof groupRows>): VizChartRow[] {
 
 export function buildSalesVisualizations(opts: {
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
   store?: string;
   department?: string;
   design?: string;
@@ -111,8 +116,22 @@ export function buildSalesVisualizations(opts: {
   const vendors = uniqSorted(allRows.map((r) => r.vendor));
   const classes = uniqSorted(allRows.map((r) => r.productClass));
 
+  let filterDates: string[] | undefined;
+  if (
+    opts.dateFrom &&
+    opts.dateTo &&
+    isValidIsoDate(opts.dateFrom) &&
+    isValidIsoDate(opts.dateTo)
+  ) {
+    const from = opts.dateFrom <= opts.dateTo ? opts.dateFrom : opts.dateTo;
+    const to = opts.dateFrom <= opts.dateTo ? opts.dateTo : opts.dateFrom;
+    filterDates = datesInIsoRange(from, to);
+  } else if (opts.date) {
+    filterDates = [opts.date];
+  }
+
   const filtered = filterRows(allRows, {
-    dates: opts.date ? [opts.date] : undefined,
+    dates: filterDates,
     stores: opts.store ? [opts.store] : undefined,
     departments: opts.department ? [opts.department] : undefined,
     designs: opts.design ? [opts.design] : undefined,
@@ -124,6 +143,13 @@ export function buildSalesVisualizations(opts: {
   const byDate = groupRows(filtered, "date", 366, "netSales", "asc").sort((a, b) =>
     a.name.localeCompare(b.name)
   );
+
+  const appliedFrom = filterDates?.length
+    ? filterDates[0]
+    : undefined;
+  const appliedTo = filterDates?.length
+    ? filterDates[filterDates.length - 1]
+    : undefined;
 
   return {
     summary: {
@@ -148,7 +174,9 @@ export function buildSalesVisualizations(opts: {
     },
     filters: { dates, stores, departments, designs, vendors, classes },
     applied: {
-      date: opts.date,
+      date: appliedFrom && appliedTo && appliedFrom === appliedTo ? appliedFrom : undefined,
+      dateFrom: appliedFrom,
+      dateTo: appliedTo,
       store: opts.store,
       department: opts.department,
       design: opts.design,

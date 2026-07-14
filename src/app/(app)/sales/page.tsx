@@ -22,20 +22,43 @@ import {
   type RankDetailSelection,
 } from "@/components/reports/RankDetailDrawer";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
+import { isValidIsoDate } from "@/lib/reports/date-utils";
 import {
-  formatReportDateDisplay,
-  formatReportDateRange,
-  isValidIsoDate,
-} from "@/lib/reports/date-utils";
-import { TrendingUp, TrendingDown, Package, Store, CalendarDays, LineChart } from "lucide-react";
+  SalesDateRangePicker,
+  type SalesDateRangeValue,
+} from "@/components/sales/SalesDateRangePicker";
+import { TrendingUp, TrendingDown, Package, Store, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const selectClass =
-  "select-dark px-3 py-2 rounded-xl text-sm backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400/40";
+  "select-dark h-9 px-3 rounded-xl text-sm backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400/40";
+
+function rangeFromSearchParams(sp: {
+  get: (key: string) => string | null;
+}): SalesDateRangeValue | null {
+  const from = sp.get("from")?.trim() ?? "";
+  const to = sp.get("to")?.trim() ?? "";
+  const date = sp.get("date")?.trim() ?? "";
+  if (from && to && isValidIsoDate(from) && isValidIsoDate(to)) {
+    return from <= to ? { from, to } : { from: to, to: from };
+  }
+  if (date && isValidIsoDate(date)) return { from: date, to: date };
+  if (from && isValidIsoDate(from)) return { from, to: from };
+  return null;
+}
+
+function appendDateParams(params: URLSearchParams, range: SalesDateRangeValue | null) {
+  if (!range) return;
+  if (range.from === range.to) {
+    params.set("date", range.from);
+  } else {
+    params.set("from", range.from);
+    params.set("to", range.to);
+  }
+}
 
 export default function SalesPage() {
   const searchParams = useSearchParams();
-  const dateFromUrl = searchParams.get("date");
   const storeFromUrl = searchParams.get("store");
   const departmentFromUrl = searchParams.get("department");
   const designFromUrl = searchParams.get("design");
@@ -53,8 +76,8 @@ export default function SalesPage() {
   const [availableDesigns, setAvailableDesigns] = useState<string[]>([]);
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
   const [availableVendors, setAvailableVendors] = useState<string[]>([]);
-  const [filterDate, setFilterDate] = useState<string>(() =>
-    dateFromUrl && isValidIsoDate(dateFromUrl) ? dateFromUrl : ""
+  const [dateRange, setDateRange] = useState<SalesDateRangeValue | null>(() =>
+    rangeFromSearchParams(searchParams)
   );
   const [filterStore, setFilterStore] = useState(() => storeFromUrl ?? "");
   const [filterDepartment, setFilterDepartment] = useState(() => departmentFromUrl ?? "");
@@ -65,8 +88,15 @@ export default function SalesPage() {
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
 
   useEffect(() => {
-    if (dateFromUrl && isValidIsoDate(dateFromUrl) && dateFromUrl !== filterDate) {
-      setFilterDate(dateFromUrl);
+    const next = rangeFromSearchParams(searchParams);
+    if (
+      (next?.from ?? "") !== (dateRange?.from ?? "") ||
+      (next?.to ?? "") !== (dateRange?.to ?? "")
+    ) {
+      // Only sync when URL actually carries date params (voice / deep links).
+      if (searchParams.get("from") || searchParams.get("to") || searchParams.get("date")) {
+        setDateRange(next);
+      }
     }
     if (storeFromUrl != null && storeFromUrl !== filterStore) setFilterStore(storeFromUrl);
     if (departmentFromUrl != null && departmentFromUrl !== filterDepartment) {
@@ -76,13 +106,13 @@ export default function SalesPage() {
     if (vendorFromUrl != null && vendorFromUrl !== filterVendor) setFilterVendor(vendorFromUrl);
     if (classFromUrl != null && classFromUrl !== filterClass) setFilterClass(classFromUrl);
   }, [
-    dateFromUrl,
+    searchParams,
     storeFromUrl,
     departmentFromUrl,
     designFromUrl,
     vendorFromUrl,
     classFromUrl,
-    filterDate,
+    dateRange,
     filterStore,
     filterDepartment,
     filterDesign,
@@ -105,7 +135,7 @@ export default function SalesPage() {
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (filterDate) params.set("date", filterDate);
+    appendDateParams(params, dateRange);
     if (filterStore) params.set("store", filterStore);
     if (filterDepartment) params.set("department", filterDepartment);
     if (filterDesign) params.set("design", filterDesign);
@@ -125,11 +155,16 @@ export default function SalesPage() {
           setAvailableDesigns(d.availableDesigns ?? []);
           setAvailableClasses(d.availableClasses ?? []);
           setAvailableVendors(d.availableVendors ?? []);
-          setReportId(d.report?.id ?? filterDate ?? d.reportDate ?? "latest");
-          // Drop stale date filter if the new latest report doesn't include it
+          setReportId(
+            d.report?.id ?? dateRange?.to ?? d.reportDate ?? "latest"
+          );
           const dates: string[] = d.availableDates ?? [];
-          if (filterDate && dates.length && !dates.includes(filterDate)) {
-            setFilterDate("");
+          if (
+            dateRange &&
+            dates.length &&
+            (!dates.includes(dateRange.from) || !dates.includes(dateRange.to))
+          ) {
+            setDateRange(null);
           }
         } else {
           setReportSummary(null);
@@ -143,7 +178,7 @@ export default function SalesPage() {
         }
       });
   }, [
-    filterDate,
+    dateRange,
     filterStore,
     filterDepartment,
     filterDesign,
@@ -203,151 +238,134 @@ export default function SalesPage() {
   return (
     <PageShell accent="emerald">
       <PageShellHeader>
-          <PageHeader
-            gradient
-            eyebrow="Sales"
-            title={
-              isFinancingReport
-                ? "Financing & Sales"
-                : isStoreSalesReport
-                  ? "Store Sales"
-                  : "Sales Reports"
-            }
-            subtitle={
-              isFinancingReport
-                ? "Payment mix, financing programs, and store performance"
-                : undefined
-            }
-            action={
-              <div className="flex flex-wrap items-center gap-2 justify-end">
-                {(availableDates.length > 0 ||
-                  availableStores.length > 0 ||
-                  availableDepartments.length > 0 ||
-                  availableDesigns.length > 0 ||
-                  availableVendors.length > 0 ||
-                  availableClasses.length > 0 ||
-                  reportSummary?.dateRange) && (
-                  <div className="flex flex-wrap items-center gap-2 justify-end">
-                    <CalendarDays size={15} className="text-ink-muted shrink-0" />
-                    <select
-                      value={filterDate}
-                      onChange={(e) => setFilterDate(e.target.value)}
-                      className={selectClass}
-                      aria-label="Filter by date"
-                    >
-                      <option value="">
-                        All dates
-                        {reportSummary?.dateRange
-                          ? ` (${formatReportDateRange(
-                              reportSummary.dateRange.from,
-                              reportSummary.dateRange.to
-                            )})`
-                          : ""}
-                      </option>
-                      {[...availableDates].reverse().map((d) => (
-                        <option key={d} value={d}>
-                          {formatReportDateDisplay(d)}
-                        </option>
-                      ))}
-                    </select>
-                    {availableStores.length > 0 && (
-                      <select
-                        value={filterStore}
-                        onChange={(e) => setFilterStore(e.target.value)}
-                        className={selectClass}
-                        aria-label="Filter by store"
-                      >
-                        <option value="">All stores</option>
-                        {availableStores.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {availableDepartments.length > 0 && (
-                      <select
-                        value={filterDepartment}
-                        onChange={(e) => setFilterDepartment(e.target.value)}
-                        className={selectClass}
-                        aria-label="Filter by department"
-                      >
-                        <option value="">All departments</option>
-                        {availableDepartments.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {availableDesigns.length > 0 && (
-                      <select
-                        value={filterDesign}
-                        onChange={(e) => setFilterDesign(e.target.value)}
-                        className={selectClass}
-                        aria-label="Filter by design"
-                      >
-                        <option value="">All designs</option>
-                        {availableDesigns.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {availableVendors.length > 0 && (
-                      <select
-                        value={filterVendor}
-                        onChange={(e) => setFilterVendor(e.target.value)}
-                        className={selectClass}
-                        aria-label="Filter by vendor"
-                      >
-                        <option value="">All vendors</option>
-                        {availableVendors.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {availableClasses.length > 0 && (
-                      <select
-                        value={filterClass}
-                        onChange={(e) => setFilterClass(e.target.value)}
-                        className={selectClass}
-                        aria-label="Filter by class"
-                      >
-                        <option value="">All classes</option>
-                        {availableClasses.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                )}
-                <Link
-                  href={(() => {
-                    const params = new URLSearchParams();
-                    if (filterDate) params.set("date", filterDate);
-                    if (filterStore) params.set("store", filterStore);
-                    if (filterDepartment) params.set("department", filterDepartment);
-                    if (filterDesign) params.set("design", filterDesign);
-                    if (filterVendor) params.set("vendor", filterVendor);
-                    if (filterClass) params.set("class", filterClass);
-                    const qs = params.toString();
-                    return qs ? `/sales/visualizations?${qs}` : "/sales/visualizations";
-                  })()}
-                >
-                  <Button size="sm" className="gap-1.5">
-                    <LineChart size={14} />
-                    Visualization
-                  </Button>
-                </Link>
-              </div>
-            }
-          />
+        <PageHeader
+          gradient
+          eyebrow="Sales"
+          title={
+            isFinancingReport
+              ? "Financing & Sales"
+              : isStoreSalesReport
+                ? "Store Sales"
+                : "Sales Reports"
+          }
+          subtitle={
+            isFinancingReport
+              ? "Payment mix, financing programs, and store performance"
+              : undefined
+          }
+          action={
+            <Link
+              href={(() => {
+                const params = new URLSearchParams();
+                appendDateParams(params, dateRange);
+                if (filterStore) params.set("store", filterStore);
+                if (filterDepartment) params.set("department", filterDepartment);
+                if (filterDesign) params.set("design", filterDesign);
+                if (filterVendor) params.set("vendor", filterVendor);
+                if (filterClass) params.set("class", filterClass);
+                const qs = params.toString();
+                return qs ? `/sales/visualizations?${qs}` : "/sales/visualizations";
+              })()}
+            >
+              <Button size="sm" className="gap-1.5">
+                <LineChart size={14} />
+                Visualization
+              </Button>
+            </Link>
+          }
+        />
+
+        {(availableDates.length > 0 ||
+          availableStores.length > 0 ||
+          availableDepartments.length > 0 ||
+          availableDesigns.length > 0 ||
+          availableVendors.length > 0 ||
+          availableClasses.length > 0 ||
+          reportSummary?.dateRange) && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <SalesDateRangePicker
+              availableDates={availableDates}
+              reportRange={reportSummary?.dateRange ?? null}
+              value={dateRange}
+              onChange={setDateRange}
+            />
+            {availableStores.length > 0 && (
+              <select
+                value={filterStore}
+                onChange={(e) => setFilterStore(e.target.value)}
+                className={selectClass}
+                aria-label="Filter by store"
+              >
+                <option value="">All stores</option>
+                {availableStores.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
+            {availableDepartments.length > 0 && (
+              <select
+                value={filterDepartment}
+                onChange={(e) => setFilterDepartment(e.target.value)}
+                className={selectClass}
+                aria-label="Filter by department"
+              >
+                <option value="">All departments</option>
+                {availableDepartments.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
+            {availableDesigns.length > 0 && (
+              <select
+                value={filterDesign}
+                onChange={(e) => setFilterDesign(e.target.value)}
+                className={selectClass}
+                aria-label="Filter by design"
+              >
+                <option value="">All designs</option>
+                {availableDesigns.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
+            {availableVendors.length > 0 && (
+              <select
+                value={filterVendor}
+                onChange={(e) => setFilterVendor(e.target.value)}
+                className={selectClass}
+                aria-label="Filter by vendor"
+              >
+                <option value="">All vendors</option>
+                {availableVendors.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
+            {availableClasses.length > 0 && (
+              <select
+                value={filterClass}
+                onChange={(e) => setFilterClass(e.target.value)}
+                className={selectClass}
+                aria-label="Filter by class"
+              >
+                <option value="">All classes</option>
+                {availableClasses.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
       </PageShellHeader>
 
         <PageShellBody>
@@ -530,7 +548,11 @@ export default function SalesPage() {
 
       <RankDetailDrawer
         selection={rankDetail}
-        filterDate={filterDate || undefined}
+        filterDate={
+          dateRange && dateRange.from === dateRange.to ? dateRange.from : undefined
+        }
+        filterDateFrom={dateRange?.from}
+        filterDateTo={dateRange?.to}
         filterStore={filterStore || undefined}
         filterDepartment={filterDepartment || undefined}
         filterDesign={filterDesign || undefined}

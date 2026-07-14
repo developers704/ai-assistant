@@ -13,11 +13,7 @@ import { PageHeader } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatPieceCount, cn } from "@/lib/utils";
-import {
-  formatReportDateDisplay,
-  formatReportDateRange,
-  isValidIsoDate,
-} from "@/lib/reports/date-utils";
+import { isValidIsoDate } from "@/lib/reports/date-utils";
 import type { SalesVisualizationPayload } from "@/lib/sales/visualizations";
 import {
   SalesTrendChart,
@@ -25,10 +21,38 @@ import {
   SalesDonutChart,
   SalesModelsChart,
 } from "@/components/sales/SalesVizCharts";
-import { ArrowLeft, CalendarDays, LineChart, Sparkles } from "lucide-react";
+import {
+  SalesDateRangePicker,
+  type SalesDateRangeValue,
+} from "@/components/sales/SalesDateRangePicker";
+import { ArrowLeft, LineChart, Sparkles } from "lucide-react";
 
 const selectClass =
-  "select-dark px-3 py-2 rounded-xl text-sm backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-cyan-400/30 focus:border-cyan-400/40 min-w-[8.5rem]";
+  "select-dark h-9 px-3 rounded-xl text-sm backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-cyan-400/30 focus:border-cyan-400/40 min-w-[8.5rem]";
+
+function rangeFromSearchParams(sp: {
+  get: (key: string) => string | null;
+}): SalesDateRangeValue | null {
+  const from = sp.get("from")?.trim() ?? "";
+  const to = sp.get("to")?.trim() ?? "";
+  const date = sp.get("date")?.trim() ?? "";
+  if (from && to && isValidIsoDate(from) && isValidIsoDate(to)) {
+    return from <= to ? { from, to } : { from: to, to: from };
+  }
+  if (date && isValidIsoDate(date)) return { from: date, to: date };
+  if (from && isValidIsoDate(from)) return { from, to: from };
+  return null;
+}
+
+function appendDateParams(params: URLSearchParams, range: SalesDateRangeValue | null) {
+  if (!range) return;
+  if (range.from === range.to) {
+    params.set("date", range.from);
+  } else {
+    params.set("from", range.from);
+    params.set("to", range.to);
+  }
+}
 
 export default function SalesVisualizationsPage() {
   return (
@@ -52,10 +76,9 @@ function SalesVisualizationsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [filterDate, setFilterDate] = useState(() => {
-    const d = searchParams.get("date");
-    return d && isValidIsoDate(d) ? d : "";
-  });
+  const [dateRange, setDateRange] = useState<SalesDateRangeValue | null>(() =>
+    rangeFromSearchParams(searchParams)
+  );
   const [filterStore, setFilterStore] = useState(() => searchParams.get("store") ?? "");
   const [filterDepartment, setFilterDepartment] = useState(
     () => searchParams.get("department") ?? ""
@@ -66,7 +89,7 @@ function SalesVisualizationsContent() {
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (filterDate) params.set("date", filterDate);
+    appendDateParams(params, dateRange);
     if (filterStore) params.set("store", filterStore);
     if (filterDepartment) params.set("department", filterDepartment);
     if (filterDesign) params.set("design", filterDesign);
@@ -99,7 +122,7 @@ function SalesVisualizationsContent() {
       cancelled = true;
     };
   }, [
-    filterDate,
+    dateRange,
     filterStore,
     filterDepartment,
     filterDesign,
@@ -110,17 +133,18 @@ function SalesVisualizationsContent() {
 
   const backHref = useMemo(() => {
     const params = new URLSearchParams();
-    if (filterDate) params.set("date", filterDate);
+    appendDateParams(params, dateRange);
     if (filterStore) params.set("store", filterStore);
     if (filterDepartment) params.set("department", filterDepartment);
     if (filterDesign) params.set("design", filterDesign);
+    if (filterVendor) params.set("vendor", filterVendor);
     if (filterClass) params.set("class", filterClass);
     const qs = params.toString();
     return qs ? `/sales?${qs}` : "/sales";
-  }, [filterDate, filterStore, filterDepartment, filterDesign, filterClass]);
+  }, [dateRange, filterStore, filterDepartment, filterDesign, filterVendor, filterClass]);
 
   const clearFilters = () => {
-    setFilterDate("");
+    setDateRange(null);
     setFilterStore("");
     setFilterDepartment("");
     setFilterDesign("");
@@ -129,7 +153,7 @@ function SalesVisualizationsContent() {
   };
 
   const hasFilters = Boolean(
-    filterDate || filterStore || filterDepartment || filterDesign || filterVendor || filterClass
+    dateRange || filterStore || filterDepartment || filterDesign || filterVendor || filterClass
   );
 
   return (
@@ -164,25 +188,16 @@ function SalesVisualizationsContent() {
       <PageShellBody>
         <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/10 p-3 sm:p-4 mb-4 sm:mb-5">
           <div className="flex flex-wrap items-center gap-2">
-            <CalendarDays size={15} className="text-ink-muted shrink-0" />
-            <select
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className={selectClass}
-              aria-label="Filter by date"
-            >
-              <option value="">
-                All dates
-                {data?.dateRange.from && data.dateRange.to
-                  ? ` (${formatReportDateRange(data.dateRange.from, data.dateRange.to)})`
-                  : ""}
-              </option>
-              {[...(data?.filters.dates ?? [])].reverse().map((d) => (
-                <option key={d} value={d}>
-                  {formatReportDateDisplay(d)}
-                </option>
-              ))}
-            </select>
+            <SalesDateRangePicker
+              availableDates={data?.filters.dates ?? []}
+              reportRange={
+                data?.dateRange.from && data.dateRange.to
+                  ? { from: data.dateRange.from, to: data.dateRange.to }
+                  : null
+              }
+              value={dateRange}
+              onChange={setDateRange}
+            />
             <select
               value={filterStore}
               onChange={(e) => setFilterStore(e.target.value)}

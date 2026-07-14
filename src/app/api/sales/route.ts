@@ -25,6 +25,8 @@ function previousAvailableDate(dates: string[], current: string): string | null 
 
 async function queryDashboardSlice(opts: {
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
   store?: string;
   department?: string;
   design?: string;
@@ -34,10 +36,13 @@ async function queryDashboardSlice(opts: {
   mode?: "dashboard" | "comparison";
 }): Promise<SalesQueryResult> {
   const isCompare = opts.mode === "comparison";
+  const from = opts.dateFrom ?? opts.date;
+  const to = opts.dateTo ?? opts.date;
   return querySales({
-    dateRange: opts.date
-      ? { type: "custom", startDate: opts.date, endDate: opts.date }
-      : { type: "all_dates" },
+    dateRange:
+      from && to
+        ? { type: "custom", startDate: from, endDate: to }
+        : { type: "all_dates" },
     stores: opts.store ? [opts.store] : undefined,
     departments: opts.department ? [opts.department] : undefined,
     designs: opts.design ? [opts.design] : undefined,
@@ -72,21 +77,49 @@ async function queryDashboardSlice(opts: {
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const dateParam = sp.get("date")?.trim() ?? "";
-  const filterDate = dateParam ? parseReportFilterDate(dateParam) ?? undefined : undefined;
+  const fromParam = sp.get("from")?.trim() ?? "";
+  const toParam = sp.get("to")?.trim() ?? "";
+  const singleDate = dateParam ? parseReportFilterDate(dateParam) ?? undefined : undefined;
+  const fromParsed = fromParam ? parseReportFilterDate(fromParam) ?? undefined : undefined;
+  const toParsed = toParam ? parseReportFilterDate(toParam) ?? undefined : undefined;
+
+  let filterDateFrom: string | undefined;
+  let filterDateTo: string | undefined;
+  if (fromParsed && toParsed) {
+    filterDateFrom = fromParsed <= toParsed ? fromParsed : toParsed;
+    filterDateTo = fromParsed <= toParsed ? toParsed : fromParsed;
+  } else if (singleDate) {
+    filterDateFrom = singleDate;
+    filterDateTo = singleDate;
+  } else if (fromParsed) {
+    filterDateFrom = fromParsed;
+    filterDateTo = fromParsed;
+  }
+
+  const filterDate =
+    filterDateFrom && filterDateTo && filterDateFrom === filterDateTo
+      ? filterDateFrom
+      : undefined;
+
   const filterStore = sp.get("store")?.trim() || undefined;
   const filterDepartment = sp.get("department")?.trim() || undefined;
   const filterDesign = sp.get("design")?.trim() || undefined;
   const filterVendor = sp.get("vendor")?.trim() || undefined;
   const filterClass = sp.get("class")?.trim() || undefined;
 
-  if (dateParam && (!filterDate || !isValidIsoDate(filterDate))) {
+  if (dateParam && (!singleDate || !isValidIsoDate(singleDate))) {
     return NextResponse.json({ error: "Invalid date. Use MM/DD/YY or YYYY-MM-DD." }, { status: 400 });
+  }
+  if (fromParam && (!fromParsed || !isValidIsoDate(fromParsed))) {
+    return NextResponse.json({ error: "Invalid from date." }, { status: 400 });
+  }
+  if (toParam && (!toParsed || !isValidIsoDate(toParsed))) {
+    return NextResponse.json({ error: "Invalid to date." }, { status: 400 });
   }
 
   // Publish dashboard filter state for Chat/Voice inheritance.
-  // Empty filters must clear prior chat/voice context (do not retain stale store/design).
   if (
-    !filterDate &&
+    !filterDateFrom &&
     !filterStore &&
     !filterDepartment &&
     !filterDesign &&
@@ -96,11 +129,11 @@ export async function GET(req: NextRequest) {
     clearActiveSalesContext();
   }
   setActiveSalesContext({
-    dateRange: filterDate
+    dateRange: filterDateFrom && filterDateTo
       ? {
           preset: "custom",
-          from: filterDate,
-          to: filterDate,
+          from: filterDateFrom,
+          to: filterDateTo,
           timezone: process.env.BUSINESS_TIMEZONE || "America/Los_Angeles",
         }
       : undefined,
@@ -118,6 +151,8 @@ export async function GET(req: NextRequest) {
     if (latestMeta) {
       const slice = {
         date: filterDate,
+        dateFrom: filterDateFrom,
+        dateTo: filterDateTo,
         store: filterStore,
         department: filterDepartment,
         design: filterDesign,
@@ -135,6 +170,8 @@ export async function GET(req: NextRequest) {
           previousDay = await queryDashboardSlice({
             ...slice,
             date: prevDate,
+            dateFrom: prevDate,
+            dateTo: prevDate,
             mode: "comparison",
           });
         }
@@ -144,6 +181,8 @@ export async function GET(req: NextRequest) {
           previousWeek = await queryDashboardSlice({
             ...slice,
             date: weekAgo,
+            dateFrom: weekAgo,
+            dateTo: weekAgo,
             mode: "comparison",
           });
         } else if (weekAgo === prevDate) {
@@ -171,6 +210,8 @@ export async function GET(req: NextRequest) {
         availableClasses: latestMeta.availableClasses,
         availableVendors: latestMeta.availableVendors,
         filterDate: filterDate ?? null,
+        filterDateFrom: filterDateFrom ?? null,
+        filterDateTo: filterDateTo ?? null,
         filterStore: filterStore ?? null,
         filterDepartment: filterDepartment ?? null,
         filterDesign: filterDesign ?? null,
@@ -185,6 +226,7 @@ export async function GET(req: NextRequest) {
 
   const latest = getLatestReportWithSummary({
     ...(filterDate ? { filterDate } : {}),
+    ...(filterDateFrom && filterDateTo ? { filterDateFrom, filterDateTo } : {}),
     ...(filterStore ? { filterStore } : {}),
     ...(filterDepartment ? { filterDepartment } : {}),
     ...(filterDesign ? { filterDesign } : {}),
@@ -209,6 +251,8 @@ export async function GET(req: NextRequest) {
       availableClasses: latest.availableClasses,
       availableVendors: latest.availableVendors,
       filterDate: filterDate ?? null,
+      filterDateFrom: filterDateFrom ?? null,
+      filterDateTo: filterDateTo ?? null,
       filterStore: filterStore ?? null,
       filterDepartment: filterDepartment ?? null,
       filterDesign: filterDesign ?? null,
@@ -229,6 +273,8 @@ export async function GET(req: NextRequest) {
     availableClasses: [],
     availableVendors: [],
     filterDate: null,
+    filterDateFrom: null,
+    filterDateTo: null,
     filterStore: null,
     filterDepartment: null,
     filterDesign: null,
