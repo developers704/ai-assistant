@@ -500,12 +500,12 @@ export function sectionIdFromPath(path: string): AppSectionId {
 
 /** Short spoken line when opening a section — no summary. */
 export const SECTION_OPEN_SPOKEN: Record<AppSectionId, string> = {
-  sales: "Opening Sales Today.",
+  sales: "Opening Sales Dashboard.",
   news: "Opening News and Markets.",
   chat: "Opening AI Chat.",
   email: "Opening Email.",
   calendar: "Opening Calendar.",
-  stores: "Opening Stores and Map.",
+  stores: "Opening Stores Map and Info.",
   calculator: "Opening Price Calculator.",
   analyst: "Opening Data Analyst.",
   images: "Opening Image Generation.",

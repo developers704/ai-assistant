@@ -60,3 +60,25 @@ export function wantsTellOnly(message?: string): boolean {
   return /\b(tell me|batao|bata|what (?:are|is|was)|kitni|kitna|how (?:much|many))\b/i.test(message)
     && !/\b(show|dikhao|open|kholo)\b/i.test(message);
 }
+
+/** Boss wants a spoken overview (explain / discuss / summary / how much). */
+export function wantsSalesExplain(message?: string): boolean {
+  if (!message) return false;
+  return /\b(explain|discuss|summarize|summary|overview|break(?:\s|-)?down|tell me(?:\s+about)?|batao|how (?:much|many)|what (?:are|is|was)|kitn[ai]|walk me through)\b/i.test(
+    message
+  );
+}
+
+/**
+ * Show/open filtered sales on the dashboard — navigate only, no spoken summary
+ * (unless they also asked to explain).
+ */
+export function wantsSalesShowOnly(message?: string): boolean {
+  if (!message) return false;
+  if (/\b(and explain|and discuss|aur batao|explain (?:it|this|that)|discuss (?:it|this))\b/i.test(message)) {
+    return false;
+  }
+  if (wantsSalesExplain(message) && !wantsShow(message)) return false;
+  if (wantsSalesExplain(message) && wantsShow(message)) return false;
+  return wantsShow(message) || /\b(pull up|display|filter (?:to|by))\b/i.test(message);
+}

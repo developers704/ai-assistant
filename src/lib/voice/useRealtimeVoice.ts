@@ -248,12 +248,31 @@ export function useRealtimeVoice(enabled: boolean) {
 
       if (intent === "sales") {
         try {
-          await runTool(
-            "get_today_sales",
-            { user_message: normalized },
-            "The user asked about SALES. Navigate them to the sales dashboard and give a VERY BRIEF 1-2 sentence summary. Say exactly this:",
-            200
+          const { wantsSalesShowOnly, wantsSalesExplain } = await import(
+            "@/lib/sales/sales-schema"
           );
+          const { isOpenSectionRequest } = await import("@/lib/voice/intent");
+          if (
+            wantsSalesShowOnly(normalized) &&
+            !wantsSalesExplain(normalized) &&
+            !isOpenSectionRequest(normalized)
+          ) {
+            await runTool(
+              "apply_sales_dashboard_filters",
+              { user_message: normalized },
+              "The user asked to SHOW filtered sales. Speak ONLY the spokenAnswer Opening line — no summary, no numbers. Say exactly this:",
+              60
+            );
+          } else {
+            await runTool(
+              "query_sales",
+              { user_message: normalized, navigate: true },
+              wantsSalesExplain(normalized)
+                ? "The user asked to EXPLAIN or DISCUSS sales. Give a BRIEF 1-2 sentence overview from spokenAnswer. Say exactly this:"
+                : "The user asked about SALES figures. Give a VERY BRIEF 1-2 sentence answer from spokenAnswer. Say exactly this:",
+              200
+            );
+          }
           return;
         } catch {
           // fall through
@@ -488,7 +507,7 @@ export function useRealtimeVoice(enabled: boolean) {
       sendEvent(dc, {
         type: "response.create",
         response: {
-          instructions: `${STOP_INSTRUCTION}\n\nUse ONE appropriate tool for what the user asked. If they ask to OPEN a section, use \`show_detail_page\` and speak ONLY the Opening line from the tool — no summary. After a section is open, answer follow-ups with that section's tools (especially Sales, News & Markets, Email). Keep answers brief unless asked for details. Never ask follow-up questions or take extra actions while the user is silent.`,
+          instructions: `${STOP_INSTRUCTION}\n\nUse ONE appropriate tool for what the user asked. If they ask to OPEN a section, use \`show_detail_page\` and speak ONLY the Opening line — no summary. If they say SHOW a design/store/department sales filter, use \`apply_sales_dashboard_filters\` and speak ONLY the Opening line. Only EXPLAIN/DISCUSS/SUMMARY requests get a brief spoken overview. Keep answers brief. Never ask follow-up questions or take extra actions while the user is silent.`,
           max_output_tokens: 220,
         },
       });

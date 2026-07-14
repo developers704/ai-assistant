@@ -18,12 +18,12 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     allowedInChat: true,
     opensPage: "/sales",
     whenToUse:
-      "User asks about sales, revenue, top products, stores, MHVR, uploaded CSV, or sales on a specific date (e.g. show sales of 8 July).",
-    whenNotToUse: "Never guess sales numbers from memory.",
+      "User asks about sales figures, revenue, top products, or wants an explanation/summary. For 'show Novello sales' prefer apply_sales_dashboard_filters.",
+    whenNotToUse: "Bare 'open sales' → show_detail_page. 'Show Novello sales' without explain → apply_sales_dashboard_filters.",
     examplePhrases: [
       "how are sales today",
       "top products",
-      "show sales of 8 july",
+      "explain novello sales",
       "sales on July 8",
     ],
     costNotes: "No LLM — reads local report.",
@@ -60,14 +60,14 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     allowedInChat: true,
     opensPage: "/sales",
     whenToUse:
-      "Novello/Ovani/LADYS RING/MHVR/14KT sales, by store/department, yesterday/kal, show filtered sales, top vendor models with filters.",
+      "Explain/discuss/summary of design/department/store/vendor, or ask for sales figures. Prefer apply_sales_dashboard_filters for show-only filtered open.",
     whenNotToUse:
-      "Never invent numbers. For unusual statistical correlations use open_data_analyst.",
+      "Bare open sales → show_detail_page. Show Novello without explain → apply_sales_dashboard_filters.",
     examplePhrases: [
-      "Show Novello sales",
+      "Explain Novello sales",
+      "Discuss Great Mall",
       "Novello ki kal ki sales batao",
       "LADYS RING by vendor",
-      "now by department",
     ],
     costNotes: "Deterministic — reads loaded report only.",
     parameters: {
@@ -202,16 +202,23 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: "apply_sales_dashboard_filters",
-    description: "Apply filters on the Sales dashboard and navigate to /sales.",
+    description:
+      "Open the Sales dashboard with design/store/department/vendor/class filters. For 'show Novello sales' speak only the Opening line — no summary.",
     category: "sales",
     riskLevel: "safe",
     requiresConfirmation: false,
     allowedInVoice: true,
     allowedInChat: true,
     opensPage: "/sales",
-    whenToUse: "User says show/open on Sales dashboard with current or named filters.",
-    whenNotToUse: "When they only want a spoken/text answer with no UI.",
-    examplePhrases: ["Open Novello on Sales dashboard", "show this on sales"],
+    whenToUse:
+      "User says show/open filtered sales (e.g. show Novello, show Great Mall, open watches department) without asking to explain.",
+    whenNotToUse: "When they ask explain/discuss/summary/how much — use query_sales or get_today_sales.",
+    examplePhrases: [
+      "show Novello sales",
+      "show Great Mall sales",
+      "open watches department on sales",
+      "show MHVR sales",
+    ],
     parameters: {
       type: "object",
       properties: {

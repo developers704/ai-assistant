@@ -72,15 +72,55 @@ export function detectLimitedVoiceFastPath(text: string): VoicePrefetchIntent | 
   return null;
 }
 
+/** True when "show/open … sales" includes a filter entity (design/store/etc.), not bare Sales Dashboard. */
+export function isFilteredSalesShowRequest(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  if (!/\bsales?\b/i.test(lower)) return false;
+  if (
+    /^(?:please\s+)?(?:open|show(?:\s+me)?|go to|take me to|navigate to)\s+(?:the\s+|my\s+)?sales(?:\s+today|\s+dashboard)?\.?$/i.test(
+      lower
+    )
+  ) {
+    return false;
+  }
+  const remainder = lower
+    .replace(
+      /\b(please|show(?:\s+me)?|open|go to|take me to|navigate to|the|my|page|section|screen|sales(?:\s+today|\s+dashboard)?|dashboard)\b/gi,
+      " "
+    )
+    .replace(/[?.!,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return remainder.length >= 2;
+}
+
+function isMostlySectionName(rest: string): boolean {
+  const cleaned = rest
+    .replace(
+      /\b(sales(?:\s+today|\s+dashboard)?|news(?:\s+and\s+markets)?|ai\s+chat|chat|email|inbox|calendar|calender|stores?(?:\s+map(?:\s+and\s+info)?|\s+and\s+map|\s+map|\s+info)?|price\s+calculator|calculator|data\s+analyst|analyst|image\s+generation|images|social|contacts?|settings|page|section|screen|the|my)\b/gi,
+      " "
+    )
+    .replace(/[?.!,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length < 3;
+}
+
 /** True when the user is asking to open/navigate to a section (not asking for data). */
 export function isOpenSectionRequest(text: string): boolean {
   const lower = text.toLowerCase().trim();
+  if (isFilteredSalesShowRequest(lower)) return false;
+
   if (/^(?:please\s+)?(?:open|go to|take me to|navigate to)\b/i.test(lower)) {
-    return true;
+    const rest = lower
+      .replace(/^(?:please\s+)?(?:open|go to|take me to|navigate to)\s+(?:the\s+|my\s+)?/i, "")
+      .replace(/[?.!,]+$/g, "")
+      .trim();
+    return isMostlySectionName(rest);
   }
   // "show me …" only when the whole phrase is essentially a section open
   if (
-    /^(?:please\s+)?show(?:\s+me)?\s+(?:the\s+|my\s+)?(?:sales(?:\s+today|\s+dashboard)?|news(?:\s+and\s+markets)?|ai\s+chat|chat|email|inbox|calendar|calender|stores?(?:\s+and\s+map|\s+map)?|price\s+calculator|calculator|data\s+analyst|analyst|image\s+generation|images|social|contacts?|settings)\.?$/i.test(
+    /^(?:please\s+)?show(?:\s+me)?\s+(?:the\s+|my\s+)?(?:sales(?:\s+today|\s+dashboard)?|news(?:\s+and\s+markets)?|ai\s+chat|chat|email|inbox|calendar|calender|stores?(?:\s+map(?:\s+and\s+info)?|\s+and\s+map|\s+map|\s+info)?|price\s+calculator|calculator|data\s+analyst|analyst|image\s+generation|images|social|contacts?|settings)\.?$/i.test(
       lower
     )
   ) {
@@ -323,7 +363,15 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
   if (
     /sales|revenue|top store|top product|best store|best sku|how much (did we|have we) sell|store(s)? performance|transactions today|sales (?:of|on|for)/i.test(
       lower
-    )
+    ) ||
+    /\b(explain|discuss|summarize|summary|overview)\b[\s\S]{0,40}\b(novello|ovani|mhvr|department|design|vendor|class|mall|store)\b/i.test(
+      lower
+    ) ||
+    /\b(novello|ovani|mhvr)\b/i.test(lower) ||
+    /\bhow much\b[\s\S]{0,30}\b(novello|ovani|mhvr|department|design|vendor|mall|store)\b/i.test(
+      lower
+    ) ||
+    isFilteredSalesShowRequest(lower)
   ) {
     return "sales";
   }

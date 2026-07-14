@@ -176,6 +176,42 @@ export async function executeVoiceTool(
       const dateArg =
         typeof args.date === "string" && args.date.trim() ? args.date.trim() : undefined;
 
+      // "Show Novello sales" → open filtered dashboard; speak Opening line only.
+      const { wantsSalesShowOnly, wantsSalesExplain } = await import("@/lib/sales/sales-schema");
+      const { isOpenSectionRequest } = await import("@/lib/voice/intent");
+      if (
+        userMessage &&
+        wantsSalesShowOnly(userMessage) &&
+        !wantsSalesExplain(userMessage) &&
+        !isOpenSectionRequest(userMessage)
+      ) {
+        const { ensureActiveSalesVersion } = await import("@/lib/sales/refresh/service");
+        await ensureActiveSalesVersion();
+        const { querySales } = await import("@/lib/sales/query-sales");
+        const { salesDashboardToQuery } = await import("@/lib/sales/sales-dashboard-state");
+        const result = await querySales({
+          userMessage,
+          dateRange: dateArg
+            ? { type: "custom", startDate: dateArg, endDate: dateArg }
+            : undefined,
+          display: { navigateToSales: true, applyDashboardFilters: true },
+        });
+        const path = result.dashboardState
+          ? salesDashboardToQuery(result.dashboardState)
+          : "/sales";
+        return {
+          output: JSON.stringify({
+            success: true,
+            navigateTo: path,
+            spokenAnswer: result.spokenAnswer,
+            speakOnly: result.spokenAnswer,
+            instruction: "Speak ONLY the spokenAnswer Opening line. No summary.",
+            dashboardState: result.dashboardState,
+          }),
+          uiAction: { type: "navigate", path },
+        };
+      }
+
       const { isSalesUnifiedIntelligenceEnabled } = await import("@/lib/sales/flags");
       if (isSalesUnifiedIntelligenceEnabled()) {
         try {
@@ -419,7 +455,9 @@ export async function executeVoiceTool(
             success: true,
             navigateTo: path,
             synthesizedAnswer: result.textAnswer,
-            spokenAnswer: result.spokenAnswer || "Opening the Sales dashboard with your filters.",
+            spokenAnswer: result.spokenAnswer || "Opening Sales Dashboard.",
+            speakOnly: result.spokenAnswer || "Opening Sales Dashboard.",
+            instruction: "Speak ONLY the spokenAnswer line. Do not summarize sales numbers unless the user asked to explain or discuss.",
             dashboardState: result.dashboardState,
           }),
           uiAction: { type: "navigate", path },
@@ -474,6 +512,7 @@ export async function executeVoiceTool(
         display: {
           navigateToSales:
             args.navigate === true ||
+            /\b(explain|discuss|summarize|summary|overview)\b/i.test(userMessage) ||
             (args.navigate !== false && /\b(show|dikhao|open|kholo)\b/i.test(userMessage)),
           applyDashboardFilters: true,
         },
@@ -483,8 +522,10 @@ export async function executeVoiceTool(
         : "/sales";
       const shouldNav = Boolean(
         args.navigate === true ||
-          result.dashboardState &&
-            (args.navigate !== false && /\b(show|dikhao|open|kholo)\b/i.test(userMessage))
+          (result.dashboardState &&
+            (/\b(explain|discuss|summarize|summary|overview)\b/i.test(userMessage) ||
+              (args.navigate !== false &&
+                /\b(show|dikhao|open|kholo)\b/i.test(userMessage))))
       );
       return {
         output: JSON.stringify({

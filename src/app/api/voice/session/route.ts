@@ -17,9 +17,13 @@ async function buildSessionConfig(model: string) {
   const liveContext = dynamic.textBlock;
   const instructions = `CRITICAL LANGUAGE & NOISE RULE: You must ONLY understand, transcribe, and respond in English and Urdu. Ignore background noise, static, breathing, or silence completely. Never transcribe them as words (especially not as Chinese, Portuguese, or other languages). If there is no clear human speech in English or Urdu, ignore the sound and do not respond.
 
-CRITICAL NAVIGATION RULE: If the user asks to open / go to / take me to / show a section (Sales Today, News and Markets, AI Chat, Email, Calendar, Stores and Map, Price Calculator, Data Analyst, Image Generation, Social, Contacts, Settings), YOU MUST call \`show_detail_page\` ONLY.
-Spoken reply MUST be exactly the tool's spokenAnswer (e.g. "Opening Sales Today.") — NO summary, NO extra facts, NO follow-up questions.
-After a section is open (see PAGE / SECTION in LIVE CONTEXT), you are that section's expert — especially Sales Dashboard, News & Markets, and Email. Use that section's live tools for follow-up questions with full detail.
+CRITICAL NAVIGATION RULE: If the user asks to open / go to / take me to / show a section ONLY (Sales Dashboard, News and Markets, AI Chat, Email, Calendar, Stores Map and Info, Price Calculator, Data Analyst, Image Generation, Social, Contacts, Settings), YOU MUST call \`show_detail_page\` ONLY.
+Spoken reply MUST be exactly the tool's spokenAnswer (e.g. "Opening Sales Dashboard.") — NO summary, NO numbers, NO follow-up questions.
+
+SALES SHOW vs EXPLAIN:
+- "Show Novello sales" / "show Great Mall" / open a design, department, store, vendor, or class on Sales → call \`apply_sales_dashboard_filters\` (or \`query_sales\` with navigate). Speak ONLY the Opening line (e.g. "Opening Novello sales.") — no summary.
+- "Explain Novello" / "discuss Great Mall sales" / "summary of watches" → call \`query_sales\` or \`get_today_sales\` and speak a BRIEF 1–2 sentence overview. Open the filtered dashboard when useful.
+After a section is open (see PAGE / SECTION in LIVE CONTEXT), you are that section's expert — especially Sales Dashboard, News & Markets, and Email. Use that section's live tools for follow-up questions.
 
 ${loadVoiceInstructions()}
 

@@ -160,6 +160,26 @@ export function formatSalesSpokenAnswer(result: Omit<SalesQueryResult, "spokenAn
   return spoken;
 }
 
+/** One short open line when boss said "show X sales" — no numbers. */
+export function formatSalesOpenSpoken(
+  result: Pick<SalesQueryResult, "query"> | { query: { filters: SalesQueryFilters } }
+): string {
+  const f = result.query.filters;
+  const label =
+    f.designs[0] ||
+    f.departments[0] ||
+    f.stores[0] ||
+    f.vendors[0] ||
+    f.classes[0] ||
+    f.products[0];
+  if (!label) return "Opening Sales Dashboard.";
+  if (f.departments[0] && !f.designs[0]) return `Opening ${f.departments[0]} department sales.`;
+  if (f.classes[0] && !f.designs[0] && !f.departments[0] && !f.stores[0]) {
+    return `Opening ${f.classes[0]} class sales.`;
+  }
+  return `Opening ${label} sales.`;
+}
+
 export function attachNavigationHint(text: string, navigated: boolean): string {
   if (!navigated) return text;
   return `${text}\n\nI've opened the filtered Sales dashboard.`;

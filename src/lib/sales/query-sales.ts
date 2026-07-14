@@ -13,7 +13,7 @@ import type {
   SalesQueryInput,
   SalesQueryResult,
 } from "./sales-types";
-import { DEFAULT_INCLUDE, emptyFilters, normalizeGroupBy, normalizeMetrics, wantsShow, wantsTellOnly } from "./sales-schema";
+import { DEFAULT_INCLUDE, emptyFilters, normalizeGroupBy, normalizeMetrics, wantsShow, wantsTellOnly, wantsSalesExplain, wantsSalesShowOnly } from "./sales-schema";
 import { buildEntityIndex, extractEntitiesFromMessage, extractComparisonPair, normalizeFilterInputs, matchEntity } from "./sales-normalizer";
 import { resolveDateRange, todayIso } from "./sales-date-resolver";
 import { filterRows, groupRows, summarizeRows } from "./sales-aggregate";
@@ -22,6 +22,7 @@ import { getTopVendorModels, getTopProducts } from "./sales-product-analysis";
 import {
   attachNavigationHint,
   attachSpokenNav,
+  formatSalesOpenSpoken,
   formatSalesSpokenAnswer,
   formatSalesTextAnswer,
 } from "./sales-response";
@@ -226,7 +227,25 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
     display.navigateToSales = true;
     display.applyDashboardFilters = true;
   }
-  if (wantsTellOnly(msg)) {
+  // "Explain Novello" / "discuss Great Mall" → open filtered sales + brief spoken overview.
+  if (
+    wantsSalesExplain(msg) &&
+    display.navigateToSales == null &&
+    (Boolean(extracted.designs?.length) ||
+      Boolean(extracted.departments?.length) ||
+      Boolean(extracted.stores?.length) ||
+      Boolean(extracted.vendors?.length) ||
+      Boolean(extracted.classes?.length) ||
+      Boolean(input.designs?.length) ||
+      Boolean(input.departments?.length) ||
+      Boolean(input.stores?.length) ||
+      Boolean(input.vendors?.length) ||
+      Boolean(input.classes?.length))
+  ) {
+    display.navigateToSales = true;
+    display.applyDashboardFilters = true;
+  }
+  if (wantsTellOnly(msg) && !wantsSalesExplain(msg)) {
     display.navigateToSales = false;
   }
 
@@ -660,9 +679,25 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
 
   let textAnswer = formatSalesTextAnswer(partial);
   let spokenAnswer = formatSalesSpokenAnswer(partial);
-  if (shouldNavigate && navigatePath) {
+  const msg = input.userMessage ?? "";
+  const showOnly =
+    shouldNavigate &&
+    Boolean(msg) &&
+    wantsSalesShowOnly(msg) &&
+    !wantsSalesExplain(msg);
+
+  if (showOnly) {
+    // "Show Novello sales" → open filtered dashboard; speak only the Opening line.
+    spokenAnswer = formatSalesOpenSpoken(partial);
+    textAnswer = attachNavigationHint(textAnswer, Boolean(navigatePath));
+  } else if (shouldNavigate && navigatePath) {
     textAnswer = attachNavigationHint(textAnswer, true);
-    spokenAnswer = attachSpokenNav(spokenAnswer, true);
+    // Explain/discuss: brief numbers + note that the filtered view is open.
+    if (wantsSalesExplain(msg)) {
+      spokenAnswer = attachSpokenNav(spokenAnswer, true);
+    } else if (wantsShow(msg) || wantsTellOnly(msg)) {
+      spokenAnswer = attachSpokenNav(spokenAnswer, true);
+    }
   }
 
   return {
