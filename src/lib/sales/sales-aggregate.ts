@@ -151,42 +151,49 @@ export function filterRows(
     products?: string[];
   }
 ): VendorPosRow[] {
+  const key = (s: string) =>
+    s
+      .trim()
+      .toLowerCase()
+      .replace(/[\u2010-\u2015\u2212]/g, "-")
+      .replace(/\s+/g, " ");
+
   const dateSet = opts.dates?.length ? new Set(opts.dates) : null;
   const storeSet = opts.stores?.length
-    ? new Set(opts.stores.map((s) => s.toLowerCase()))
+    ? new Set(opts.stores.map(key))
     : null;
   const deptSet = opts.departments?.length
-    ? new Set(opts.departments.map((s) => s.toLowerCase()))
+    ? new Set(opts.departments.map(key))
     : null;
   const designSet = opts.designs?.length
-    ? new Set(opts.designs.map((s) => s.toLowerCase()))
+    ? new Set(opts.designs.map(key))
     : null;
   const vendorSet = opts.vendors?.length
-    ? new Set(opts.vendors.map((s) => s.toLowerCase()))
+    ? new Set(opts.vendors.map(key))
     : null;
   const classSet = opts.classes?.length
-    ? new Set(opts.classes.map((s) => s.toLowerCase()))
+    ? new Set(opts.classes.map(key))
     : null;
   const skuSet = opts.skus?.length
-    ? new Set(opts.skus.map((s) => s.toLowerCase()))
+    ? new Set(opts.skus.map(key))
     : null;
   const modelSet = opts.vendorModels?.length
-    ? new Set(opts.vendorModels.map((s) => s.toLowerCase()))
+    ? new Set(opts.vendorModels.map(key))
     : null;
   const productSet = opts.products?.length
-    ? new Set(opts.products.map((s) => s.toLowerCase()))
+    ? new Set(opts.products.map(key))
     : null;
 
   return rows.filter((r) => {
     if (dateSet && (!r.date || !dateSet.has(r.date))) return false;
-    if (storeSet && !storeSet.has(r.storeName.toLowerCase())) return false;
-    if (deptSet && !deptSet.has(r.department.toLowerCase())) return false;
-    if (designSet && !designSet.has(r.design.toLowerCase())) return false;
-    if (vendorSet && !vendorSet.has(r.vendor.toLowerCase())) return false;
-    if (classSet && !classSet.has(r.productClass.toLowerCase())) return false;
-    if (skuSet && !skuSet.has((r.sku || r.itemNumber).toLowerCase())) return false;
-    if (modelSet && !modelSet.has(r.vendorModel.toLowerCase())) return false;
-    if (productSet && !productSet.has(r.description.toLowerCase())) return false;
+    if (storeSet && !storeSet.has(key(r.storeName))) return false;
+    if (deptSet && !deptSet.has(key(r.department))) return false;
+    if (designSet && !designSet.has(key(r.design))) return false;
+    if (vendorSet && !vendorSet.has(key(r.vendor))) return false;
+    if (classSet && !classSet.has(key(r.productClass))) return false;
+    if (skuSet && !skuSet.has(key(r.sku || r.itemNumber))) return false;
+    if (modelSet && !modelSet.has(key(r.vendorModel))) return false;
+    if (productSet && !productSet.has(key(r.description))) return false;
     return true;
   });
 }

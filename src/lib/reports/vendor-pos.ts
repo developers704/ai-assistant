@@ -239,6 +239,7 @@ export function summarizeVendorPos(
     filterDepartment?: string;
     filterDesign?: string;
     filterClass?: string;
+    filterVendor?: string;
     schema?: "vendor_pos" | "store_sales";
     reportCategory?: import("./types").ReportCategory;
   }
@@ -248,6 +249,13 @@ export function summarizeVendorPos(
   const dateFrom = dates[0] ?? null;
   const dateTo = dates[dates.length - 1] ?? null;
   const reportDate = opts.filterDate ?? dateTo;
+
+  const norm = (s: string) =>
+    s
+      .trim()
+      .toLowerCase()
+      .replace(/[\u2010-\u2015\u2212]/g, "-")
+      .replace(/\s+/g, " ");
 
   let periodRows = filterExcludedSalesRows(rows);
   let compareRows: VendorPosRow[] = [];
@@ -267,24 +275,29 @@ export function summarizeVendorPos(
   }
 
   if (opts.filterStore) {
-    const needle = opts.filterStore.trim().toLowerCase();
-    periodRows = periodRows.filter((r) => r.storeName.trim().toLowerCase() === needle);
-    compareRows = compareRows.filter((r) => r.storeName.trim().toLowerCase() === needle);
+    const needle = norm(opts.filterStore);
+    periodRows = periodRows.filter((r) => norm(r.storeName) === needle);
+    compareRows = compareRows.filter((r) => norm(r.storeName) === needle);
   }
   if (opts.filterDepartment) {
-    const needle = opts.filterDepartment.trim().toLowerCase();
-    periodRows = periodRows.filter((r) => r.department.trim().toLowerCase() === needle);
-    compareRows = compareRows.filter((r) => r.department.trim().toLowerCase() === needle);
+    const needle = norm(opts.filterDepartment);
+    periodRows = periodRows.filter((r) => norm(r.department) === needle);
+    compareRows = compareRows.filter((r) => norm(r.department) === needle);
   }
   if (opts.filterDesign) {
-    const needle = opts.filterDesign.trim().toLowerCase();
-    periodRows = periodRows.filter((r) => r.design.trim().toLowerCase() === needle);
-    compareRows = compareRows.filter((r) => r.design.trim().toLowerCase() === needle);
+    const needle = norm(opts.filterDesign);
+    periodRows = periodRows.filter((r) => norm(r.design) === needle);
+    compareRows = compareRows.filter((r) => norm(r.design) === needle);
+  }
+  if (opts.filterVendor) {
+    const needle = norm(opts.filterVendor);
+    periodRows = periodRows.filter((r) => norm(r.vendor) === needle);
+    compareRows = compareRows.filter((r) => norm(r.vendor) === needle);
   }
   if (opts.filterClass) {
-    const needle = opts.filterClass.trim().toLowerCase();
-    periodRows = periodRows.filter((r) => r.productClass.trim().toLowerCase() === needle);
-    compareRows = compareRows.filter((r) => r.productClass.trim().toLowerCase() === needle);
+    const needle = norm(opts.filterClass);
+    periodRows = periodRows.filter((r) => norm(r.productClass) === needle);
+    compareRows = compareRows.filter((r) => norm(r.productClass) === needle);
   }
 
   const totalRevenue = periodRows.reduce((s, r) => s + r.netRevenue, 0);

@@ -52,12 +52,14 @@ export default function SalesPage() {
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
   const [availableDesigns, setAvailableDesigns] = useState<string[]>([]);
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
+  const [availableVendors, setAvailableVendors] = useState<string[]>([]);
   const [filterDate, setFilterDate] = useState<string>(() =>
     dateFromUrl && isValidIsoDate(dateFromUrl) ? dateFromUrl : ""
   );
   const [filterStore, setFilterStore] = useState(() => storeFromUrl ?? "");
   const [filterDepartment, setFilterDepartment] = useState(() => departmentFromUrl ?? "");
   const [filterDesign, setFilterDesign] = useState(() => designFromUrl ?? "");
+  const [filterVendor, setFilterVendor] = useState(() => vendorFromUrl ?? "");
   const [filterClass, setFilterClass] = useState(() => classFromUrl ?? "");
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
@@ -71,17 +73,20 @@ export default function SalesPage() {
       setFilterDepartment(departmentFromUrl);
     }
     if (designFromUrl != null && designFromUrl !== filterDesign) setFilterDesign(designFromUrl);
+    if (vendorFromUrl != null && vendorFromUrl !== filterVendor) setFilterVendor(vendorFromUrl);
     if (classFromUrl != null && classFromUrl !== filterClass) setFilterClass(classFromUrl);
   }, [
     dateFromUrl,
     storeFromUrl,
     departmentFromUrl,
     designFromUrl,
+    vendorFromUrl,
     classFromUrl,
     filterDate,
     filterStore,
     filterDepartment,
     filterDesign,
+    filterVendor,
     filterClass,
   ]);
 
@@ -98,19 +103,13 @@ export default function SalesPage() {
     }
   }, [detailTypeFromUrl, detailValueFromUrl]);
 
-  // vendor URL param still opens detail when present (no vendor dropdown on this bar)
-  useEffect(() => {
-    if (vendorFromUrl) {
-      setRankDetail({ dimension: "vendor", value: vendorFromUrl });
-    }
-  }, [vendorFromUrl]);
-
   useEffect(() => {
     const params = new URLSearchParams();
     if (filterDate) params.set("date", filterDate);
     if (filterStore) params.set("store", filterStore);
     if (filterDepartment) params.set("department", filterDepartment);
     if (filterDesign) params.set("design", filterDesign);
+    if (filterVendor) params.set("vendor", filterVendor);
     if (filterClass) params.set("class", filterClass);
     const qs = params.toString() ? `?${params}` : "";
     fetch(`/api/sales${qs}`)
@@ -125,6 +124,7 @@ export default function SalesPage() {
           setAvailableDepartments(d.availableDepartments ?? []);
           setAvailableDesigns(d.availableDesigns ?? []);
           setAvailableClasses(d.availableClasses ?? []);
+          setAvailableVendors(d.availableVendors ?? []);
           setReportId(d.report?.id ?? filterDate ?? d.reportDate ?? "latest");
           // Drop stale date filter if the new latest report doesn't include it
           const dates: string[] = d.availableDates ?? [];
@@ -138,10 +138,19 @@ export default function SalesPage() {
           setAvailableDepartments([]);
           setAvailableDesigns([]);
           setAvailableClasses([]);
+          setAvailableVendors([]);
           setReportId(undefined);
         }
       });
-  }, [filterDate, filterStore, filterDepartment, filterDesign, filterClass, refreshNonce]);
+  }, [
+    filterDate,
+    filterStore,
+    filterDepartment,
+    filterDesign,
+    filterVendor,
+    filterClass,
+    refreshNonce,
+  ]);
 
   // Pick up a newly uploaded report when returning to this tab/page
   useEffect(() => {
@@ -185,12 +194,6 @@ export default function SalesPage() {
   const isStoreSalesReport =
     reportSummary?.schema === "store_sales" || reportSummary?.reportCategory === "sales";
 
-  const pageSubtitle = isFinancingReport
-    ? "Payment mix, financing programs, and store performance"
-    : isStoreSalesReport
-      ? "Company-wide store sales · departments, vendors & designs"
-      : "Daily performance · Valliani Jewelers";
-
   const maxTopStoreRevenue = Math.max(...summary.topStores.map((s) => s.revenue), 1);
 
   const openRank = (dimension: RankDimension, value: string) => {
@@ -210,13 +213,18 @@ export default function SalesPage() {
                   ? "Store Sales"
                   : "Sales Reports"
             }
-            subtitle={pageSubtitle}
+            subtitle={
+              isFinancingReport
+                ? "Payment mix, financing programs, and store performance"
+                : undefined
+            }
             action={
               <div className="flex flex-wrap items-center gap-2 justify-end">
                 {(availableDates.length > 0 ||
                   availableStores.length > 0 ||
                   availableDepartments.length > 0 ||
                   availableDesigns.length > 0 ||
+                  availableVendors.length > 0 ||
                   availableClasses.length > 0 ||
                   reportSummary?.dateRange) && (
                   <div className="flex flex-wrap items-center gap-2 justify-end">
@@ -287,6 +295,21 @@ export default function SalesPage() {
                         ))}
                       </select>
                     )}
+                    {availableVendors.length > 0 && (
+                      <select
+                        value={filterVendor}
+                        onChange={(e) => setFilterVendor(e.target.value)}
+                        className={selectClass}
+                        aria-label="Filter by vendor"
+                      >
+                        <option value="">All vendors</option>
+                        {availableVendors.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     {availableClasses.length > 0 && (
                       <select
                         value={filterClass}
@@ -311,6 +334,7 @@ export default function SalesPage() {
                     if (filterStore) params.set("store", filterStore);
                     if (filterDepartment) params.set("department", filterDepartment);
                     if (filterDesign) params.set("design", filterDesign);
+                    if (filterVendor) params.set("vendor", filterVendor);
                     if (filterClass) params.set("class", filterClass);
                     const qs = params.toString();
                     return qs ? `/sales/visualizations?${qs}` : "/sales/visualizations";
@@ -510,6 +534,8 @@ export default function SalesPage() {
         filterStore={filterStore || undefined}
         filterDepartment={filterDepartment || undefined}
         filterDesign={filterDesign || undefined}
+        filterVendor={filterVendor || undefined}
+        filterClass={filterClass || undefined}
         reportId={
           reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
             ? reportId

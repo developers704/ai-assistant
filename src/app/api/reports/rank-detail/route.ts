@@ -14,6 +14,15 @@ export const runtime = "nodejs";
 
 export type { RankDimension };
 
+/** Normalize class/metal labels so "21-24KT" and "21–24KT" match. */
+function normalizeFilterKey(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/\s+/g, " ");
+}
+
 function dimensionValue(row: VendorPosRow, dimension: RankDimension): string {
   switch (dimension) {
     case "store":
@@ -39,6 +48,8 @@ export async function GET(req: Request) {
   const store = searchParams.get("store")?.trim() || undefined;
   const department = searchParams.get("department")?.trim() || undefined;
   const design = searchParams.get("design")?.trim() || undefined;
+  const vendor = searchParams.get("vendor")?.trim() || undefined;
+  const productClass = searchParams.get("class")?.trim() || undefined;
   const id = searchParams.get("id")?.trim() || undefined;
 
   const allowed: RankDimension[] = [
@@ -78,21 +89,29 @@ export async function GET(req: Request) {
   let rows = filterExcludedSalesRows(parseVendorPosRows(parsed.data ?? []).rows);
   if (date) rows = rows.filter((r) => r.date === date);
   if (store) {
-    const needle = store.toLowerCase();
-    rows = rows.filter((r) => r.storeName.trim().toLowerCase() === needle);
+    const needle = normalizeFilterKey(store);
+    rows = rows.filter((r) => normalizeFilterKey(r.storeName) === needle);
   }
   if (department) {
-    const needle = department.toLowerCase();
-    rows = rows.filter((r) => r.department.trim().toLowerCase() === needle);
+    const needle = normalizeFilterKey(department);
+    rows = rows.filter((r) => normalizeFilterKey(r.department) === needle);
   }
   if (design) {
-    const needle = design.toLowerCase();
-    rows = rows.filter((r) => r.design.trim().toLowerCase() === needle);
+    const needle = normalizeFilterKey(design);
+    rows = rows.filter((r) => normalizeFilterKey(r.design) === needle);
+  }
+  if (vendor) {
+    const needle = normalizeFilterKey(vendor);
+    rows = rows.filter((r) => normalizeFilterKey(r.vendor) === needle);
+  }
+  if (productClass) {
+    const needle = normalizeFilterKey(productClass);
+    rows = rows.filter((r) => normalizeFilterKey(r.productClass) === needle);
   }
 
-  const needle = value.toLowerCase();
+  const needle = normalizeFilterKey(value);
   const matched = rows.filter(
-    (r) => dimensionValue(r, dimension).trim().toLowerCase() === needle
+    (r) => normalizeFilterKey(dimensionValue(r, dimension)) === needle
   );
 
   const revenue = matched.reduce((s, r) => s + r.netRevenue, 0);

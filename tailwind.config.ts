@@ -53,7 +53,7 @@ const config: Config = {
         elevated: "0 16px 48px rgba(15, 23, 42, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.25)",
         glow: "0 0 0 1px rgba(167, 139, 250, 0.35), 0 0 24px rgba(139, 92, 246, 0.25)",
         "glow-orange": "0 0 24px rgba(251, 146, 60, 0.35)",
-      },
+        "glow-purple": "0 0 24px rgba(167, 139, 250, 0.35)",},
       backdropBlur: {
         glass: "20px",
       },

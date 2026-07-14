@@ -28,6 +28,7 @@ async function queryDashboardSlice(opts: {
   store?: string;
   department?: string;
   design?: string;
+  vendor?: string;
   className?: string;
   /** Comparison-only queries need all stores, not product top-20. */
   mode?: "dashboard" | "comparison";
@@ -40,6 +41,7 @@ async function queryDashboardSlice(opts: {
     stores: opts.store ? [opts.store] : undefined,
     departments: opts.department ? [opts.department] : undefined,
     designs: opts.design ? [opts.design] : undefined,
+    vendors: opts.vendor ? [opts.vendor] : undefined,
     classes: opts.className ? [opts.className] : undefined,
     resetContext: true,
     limit: isCompare ? 500 : 20,
@@ -74,6 +76,7 @@ export async function GET(req: NextRequest) {
   const filterStore = sp.get("store")?.trim() || undefined;
   const filterDepartment = sp.get("department")?.trim() || undefined;
   const filterDesign = sp.get("design")?.trim() || undefined;
+  const filterVendor = sp.get("vendor")?.trim() || undefined;
   const filterClass = sp.get("class")?.trim() || undefined;
 
   if (dateParam && (!filterDate || !isValidIsoDate(filterDate))) {
@@ -82,7 +85,14 @@ export async function GET(req: NextRequest) {
 
   // Publish dashboard filter state for Chat/Voice inheritance.
   // Empty filters must clear prior chat/voice context (do not retain stale store/design).
-  if (!filterDate && !filterStore && !filterDepartment && !filterDesign && !filterClass) {
+  if (
+    !filterDate &&
+    !filterStore &&
+    !filterDepartment &&
+    !filterDesign &&
+    !filterVendor &&
+    !filterClass
+  ) {
     clearActiveSalesContext();
   }
   setActiveSalesContext({
@@ -97,7 +107,7 @@ export async function GET(req: NextRequest) {
     stores: filterStore ? [filterStore] : [],
     departments: filterDepartment ? [filterDepartment] : [],
     designs: filterDesign ? [filterDesign] : [],
-    vendors: [],
+    vendors: filterVendor ? [filterVendor] : [],
     classes: filterClass ? [filterClass] : [],
     dataVersion: readActivePointer().activeVersion ?? undefined,
   });
@@ -111,6 +121,7 @@ export async function GET(req: NextRequest) {
         store: filterStore,
         department: filterDepartment,
         design: filterDesign,
+        vendor: filterVendor,
         className: filterClass,
       };
       const result = await queryDashboardSlice({ ...slice, mode: "dashboard" });
@@ -158,10 +169,12 @@ export async function GET(req: NextRequest) {
         availableDepartments: latestMeta.availableDepartments,
         availableDesigns: latestMeta.availableDesigns,
         availableClasses: latestMeta.availableClasses,
+        availableVendors: latestMeta.availableVendors,
         filterDate: filterDate ?? null,
         filterStore: filterStore ?? null,
         filterDepartment: filterDepartment ?? null,
         filterDesign: filterDesign ?? null,
+        filterVendor: filterVendor ?? null,
         filterClass: filterClass ?? null,
         dataVersion: result.freshness?.dataVersion ?? null,
         dataThrough: result.freshness?.dataThrough ?? null,
@@ -175,6 +188,7 @@ export async function GET(req: NextRequest) {
     ...(filterStore ? { filterStore } : {}),
     ...(filterDepartment ? { filterDepartment } : {}),
     ...(filterDesign ? { filterDesign } : {}),
+    ...(filterVendor ? { filterVendor } : {}),
     ...(filterClass ? { filterClass } : {}),
   });
 
@@ -193,10 +207,12 @@ export async function GET(req: NextRequest) {
       availableDepartments: latest.availableDepartments,
       availableDesigns: latest.availableDesigns,
       availableClasses: latest.availableClasses,
+      availableVendors: latest.availableVendors,
       filterDate: filterDate ?? null,
       filterStore: filterStore ?? null,
       filterDepartment: filterDepartment ?? null,
       filterDesign: filterDesign ?? null,
+      filterVendor: filterVendor ?? null,
       filterClass: filterClass ?? null,
     });
   }
@@ -211,10 +227,12 @@ export async function GET(req: NextRequest) {
     availableDepartments: [],
     availableDesigns: [],
     availableClasses: [],
+    availableVendors: [],
     filterDate: null,
     filterStore: null,
     filterDepartment: null,
     filterDesign: null,
+    filterVendor: null,
     filterClass: null,
   });
 }

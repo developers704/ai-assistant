@@ -72,6 +72,8 @@ type RankDetailDrawerProps = {
   filterStore?: string;
   filterDepartment?: string;
   filterDesign?: string;
+  filterVendor?: string;
+  filterClass?: string;
   reportId?: string;
   onClose: () => void;
 };
@@ -109,6 +111,8 @@ export function RankDetailDrawer({
   filterStore,
   filterDepartment,
   filterDesign,
+  filterVendor,
+  filterClass,
   reportId,
   onClose,
 }: RankDetailDrawerProps) {
@@ -133,9 +137,14 @@ export function RankDetailDrawer({
       value: selection.value,
     });
     if (filterDate) params.set("date", filterDate);
-    if (filterStore) params.set("store", filterStore);
-    if (filterDepartment) params.set("department", filterDepartment);
-    if (filterDesign) params.set("design", filterDesign);
+    // Don't re-apply the same dimension as a global AND filter (avoids empty matches).
+    if (filterStore && selection.dimension !== "store") params.set("store", filterStore);
+    if (filterDepartment && selection.dimension !== "department") {
+      params.set("department", filterDepartment);
+    }
+    if (filterDesign && selection.dimension !== "design") params.set("design", filterDesign);
+    if (filterVendor && selection.dimension !== "vendor") params.set("vendor", filterVendor);
+    if (filterClass && selection.dimension !== "class") params.set("class", filterClass);
     if (reportId) params.set("id", reportId);
 
     let cancelled = false;
@@ -160,7 +169,16 @@ export function RankDetailDrawer({
     return () => {
       cancelled = true;
     };
-  }, [selection, filterDate, filterStore, filterDepartment, filterDesign, reportId]);
+  }, [
+    selection,
+    filterDate,
+    filterStore,
+    filterDepartment,
+    filterDesign,
+    filterVendor,
+    filterClass,
+    reportId,
+  ]);
 
   useEffect(() => {
     if (!selection) return;
@@ -193,6 +211,24 @@ export function RankDetailDrawer({
             <h2 className="text-lg font-semibold text-ink truncate mt-0.5">
               {selection.value}
             </h2>
+            {(filterDate ||
+              (filterStore && selection.dimension !== "store") ||
+              (filterDepartment && selection.dimension !== "department") ||
+              (filterDesign && selection.dimension !== "design") ||
+              (filterVendor && selection.dimension !== "vendor") ||
+              (filterClass && selection.dimension !== "class")) && (
+              <p className="text-[10px] text-amber-200/70 mt-1 truncate">
+                Filtered
+                {filterClass && selection.dimension !== "class" ? ` · class ${filterClass}` : ""}
+                {filterVendor && selection.dimension !== "vendor" ? ` · vendor ${filterVendor}` : ""}
+                {filterDepartment && selection.dimension !== "department"
+                  ? ` · dept ${filterDepartment}`
+                  : ""}
+                {filterDesign && selection.dimension !== "design" ? ` · design ${filterDesign}` : ""}
+                {filterStore && selection.dimension !== "store" ? ` · store ${filterStore}` : ""}
+                {filterDate ? ` · ${filterDate}` : ""}
+              </p>
+            )}
           </div>
           <button
             type="button"

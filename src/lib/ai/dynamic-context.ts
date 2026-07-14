@@ -27,8 +27,6 @@ function buildSalesFilterCatalogLine(): string {
   const dateSpan =
     dates.length > 0 ? `${dates[0]} → ${dates[dates.length - 1]} (${dates.length} days)` : "(none)";
 
-  const vendors = (report.summary.topVendors ?? []).map((v) => v.name).filter(Boolean);
-
   return [
     `SALES FILTERS (use exact names with apply_sales_dashboard_filters / query_sales):`,
     `  dates: ${dateSpan}`,
@@ -36,7 +34,7 @@ function buildSalesFilterCatalogLine(): string {
     `  departments: ${clip(report.availableDepartments ?? [], 12)}`,
     `  designs: ${clip(report.availableDesigns ?? [], 12)}`,
     `  classes: ${clip(report.availableClasses ?? [], 10)}`,
-    `  vendors: ${clip(vendors, 10)}`,
+    `  vendors: ${clip(report.availableVendors ?? [], 10)}`,
   ].join("\n");
 }
 
