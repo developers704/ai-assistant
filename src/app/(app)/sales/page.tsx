@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
 import {
   PageShell,
@@ -28,14 +28,13 @@ import {
   formatReportDateRange,
   isValidIsoDate,
 } from "@/lib/reports/date-utils";
-import { TrendingUp, TrendingDown, Package, Store, CalendarDays } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, Store, CalendarDays, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const selectClass =
   "select-dark px-3 py-2 rounded-xl text-sm backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400/40";
 
 export default function SalesPage() {
-  const { sendChat } = useApp();
   const searchParams = useSearchParams();
   const dateFromUrl = searchParams.get("date");
   const storeFromUrl = searchParams.get("store");
@@ -287,9 +286,22 @@ export default function SalesPage() {
                 {dataSource === "report" && (
                   <Badge variant="success">Live report</Badge>
                 )}
-                <Button size="sm" onClick={() => sendChat("Show me today's sales across all stores")}>
-                  Ask Assistant
-                </Button>
+                <Link
+                  href={(() => {
+                    const params = new URLSearchParams();
+                    if (filterDate) params.set("date", filterDate);
+                    if (filterStore) params.set("store", filterStore);
+                    if (filterDepartment) params.set("department", filterDepartment);
+                    if (filterDesign) params.set("design", filterDesign);
+                    const qs = params.toString();
+                    return qs ? `/sales/visualizations?${qs}` : "/sales/visualizations";
+                  })()}
+                >
+                  <Button size="sm" className="gap-1.5">
+                    <LineChart size={14} />
+                    Visualization
+                  </Button>
+                </Link>
               </div>
             }
           />
