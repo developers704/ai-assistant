@@ -49,6 +49,7 @@ type RankDetailResponse = {
     netRevenue: number;
     margin: number;
     imageUrl?: string | null;
+    imageDir?: string | null;
   }>;
 };
 
@@ -358,36 +359,51 @@ export function RankDetailDrawer({
                 Line items ({data.totals.lineCount})
               </p>
               <ul className="max-h-80 overflow-y-auto divide-y divide-white/5">
-                {data.lineItems.map((row, i) => (
-                  <li
-                    key={`${row.transactionId ?? row.date}-${row.sku}-${i}`}
-                    className={cn(
-                      "px-3 py-2.5 text-sm",
-                      i % 2 === 0 ? "bg-white/[0.015]" : ""
-                    )}
-                  >
-                    <div className="flex justify-between gap-2">
-                      <p className="text-[13px] text-ink/95 font-medium leading-snug tracking-[0.01em] line-clamp-2">
-                        {formatProductDisplayName(row.description)}
-                      </p>
-                      <span className="tabular-nums text-ink shrink-0">
-                        {formatCurrency(row.netRevenue)}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-white/40 mt-0.5 truncate">
-                      {[
-                        row.date,
-                        row.storeName,
-                        row.vendorModel || row.sku,
-                        row.department,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                      {" · "}
-                      {formatPieceCount(row.quantity)}
-                    </p>
-                  </li>
-                ))}
+                {data.lineItems.map((row, i) => {
+                  const label = formatProductDisplayName(row.description);
+                  const skuOrModel = row.vendorModel || row.sku;
+                  return (
+                    <li
+                      key={`${row.transactionId ?? row.date}-${row.sku}-${i}`}
+                      className={cn(
+                        "px-3 py-2.5 text-sm flex items-center gap-3",
+                        i % 2 === 0 ? "bg-white/[0.015]" : ""
+                      )}
+                    >
+                      <ProductThumb
+                        imageDir={row.imageDir}
+                        imageUrl={row.imageUrl}
+                        alt={label}
+                        subtitle={skuOrModel}
+                        onOpen={(src, alt, subtitle) =>
+                          setPreview({ src, alt, subtitle })
+                        }
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex justify-between gap-2">
+                          <p className="text-[13px] text-ink/95 font-medium leading-snug tracking-[0.01em] line-clamp-2">
+                            {label}
+                          </p>
+                          <span className="tabular-nums text-ink shrink-0">
+                            {formatCurrency(row.netRevenue)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-white/40 mt-0.5 truncate">
+                          {[
+                            row.date,
+                            row.storeName,
+                            skuOrModel,
+                            row.department,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                          {" · "}
+                          {formatPieceCount(row.quantity)}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}

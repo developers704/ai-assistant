@@ -226,6 +226,7 @@ export async function GET(req: Request) {
       margin: r.margin,
       inventoryCost: r.inventoryCost,
       imageUrl: resolveProductImageUrl(r.imageDir),
+      imageDir: r.imageDir || null,
     }));
 
   return NextResponse.json({
