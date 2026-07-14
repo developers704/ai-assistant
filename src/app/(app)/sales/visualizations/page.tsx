@@ -25,6 +25,7 @@ import {
   SalesDateRangePicker,
   type SalesDateRangeValue,
 } from "@/components/sales/SalesDateRangePicker";
+import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { ArrowLeft, LineChart, Sparkles } from "lucide-react";
 
 const selectClass =
@@ -75,6 +76,7 @@ function SalesVisualizationsContent() {
   const [data, setData] = useState<SalesVisualizationPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   const [dateRange, setDateRange] = useState<SalesDateRangeValue | null>(() =>
     rangeFromSearchParams(searchParams)
@@ -86,6 +88,19 @@ function SalesVisualizationsContent() {
   const [filterDesign, setFilterDesign] = useState(() => searchParams.get("design") ?? "");
   const [filterVendor, setFilterVendor] = useState(() => searchParams.get("vendor") ?? "");
   const [filterClass, setFilterClass] = useState(() => searchParams.get("class") ?? "");
+
+  useEffect(() => {
+    return subscribeSalesReportUpdated(() => {
+      setDateRange(null);
+      setFilterStore("");
+      setFilterDepartment("");
+      setFilterDesign("");
+      setFilterVendor("");
+      setFilterClass("");
+      router.replace("/sales/visualizations", { scroll: false });
+      setRefreshNonce((n) => n + 1);
+    });
+  }, [router]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -111,6 +126,36 @@ function SalesVisualizationsContent() {
       .then((payload) => {
         if (cancelled) return;
         setData(payload);
+        // Drop stale dimension filters when the uploaded report no longer has them
+        const f = payload.filters;
+        if (dateRange) {
+          const dates = f.dates ?? [];
+          if (
+            dates.length &&
+            (!dates.includes(dateRange.from) || !dates.includes(dateRange.to))
+          ) {
+            setDateRange(null);
+          }
+        }
+        if (filterStore && f.stores.length && !f.stores.includes(filterStore)) {
+          setFilterStore("");
+        }
+        if (
+          filterDepartment &&
+          f.departments.length &&
+          !f.departments.includes(filterDepartment)
+        ) {
+          setFilterDepartment("");
+        }
+        if (filterDesign && f.designs.length && !f.designs.includes(filterDesign)) {
+          setFilterDesign("");
+        }
+        if (filterVendor && f.vendors.length && !f.vendors.includes(filterVendor)) {
+          setFilterVendor("");
+        }
+        if (filterClass && f.classes.length && !f.classes.includes(filterClass)) {
+          setFilterClass("");
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -128,6 +173,7 @@ function SalesVisualizationsContent() {
     filterDesign,
     filterVendor,
     filterClass,
+    refreshNonce,
     router,
   ]);
 

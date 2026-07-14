@@ -17,7 +17,7 @@ import {
   writeSalesVersion,
 } from "@/lib/sales/data/version-store";
 import { invalidateSalesQueryCache } from "@/lib/sales/query-cache";
-import { setActiveSalesContext } from "@/lib/sales/active-context";
+import { setActiveSalesContext, clearActiveSalesContext } from "@/lib/sales/active-context";
 import { clearSalesWorkingMemory } from "@/lib/sales/sales-working-memory";
 
 let refreshLock: Promise<RefreshSalesResult> | null = null;
@@ -173,13 +173,10 @@ export async function refreshSalesData(options?: {
 
       writeActivePointer(dataVersion);
       invalidateSalesQueryCache();
+      // Drop stale dashboard/voice filters from the previous report (stores, dates, etc.).
+      clearActiveSalesContext();
       setActiveSalesContext({
         dataVersion,
-        dateRange: {
-          from: snapshot.source.dateRange.from ?? undefined,
-          to: snapshot.source.dateRange.to ?? undefined,
-          timezone: process.env.BUSINESS_TIMEZONE || "America/Los_Angeles",
-        },
       });
       if (options?.clearMemory) clearSalesWorkingMemory();
 

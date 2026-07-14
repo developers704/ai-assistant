@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/Sidebar";
 import {
   PageShell,
@@ -27,6 +27,7 @@ import {
   SalesDateRangePicker,
   type SalesDateRangeValue,
 } from "@/components/sales/SalesDateRangePicker";
+import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { TrendingUp, TrendingDown, Package, Store, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,7 @@ function appendDateParams(params: URLSearchParams, range: SalesDateRangeValue | 
 }
 
 export default function SalesPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const storeFromUrl = searchParams.get("store");
   const departmentFromUrl = searchParams.get("department");
@@ -86,8 +88,34 @@ export default function SalesPage() {
   const [filterClass, setFilterClass] = useState(() => classFromUrl ?? "");
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
+  const knownReportIdRef = useRef<string | null>(null);
+  const skipUrlSyncRef = useRef(false);
+
+  const resetFiltersForNewReport = () => {
+    skipUrlSyncRef.current = true;
+    setDateRange(null);
+    setFilterStore("");
+    setFilterDepartment("");
+    setFilterDesign("");
+    setFilterVendor("");
+    setFilterClass("");
+    setRankDetail(null);
+    router.replace("/sales", { scroll: false });
+  };
 
   useEffect(() => {
+    return subscribeSalesReportUpdated(() => {
+      resetFiltersForNewReport();
+      setRefreshNonce((n) => n + 1);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- subscribe once; reset uses stable setters
+  }, []);
+
+  useEffect(() => {
+    if (skipUrlSyncRef.current) {
+      skipUrlSyncRef.current = false;
+      return;
+    }
     const next = rangeFromSearchParams(searchParams);
     if (
       (next?.from ?? "") !== (dateRange?.from ?? "") ||
@@ -148,23 +176,60 @@ export default function SalesPage() {
         setSummary(d.summary);
         setDataSource(d.source === "report" ? "report" : "mock");
         if (d.source === "report") {
+          const nextReportId = (d.report?.id as string | undefined) ?? null;
+          if (
+            knownReportIdRef.current != null &&
+            nextReportId &&
+            knownReportIdRef.current !== nextReportId
+          ) {
+            // New report detected (e.g. uploaded in another tab / focus refresh)
+            resetFiltersForNewReport();
+            knownReportIdRef.current = nextReportId;
+            setRefreshNonce((n) => n + 1);
+            return;
+          }
+          if (nextReportId) knownReportIdRef.current = nextReportId;
+
           setReportSummary(d.summary as ReportSummary);
-          setAvailableDates(d.availableDates ?? []);
-          setAvailableStores(d.availableStores ?? []);
-          setAvailableDepartments(d.availableDepartments ?? []);
-          setAvailableDesigns(d.availableDesigns ?? []);
-          setAvailableClasses(d.availableClasses ?? []);
-          setAvailableVendors(d.availableVendors ?? []);
-          setReportId(
-            d.report?.id ?? dateRange?.to ?? d.reportDate ?? "latest"
-          );
           const dates: string[] = d.availableDates ?? [];
+          const stores: string[] = d.availableStores ?? [];
+          const departments: string[] = d.availableDepartments ?? [];
+          const designs: string[] = d.availableDesigns ?? [];
+          const classes: string[] = d.availableClasses ?? [];
+          const vendors: string[] = d.availableVendors ?? [];
+          setAvailableDates(dates);
+          setAvailableStores(stores);
+          setAvailableDepartments(departments);
+          setAvailableDesigns(designs);
+          setAvailableClasses(classes);
+          setAvailableVendors(vendors);
+          setReportId(nextReportId ?? dateRange?.to ?? d.reportDate ?? "latest");
+
           if (
             dateRange &&
             dates.length &&
             (!dates.includes(dateRange.from) || !dates.includes(dateRange.to))
           ) {
             setDateRange(null);
+          }
+          if (filterStore && stores.length && !stores.includes(filterStore)) {
+            setFilterStore("");
+          }
+          if (
+            filterDepartment &&
+            departments.length &&
+            !departments.includes(filterDepartment)
+          ) {
+            setFilterDepartment("");
+          }
+          if (filterDesign && designs.length && !designs.includes(filterDesign)) {
+            setFilterDesign("");
+          }
+          if (filterVendor && vendors.length && !vendors.includes(filterVendor)) {
+            setFilterVendor("");
+          }
+          if (filterClass && classes.length && !classes.includes(filterClass)) {
+            setFilterClass("");
           }
         } else {
           setReportSummary(null);
@@ -175,8 +240,10 @@ export default function SalesPage() {
           setAvailableClasses([]);
           setAvailableVendors([]);
           setReportId(undefined);
+          knownReportIdRef.current = null;
         }
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- resetFilters uses router; intentional deps are filters/nonce
   }, [
     dateRange,
     filterStore,

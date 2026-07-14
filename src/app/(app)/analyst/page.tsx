@@ -226,6 +226,16 @@ export default function AnalystPage() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to save report");
     await refreshReportList();
+    if (data.liveForSales) {
+      const { emitSalesReportUpdated } = await import("@/lib/sales/report-updated-client");
+      emitSalesReportUpdated({
+        reportId: data.report?.id,
+        label: data.report?.label,
+        dateFrom: data.dateRange?.from ?? null,
+        dateTo: data.dateRange?.to ?? null,
+        dataVersion: data.dataVersion ?? null,
+      });
+    }
     return data.report?.id as string | undefined;
   };
 
@@ -246,6 +256,11 @@ export default function AnalystPage() {
 
       const wasActive = activeReportId === id;
       await refreshReportList();
+
+      const { emitSalesReportUpdated } = await import("@/lib/sales/report-updated-client");
+      emitSalesReportUpdated({
+        dataVersion: data.dataVersion ?? null,
+      });
 
       if (wasActive) {
         const latestRes = await fetch("/api/reports/latest");

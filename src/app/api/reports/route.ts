@@ -6,6 +6,8 @@ import {
   saveReport,
 } from "@/lib/reports/store";
 import { clearSalesWorkingMemory } from "@/lib/sales/sales-working-memory";
+import { clearActiveSalesContext } from "@/lib/sales/active-context";
+import { readActivePointer } from "@/lib/sales/data/version-store";
 
 export const runtime = "nodejs";
 
@@ -54,11 +56,14 @@ export async function POST(req: NextRequest) {
     // New store-sales upload becomes the live source for dashboard / chat / voice
     const isLiveSales =
       meta.schema === "store_sales" || meta.reportCategory === "sales";
+    let dataVersion: string | null = null;
     if (isLiveSales) {
       clearSalesWorkingMemory();
+      clearActiveSalesContext();
       try {
         const { refreshSalesData } = await import("@/lib/sales/refresh/service");
-        await refreshSalesData({ force: true, clearMemory: true });
+        const refreshed = await refreshSalesData({ force: true, clearMemory: true });
+        dataVersion = refreshed.dataVersion;
       } catch (err) {
         console.warn("Sales intelligence refresh failed after upload:", err);
       }
@@ -68,6 +73,8 @@ export async function POST(req: NextRequest) {
       report: meta,
       summary,
       liveForSales: isLiveSales,
+      dataVersion: dataVersion ?? readActivePointer().activeVersion,
+      dateRange: meta.dateRange ?? summary.dateRange ?? null,
       message: isLiveSales
         ? "Saved as the latest sales report. Sales Dashboard, chat, and voice will use this file."
         : "Report saved.",
@@ -86,5 +93,20 @@ export async function DELETE(req: NextRequest) {
   if (!deleteReport(id)) {
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
-  return NextResponse.json({ ok: true });
+
+  clearSalesWorkingMemory();
+  clearActiveSalesContext();
+  let dataVersion: string | null = null;
+  try {
+    const { refreshSalesData } = await import("@/lib/sales/refresh/service");
+    const refreshed = await refreshSalesData({ force: true, clearMemory: true });
+    dataVersion = refreshed.dataVersion;
+  } catch (err) {
+    console.warn("Sales intelligence refresh failed after delete:", err);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    dataVersion: dataVersion ?? readActivePointer().activeVersion,
+  });
 }
