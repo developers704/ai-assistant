@@ -282,6 +282,7 @@ export interface SummarizeOptions {
   filterStore?: string;
   filterDepartment?: string;
   filterDesign?: string;
+  filterClass?: string;
 }
 
 export function summarizeCsvText(
@@ -353,6 +354,7 @@ export function summarizeCsvText(
       filterStore: meta?.filterStore,
       filterDepartment: meta?.filterDepartment,
       filterDesign: meta?.filterDesign,
+      filterClass: meta?.filterClass,
       schema: "store_sales",
       reportCategory: "sales",
     });
@@ -381,6 +383,7 @@ export function summarizeCsvText(
       filterStore: meta?.filterStore,
       filterDepartment: meta?.filterDepartment,
       filterDesign: meta?.filterDesign,
+      filterClass: meta?.filterClass,
       schema: "vendor_pos",
       reportCategory: "vendor",
     });
@@ -424,8 +427,15 @@ export function extractReportDimensions(csvText: string): {
   stores: string[];
   departments: string[];
   designs: string[];
+  classes: string[];
 } {
-  const empty = { dates: [] as string[], stores: [] as string[], departments: [] as string[], designs: [] as string[] };
+  const empty = {
+    dates: [] as string[],
+    stores: [] as string[],
+    departments: [] as string[],
+    designs: [] as string[],
+    classes: [] as string[],
+  };
   try {
     const parsed = Papa.parse<Record<string, unknown>>(csvText, {
       header: true,
@@ -447,6 +457,7 @@ export function extractReportDimensions(csvText: string): {
         stores: [...new Set(rows.map((r) => r.store).filter(Boolean))].sort(),
         departments: [],
         designs: [],
+        classes: [],
       };
     }
 
@@ -466,6 +477,9 @@ export function extractReportDimensions(csvText: string): {
           a.localeCompare(b)
         ),
         designs: [...new Set(kept.map((r) => r.design).filter(Boolean))].sort((a, b) =>
+          a.localeCompare(b)
+        ),
+        classes: [...new Set(kept.map((r) => r.productClass).filter(Boolean))].sort((a, b) =>
           a.localeCompare(b)
         ),
       };

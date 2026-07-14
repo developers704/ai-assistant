@@ -238,6 +238,7 @@ export function summarizeVendorPos(
     filterStore?: string;
     filterDepartment?: string;
     filterDesign?: string;
+    filterClass?: string;
     schema?: "vendor_pos" | "store_sales";
     reportCategory?: import("./types").ReportCategory;
   }
@@ -279,6 +280,11 @@ export function summarizeVendorPos(
     const needle = opts.filterDesign.trim().toLowerCase();
     periodRows = periodRows.filter((r) => r.design.trim().toLowerCase() === needle);
     compareRows = compareRows.filter((r) => r.design.trim().toLowerCase() === needle);
+  }
+  if (opts.filterClass) {
+    const needle = opts.filterClass.trim().toLowerCase();
+    periodRows = periodRows.filter((r) => r.productClass.trim().toLowerCase() === needle);
+    compareRows = compareRows.filter((r) => r.productClass.trim().toLowerCase() === needle);
   }
 
   const totalRevenue = periodRows.reduce((s, r) => s + r.netRevenue, 0);

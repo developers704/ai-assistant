@@ -114,9 +114,10 @@ function SalesVisualizationsContent() {
     if (filterStore) params.set("store", filterStore);
     if (filterDepartment) params.set("department", filterDepartment);
     if (filterDesign) params.set("design", filterDesign);
+    if (filterClass) params.set("class", filterClass);
     const qs = params.toString();
     return qs ? `/sales?${qs}` : "/sales";
-  }, [filterDate, filterStore, filterDepartment, filterDesign]);
+  }, [filterDate, filterStore, filterDepartment, filterDesign, filterClass]);
 
   const clearFilters = () => {
     setFilterDate("");

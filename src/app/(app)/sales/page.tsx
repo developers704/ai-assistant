@@ -12,7 +12,6 @@ import {
 } from "@/components/layout/PageShell";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import type { SalesSummary } from "@/types";
 import type { RankDimension, ReportSummary } from "@/lib/reports/types";
@@ -52,12 +51,14 @@ export default function SalesPage() {
   const [availableStores, setAvailableStores] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
   const [availableDesigns, setAvailableDesigns] = useState<string[]>([]);
+  const [availableClasses, setAvailableClasses] = useState<string[]>([]);
   const [filterDate, setFilterDate] = useState<string>(() =>
     dateFromUrl && isValidIsoDate(dateFromUrl) ? dateFromUrl : ""
   );
   const [filterStore, setFilterStore] = useState(() => storeFromUrl ?? "");
   const [filterDepartment, setFilterDepartment] = useState(() => departmentFromUrl ?? "");
   const [filterDesign, setFilterDesign] = useState(() => designFromUrl ?? "");
+  const [filterClass, setFilterClass] = useState(() => classFromUrl ?? "");
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
 
@@ -70,15 +71,18 @@ export default function SalesPage() {
       setFilterDepartment(departmentFromUrl);
     }
     if (designFromUrl != null && designFromUrl !== filterDesign) setFilterDesign(designFromUrl);
+    if (classFromUrl != null && classFromUrl !== filterClass) setFilterClass(classFromUrl);
   }, [
     dateFromUrl,
     storeFromUrl,
     departmentFromUrl,
     designFromUrl,
+    classFromUrl,
     filterDate,
     filterStore,
     filterDepartment,
     filterDesign,
+    filterClass,
   ]);
 
   useEffect(() => {
@@ -94,14 +98,12 @@ export default function SalesPage() {
     }
   }, [detailTypeFromUrl, detailValueFromUrl]);
 
-  // vendor/class URL params open detail when present (dashboard may not have vendor/class selects yet)
+  // vendor URL param still opens detail when present (no vendor dropdown on this bar)
   useEffect(() => {
     if (vendorFromUrl) {
       setRankDetail({ dimension: "vendor", value: vendorFromUrl });
-    } else if (classFromUrl) {
-      setRankDetail({ dimension: "class", value: classFromUrl });
     }
-  }, [vendorFromUrl, classFromUrl]);
+  }, [vendorFromUrl]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -109,6 +111,7 @@ export default function SalesPage() {
     if (filterStore) params.set("store", filterStore);
     if (filterDepartment) params.set("department", filterDepartment);
     if (filterDesign) params.set("design", filterDesign);
+    if (filterClass) params.set("class", filterClass);
     const qs = params.toString() ? `?${params}` : "";
     fetch(`/api/sales${qs}`)
       .then((r) => r.json())
@@ -121,6 +124,7 @@ export default function SalesPage() {
           setAvailableStores(d.availableStores ?? []);
           setAvailableDepartments(d.availableDepartments ?? []);
           setAvailableDesigns(d.availableDesigns ?? []);
+          setAvailableClasses(d.availableClasses ?? []);
           setReportId(d.report?.id ?? filterDate ?? d.reportDate ?? "latest");
           // Drop stale date filter if the new latest report doesn't include it
           const dates: string[] = d.availableDates ?? [];
@@ -133,10 +137,11 @@ export default function SalesPage() {
           setAvailableStores([]);
           setAvailableDepartments([]);
           setAvailableDesigns([]);
+          setAvailableClasses([]);
           setReportId(undefined);
         }
       });
-  }, [filterDate, filterStore, filterDepartment, filterDesign, refreshNonce]);
+  }, [filterDate, filterStore, filterDepartment, filterDesign, filterClass, refreshNonce]);
 
   // Pick up a newly uploaded report when returning to this tab/page
   useEffect(() => {
@@ -212,6 +217,7 @@ export default function SalesPage() {
                   availableStores.length > 0 ||
                   availableDepartments.length > 0 ||
                   availableDesigns.length > 0 ||
+                  availableClasses.length > 0 ||
                   reportSummary?.dateRange) && (
                   <div className="flex flex-wrap items-center gap-2 justify-end">
                     <CalendarDays size={15} className="text-ink-muted shrink-0" />
@@ -281,10 +287,22 @@ export default function SalesPage() {
                         ))}
                       </select>
                     )}
+                    {availableClasses.length > 0 && (
+                      <select
+                        value={filterClass}
+                        onChange={(e) => setFilterClass(e.target.value)}
+                        className={selectClass}
+                        aria-label="Filter by class"
+                      >
+                        <option value="">All classes</option>
+                        {availableClasses.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
-                )}
-                {dataSource === "report" && (
-                  <Badge variant="success">Live report</Badge>
                 )}
                 <Link
                   href={(() => {
@@ -293,6 +311,7 @@ export default function SalesPage() {
                     if (filterStore) params.set("store", filterStore);
                     if (filterDepartment) params.set("department", filterDepartment);
                     if (filterDesign) params.set("design", filterDesign);
+                    if (filterClass) params.set("class", filterClass);
                     const qs = params.toString();
                     return qs ? `/sales/visualizations?${qs}` : "/sales/visualizations";
                   })()}

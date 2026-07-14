@@ -234,6 +234,7 @@ export function getLatestReportWithSummary(options?: {
   filterStore?: string;
   filterDepartment?: string;
   filterDesign?: string;
+  filterClass?: string;
 }): {
   meta: StoredReportMeta;
   summary: ReportSummary;
@@ -242,6 +243,7 @@ export function getLatestReportWithSummary(options?: {
   availableStores: string[];
   availableDepartments: string[];
   availableDesigns: string[];
+  availableClasses: string[];
 } | null {
   ensureSeedReport();
   const meta = getLatestReportMeta();
@@ -265,6 +267,7 @@ export function getLatestReportWithSummary(options?: {
     filterStore: options?.filterStore,
     filterDepartment: options?.filterDepartment,
     filterDesign: options?.filterDesign,
+    filterClass: options?.filterClass,
   });
   return {
     meta,
@@ -274,6 +277,7 @@ export function getLatestReportWithSummary(options?: {
     availableStores: dims.stores,
     availableDepartments: dims.departments,
     availableDesigns: dims.designs,
+    availableClasses: dims.classes,
   };
 }
 

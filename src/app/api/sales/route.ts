@@ -28,6 +28,7 @@ async function queryDashboardSlice(opts: {
   store?: string;
   department?: string;
   design?: string;
+  className?: string;
   /** Comparison-only queries need all stores, not product top-20. */
   mode?: "dashboard" | "comparison";
 }): Promise<SalesQueryResult> {
@@ -39,6 +40,7 @@ async function queryDashboardSlice(opts: {
     stores: opts.store ? [opts.store] : undefined,
     departments: opts.department ? [opts.department] : undefined,
     designs: opts.design ? [opts.design] : undefined,
+    classes: opts.className ? [opts.className] : undefined,
     resetContext: true,
     limit: isCompare ? 500 : 20,
     sortBy: "quantity",
@@ -72,6 +74,7 @@ export async function GET(req: NextRequest) {
   const filterStore = sp.get("store")?.trim() || undefined;
   const filterDepartment = sp.get("department")?.trim() || undefined;
   const filterDesign = sp.get("design")?.trim() || undefined;
+  const filterClass = sp.get("class")?.trim() || undefined;
 
   if (dateParam && (!filterDate || !isValidIsoDate(filterDate))) {
     return NextResponse.json({ error: "Invalid date. Use MM/DD/YY or YYYY-MM-DD." }, { status: 400 });
@@ -79,7 +82,7 @@ export async function GET(req: NextRequest) {
 
   // Publish dashboard filter state for Chat/Voice inheritance.
   // Empty filters must clear prior chat/voice context (do not retain stale store/design).
-  if (!filterDate && !filterStore && !filterDepartment && !filterDesign) {
+  if (!filterDate && !filterStore && !filterDepartment && !filterDesign && !filterClass) {
     clearActiveSalesContext();
   }
   setActiveSalesContext({
@@ -95,7 +98,7 @@ export async function GET(req: NextRequest) {
     departments: filterDepartment ? [filterDepartment] : [],
     designs: filterDesign ? [filterDesign] : [],
     vendors: [],
-    classes: [],
+    classes: filterClass ? [filterClass] : [],
     dataVersion: readActivePointer().activeVersion ?? undefined,
   });
 
@@ -103,13 +106,14 @@ export async function GET(req: NextRequest) {
     await ensureActiveSalesVersion();
     const latestMeta = getLatestReportWithSummary();
     if (latestMeta) {
-      const result = await queryDashboardSlice({
+      const slice = {
         date: filterDate,
         store: filterStore,
         department: filterDepartment,
         design: filterDesign,
-        mode: "dashboard",
-      });
+        className: filterClass,
+      };
+      const result = await queryDashboardSlice({ ...slice, mode: "dashboard" });
 
       let previousDay: SalesQueryResult | null = null;
       let previousWeek: SalesQueryResult | null = null;
@@ -118,10 +122,8 @@ export async function GET(req: NextRequest) {
         const prevDate = previousAvailableDate(latestMeta.availableDates, filterDate);
         if (prevDate) {
           previousDay = await queryDashboardSlice({
+            ...slice,
             date: prevDate,
-            store: filterStore,
-            department: filterDepartment,
-            design: filterDesign,
             mode: "comparison",
           });
         }
@@ -129,10 +131,8 @@ export async function GET(req: NextRequest) {
         const weekAgo = shiftIsoDate(filterDate, -7);
         if (latestMeta.availableDates.includes(weekAgo) && weekAgo !== prevDate) {
           previousWeek = await queryDashboardSlice({
+            ...slice,
             date: weekAgo,
-            store: filterStore,
-            department: filterDepartment,
-            design: filterDesign,
             mode: "comparison",
           });
         } else if (weekAgo === prevDate) {
@@ -157,10 +157,12 @@ export async function GET(req: NextRequest) {
         availableStores: latestMeta.availableStores,
         availableDepartments: latestMeta.availableDepartments,
         availableDesigns: latestMeta.availableDesigns,
+        availableClasses: latestMeta.availableClasses,
         filterDate: filterDate ?? null,
         filterStore: filterStore ?? null,
         filterDepartment: filterDepartment ?? null,
         filterDesign: filterDesign ?? null,
+        filterClass: filterClass ?? null,
         dataVersion: result.freshness?.dataVersion ?? null,
         dataThrough: result.freshness?.dataThrough ?? null,
         engine: "sales_unified",
@@ -173,6 +175,7 @@ export async function GET(req: NextRequest) {
     ...(filterStore ? { filterStore } : {}),
     ...(filterDepartment ? { filterDepartment } : {}),
     ...(filterDesign ? { filterDesign } : {}),
+    ...(filterClass ? { filterClass } : {}),
   });
 
   if (latest) {
@@ -189,10 +192,12 @@ export async function GET(req: NextRequest) {
       availableStores: latest.availableStores,
       availableDepartments: latest.availableDepartments,
       availableDesigns: latest.availableDesigns,
+      availableClasses: latest.availableClasses,
       filterDate: filterDate ?? null,
       filterStore: filterStore ?? null,
       filterDepartment: filterDepartment ?? null,
       filterDesign: filterDesign ?? null,
+      filterClass: filterClass ?? null,
     });
   }
 
@@ -205,9 +210,11 @@ export async function GET(req: NextRequest) {
     availableStores: [],
     availableDepartments: [],
     availableDesigns: [],
+    availableClasses: [],
     filterDate: null,
     filterStore: null,
     filterDepartment: null,
     filterDesign: null,
+    filterClass: null,
   });
 }
