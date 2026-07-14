@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { PageHeader } from "@/components/layout/Sidebar";
 import {
@@ -884,56 +885,61 @@ function StoreDetailCard({
         </div>
       )}
 
-      {openReview && (
-        <div
-          className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-3 sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Review by ${openReview.authorName}`}
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            aria-label="Close review"
-            onClick={() => setOpenReview(null)}
-          />
-          <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-[#1a2230] ring-1 ring-white/15 shadow-2xl p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35 mb-1">
-                  Full review
-                </p>
-                <p className="text-base font-semibold text-ink truncate">
-                  {openReview.authorName}
-                </p>
-                <p className="text-sm text-amber-300/90 mt-1 tabular-nums">
-                  {"★".repeat(Math.round(openReview.rating))}
-                  <span className="text-white/40 ml-1.5">{openReview.rating} / 5</span>
-                </p>
-                {openReview.relativeTime && (
-                  <p className="text-xs text-white/40 mt-1">{openReview.relativeTime}</p>
-                )}
+      {openReview &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Review by ${openReview.authorName}`}
+          >
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+              aria-label="Close review"
+              onClick={() => setOpenReview(null)}
+            />
+            <div className="relative z-10 flex w-full max-w-xl max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-2xl bg-[#1a2230] ring-1 ring-white/15 shadow-2xl">
+              <div className="shrink-0 flex items-start justify-between gap-3 px-5 sm:px-6 pt-5 pb-3 border-b border-white/10">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35 mb-1">
+                    Full review
+                  </p>
+                  <p className="text-base font-semibold text-ink truncate">
+                    {openReview.authorName}
+                  </p>
+                  <p className="text-sm text-amber-300/90 mt-1 tabular-nums">
+                    {"★".repeat(Math.round(openReview.rating))}
+                    <span className="text-white/40 ml-1.5">{openReview.rating} / 5</span>
+                  </p>
+                  {openReview.relativeTime && (
+                    <p className="text-xs text-white/40 mt-1">{openReview.relativeTime}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOpenReview(null)}
+                  className="shrink-0 rounded-full p-2 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpenReview(null)}
-                className="shrink-0 rounded-full p-2 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-4">
+                <p className="text-sm sm:text-[15px] text-white/80 leading-relaxed whitespace-pre-wrap break-words">
+                  {openReview.text || "No written review."}
+                </p>
+              </div>
+              <div className="shrink-0 flex justify-end px-5 sm:px-6 py-3 border-t border-white/10 bg-[#151c28]">
+                <Button size="sm" variant="secondary" onClick={() => setOpenReview(null)}>
+                  Close
+                </Button>
+              </div>
             </div>
-            <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap">
-              {openReview.text || "No written review."}
-            </p>
-            <div className="mt-5 flex justify-end">
-              <Button size="sm" variant="secondary" onClick={() => setOpenReview(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       <div className="flex flex-wrap gap-2 pt-1">
         {(store.googleMapsPlaceUrl || store.googleMapsUrl) && (
