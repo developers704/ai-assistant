@@ -371,8 +371,8 @@ export function RankDetailDrawer({
                       )}
                     >
                       <ProductThumb
-                        imageDir={row.imageDir}
-                        imageUrl={row.imageUrl}
+                        imageDir={row.imageDir ?? undefined}
+                        imageUrl={row.imageUrl ?? undefined}
                         alt={label}
                         subtitle={skuOrModel}
                         onOpen={(src, alt, subtitle) =>
