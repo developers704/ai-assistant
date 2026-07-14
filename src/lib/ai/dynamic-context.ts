@@ -9,6 +9,36 @@ import { loadConversationSummaries } from "@/lib/memory/store";
 import { getUiContext } from "@/lib/store/ui-context";
 import { userTimezone } from "@/lib/calendar-dates";
 import { buildSectionContextBlock, buildSectionRuntimeContext } from "@/lib/ai/section-context";
+import { getLatestReportWithSummary } from "@/lib/reports/store";
+
+/** Compact catalog so voice can pass real filter names into sales tools. */
+function buildSalesFilterCatalogLine(): string {
+  const report = getLatestReportWithSummary();
+  if (!report) return "SALES FILTERS: no report loaded";
+
+  const clip = (vals: string[], n: number) => {
+    if (!vals.length) return "(none)";
+    const shown = vals.slice(0, n);
+    const more = vals.length > n ? ` +${vals.length - n} more` : "";
+    return `${shown.join(", ")}${more}`;
+  };
+
+  const dates = report.availableDates ?? [];
+  const dateSpan =
+    dates.length > 0 ? `${dates[0]} → ${dates[dates.length - 1]} (${dates.length} days)` : "(none)";
+
+  const vendors = (report.summary.topVendors ?? []).map((v) => v.name).filter(Boolean);
+
+  return [
+    `SALES FILTERS (use exact names with apply_sales_dashboard_filters / query_sales):`,
+    `  dates: ${dateSpan}`,
+    `  stores: ${clip(report.availableStores ?? [], 12)}`,
+    `  departments: ${clip(report.availableDepartments ?? [], 12)}`,
+    `  designs: ${clip(report.availableDesigns ?? [], 12)}`,
+    `  classes: ${clip(report.availableClasses ?? [], 10)}`,
+    `  vendors: ${clip(vendors, 10)}`,
+  ].join("\n");
+}
 
 export interface CompactDynamicContext {
   currentTime: string;
@@ -107,6 +137,7 @@ export async function buildDynamicContext(
     ctx.selectedContact ? `SELECTED CONTACT: ${ctx.selectedContact}` : "",
     ctx.pendingAction ? `PENDING: ${ctx.pendingAction}` : "",
     `SALES: ${ctx.latestSalesSummary}`,
+    buildSalesFilterCatalogLine(),
     `CALENDAR (top): ${ctx.todayCalendarSummary}`,
     `INBOX (top): ${ctx.inboxSummary}`,
     `TASKS: ${ctx.pendingTasksSummary}`,

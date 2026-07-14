@@ -72,26 +72,61 @@ export function detectLimitedVoiceFastPath(text: string): VoicePrefetchIntent | 
   return null;
 }
 
-/** True when "show/open … sales" includes a filter entity (design/store/etc.), not bare Sales Dashboard. */
+/** True when "show/open/give me … sales" includes a filter entity (design/store/etc.), not bare Sales Dashboard. */
 export function isFilteredSalesShowRequest(text: string): boolean {
-  const lower = text.toLowerCase().trim();
-  if (!/\bsales?\b/i.test(lower)) return false;
+  const lower = normalizeVoiceTranscript(text).toLowerCase().trim();
+
+  // Bare "open sales" / "show sales dashboard" — navigation only
   if (
-    /^(?:please\s+)?(?:open|show(?:\s+me)?|go to|take me to|navigate to)\s+(?:the\s+|my\s+)?sales(?:\s+today|\s+dashboard)?\.?$/i.test(
+    /^(?:please\s+)?(?:open|show(?:\s+me)?|go to|take me to|navigate to|give(?:\s+me)?|get(?:\s+me)?)\s+(?:the\s+|my\s+)?sales(?:\s+today|\s+dashboard)?\.?$/i.test(
       lower
     )
   ) {
     return false;
   }
-  const remainder = lower
-    .replace(
-      /\b(please|show(?:\s+me)?|open|go to|take me to|navigate to|the|my|page|section|screen|sales(?:\s+today|\s+dashboard)?|dashboard)\b/gi,
-      " "
-    )
-    .replace(/[?.!,]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return remainder.length >= 2;
+
+  const hasOpenVerb =
+    /\b(?:open|show(?:\s+me)?|give(?:\s+me)?|get(?:\s+me)?|pull up|bring up|display|filter|go to)\b/i.test(
+      lower
+    );
+  const hasSalesWord = /\bsales?\b/i.test(lower);
+  const hasFilterCue =
+    /\b(department|design|class|vendor|store|mall|plaza|center|collection|model)\b/i.test(lower) ||
+    /\b(novell?o|ovani|mhvr|diani|aanika|datejust|great\s*mall|valley\s*fair|oaks?ridge|culver)\b/i.test(
+      lower
+    ) ||
+    /\b(?:of|on|for)\s+\d{1,2}\b/i.test(lower) ||
+    /\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(
+      lower
+    );
+
+  // "show Novello sales", "give me watches department", "open July 8 sales"
+  if (hasOpenVerb && (hasSalesWord || hasFilterCue)) {
+    const remainder = lower
+      .replace(
+        /\b(please|show(?:\s+me)?|give(?:\s+me)?|get(?:\s+me)?|open|go to|take me to|navigate to|pull up|bring up|display|filter(?:\s+to|\s+by)?|the|my|page|section|screen|sales(?:\s+today|\s+dashboard)?|dashboard|department|design|class|vendor|store)\b/gi,
+        " "
+      )
+      .replace(/[?.!,]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return remainder.length >= 2 || hasFilterCue;
+  }
+
+  // "Novello sales" / "Great Mall sales" without an open verb
+  if (hasSalesWord) {
+    const remainder = lower
+      .replace(
+        /\b(please|the|my|page|section|screen|sales(?:\s+today|\s+dashboard)?|dashboard)\b/gi,
+        " "
+      )
+      .replace(/[?.!,]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return remainder.length >= 2;
+  }
+
+  return false;
 }
 
 function isMostlySectionName(rest: string): boolean {

@@ -507,7 +507,7 @@ export function useRealtimeVoice(enabled: boolean) {
       sendEvent(dc, {
         type: "response.create",
         response: {
-          instructions: `${STOP_INSTRUCTION}\n\nUse ONE appropriate tool for what the user asked. If they ask to OPEN a section, use \`show_detail_page\` and speak ONLY the Opening line — no summary. If they say SHOW a design/store/department sales filter, use \`apply_sales_dashboard_filters\` and speak ONLY the Opening line. Only EXPLAIN/DISCUSS/SUMMARY requests get a brief spoken overview. Keep answers brief. Never ask follow-up questions or take extra actions while the user is silent.`,
+          instructions: `${STOP_INSTRUCTION}\n\nUse ONE appropriate tool for what the user asked. If they ask to OPEN a section, use \`show_detail_page\` and speak ONLY the Opening line — no summary. If they say SHOW / GIVE ME / OPEN a design, store, department, class, vendor, or date sales filter, use \`apply_sales_dashboard_filters\` and speak ONLY the Opening line. Only EXPLAIN/DISCUSS/SUMMARY requests get a brief spoken overview. Keep answers brief. Never ask follow-up questions or take extra actions while the user is silent.`,
           max_output_tokens: 220,
         },
       });

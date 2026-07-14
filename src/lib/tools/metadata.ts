@@ -203,7 +203,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: "apply_sales_dashboard_filters",
     description:
-      "Open the Sales dashboard with design/store/department/vendor/class filters. For 'show Novello sales' speak only the Opening line — no summary.",
+      "Open the Sales dashboard filtered by design/store/department/vendor/class/date from the live report. For 'show/give me/open X sales' speak only the Opening line — no summary.",
     category: "sales",
     riskLevel: "safe",
     requiresConfirmation: false,
@@ -211,13 +211,15 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     allowedInChat: true,
     opensPage: "/sales",
     whenToUse:
-      "User says show/open filtered sales (e.g. show Novello, show Great Mall, open watches department) without asking to explain.",
-    whenNotToUse: "When they ask explain/discuss/summary/how much — use query_sales or get_today_sales.",
+      "User says show/open/give me filtered sales (design, store, department, class, vendor, or date) without asking to explain.",
+    whenNotToUse: "When they ask explain/discuss/summary/how much — use query_sales or get_today_sales. Bare 'open sales' → show_detail_page.",
     examplePhrases: [
       "show Novello sales",
-      "show Great Mall sales",
-      "open watches department on sales",
+      "give me Great Mall sales",
+      "open watches department",
+      "give me July 8 sales",
       "show MHVR sales",
+      "open 14KT class sales",
     ],
     parameters: {
       type: "object",

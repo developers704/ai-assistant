@@ -160,7 +160,7 @@ export function formatSalesSpokenAnswer(result: Omit<SalesQueryResult, "spokenAn
 
 /** One short open line when boss said "show X sales" — no numbers. */
 export function formatSalesOpenSpoken(
-  result: Pick<SalesQueryResult, "query"> | { query: { filters: SalesQueryFilters } }
+  result: Pick<SalesQueryResult, "query"> | { query: { filters: SalesQueryFilters; resolvedDateRange?: SalesResolvedDateRange } }
 ): string {
   const f = result.query.filters;
   const label =
@@ -170,12 +170,24 @@ export function formatSalesOpenSpoken(
     f.vendors[0] ||
     f.classes[0] ||
     f.products[0];
-  if (!label) return "Opening Sales Dashboard.";
-  if (f.departments[0] && !f.designs[0]) return `Opening ${f.departments[0]} department sales.`;
-  if (f.classes[0] && !f.designs[0] && !f.departments[0] && !f.stores[0]) {
-    return `Opening ${f.classes[0]} class sales.`;
+  const range = "resolvedDateRange" in result.query ? result.query.resolvedDateRange : undefined;
+  const dateBit =
+    range && range.type !== "report_all" && range.label
+      ? range.label
+      : range?.startDate && range.startDate === range.endDate
+        ? range.startDate
+        : "";
+
+  if (label && dateBit) return `Opening ${label} sales for ${dateBit}.`;
+  if (label) {
+    if (f.departments[0] && !f.designs[0]) return `Opening ${f.departments[0]} department sales.`;
+    if (f.classes[0] && !f.designs[0] && !f.departments[0] && !f.stores[0]) {
+      return `Opening ${f.classes[0]} class sales.`;
+    }
+    return `Opening ${label} sales.`;
   }
-  return `Opening ${label} sales.`;
+  if (dateBit) return `Opening sales for ${dateBit}.`;
+  return "Opening Sales Dashboard.";
 }
 
 export function attachNavigationHint(text: string, navigated: boolean): string {

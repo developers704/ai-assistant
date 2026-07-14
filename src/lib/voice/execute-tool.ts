@@ -517,7 +517,7 @@ export async function executeVoiceTool(
           navigateToSales:
             args.navigate === true ||
             /\b(explain|discuss|summarize|summary|overview)\b/i.test(userMessage) ||
-            (args.navigate !== false && /\b(show|dikhao|open|kholo)\b/i.test(userMessage)),
+            (args.navigate !== false && /\b(show|dikhao|open|kholo|give(?:\s+me)?|get(?:\s+me)?|pull up|bring up)\b/i.test(userMessage)),
           applyDashboardFilters: true,
         },
       });
@@ -529,7 +529,7 @@ export async function executeVoiceTool(
           (result.dashboardState &&
             (/\b(explain|discuss|summarize|summary|overview)\b/i.test(userMessage) ||
               (args.navigate !== false &&
-                /\b(show|dikhao|open|kholo)\b/i.test(userMessage))))
+                /\b(show|dikhao|open|kholo|give(?:\s+me)?|get(?:\s+me)?|pull up|bring up)\b/i.test(userMessage))))
       );
       return {
         output: JSON.stringify({

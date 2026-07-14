@@ -140,6 +140,40 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
     }
   }
 
+  // Explicit "X department" / "department X"
+  if (!extracted.departments?.length) {
+    const deptNamed =
+      msg.match(/\b([A-Za-z0-9][A-Za-z0-9'\-\s]{1,40}?)\s+departments?\b/i) ||
+      msg.match(/\bdepartments?\s+([A-Za-z0-9][A-Za-z0-9'\-\s]{1,40}?)\b/i);
+    if (deptNamed?.[1]) {
+      const raw = deptNamed[1].trim().replace(/\b(sales?|the|my)$/i, "").trim();
+      if (raw && !/^(the|a|an|by|for|of|and)$/i.test(raw)) {
+        const asDept = matchEntity(raw, index.departments, "department");
+        extracted.departments =
+          asDept.status === "exact" || asDept.status === "fuzzy"
+            ? [asDept.value]
+            : [raw];
+      }
+    }
+  }
+
+  // Explicit "X class" / "class X"
+  if (!extracted.classes?.length) {
+    const classNamed =
+      msg.match(/\b([A-Za-z0-9][A-Za-z0-9'\-\s]{0,30}?)\s+class(?:es)?\b/i) ||
+      msg.match(/\bclass(?:es)?\s+([A-Za-z0-9][A-Za-z0-9'\-\s]{0,30}?)\b/i);
+    if (classNamed?.[1]) {
+      const raw = classNamed[1].trim().replace(/\b(sales?|the|my)$/i, "").trim();
+      if (raw && !/^(the|a|an|by|for|of|and)$/i.test(raw)) {
+        const asClass = matchEntity(raw, index.classes, "class");
+        extracted.classes =
+          asClass.status === "exact" || asClass.status === "fuzzy"
+            ? [asClass.value]
+            : [raw];
+      }
+    }
+  }
+
   // Explicit "at/in Unknown Mall" when store not resolved from index
   if (!extracted.stores?.length) {
     const atPlace =

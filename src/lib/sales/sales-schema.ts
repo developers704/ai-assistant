@@ -51,7 +51,9 @@ export function normalizeMetrics(raw?: SalesMetric[]): SalesMetric[] {
 
 export function wantsShow(message?: string): boolean {
   if (!message) return false;
-  return /\b(show|dikhao|dikha|open|kholo|display|pull up)\b/i.test(message);
+  return /\b(show|dikhao|dikha|open|kholo|display|pull up|bring up|give(?:\s+me)?|get(?:\s+me)?|fetch)\b/i.test(
+    message
+  );
 }
 
 export function wantsTellOnly(message?: string): boolean {
@@ -80,5 +82,5 @@ export function wantsSalesShowOnly(message?: string): boolean {
   }
   if (wantsSalesExplain(message) && !wantsShow(message)) return false;
   if (wantsSalesExplain(message) && wantsShow(message)) return false;
-  return wantsShow(message) || /\b(pull up|display|filter (?:to|by))\b/i.test(message);
+  return wantsShow(message) || /\b(pull up|display|filter (?:to|by)|bring up)\b/i.test(message);
 }

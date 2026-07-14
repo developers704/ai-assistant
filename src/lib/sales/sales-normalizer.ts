@@ -283,6 +283,62 @@ function containsPhrase(haystack: string, needle: string): boolean {
   return new RegExp(`(?:^|\\s)${escaped}(?:\\s|$)`).test(h);
 }
 
+const STOP_TOKENS = new Set([
+  "show",
+  "open",
+  "give",
+  "get",
+  "me",
+  "please",
+  "sales",
+  "sale",
+  "the",
+  "of",
+  "for",
+  "and",
+  "with",
+  "from",
+  "by",
+  "on",
+  "at",
+  "in",
+  "to",
+  "a",
+  "an",
+  "my",
+  "our",
+  "this",
+  "that",
+  "july",
+  "june",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "today",
+  "yesterday",
+  "store",
+  "stores",
+  "department",
+  "design",
+  "class",
+  "vendor",
+  "dashboard",
+  "report",
+  "filter",
+  "pull",
+  "bring",
+  "up",
+  "display",
+  "fetch",
+]);
+
 /**
  * Extract likely entity mentions from free text using the report index.
  * Uses word-boundary matching so short codes like "EA" / "GMS" do not
@@ -313,7 +369,84 @@ export function extractEntitiesFromMessage(
   };
   const hits: Hit[] = [];
 
+  // Explicit "X department / design / class / store / vendor"
+  const labeled: Array<{
+    re: RegExp;
+    key: Hit["key"];
+    known: string[];
+    label: string;
+    minScore: number;
+  }> = [
+    {
+      re: /\b([A-Za-z0-9][A-Za-z0-9'\-\s]{0,40}?)\s+departments?\b/i,
+      key: "departments",
+      known: index.departments,
+      label: "department",
+      minScore: 70,
+    },
+    {
+      re: /\bdepartments?\s+([A-Za-z0-9][A-Za-z0-9'\-\s]{0,40}?)\b/i,
+      key: "departments",
+      known: index.departments,
+      label: "department",
+      minScore: 70,
+    },
+    {
+      re: /\b([A-Za-z0-9][A-Za-z0-9\-]{1,40})\s+designs?\b/i,
+      key: "designs",
+      known: index.designs,
+      label: "design",
+      minScore: 70,
+    },
+    {
+      re: /\bdesigns?\s+([A-Za-z0-9][A-Za-z0-9\-]{1,40})\b/i,
+      key: "designs",
+      known: index.designs,
+      label: "design",
+      minScore: 70,
+    },
+    {
+      re: /\b([A-Za-z0-9][A-Za-z0-9'\-\s]{0,30}?)\s+class(?:es)?\b/i,
+      key: "classes",
+      known: index.classes,
+      label: "class",
+      minScore: 70,
+    },
+    {
+      re: /\bclass(?:es)?\s+([A-Za-z0-9][A-Za-z0-9'\-\s]{0,30}?)\b/i,
+      key: "classes",
+      known: index.classes,
+      label: "class",
+      minScore: 70,
+    },
+    {
+      re: /\b(?:store|mall)\s+([A-Za-z0-9][A-Za-z0-9'\-\s]{1,40}?)\b/i,
+      key: "stores",
+      known: index.stores,
+      label: "store",
+      minScore: 80,
+    },
+  ];
+
+  for (const rule of labeled) {
+    const m = message.match(rule.re);
+    if (!m?.[1]) continue;
+    const raw = m[1].trim().replace(/\b(sales?|the|my)$/i, "").trim();
+    if (!raw || STOP_TOKENS.has(normalizeKey(raw))) continue;
+    const matched = matchEntity(raw, rule.known, rule.label);
+    if (
+      (matched.status === "exact" || matched.status === "fuzzy") &&
+      matched.score >= rule.minScore
+    ) {
+      hits.push({ key: rule.key, value: matched.value, score: matched.score + 40 });
+    } else if (rule.key === "designs" || rule.key === "departments" || rule.key === "classes") {
+      // Keep explicit spoken name even if not in index yet (normalizeFilterInputs will clarify)
+      hits.push({ key: rule.key, value: raw, score: 60 });
+    }
+  }
+
   const collect = (known: string[], key: Hit["key"]) => {
+    if (hits.some((h) => h.key === key)) return;
     const sorted = [...known].sort((a, b) => b.length - a.length);
     for (const name of sorted) {
       if (!containsPhrase(message, name)) continue;
@@ -344,31 +477,44 @@ export function extractEntitiesFromMessage(
   collect(index.vendors, "vendors");
   collect(index.classes, "classes");
 
-  // Fuzzy token pass for leftover store/vendor codes (e.g. "MOD", "MHVR")
-  if (!hits.some((h) => h.key === "stores")) {
-    const tokens = normalizeKey(message)
-      .split(" ")
-      .filter((t) => t.length >= 3 && !/^(show|sales?|sale|the|of|for|and|with|from|july|june|august|today|yesterday|store|stores)$/.test(t));
+  const tokens = normalizeKey(message)
+    .split(" ")
+    .filter((t) => t.length >= 3 && !STOP_TOKENS.has(t));
+
+  const fuzzyPass = (
+    key: Hit["key"],
+    known: string[],
+    label: string,
+    minScore: number
+  ) => {
+    if (hits.some((h) => h.key === key) || !known.length) return;
+    // Prefer multi-token phrases for departments like "gold chain"
+    if (key === "departments" || key === "stores") {
+      for (let n = Math.min(3, tokens.length); n >= 2; n--) {
+        for (let i = 0; i <= tokens.length - n; i++) {
+          const phrase = tokens.slice(i, i + n).join(" ");
+          const m = matchEntity(phrase, known, label);
+          if ((m.status === "exact" || m.status === "fuzzy") && m.score >= minScore) {
+            hits.push({ key, value: m.value, score: m.score });
+            return;
+          }
+        }
+      }
+    }
     for (const token of tokens) {
-      const m = matchEntity(token, index.stores, "store");
-      if ((m.status === "exact" || m.status === "fuzzy") && m.score >= 80) {
-        hits.push({ key: "stores", value: m.value, score: m.score });
+      const m = matchEntity(token, known, label);
+      if ((m.status === "exact" || m.status === "fuzzy") && m.score >= minScore) {
+        hits.push({ key, value: m.value, score: m.score });
         break;
       }
     }
-  }
-  if (!hits.some((h) => h.key === "vendors")) {
-    const tokens = normalizeKey(message)
-      .split(" ")
-      .filter((t) => t.length >= 3);
-    for (const token of tokens) {
-      const m = matchEntity(token, index.vendors, "vendor");
-      if ((m.status === "exact" || m.status === "fuzzy") && m.score >= 90) {
-        hits.push({ key: "vendors", value: m.value, score: m.score });
-        break;
-      }
-    }
-  }
+  };
+
+  fuzzyPass("stores", index.stores, "store", 80);
+  fuzzyPass("designs", index.designs, "design", 78);
+  fuzzyPass("departments", index.departments, "department", 75);
+  fuzzyPass("vendors", index.vendors, "vendor", 90);
+  fuzzyPass("classes", index.classes, "class", 78);
 
   // Fuzzy department for typos like "lads ring"
   if (!hits.some((h) => h.key === "departments")) {
