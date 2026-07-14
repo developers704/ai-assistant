@@ -1,5 +1,5 @@
 import type { ReportSummary, StoredReportMeta } from "@/lib/reports/types";
-import type { SalesQueryResult } from "@/lib/sales/sales-types";
+import type { SalesBreakdownRow, SalesQueryResult } from "@/lib/sales/sales-types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 
 /**
@@ -11,9 +11,39 @@ import { resolveProductImageUrl } from "@/lib/reports/product-image";
  * - averageOrderValue card = Avg Sale Value (per unit)
  * - uniqueTransactions = distinct txn count
  */
+
+function pctChange(current: number, previous: number): number {
+  if (!(previous > 0)) return 0;
+  return ((current - previous) / previous) * 100;
+}
+
+function avgSaleValue(result?: SalesQueryResult | null): number {
+  const units = result?.summary?.unitsSold ?? 0;
+  const net = result?.summary?.netSales ?? 0;
+  return units > 0 ? net / units : 0;
+}
+
+function collectStoreRevenue(result?: SalesQueryResult | null): Map<string, number> {
+  const map = new Map<string, number>();
+  const add = (rows?: SalesBreakdownRow[]) => {
+    for (const r of rows ?? []) map.set(r.name, r.netSales);
+  };
+  if (!result) return map;
+  add(result.breakdowns?.byStore);
+  add(result.rankings?.topStores);
+  add(result.rankings?.lowestStores);
+  return map;
+}
+
 export function reportSummaryFromQueryResult(
   result: SalesQueryResult,
-  meta: StoredReportMeta
+  meta: StoredReportMeta,
+  opts?: {
+    /** Prior available report day for day-over-day %. */
+    previousDay?: SalesQueryResult | null;
+    /** ~7 days earlier when available in the report (avg sale value wow). */
+    previousWeek?: SalesQueryResult | null;
+  }
 ): ReportSummary {
   const s = result.summary;
   const net = s?.netSales ?? 0;
@@ -22,25 +52,27 @@ export function reportSummaryFromQueryResult(
   const gross = s?.grossSales ?? 0;
   const discounts = s?.discounts ?? 0;
   const margin = s?.estimatedMargin ?? 0;
+  const currentAvg = units > 0 ? net / units : 0;
+
+  const prevStoreMap = collectStoreRevenue(opts?.previousDay);
 
   const mapRank = (rows?: NonNullable<SalesQueryResult["rankings"]>["topStores"]) =>
     (rows ?? []).map((r) => ({
       name: r.name,
       revenue: r.netSales,
-      change: 0,
+      change: pctChange(r.netSales, prevStoreMap.get(r.name) ?? 0),
       imageDir: undefined as string | undefined,
       imageUrl: r.imageUrl ?? null,
       units: r.unitsSold,
     }));
 
   const topStores = mapRank(result.rankings?.topStores ?? result.breakdowns?.byStore);
-  const worstStores = [...(result.rankings?.lowestStores ?? [])]
-    .map((r) => ({
-      name: r.name,
-      revenue: r.netSales,
-      change: 0,
-      imageUrl: r.imageUrl ?? null,
-    }));
+  const worstStores = [...(result.rankings?.lowestStores ?? [])].map((r) => ({
+    name: r.name,
+    revenue: r.netSales,
+    change: pctChange(r.netSales, prevStoreMap.get(r.name) ?? 0),
+    imageUrl: r.imageUrl ?? null,
+  }));
 
   const topProducts = (result.rankings?.topVendorModels ?? result.rankings?.topProducts ?? []).map(
     (r) => ({
@@ -59,13 +91,13 @@ export function reportSummaryFromQueryResult(
   return {
     totalRevenue: net,
     totalTransactions: units,
-    averageOrderValue: units > 0 ? net / units : 0,
-    comparisonPreviousDay: 0,
-    comparisonPreviousWeek: 0,
+    averageOrderValue: currentAvg,
+    comparisonPreviousDay: pctChange(net, opts?.previousDay?.summary?.netSales ?? 0),
+    comparisonPreviousWeek: pctChange(currentAvg, avgSaleValue(opts?.previousWeek)),
     topStores,
     worstStores,
     topProducts,
-    underperformingStores: worstStores.slice(0, 5),
+    underperformingStores: worstStores.filter((store) => store.change < 0).slice(0, 5),
     recommendations: result.warnings?.length
       ? result.warnings
       : [

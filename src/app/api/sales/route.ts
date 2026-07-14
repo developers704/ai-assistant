@@ -8,6 +8,62 @@ import { reportSummaryFromQueryResult } from "@/lib/sales/dashboard-bridge";
 import { ensureActiveSalesVersion } from "@/lib/sales/refresh/service";
 import { setActiveSalesContext, clearActiveSalesContext } from "@/lib/sales/active-context";
 import { readActivePointer } from "@/lib/sales/data/version-store";
+import type { SalesQueryResult } from "@/lib/sales/sales-types";
+
+function shiftIsoDate(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function previousAvailableDate(dates: string[], current: string): string | null {
+  const sorted = [...dates].filter(Boolean).sort();
+  const idx = sorted.indexOf(current);
+  if (idx > 0) return sorted[idx - 1] ?? null;
+  return null;
+}
+
+async function queryDashboardSlice(opts: {
+  date?: string;
+  store?: string;
+  department?: string;
+  design?: string;
+  /** Comparison-only queries need all stores, not product top-20. */
+  mode?: "dashboard" | "comparison";
+}): Promise<SalesQueryResult> {
+  const isCompare = opts.mode === "comparison";
+  return querySales({
+    dateRange: opts.date
+      ? { type: "custom", startDate: opts.date, endDate: opts.date }
+      : { type: "all_dates" },
+    stores: opts.store ? [opts.store] : undefined,
+    departments: opts.department ? [opts.department] : undefined,
+    designs: opts.design ? [opts.design] : undefined,
+    resetContext: true,
+    limit: isCompare ? 500 : 20,
+    sortBy: "quantity",
+    groupBy: ["store"],
+    include: isCompare
+      ? {
+          summary: true,
+          breakdown: true,
+          topStores: true,
+          lowestStores: true,
+        }
+      : {
+          summary: true,
+          breakdown: true,
+          topStores: true,
+          lowestStores: true,
+          topDepartments: true,
+          topDesigns: true,
+          topVendors: true,
+          topClasses: true,
+          topProducts: true,
+          topVendorModels: true,
+        },
+  });
+}
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -47,32 +103,47 @@ export async function GET(req: NextRequest) {
     await ensureActiveSalesVersion();
     const latestMeta = getLatestReportWithSummary();
     if (latestMeta) {
-      const result = await querySales({
-        dateRange: filterDate
-          ? { type: "custom", startDate: filterDate, endDate: filterDate }
-          : { type: "all_dates" },
-        stores: filterStore ? [filterStore] : undefined,
-        departments: filterDepartment ? [filterDepartment] : undefined,
-        designs: filterDesign ? [filterDesign] : undefined,
-        resetContext: true,
-        // Top Vendor Models: top 20 by pieces sold (matches Sales Dashboard label).
-        limit: 20,
-        sortBy: "quantity",
-        include: {
-          summary: true,
-          breakdown: true,
-          topStores: true,
-          lowestStores: true,
-          topDepartments: true,
-          topDesigns: true,
-          topVendors: true,
-          topClasses: true,
-          topProducts: true,
-          topVendorModels: true,
-        },
+      const result = await queryDashboardSlice({
+        date: filterDate,
+        store: filterStore,
+        department: filterDepartment,
+        design: filterDesign,
+        mode: "dashboard",
       });
 
-      const summary = reportSummaryFromQueryResult(result, latestMeta.meta);
+      let previousDay: SalesQueryResult | null = null;
+      let previousWeek: SalesQueryResult | null = null;
+
+      if (filterDate) {
+        const prevDate = previousAvailableDate(latestMeta.availableDates, filterDate);
+        if (prevDate) {
+          previousDay = await queryDashboardSlice({
+            date: prevDate,
+            store: filterStore,
+            department: filterDepartment,
+            design: filterDesign,
+            mode: "comparison",
+          });
+        }
+
+        const weekAgo = shiftIsoDate(filterDate, -7);
+        if (latestMeta.availableDates.includes(weekAgo) && weekAgo !== prevDate) {
+          previousWeek = await queryDashboardSlice({
+            date: weekAgo,
+            store: filterStore,
+            department: filterDepartment,
+            design: filterDesign,
+            mode: "comparison",
+          });
+        } else if (weekAgo === prevDate) {
+          previousWeek = previousDay;
+        }
+      }
+
+      const summary = reportSummaryFromQueryResult(result, latestMeta.meta, {
+        previousDay,
+        previousWeek,
+      });
       return NextResponse.json({
         summary,
         report: latestMeta.meta,
