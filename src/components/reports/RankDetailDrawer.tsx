@@ -214,8 +214,8 @@ export function RankDetailDrawer({
         aria-label="Close details"
         onClick={onClose}
       />
-      <aside className="relative h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-[#0f1624] shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-white/10 bg-[#0f1624]/95 px-5 py-4 backdrop-blur">
+      <aside className="relative flex h-full w-full max-w-xl flex-col border-l border-white/10 bg-[#0f1624] shadow-2xl">
+        <div className="shrink-0 z-10 flex items-start justify-between gap-3 border-b border-white/10 bg-[#0f1624]/95 px-5 py-4 backdrop-blur">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
               {DIMENSION_LABEL[selection.dimension]} detail
@@ -259,7 +259,8 @@ export function RankDetailDrawer({
           </button>
         </div>
 
-        <div className="p-5 space-y-5">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
           {loading && (
             <p className="text-sm text-white/40 animate-pulse">Loading details…</p>
           )}
@@ -354,11 +355,15 @@ export function RankDetailDrawer({
           )}
 
           {data && data.lineItems.length > 0 && (
-            <div className="rounded-xl ring-1 ring-white/10 overflow-hidden">
-              <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white/40 bg-white/[0.03] border-b border-white/10">
-                Line items ({data.totals.lineCount})
+            <div className="flex h-[min(70vh,40rem)] flex-col rounded-xl ring-1 ring-white/10 overflow-hidden">
+              <p className="shrink-0 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white/40 bg-white/[0.03] border-b border-white/10">
+                Line items ({data.totals.lineCount}
+                {data.lineItems.length < data.totals.lineCount
+                  ? ` · showing ${data.lineItems.length}`
+                  : ""}
+                )
               </p>
-              <ul className="max-h-80 overflow-y-auto divide-y divide-white/5">
+              <ul className="min-h-0 flex-1 overflow-y-auto divide-y divide-white/5">
                 {data.lineItems.map((row, i) => {
                   const label = formatProductDisplayName(row.description);
                   const skuOrModel = row.vendorModel || row.sku;
@@ -403,6 +408,7 @@ export function RankDetailDrawer({
               </ul>
             </div>
           )}
+          </div>
         </div>
       </aside>
 

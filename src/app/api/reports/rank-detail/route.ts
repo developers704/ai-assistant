@@ -208,7 +208,7 @@ export async function GET(req: Request) {
   const lineItems = matched
     .slice()
     .sort((a, b) => b.netRevenue - a.netRevenue)
-    .slice(0, 40)
+    .slice(0, 200)
     .map((r) => ({
       date: r.date,
       transactionId: r.transactionId,
