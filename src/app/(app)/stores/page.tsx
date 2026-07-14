@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import type { StoreDirectoryEntry } from "@/lib/stores/types";
+import type { StoreDirectoryEntry, StoreGoogleReview } from "@/lib/stores/types";
 import {
   formatTodayHoursLabel,
   getStoreOpenStatus,
@@ -32,6 +32,7 @@ import {
   LocateFixed,
   ArrowRight,
   Loader2,
+  X,
 } from "lucide-react";
 
 const StoresMap = dynamic(
@@ -691,6 +692,21 @@ function StoreDetailCard({
   const openStatus = getStoreOpenStatus(store);
   const hoursLabel = formatTodayHoursLabel(store);
   const weeklyHours = getWeeklyHoursRows(store);
+  const [openReview, setOpenReview] = useState<StoreGoogleReview | null>(null);
+
+  useEffect(() => {
+    if (!openReview) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenReview(null);
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [openReview]);
 
   return (
     <div className="rounded-[1.25rem] ring-1 ring-violet-400/20 bg-gradient-to-b from-violet-500/[0.08] to-white/[0.02] p-4 sm:p-5 space-y-3">
@@ -833,30 +849,89 @@ function StoreDetailCard({
           </p>
           <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
             {store.googleReviews.slice(0, 3).map((review, i) => (
-              <li
-                key={`${review.authorName}-${i}`}
-                className="rounded-xl bg-white/[0.025] ring-1 ring-white/[0.06] px-3 py-2.5"
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <p className="text-xs font-medium text-white/80 truncate">
-                    {review.authorName}
-                  </p>
-                  <span className="text-[11px] text-amber-300/90 tabular-nums shrink-0">
-                    {"★".repeat(Math.round(review.rating))}
-                    <span className="text-white/30 ml-1">{review.rating}</span>
-                  </span>
-                </div>
-                {review.text && (
-                  <p className="text-xs text-white/50 leading-relaxed line-clamp-3">
-                    {review.text}
-                  </p>
-                )}
-                {review.relativeTime && (
-                  <p className="text-[10px] text-white/30 mt-1">{review.relativeTime}</p>
-                )}
+              <li key={`${review.authorName}-${i}`}>
+                <button
+                  type="button"
+                  onClick={() => setOpenReview(review)}
+                  className="w-full text-left rounded-xl bg-white/[0.025] ring-1 ring-white/[0.06] px-3 py-2.5 hover:bg-white/[0.05] hover:ring-white/12 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="text-xs font-medium text-white/80 truncate">
+                      {review.authorName}
+                    </p>
+                    <span className="text-[11px] text-amber-300/90 tabular-nums shrink-0">
+                      {"★".repeat(Math.round(review.rating))}
+                      <span className="text-white/30 ml-1">{review.rating}</span>
+                    </span>
+                  </div>
+                  {review.text && (
+                    <p className="text-xs text-white/50 leading-relaxed line-clamp-3">
+                      {review.text}
+                    </p>
+                  )}
+                  {review.relativeTime && (
+                    <p className="text-[10px] text-white/30 mt-1">{review.relativeTime}</p>
+                  )}
+                  {review.text && review.text.length > 140 && (
+                    <p className="text-[10px] font-semibold text-violet-300/80 mt-1.5">
+                      Tap to read full review
+                    </p>
+                  )}
+                </button>
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {openReview && (
+        <div
+          className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-3 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Review by ${openReview.authorName}`}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            aria-label="Close review"
+            onClick={() => setOpenReview(null)}
+          />
+          <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-[#1a2230] ring-1 ring-white/15 shadow-2xl p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35 mb-1">
+                  Full review
+                </p>
+                <p className="text-base font-semibold text-ink truncate">
+                  {openReview.authorName}
+                </p>
+                <p className="text-sm text-amber-300/90 mt-1 tabular-nums">
+                  {"★".repeat(Math.round(openReview.rating))}
+                  <span className="text-white/40 ml-1.5">{openReview.rating} / 5</span>
+                </p>
+                {openReview.relativeTime && (
+                  <p className="text-xs text-white/40 mt-1">{openReview.relativeTime}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenReview(null)}
+                className="shrink-0 rounded-full p-2 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap">
+              {openReview.text || "No written review."}
+            </p>
+            <div className="mt-5 flex justify-end">
+              <Button size="sm" variant="secondary" onClick={() => setOpenReview(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
