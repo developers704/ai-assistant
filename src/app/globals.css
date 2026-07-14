@@ -2,15 +2,15 @@
    remove FuturisticBackground from src/app/(app)/layout.tsx, and git checkout
    globals.css tailwind.config.ts + ui components (Card, Button, Input, Badge, Sidebar). */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-inter: 'Outfit', system-ui, sans-serif;
-  --font-display: 'Sora', 'Outfit', system-ui, sans-serif;
+  --font-inter: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
   --glass-bg: rgba(15, 23, 42, 0.35);
   --glass-bg-strong: rgba(15, 23, 42, 0.52);
   --glass-border: rgba(255, 255, 255, 0.12);
@@ -27,19 +27,20 @@
   }
 
   html[data-theme="futuristic"] body {
-    @apply text-ink font-sans antialiased min-h-screen;
+    @apply text-ink font-sans antialiased min-h-screen font-semibold;
     letter-spacing: -0.015em;
     background: #1e2733;
   }
 
   html:not([data-theme="futuristic"]) body {
-    @apply text-ink font-sans antialiased;
+    @apply text-ink font-sans antialiased font-semibold;
     background: #020617; /* Dark navy background */
     letter-spacing: -0.015em;
   }
 
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
+    font-weight: 700;
     letter-spacing: -0.02em;
   }
 }
