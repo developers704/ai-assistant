@@ -366,7 +366,7 @@ export function RankDetailDrawer({
                     <li
                       key={`${row.transactionId ?? row.date}-${row.sku}-${i}`}
                       className={cn(
-                        "px-3 py-2.5 text-sm flex items-center gap-3",
+                        "px-3 py-2.5 flex items-start gap-3",
                         i % 2 === 0 ? "bg-white/[0.015]" : ""
                       )}
                     >
@@ -380,24 +380,20 @@ export function RankDetailDrawer({
                         }
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="flex justify-between gap-2">
-                          <p className="text-[13px] text-ink/95 font-medium leading-snug tracking-[0.01em] line-clamp-2">
-                            {label}
-                          </p>
-                          <span className="tabular-nums text-ink shrink-0">
-                            {formatCurrency(row.netRevenue)}
-                          </span>
-                        </div>
+                        <p className="text-[13px] text-ink/95 font-medium leading-snug tracking-[0.01em] line-clamp-2">
+                          {label}
+                        </p>
                         <p className="text-[11px] text-white/40 mt-0.5 truncate">
-                          {[
-                            row.date,
-                            row.storeName,
-                            skuOrModel,
-                            row.department,
-                          ]
+                          {[row.date, row.storeName, skuOrModel, row.department]
                             .filter(Boolean)
                             .join(" · ")}
-                          {" · "}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0 min-w-[4.5rem]">
+                        <p className="text-sm tabular-nums text-ink">
+                          {formatCurrency(row.netRevenue)}
+                        </p>
+                        <p className="text-[11px] text-white/40 tabular-nums">
                           {formatPieceCount(row.quantity)}
                         </p>
                       </div>
