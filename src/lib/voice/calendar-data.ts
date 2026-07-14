@@ -114,6 +114,30 @@ export function buildCalendarVoiceScript(
   return `You have ${sorted.length} events today: ${parts.join("; ")}${rest}.`;
 }
 
+/** Structured calendar summary for chat UI. */
+export function buildCalendarMarkdown(
+  events: CalendarEvent[],
+  tz: string,
+  opts?: { title?: string }
+): string {
+  const title = opts?.title ?? "Today's schedule";
+  if (events.length === 0) {
+    return `**${title}**\n\nNo meetings scheduled — your calendar is clear.`;
+  }
+
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+  );
+
+  const lines = sorted.map((e) => {
+    const time = formatEventTime(e.start, tz);
+    const loc = e.location ? ` · ${e.location}` : "";
+    return `- **${time}** — ${e.title}${loc}`;
+  });
+
+  return `**${title}** (${sorted.length} event${sorted.length === 1 ? "" : "s"})\n\n${lines.join("\n")}`;
+}
+
 /** All non-cancelled calendar events (today + upcoming) for bulk actions. */
 export async function getUpcomingCalendarEvents(): Promise<CalendarEvent[]> {
   const state = getState();

@@ -24,10 +24,13 @@ function filterLabel(filters: SalesQueryFilters, date: SalesResolvedDateRange): 
   return parts.length ? parts.join("; ") : "the selected report period";
 }
 
-function topLine(rows: SalesBreakdownRow[] | undefined, label: string): string {
+function topLines(rows: SalesBreakdownRow[] | undefined, label: string, limit = 5): string {
   if (!rows?.length) return "";
-  const top = rows.slice(0, 3).map((r) => `${r.name} (${money(r.netSales)})`).join(", ");
-  return `**${label}:** ${top}`;
+  const items = rows
+    .slice(0, limit)
+    .map((r) => `- **${r.name}** — ${money(r.netSales)}`)
+    .join("\n");
+  return `**${label}**\n${items}`;
 }
 
 export function formatSalesTextAnswer(result: Omit<SalesQueryResult, "spokenAnswer" | "textAnswer"> & {
@@ -59,18 +62,19 @@ export function formatSalesTextAnswer(result: Omit<SalesQueryResult, "spokenAnsw
 
   const scope = filterLabel(result.query.filters, result.query.resolvedDateRange);
   const lines: string[] = [
-    `For **${scope}**: **${money(s.netSales)}** net sales from **${formatPieceCount(s.unitsSold ?? 0)}** across **${(s.transactions ?? 0).toLocaleString()}** transactions.`,
+    `**Sales summary** — ${scope}`,
+    `**${money(s.netSales)}** net · **${formatPieceCount(s.unitsSold ?? 0)}** · **${(s.transactions ?? 0).toLocaleString()}** transactions`,
   ];
 
   const r = result.rankings;
   const b = result.breakdowns;
   const extras = [
-    topLine(b?.byStore ?? r?.topStores, "By store"),
-    topLine(b?.byDepartment ?? r?.topDepartments, "By department"),
-    topLine(b?.byDesign ?? r?.topDesigns, "By design"),
-    topLine(b?.byVendor ?? r?.topVendors, "By vendor"),
-    topLine(b?.byClass ?? r?.topClasses, "By class"),
-    topLine(b?.byVendorModel ?? r?.topVendorModels, "Top vendor models"),
+    topLines(b?.byStore ?? r?.topStores, "By store"),
+    topLines(b?.byDepartment ?? r?.topDepartments, "By department"),
+    topLines(b?.byDesign ?? r?.topDesigns, "By design"),
+    topLines(b?.byVendor ?? r?.topVendors, "By vendor"),
+    topLines(b?.byClass ?? r?.topClasses, "By class"),
+    topLines(b?.byVendorModel ?? r?.topVendorModels, "Top vendor models"),
   ].filter(Boolean);
 
   // Only show breakdowns that were requested via groupBy or default compact tops
@@ -89,13 +93,7 @@ export function formatSalesTextAnswer(result: Omit<SalesQueryResult, "spokenAnsw
       };
       const rows = map[g];
       if (rows?.length) {
-        lines.push(
-          `**By ${g.replace("_", " ")}:** ` +
-            rows
-              .slice(0, 5)
-              .map((row) => `${row.name} (${money(row.netSales)})`)
-              .join(", ")
-        );
+        lines.push(topLines(rows, `By ${g.replace("_", " ")}`));
       }
     }
   } else if (extras.length && !result.comparison) {

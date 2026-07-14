@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { mockContacts } from "@/lib/mock-data";
 import { getState, setState } from "@/lib/store/server-store";
 import {
+  buildCalendarMarkdown,
   buildCalendarVoiceScript,
   getVoiceCalendarEvents,
 } from "@/lib/voice/calendar-data";
@@ -32,8 +33,11 @@ import {
   buildSettingsStatusScript,
   estimateJewelleryPrice,
   getMarketRatesSummary,
+  getNewsHeadlinesMarkdown,
   getNewsHeadlinesScript,
+  getPoliticsHeadlinesMarkdown,
   getPoliticsHeadlinesScript,
+  getSportsHeadlinesMarkdown,
   getSportsHeadlinesScript,
 } from "@/lib/voice/section-tools";
 import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
@@ -664,12 +668,14 @@ export async function executeVoiceTool(
       const { events, tz, todayKey, googleConnected, source } =
         await getVoiceCalendarEvents();
       const script = buildCalendarVoiceScript(events, tz);
+      const markdown = buildCalendarMarkdown(events, tz);
       return {
         output: JSON.stringify({
           date: todayKey,
           timezone: tz,
           eventCount: events.length,
           spokenAnswer: script,
+          markdown,
           events: events.slice(0, 12).map((e) => ({
             id: e.id,
             title: e.title,
@@ -1138,24 +1144,27 @@ export async function executeVoiceTool(
 
     case "get_industry_news": {
       const script = await getNewsHeadlinesScript();
+      const markdown = await getNewsHeadlinesMarkdown();
       return {
-        output: JSON.stringify({ spokenAnswer: script }),
+        output: JSON.stringify({ spokenAnswer: script, markdown }),
         uiAction: { type: "navigate", path: "/news?tab=industry" },
       };
     }
 
     case "get_sports_news": {
       const script = await getSportsHeadlinesScript();
+      const markdown = await getSportsHeadlinesMarkdown();
       return {
-        output: JSON.stringify({ spokenAnswer: script }),
+        output: JSON.stringify({ spokenAnswer: script, markdown }),
         uiAction: { type: "navigate", path: "/news?tab=sports" },
       };
     }
 
     case "get_politics_news": {
       const script = await getPoliticsHeadlinesScript();
+      const markdown = await getPoliticsHeadlinesMarkdown();
       return {
-        output: JSON.stringify({ spokenAnswer: script }),
+        output: JSON.stringify({ spokenAnswer: script, markdown }),
         uiAction: { type: "navigate", path: "/news?tab=politics" },
       };
     }

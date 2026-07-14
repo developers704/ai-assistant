@@ -29,7 +29,8 @@ const LINK_CLASS =
 function renderMarkdown(text: string) {
   const lines = text.split("\n");
   return lines.map((line, i) => {
-    let content = escapeHtml(line);
+    const trimmed = line.trimEnd();
+    let content = escapeHtml(trimmed);
     // [label](https://...)
     content = content.replace(
       /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
@@ -40,16 +41,58 @@ function renderMarkdown(text: string) {
       /(^|[\s(])(https?:\/\/[^\s<]+)/g,
       `$1<a href="$2" target="_blank" rel="noopener noreferrer" class="${LINK_CLASS}">$2</a>`
     );
-    content = content.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-ink">$1</strong>');
-    content = content.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-    if (line.startsWith("• ") || line.startsWith("- ")) {
-      content = `<span class="block pl-2">${content}</span>`;
+    content = content.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>');
+    content = content.replace(/(^|[^*])\*(.*?)\*(?!\*)/g, '$1<em class="italic text-ink-secondary">$2</em>');
+    content = content.replace(/_([^_]+)_/g, '<em class="italic text-ink-secondary">$1</em>');
+
+    const isBullet = /^[-•]\s+/.test(trimmed);
+    const isNumbered = /^\d+\.\s+/.test(trimmed);
+    const isBlank = trimmed.length === 0;
+
+    if (isBullet) {
+      content = content.replace(/^[-•]\s+/, "");
+      return (
+        <div key={i} className="flex gap-2 pl-0.5 py-0.5">
+          <span className="text-violet-300/80 select-none shrink-0 leading-relaxed" aria-hidden>
+            •
+          </span>
+          <span
+            className="min-w-0 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: content }}
+          />
+        </div>
+      );
     }
+
+    if (isNumbered) {
+      const m = trimmed.match(/^(\d+)\.\s+(.*)$/);
+      const num = m?.[1] ?? "";
+      let rest = escapeHtml(m?.[2] ?? trimmed);
+      rest = rest.replace(
+        /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+        `<a href="$2" target="_blank" rel="noopener noreferrer" class="${LINK_CLASS}">$1</a>`
+      );
+      rest = rest.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>');
+      rest = rest.replace(/_([^_]+)_/g, '<em class="italic text-ink-secondary">$1</em>');
+      return (
+        <div key={i} className="flex gap-2 pl-0.5 py-0.5">
+          <span className="text-violet-300/90 tabular-nums shrink-0 font-semibold leading-relaxed">
+            {num}.
+          </span>
+          <span className="min-w-0 leading-relaxed" dangerouslySetInnerHTML={{ __html: rest }} />
+        </div>
+      );
+    }
+
+    if (isBlank) {
+      return <div key={i} className="h-2" aria-hidden />;
+    }
+
     return (
-      <span
+      <p
         key={i}
-        className="block"
-        dangerouslySetInnerHTML={{ __html: content || "&nbsp;" }}
+        className="leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: content }}
       />
     );
   });
@@ -210,7 +253,7 @@ export function ChatBubble({ message, onConfirm, onReject, onEdit }: ChatBubbleP
         <PlasmaOrb density="low" className="w-8 h-8 sm:w-9 sm:h-9" />
       </div>
       <div className="max-w-[min(88%,38rem)] min-w-0 flex flex-col items-start gap-1">
-        <div className="chat-bubble-ai px-4 py-3 sm:px-5 sm:py-3.5 rounded-3xl rounded-tl-lg text-sm leading-relaxed text-ink">
+        <div className="chat-bubble-ai px-4 py-3 sm:px-5 sm:py-3.5 rounded-3xl rounded-tl-lg text-sm leading-relaxed text-ink space-y-0.5">
           {renderMarkdown(message.content)}
           {message.imageUrl && (
             <div className="mt-3">

@@ -123,12 +123,49 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
     };
   }
 
-  if (toolName === "get_industry_news" || toolName === "get_metal_rates") {
-    const spoken = String(data.spokenAnswer ?? result.spokenAnswer ?? "");
-    const short =
-      spoken.length > 420 ? `${spoken.slice(0, 400).trim()}…` : spoken;
+  if (
+    toolName === "get_industry_news" ||
+    toolName === "get_sports_news" ||
+    toolName === "get_politics_news" ||
+    toolName === "get_metal_rates"
+  ) {
+    if (channel === "voice") {
+      const spoken = String(data.spokenAnswer ?? result.spokenAnswer ?? "");
+      const short =
+        spoken.length > 420 ? `${spoken.slice(0, 400).trim()}…` : spoken;
+      return {
+        message: `${short || "Here are the latest jewelry industry headlines."}${readOnlySectionHint("News & Markets", channel)}`,
+        navigateTo: result.navigateTo,
+      };
+    }
+    const structured =
+      (typeof data.markdown === "string" && data.markdown) ||
+      result.textAnswer ||
+      result.spokenAnswer ||
+      "Here are the latest jewelry industry headlines.";
+    const hasNavHint = /Open \*\*News|Open News/i.test(structured);
     return {
-      message: `${short || "Here are the latest jewelry industry headlines."}${readOnlySectionHint("News & Markets", channel)}`,
+      message: hasNavHint
+        ? structured
+        : `${structured}${readOnlySectionHint("News & Markets", channel)}`,
+      navigateTo: result.navigateTo,
+    };
+  }
+
+  if (toolName === "get_calendar_today") {
+    if (channel === "voice") {
+      return {
+        message: String(data.spokenAnswer ?? result.spokenAnswer ?? "Here's your calendar."),
+        navigateTo: result.navigateTo,
+      };
+    }
+    return {
+      message:
+        (typeof data.markdown === "string" && data.markdown) ||
+        result.textAnswer ||
+        result.spokenAnswer ||
+        "Here's your calendar.",
+      navigateTo: result.navigateTo,
     };
   }
 
