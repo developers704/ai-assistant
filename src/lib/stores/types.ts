@@ -52,7 +52,7 @@ export interface StoreDirectoryEntry {
   googleRating?: number | null;
   /** Total Google review count. */
   googleReviewCount?: number | null;
-  /** Up to 5 reviews from Places Details. */
+  /** Up to 5 Google Places reviews (API hard limit), newest → oldest when synced. */
   googleReviews?: StoreGoogleReview[] | null;
   googleMapsPlaceUrl?: string | null;
   googleRatingSyncedAt?: string | null;

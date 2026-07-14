@@ -3,7 +3,7 @@
   "company": "Valliani Jewelers",
   "sourceUrl": "https://vallianijewelers.com/pages/find-your-location?srsltid=AfmBOopGqmQy-1mCF0Wk5uVVJ0stgxKYZ1prLQfsiIEFzGcrtiNFXuXr",
   "sourceExtractedAt": "2026-07-07T06:52:19.799Z",
-  "generatedAt": "2026-07-09T09:50:04.745Z",
+  "generatedAt": "2026-07-14T11:41:48.794Z",
   "sourceNote": "Generated from the user's official Valliani Find Your Location page extract. The official page extract provided names, addresses, phone numbers, and email addresses for the listed stores. Latitude/longitude were not present in the extract, so they are left null with needsGeocoding=true. Manually added Vintage Faire Mall (Modesto, CA) and Galleria at Sunset (Henderson, NV) from Google listings on 2026-07-09. Weekly opening hours updated from Google Maps listings on 2026-07-09 for stores with pasted hours.",
   "counts": {
     "totalRecordsInThisFile": 31,
@@ -120,14 +120,23 @@
       "geocodedAddress": "1151 Galleria Blvd #221, Roseville, CA 95678, USA",
       "googlePlaceId": "ChIJ4wotK4Ihm4AR1pF_OEGZZKg",
       "googleRating": 4.9,
-      "googleReviewCount": 682,
+      "googleReviewCount": 689,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=12133991801442767318&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
+        {
+          "authorName": "MyDeen",
+          "rating": 5,
+          "text": "Great experience! Stopped in to take a look with my family and was greeted with great energy. They have really nice jewelry and willing to make you a deal you’re comfortable with. The staff was amazing, friendly and super knowledgeable. My wife LOVES her new ring! Will definitely be back and would recommend everyone to check them out if they are looking for nice jewelry that’s fairly priced.",
+          "relativeTime": "a week ago",
+          "time": 1783300230.083,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLm2Tmqe0z1B6HZ-4rva_bmuq7d--Ng1GWXHM0PxbJRJr_dFg=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
         {
           "authorName": "Stefany Perevertan",
           "rating": 5,
           "text": "My husband and I have had the best experience with Valliani Jewelers. A few months ago, I upgraded my engagement ring and the whole process was So seamless and perfect from the start. They made such an important moment feel so personal and intimate, which meant so much to me.\n\nI have definitely noticed that they are always encouraging us to come in for cleanings and routine checkups to keep our jewelry looking immaculate!\n\nToday, we came in for our regular cleaning and ended up Upgrading my husband’s ring for his upcoming 40th birthday. Once again, the service was amazing and I can’t recommend them enough!! Omar has definitely made it such a fun and personal experience!! 10/10!!!! 🤍💖🤗",
-          "relativeTime": "3 weeks ago",
+          "relativeTime": "4 weeks ago",
           "time": 1781492619.659,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLl7jwbkC0QKPbbDtLCP6l0bQ9i_PzTIyDc4jE6Y6Oy-z493w=s128-c0x00000000-cc-rp-mo",
           "language": "en"
@@ -158,18 +167,9 @@
           "time": 1764724081.632,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIBYVCm--byY03OrR1UVuR7jpCZpeaxgmAjFo_CmU12H1u7sw=s128-c0x00000000-cc-rp-mo",
           "language": "en"
-        },
-        {
-          "authorName": "N H",
-          "rating": 5,
-          "text": "Had a great experience here. Maryam was very helpful in helping us select the right rings for us that fit our budget. Would highly recommend her and Valliani to anyone looking for jewelry for their special occasion.",
-          "relativeTime": "a month ago",
-          "time": 1780590090.997,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJQisfDiu1T9CJXs4KueTtRhPRkqbaIy7ZSG1XPmOjsfAoHJg=s128-c0x00000000-cc-rp-mo-ba2",
-          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:02.635Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:32.452Z"
     },
     {
       "id": "eastridge-centre",
@@ -280,12 +280,21 @@
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=17991977622308319690&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "Mark Castaneda",
+          "authorName": "Christopher Maxey",
           "rating": 5,
-          "text": "The Assistant Manager Cristina Panelo went above and beyond to help me find the perfect ring. They offered me an amazing deal and made sure I got the best price. The entire experience felt comfortable and sincere. I couldn’t be happier with my purchase!",
-          "relativeTime": "6 months ago",
-          "time": 1765657942.585,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVwVLAjFxrVu46rfuXIQuI9NfaT2gR6n_qQMftaf34wVCjCGno=s128-c0x00000000-cc-rp-mo",
+          "text": "Wonderful humans. They were very friendly and helpful. Got a great deal. Happy with my decision.",
+          "relativeTime": "3 weeks ago",
+          "time": 1782083185.766,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXUYGKv83rTGrx_8RNBL2KbKVKA3vHCriEH1HeJ7Wn1I5aOV_Qo=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Stephanie Lindo (Dagnino)",
+          "rating": 5,
+          "text": "The women were really helpful and sweet. I was asking to see lots of different pieces, and they were very patient with me and made great recommendations.  I felt very taken care of.",
+          "relativeTime": "2 months ago",
+          "time": 1777773306.462,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWqZ2L-QSrwxlLcA62EL5fCkgmiE7zbgxf8rE8Dz8HYtA5taWJO=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -298,12 +307,12 @@
           "language": "en"
         },
         {
-          "authorName": "Christopher Maxey",
+          "authorName": "Mark Castaneda",
           "rating": 5,
-          "text": "Wonderful humans. They were very friendly and helpful. Got a great deal. Happy with my decision.",
-          "relativeTime": "2 weeks ago",
-          "time": 1782083185.766,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXUYGKv83rTGrx_8RNBL2KbKVKA3vHCriEH1HeJ7Wn1I5aOV_Qo=s128-c0x00000000-cc-rp-mo",
+          "text": "The Assistant Manager Cristina Panelo went above and beyond to help me find the perfect ring. They offered me an amazing deal and made sure I got the best price. The entire experience felt comfortable and sincere. I couldn’t be happier with my purchase!",
+          "relativeTime": "7 months ago",
+          "time": 1765657942.585,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVwVLAjFxrVu46rfuXIQuI9NfaT2gR6n_qQMftaf34wVCjCGno=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -314,18 +323,9 @@
           "time": 1755561870.308,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVM9FTbFLOliYGi-obUQdX3yaVWtX_3pEHrkoRFFy8IaYw8mkcr=s128-c0x00000000-cc-rp-mo-ba2",
           "language": "en"
-        },
-        {
-          "authorName": "Stephanie Lindo (Dagnino)",
-          "rating": 5,
-          "text": "The women were really helpful and sweet. I was asking to see lots of different pieces, and they were very patient with me and made great recommendations.  I felt very taken care of.",
-          "relativeTime": "2 months ago",
-          "time": 1777773306.462,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWqZ2L-QSrwxlLcA62EL5fCkgmiE7zbgxf8rE8Dz8HYtA5taWJO=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:03.129Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:32.950Z"
     },
     {
       "id": "northridge-mall",
@@ -429,16 +429,16 @@
       "geocodedAddress": "796 Northridge Dr f12, Salinas, CA 93906, USA",
       "googlePlaceId": "ChIJiw1u2zP_jYAR3JM24vJQ320",
       "googleRating": 4.8,
-      "googleReviewCount": 557,
+      "googleReviewCount": 560,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=7917135674048156636&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "Andrew Zarate",
+          "authorName": "Juan Manuel Gil",
           "rating": 5,
-          "text": "My experience here was 10/10. I was only walking in to view engagement rings they had. I was greeted by Cynthia, I showed her a ring I really liked but unfortunately I could not find it anywhere. She said she can make me that specific ring. She delivered on that promise and more. The ring came out amazing! Thank you, Cynthia!",
-          "relativeTime": "4 months ago",
-          "time": 1771815727.706,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL0hHLCsbWZo4Lx0N8zSAU44kxILAIEEs-gCTnlWEj4QsJGXg=s128-c0x00000000-cc-rp-mo",
+          "text": "Very happy to experience a pleasant time with Maria and Cynthia and to have made my wife very happy with her Mother’s Day gift ! Glad to do business with you both!",
+          "relativeTime": "2 months ago",
+          "time": 1778126157.216,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKhA7_tWfTNz4yNt4g7xfczK9ZcruwUr2pfMQEfjXkQLvy-9w=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -451,12 +451,12 @@
           "language": "en"
         },
         {
-          "authorName": "Sandra De La Cruz",
+          "authorName": "Andrew Zarate",
           "rating": 5,
-          "text": "I had been looking for tennis bracelet for a few months.  Walked in to Valliani and they took care of my wants. Found the perfect bracelet, so in love with it. Thanks for the great price.  I recommend them for your fine jewelry needs.  Thank you everyone.  You all have great customer service.",
-          "relativeTime": "7 months ago",
-          "time": 1763951808.675,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVQ5Yu6zoPsDeq4AAwXluwkuFeqs4VgJKkEl16GAq_5gAb1rQISzw=s128-c0x00000000-cc-rp-mo",
+          "text": "My experience here was 10/10. I was only walking in to view engagement rings they had. I was greeted by Cynthia, I showed her a ring I really liked but unfortunately I could not find it anywhere. She said she can make me that specific ring. She delivered on that promise and more. The ring came out amazing! Thank you, Cynthia!",
+          "relativeTime": "4 months ago",
+          "time": 1771815727.706,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL0hHLCsbWZo4Lx0N8zSAU44kxILAIEEs-gCTnlWEj4QsJGXg=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -469,16 +469,16 @@
           "language": "en"
         },
         {
-          "authorName": "Juan Manuel Gil",
+          "authorName": "Sandra De La Cruz",
           "rating": 5,
-          "text": "Very happy to experience a pleasant time with Maria and Cynthia and to have made my wife very happy with her Mother’s Day gift ! Glad to do business with you both!",
-          "relativeTime": "2 months ago",
-          "time": 1778126157.216,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKhA7_tWfTNz4yNt4g7xfczK9ZcruwUr2pfMQEfjXkQLvy-9w=s128-c0x00000000-cc-rp-mo",
+          "text": "I had been looking for tennis bracelet for a few months.  Walked in to Valliani and they took care of my wants. Found the perfect bracelet, so in love with it. Thanks for the great price.  I recommend them for your fine jewelry needs.  Thank you everyone.  You all have great customer service.",
+          "relativeTime": "7 months ago",
+          "time": 1763951808.675,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVQ5Yu6zoPsDeq4AAwXluwkuFeqs4VgJKkEl16GAq_5gAb1rQISzw=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:04.201Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:33.414Z"
     },
     {
       "id": "southland-mall",
@@ -582,9 +582,27 @@
       "geocodedAddress": "306 Southland Mall, Hayward, CA 94545, USA",
       "googlePlaceId": "ChIJj2VEEkaRj4ARyN4p3e4AVKw",
       "googleRating": 4.9,
-      "googleReviewCount": 921,
+      "googleReviewCount": 925,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=12417551098480025288&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
+        {
+          "authorName": "Natalya Salaices",
+          "rating": 4,
+          "text": "I’ve been a customer at Valliani Jewelers a couple times, and every experience has been great. The staff is always very helpful and welcoming. I’m giving 4 stars instead of 5 because I would have appreciated a more thorough explanation of the payment process and available payment options.\nThat said, Jamal was incredibly helpful in assisting me with picking out a ring for my boyfriend, and he absolutely loved it! Thank you so much, Jamal, for your excellent help and service.",
+          "relativeTime": "2 months ago",
+          "time": 1778720688.409,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIFh0pZ7Jact_5xmz36UKIIt0bvnydTOloXDYHn2HUg_pDZYQ=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Dio Galaura",
+          "rating": 5,
+          "text": "I had a fantastic experience at Demi and Valliani Jewelers in Southland! The staff was incredibly friendly and knowledgeable, guiding me through their beautiful ring collection. They took the time to understand my preferences and provided clear pricing, making the entire process enjoyable. I left with a stunning ring and felt truly valued as a customer. Highly recommend them for anyone looking for quality jewelry and excellent service!",
+          "relativeTime": "2 months ago",
+          "time": 1777077731.517,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJpDLHIGEkO9JMOTg7e2k5k2Vnd9ttSnUAF1jLdaw_AHr7QjQ=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
         {
           "authorName": "Tanya Banda",
           "rating": 3,
@@ -604,24 +622,6 @@
           "language": "en"
         },
         {
-          "authorName": "Natalya Salaices",
-          "rating": 4,
-          "text": "I’ve been a customer at Valliani Jewelers a couple times, and every experience has been great. The staff is always very helpful and welcoming. I’m giving 4 stars instead of 5 because I would have appreciated a more thorough explanation of the payment process and available payment options.\nThat said, Jamal was incredibly helpful in assisting me with picking out a ring for my boyfriend, and he absolutely loved it! Thank you so much, Jamal, for your excellent help and service.",
-          "relativeTime": "a month ago",
-          "time": 1778720688.409,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIFh0pZ7Jact_5xmz36UKIIt0bvnydTOloXDYHn2HUg_pDZYQ=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Dio Galaura",
-          "rating": 5,
-          "text": "I had a fantastic experience at Demi and Valliani Jewelers in Southland! The staff was incredibly friendly and knowledgeable, guiding me through their beautiful ring collection. They took the time to understand my preferences and provided clear pricing, making the entire process enjoyable. I left with a stunning ring and felt truly valued as a customer. Highly recommend them for anyone looking for quality jewelry and excellent service!",
-          "relativeTime": "2 months ago",
-          "time": 1777077731.517,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJpDLHIGEkO9JMOTg7e2k5k2Vnd9ttSnUAF1jLdaw_AHr7QjQ=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
           "authorName": "Diosdado JR Rosal",
           "rating": 5,
           "text": "⭐️⭐️⭐️⭐️⭐️\n\nI had an excellent experience at Valliani Jewelers in Southland Mall, Hayward! Wilfred, the sales representative, went above and beyond to help me. As someone new to the country, I appreciated his assistance in opening an account, which will help me build my credit.\n\nI walked out with a beautiful men’s ring, and I was able to secure it with just a $10 down payment! The service was friendly and attentive, making the whole process smooth and enjoyable.\n\nI highly recommend Valliani Jewelers to anyone looking for great service and beautiful products. Thank you, Wilfred, for your outstanding help!",
@@ -631,7 +631,7 @@
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:04.684Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:33.915Z"
     },
     {
       "id": "serramonte-center",
@@ -735,16 +735,16 @@
       "geocodedAddress": "110 Serramonte Center, Daly City, CA 94015, USA",
       "googlePlaceId": "ChIJJera2vJ7j4ARPTKQ_bbxV2M",
       "googleRating": 4.8,
-      "googleReviewCount": 647,
+      "googleReviewCount": 649,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=7158455900969120317&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "JOKER DAU A KHO",
+          "authorName": "Luis Munoz",
           "rating": 5,
-          "text": "I have purchased all my jewelry from  Valliani Jewelers in Serramonte Mall, Daly City, CA and every single time was a great experience. Amy Faustino has always  been very consistent in doing a great great job in helping me make smart decisions in choosing the best items. She is very knowledgeable about the products and will go an extra mile to make sure that you get the best deal and satisfaction that you\n\nI highly recommend Valliani Jewelers in Daly City and for an extra peace of mind, look for Amy.  She is someone you can really trust.",
-          "relativeTime": "4 months ago",
-          "time": 1771267805.834,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVkWWwNE6oJfxgtTpIj7SESTp10oeAaBrCClvu0oj35AO8w_VS2=s128-c0x00000000-cc-rp-mo",
+          "text": "Amy and Elizabeth were incredible\nGreat attention to detail, great knowledge on the stones and quality of the product you sell.\nVery helpful and took their time showing us  until my wife and I were 100% satisfied.\nThey never made us feel rush or pushy to buy.  Great customer service.\nWe ended up buying two new rings.\nAmy took care of us 10 years ago when we bought our lots rings.\nWe will definitely come back",
+          "relativeTime": "3 months ago",
+          "time": 1775254365.408,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKjEaaYqGz4CtVRAg0f3-hRsn4MnI2XC3T3NzgTNhL_8pYHrg=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -754,6 +754,15 @@
           "relativeTime": "4 months ago",
           "time": 1771903847.005,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjW3sncH8D7ZY0HMDDc2VcU7WJL6KVs3ScLzoDxvXU_pZO2i7d8=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "JOKER DAU A KHO",
+          "rating": 5,
+          "text": "I have purchased all my jewelry from  Valliani Jewelers in Serramonte Mall, Daly City, CA and every single time was a great experience. Amy Faustino has always  been very consistent in doing a great great job in helping me make smart decisions in choosing the best items. She is very knowledgeable about the products and will go an extra mile to make sure that you get the best deal and satisfaction that you\n\nI highly recommend Valliani Jewelers in Daly City and for an extra peace of mind, look for Amy.  She is someone you can really trust.",
+          "relativeTime": "4 months ago",
+          "time": 1771267805.834,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVkWWwNE6oJfxgtTpIj7SESTp10oeAaBrCClvu0oj35AO8w_VS2=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -773,18 +782,9 @@
           "time": 1767752766.92,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUh7gJsWDGigh3nb5_MCXLjLgDkKUx1NDWYoXyAJpKsn0DsKMY=s128-c0x00000000-cc-rp-mo",
           "language": "en"
-        },
-        {
-          "authorName": "Luis Munoz",
-          "rating": 5,
-          "text": "Amy and Elizabeth were incredible\nGreat attention to detail, great knowledge on the stones and quality of the product you sell.\nVery helpful and took their time showing us  until my wife and I were 100% satisfied.\nThey never made us feel rush or pushy to buy.  Great customer service.\nWe ended up buying two new rings.\nAmy took care of us 10 years ago when we bought our lots rings.\nWe will definitely come back",
-          "relativeTime": "3 months ago",
-          "time": 1775254365.408,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKjEaaYqGz4CtVRAg0f3-hRsn4MnI2XC3T3NzgTNhL_8pYHrg=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:05.151Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:34.381Z"
     },
     {
       "id": "visalia-mall",
@@ -888,18 +888,9 @@
       "geocodedAddress": "2181 S Mooney Blvd #1415, Visalia, CA 93277, USA",
       "googlePlaceId": "ChIJcYdMF8vOj4ART1W640Y2uPg",
       "googleRating": 4.9,
-      "googleReviewCount": 1712,
+      "googleReviewCount": 1719,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=17922134395217139023&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
-        {
-          "authorName": "Jesse A",
-          "rating": 5,
-          "text": "We had a wonderful experience with Valliani Jewelers. This is where I purchased my wife’s engagement ring and wedding bands, and we were able to design custom rings exactly the way we wanted. We worked closely with Belen, and she was amazing throughout the process—helpful, patient, knowledgeable, and truly a pleasure to work with.\n\nIt took a couple of weeks to receive the final rings, but it was absolutely worth the wait. The craftsmanship was beautiful, the pricing was unbeatable, and the whole experience felt personal and well cared for. My wife also purchased my wedding band there, so Valliani became a special part of our story. Highly recommended.",
-          "relativeTime": "3 months ago",
-          "time": 1775675747.746,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIFclTSC-5wE7zsma6_2ZJkL-ku8c6wuhrSRMRNXVieYSBaS_s=s128-c0x00000000-cc-rp-mo-ba3",
-          "language": "en"
-        },
         {
           "authorName": "Liliana Castellanos",
           "rating": 5,
@@ -907,15 +898,6 @@
           "relativeTime": "a month ago",
           "time": 1780973178.407,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLIpbz-XW7JKIZKkJlxgeFPuzbbIBabjSa2mzRm77gkmchKzw=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Leah Lee",
-          "rating": 5,
-          "text": "I’ve had such a great experience with this jewelry store that I had to come back—and once again, they did not disappoint! They previously helped me fix my ring, and this time around the service was just as amazing. The team is incredibly welcoming, and everything was handled quickly and professionally.\nA special thank you to Rosie Gonzales, who assisted me this visit—she was absolutely wonderful! She was kind, attentive, and made sure everything was taken care of smoothly. It’s so nice to go somewhere where you feel valued as a customer. I highly recommend this place to anyone looking for quality service and a friendly atmosphere!",
-          "relativeTime": "2 months ago",
-          "time": 1776212726.414,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKnHRbcGg-tTd_oXWaLEK41lExg-vJiUr8BPe-pJ-wqZfueYA=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -935,9 +917,27 @@
           "time": 1779254910.84,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKVMym1HAz7f-0-ar5e4i68qikSiCMCOQoukLRufYDxlo4Z-g=s128-c0x00000000-cc-rp-mo",
           "language": "en"
+        },
+        {
+          "authorName": "Leah Lee",
+          "rating": 5,
+          "text": "I’ve had such a great experience with this jewelry store that I had to come back—and once again, they did not disappoint! They previously helped me fix my ring, and this time around the service was just as amazing. The team is incredibly welcoming, and everything was handled quickly and professionally.\nA special thank you to Rosie Gonzales, who assisted me this visit—she was absolutely wonderful! She was kind, attentive, and made sure everything was taken care of smoothly. It’s so nice to go somewhere where you feel valued as a customer. I highly recommend this place to anyone looking for quality service and a friendly atmosphere!",
+          "relativeTime": "3 months ago",
+          "time": 1776212726.414,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKnHRbcGg-tTd_oXWaLEK41lExg-vJiUr8BPe-pJ-wqZfueYA=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Jesse A",
+          "rating": 5,
+          "text": "We had a wonderful experience with Valliani Jewelers. This is where I purchased my wife’s engagement ring and wedding bands, and we were able to design custom rings exactly the way we wanted. We worked closely with Belen, and she was amazing throughout the process—helpful, patient, knowledgeable, and truly a pleasure to work with.\n\nIt took a couple of weeks to receive the final rings, but it was absolutely worth the wait. The craftsmanship was beautiful, the pricing was unbeatable, and the whole experience felt personal and well cared for. My wife also purchased my wedding band there, so Valliani became a special part of our story. Highly recommended.",
+          "relativeTime": "3 months ago",
+          "time": 1775675747.746,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIFclTSC-5wE7zsma6_2ZJkL-ku8c6wuhrSRMRNXVieYSBaS_s=s128-c0x00000000-cc-rp-mo-ba3",
+          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:05.678Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:34.851Z"
     },
     {
       "id": "fashion-fair-mall",
@@ -1041,7 +1041,7 @@
       "geocodedAddress": "619 E Shaw Ave space f08, Fresno, CA 93710, USA",
       "googlePlaceId": "ChIJ380RxQldlIARfsrh78p8MHo",
       "googleRating": 4.9,
-      "googleReviewCount": 1520,
+      "googleReviewCount": 1519,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=8804674482559109758&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
@@ -1054,12 +1054,12 @@
           "language": "en"
         },
         {
-          "authorName": "Kc Couch",
+          "authorName": "Carolina Echevarria",
           "rating": 5,
-          "text": "Natalie was SO helpful in picking out my wedding band. Out of all of the places I looked, her kind and personable demeanor was by far the best I have experienced. She helped me pick out a band that complimented my engagement ring perfectly as well as assisted me with correct sizing. I would highly reccomend seeing her at Valliani!",
-          "relativeTime": "5 months ago",
-          "time": 1768080877.43,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocK8-Qph1mkncGjsfauUSfovpt99C820Ch5oy14Z29ZC95pwog=s128-c0x00000000-cc-rp-mo",
+          "text": "It’s always a pleasant experience shopping at Valliani. Jason and Shubhi are amazing!!!! Ask for either one of them. Great deals excellent customer service.",
+          "relativeTime": "a month ago",
+          "time": 1779660341.841,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIgL8Gq5ot9HF9OLogsY80daQMuNsJk0F4mzlrmQY8TDotjEOYY=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -1072,15 +1072,6 @@
           "language": "en"
         },
         {
-          "authorName": "Carolina Echevarria",
-          "rating": 5,
-          "text": "It’s always a pleasant experience shopping at Valliani. Jason and Shubhi are amazing!!!! Ask for either one of them. Great deals excellent customer service.",
-          "relativeTime": "a month ago",
-          "time": 1779660341.841,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIgL8Gq5ot9HF9OLogsY80daQMuNsJk0F4mzlrmQY8TDotjEOYY=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
           "authorName": "Seng Yang",
           "rating": 5,
           "text": "Natalie was absolutely wonderful to work with during our engagement ring shopping experience. She was incredibly helpful, communicative, and considerate of our preferences throughout the entire process. What we appreciated most was how willing she was to work within our budget while still helping us find something beautiful and meaningful. She made the experience feel comfortable and stress-free, and we never felt pressured at any point. If you’re looking for engagement rings, I highly recommend asking for Natalie. She truly goes above and beyond for her clients!",
@@ -1088,9 +1079,18 @@
           "time": 1778999743.927,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLUAuRpIK_9sgcqcbDbOQg82xhAFlhRfqSvTtNzwXYhmmikQQ=s128-c0x00000000-cc-rp-mo",
           "language": "en"
+        },
+        {
+          "authorName": "Kc Couch",
+          "rating": 5,
+          "text": "Natalie was SO helpful in picking out my wedding band. Out of all of the places I looked, her kind and personable demeanor was by far the best I have experienced. She helped me pick out a band that complimented my engagement ring perfectly as well as assisted me with correct sizing. I would highly reccomend seeing her at Valliani!",
+          "relativeTime": "6 months ago",
+          "time": 1768080877.43,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocK8-Qph1mkncGjsfauUSfovpt99C820Ch5oy14Z29ZC95pwog=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:06.769Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:35.334Z"
     },
     {
       "id": "westfield-valley-fair",
@@ -1197,16 +1197,25 @@
       "geocodedAddress": "2855 Stevens Creek Blvd #2561, Santa Clara, CA 95050, USA",
       "googlePlaceId": "ChIJaRwEWB7Lj4ARr8Q8n01waVE",
       "googleRating": 4.9,
-      "googleReviewCount": 788,
+      "googleReviewCount": 791,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=5866343468313134255&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "John Leviticus Ramirez",
+          "authorName": "April Cano",
           "rating": 5,
-          "text": "Absolutely blown away by the experience at Valanni Jewelers. From the moment I walked in, the level of care, professionalism, and genuine hospitality was unmatched.\n\nAurelia Silva is an absolute rockstar. She worked her magic and put together a deal that I genuinely could not walk away from. The transparency, patience, and effort she put into making sure everything was perfect did not go unnoticed.\n\nAnd Mohammed… next level. This man went above and beyond in every sense of the word. He made it his mission to locate the exact cross pendant I had in mind and made the entire process feel effortless. You can tell he truly cares about his clients and takes pride in delivering the best possible experience.\n\nThis is what 5 star service is supposed to look like. Not just a transaction, but a relationship. I’ll always be a Valanni customer after this. Highly recommend to anyone looking for quality, trust, and a team that really delivers.",
+          "text": "Huge thank you to Lynette, Zoya, and Zarifa for the amazing service! They were friendly, efficient, and genuinely cared about helping us find the right wedding band for my fiancée at a great price. Really appreciated how well they worked as a team.",
+          "relativeTime": "3 weeks ago",
+          "time": 1781848263.339,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVCm5TE8h6EqlN5St6oknFHf-V4C-0ZFBAq6A-EkGq97dG3jKcrAg=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Sara Carini",
+          "rating": 5,
+          "text": "I was so excited to find Valliani at Valley Fair! My husband and I had a great experience buying my engagement ring at the NewPark location years ago.  I'd been looking for a new ring and not only did Z remember me from our last experience, but she expertly & quickly helped me find the perfect ring. She's a joy, I trust her implicitly, and I will always seek her out to help me. Valliani quality is awesome and Z's client experience is legendary! 10/10 recommended",
           "relativeTime": "2 months ago",
-          "time": 1776138388.02,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocK67mLaVNaGKXrghgTt3lvRm-qc0G8CyBhimteEiTcqQE_Sf4c=s128-c0x00000000-cc-rp-mo",
+          "time": 1776546055.025,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjX3PBb7OcckSD7Uvm9B1IQPYn5C2IvW1d_rcQW0uQ9UFoScBuXZ6w=s128-c0x00000000-cc-rp-mo-ba2",
           "language": "en"
         },
         {
@@ -1219,12 +1228,12 @@
           "language": "en"
         },
         {
-          "authorName": "April Cano",
+          "authorName": "John Leviticus Ramirez",
           "rating": 5,
-          "text": "Huge thank you to Lynette, Zoya, and Zarifa for the amazing service! They were friendly, efficient, and genuinely cared about helping us find the right wedding band for my fiancée at a great price. Really appreciated how well they worked as a team.",
-          "relativeTime": "2 weeks ago",
-          "time": 1781848263.339,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVCm5TE8h6EqlN5St6oknFHf-V4C-0ZFBAq6A-EkGq97dG3jKcrAg=s128-c0x00000000-cc-rp-mo",
+          "text": "Absolutely blown away by the experience at Valanni Jewelers. From the moment I walked in, the level of care, professionalism, and genuine hospitality was unmatched.\n\nAurelia Silva is an absolute rockstar. She worked her magic and put together a deal that I genuinely could not walk away from. The transparency, patience, and effort she put into making sure everything was perfect did not go unnoticed.\n\nAnd Mohammed… next level. This man went above and beyond in every sense of the word. He made it his mission to locate the exact cross pendant I had in mind and made the entire process feel effortless. You can tell he truly cares about his clients and takes pride in delivering the best possible experience.\n\nThis is what 5 star service is supposed to look like. Not just a transaction, but a relationship. I’ll always be a Valanni customer after this. Highly recommend to anyone looking for quality, trust, and a team that really delivers.",
+          "relativeTime": "3 months ago",
+          "time": 1776138388.02,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocK67mLaVNaGKXrghgTt3lvRm-qc0G8CyBhimteEiTcqQE_Sf4c=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -1235,18 +1244,9 @@
           "time": 1767499837.911,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLO4PD1kwV-cG_hFMcL-t9afbWPf4rp5FQfiryesMCpJ0fMSQ=s128-c0x00000000-cc-rp-mo",
           "language": "en"
-        },
-        {
-          "authorName": "Sara Carini",
-          "rating": 5,
-          "text": "I was so excited to find Valliani at Valley Fair! My husband and I had a great experience buying my engagement ring at the NewPark location years ago.  I'd been looking for a new ring and not only did Z remember me from our last experience, but she expertly & quickly helped me find the perfect ring. She's a joy, I trust her implicitly, and I will always seek her out to help me. Valliani quality is awesome and Z's client experience is legendary! 10/10 recommended",
-          "relativeTime": "2 months ago",
-          "time": 1776546055.025,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjX3PBb7OcckSD7Uvm9B1IQPYn5C2IvW1d_rcQW0uQ9UFoScBuXZ6w=s128-c0x00000000-cc-rp-mo-ba2",
-          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:07.236Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:35.815Z"
     },
     {
       "id": "westfield-oakridge",
@@ -1357,30 +1357,21 @@
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=9652260380366891774&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
+          "authorName": "Lani",
+          "rating": 5,
+          "text": "I WAS IN THE MALL WALKING AROUND, AND I PASSED BY VALLIANI JEWELERS, AND THIS LADY NAMED MARINA APPROACHED ME AND INVITED ME IN-SAID,FOLLOW ME AND I WANT TO SHOW YOU SOMETHING. AND GUESS WHAT, I LOVE RING THAT SHE SHOWED ME AND I AVAIL IT. I DIDN'T PLAN TO BUY AT ALL BUT ITS A BLESSING IN DISGUISE,  ITS AN EARLY BIRTHDAY GIFT FOR MYSELF.  THANK YOU AGAIN MARINA GRAYBEAL, ALL I COULD SAY IS THAT- YOU ARE GOOD OF WHAT YOU DO. ILL COME AND SEE YOU AGAIN SOON.",
+          "relativeTime": "4 weeks ago",
+          "time": 1781484436.008,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKh4QBh1KMzEkF3riX75QqyVdrZDC1LP-Ev6FE_eA8DjvPSUQ=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
           "authorName": "Dorothy Cordero",
           "rating": 5,
           "text": "I loved the wonderful experience of purchasing my PENDANT and RING at Valliani Jewelers in Westfield Oakridge. The service was excellent, and MARINA made the entire process feel special and memorable. I had been stopping by for two years looking for a particular pendant and always left empty-handed. Today, MARINA went above and beyond — she took the time to thoroughly search for it, and she found exactly what I had been looking for.\n\nMARINA was incredibly patient, answering all my questions one by one with care and professionalism. Her dedication, kindness, and expertise made this experience truly exceptional. Thank you, MARINA, for making my long search finally come to an end. I’m so happy with my pendant and ring and highly recommend Valliani Jewelers for outstanding service!",
           "relativeTime": "a month ago",
           "time": 1779032495.164,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXo0rcoHVMuWa0wllldYFUS5G1njMD_9Z_g0GPbUA9t2ffdi5g=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Veronica Hensley",
-          "rating": 5,
-          "text": "I had a wonderful experience with Valliani Jewelers at Oakridge. My husband purchased my new ring here and I couldn’t be happier! The quality of the jewelry is beautiful, and the customer service was exceptional from start to finish. They took the time to answer all our questions, were patient, honest, and made sure we felt confident in our purchase.\n\nWhat really stood out was how friendly and genuine everyone was — no pressure, just guidance and knowledge. The ring is stunning and I’ve received so many compliments already. We will definitely be returning for future jewelry needs. Highly recommended!",
-          "relativeTime": "7 months ago",
-          "time": 1765258392.552,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJSkQjuWLp1Zl5br-4tZQRcf7JRX1ZaRGmw-7Y7lw5uwfhHdQ=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Lani",
-          "rating": 5,
-          "text": "I WAS IN THE MALL WALKING AROUND, AND I PASSED BY VALLIANI JEWELERS, AND THIS LADY NAMED MARINA APPROACHED ME AND INVITED ME IN-SAID,FOLLOW ME AND I WANT TO SHOW YOU SOMETHING. AND GUESS WHAT, I LOVE RING THAT SHE SHOWED ME AND I AVAIL IT. I DIDN'T PLAN TO BUY AT ALL BUT ITS A BLESSING IN DISGUISE,  ITS AN EARLY BIRTHDAY GIFT FOR MYSELF.  THANK YOU AGAIN MARINA GRAYBEAL, ALL I COULD SAY IS THAT- YOU ARE GOOD OF WHAT YOU DO. ILL COME AND SEE YOU AGAIN SOON.",
-          "relativeTime": "3 weeks ago",
-          "time": 1781484436.008,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKh4QBh1KMzEkF3riX75QqyVdrZDC1LP-Ev6FE_eA8DjvPSUQ=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -1393,6 +1384,15 @@
           "language": "en"
         },
         {
+          "authorName": "Veronica Hensley",
+          "rating": 5,
+          "text": "I had a wonderful experience with Valliani Jewelers at Oakridge. My husband purchased my new ring here and I couldn’t be happier! The quality of the jewelry is beautiful, and the customer service was exceptional from start to finish. They took the time to answer all our questions, were patient, honest, and made sure we felt confident in our purchase.\n\nWhat really stood out was how friendly and genuine everyone was — no pressure, just guidance and knowledge. The ring is stunning and I’ve received so many compliments already. We will definitely be returning for future jewelry needs. Highly recommended!",
+          "relativeTime": "7 months ago",
+          "time": 1765258392.552,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJSkQjuWLp1Zl5br-4tZQRcf7JRX1ZaRGmw-7Y7lw5uwfhHdQ=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
           "authorName": "Satya Peri",
           "rating": 5,
           "text": "My wife and I visited the store at Oakridge Mall to shop for a birthday gift for our daughter. We selected a simple but elegant single pearl necklace. Very satisfied with the customer representative for showing various options. We were given a clear description of the product, a very reasonable price offer and terms for exchange if needed. Hank you Mr. Fahd.\nP.S. - waited to receive a feedback on our daughter’s reaction before posting this review. Extremely Happy 🙏🙏🙏",
@@ -1402,7 +1402,7 @@
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:08.340Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:36.281Z"
     },
     {
       "id": "valley-plaza",
@@ -1506,16 +1506,16 @@
       "geocodedAddress": "2701 Ming Ave #181, Bakersfield, CA 93304, USA",
       "googlePlaceId": "ChIJ8ZJwmTVr6oARu98lgjBA9_c",
       "googleRating": 5,
-      "googleReviewCount": 704,
+      "googleReviewCount": 706,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=17867820623701860283&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "Marc Tafoya",
+          "authorName": "Jason Vargas",
           "rating": 5,
-          "text": "Came in only to look at watches and I ended up walking out with a Rolex. Sher was very respectful, offer great customer service, and was willing to make a great deal. He took the time to answer all my questions and even provided box and papers. Would highly recommend. Thank you once again Sher!",
-          "relativeTime": "9 months ago",
-          "time": 1757894938.593,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKT1_IyTTO8Eh2xhGYMp533uKcVV3IzDsYQyaqudJdEumu2yw=s128-c0x00000000-cc-rp-mo",
+          "text": "Valliani  Jewelers was an excellent experience for myself.  Every employee demonstrated exceptional customer service. As a first time jewelry buyer I was walked through the steps which enabled me to make a purchase easily and smoothly.  Will be returning again.",
+          "relativeTime": "4 months ago",
+          "time": 1771423059.993,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUHcZABdC6Wa6tdoSmYucHNrBhkJ5tF-RbqRmr-EK61EB1_81hD=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -1537,15 +1537,6 @@
           "language": "en"
         },
         {
-          "authorName": "Jason Vargas",
-          "rating": 5,
-          "text": "Valliani  Jewelers was an excellent experience for myself.  Every employee demonstrated exceptional customer service. As a first time jewelry buyer I was walked through the steps which enabled me to make a purchase easily and smoothly.  Will be returning again.",
-          "relativeTime": "4 months ago",
-          "time": 1771423059.993,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUHcZABdC6Wa6tdoSmYucHNrBhkJ5tF-RbqRmr-EK61EB1_81hD=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
           "authorName": "guri kang",
           "rating": 5,
           "text": "Best service in the mall thank you soo much Sher he gave us the best deal in the mall i highly recomend Valliani jewelers And ask for Sher and thanks for gift",
@@ -1553,9 +1544,18 @@
           "time": 1760236031.668,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXYWlNoh-Go0fIKpInBYG97ns_u4X2nOKbEopuTlRFnjASPf1gX=s128-c0x00000000-cc-rp-mo-ba2",
           "language": "en"
+        },
+        {
+          "authorName": "Marc Tafoya",
+          "rating": 5,
+          "text": "Came in only to look at watches and I ended up walking out with a Rolex. Sher was very respectful, offer great customer service, and was willing to make a great deal. He took the time to answer all my questions and even provided box and papers. Would highly recommend. Thank you once again Sher!",
+          "relativeTime": "10 months ago",
+          "time": 1757894938.593,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKT1_IyTTO8Eh2xhGYMp533uKcVV3IzDsYQyaqudJdEumu2yw=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:09.397Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:36.749Z"
     },
     {
       "id": "san-francisco-premium-outlets",
@@ -1662,25 +1662,16 @@
       "geocodedAddress": "3642 Livermore Outlets Dr, Livermore, CA 94551, USA",
       "googlePlaceId": "ChIJnWwwRd7pj4ARt00WEL1PxiE",
       "googleRating": 4.9,
-      "googleReviewCount": 508,
+      "googleReviewCount": 511,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=2433720322077642167&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "Michael Angelo Rabuco",
+          "authorName": "Alyssa Kamille",
           "rating": 5,
-          "text": "I had such a great experience working with Jhobelyn at the jewelry store. From the moment I walked in, she was welcoming, attentive, and genuinely interested in helping me find exactly what I was looking for. I had a specific chain in mind, and she went above and beyond to guide me through the options, explain the details, and make sure I was confident in my choice.\nshe made the whole process feel easy and enjoyable. Thanks to her expertise, I left with the perfect chain that matched my style Jhobelyn truly made the shopping experience memorable, and I’d highly recommend asking for her if you’re looking for jewelry with great customer service. 👍",
-          "relativeTime": "7 months ago",
-          "time": 1764706132.584,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLN72_CBGEQawRqHnITx9Yi3_nQCdAIX6dQ2UeGZqKXAQLepW7a=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Pallavi RaS",
-          "rating": 5,
-          "text": "I had such an amazing experience working with Sean and Diana! From the very beginning, they were incredibly patient, knowledgeable, and genuinely invested in helping me find the perfect diamond. They took the time to explain everything clearly, never made me feel rushed, and made the entire process feel special and exciting.\n\nWhat truly meant the most to me was how deeply they understood the sentimental side of this purchase. My grandmother (RIP) had come to another branch of this store before, and that connection was really important to me. Sean and Diana honored that in such a thoughtful and respectful way, which made the experience feel even more meaningful and personal.\n\nThey really listened to what I wanted and guided me toward something that felt so me. The final ring is absolutely stunning…honestly better than I could have imagined. I still catch myself staring at it all the time!\n\nIf you’re looking for a team that truly cares and goes above and beyond, I can’t recommend Sean and Diana enough. Thank you both for making this such a memorable and heartfelt experience.",
-          "relativeTime": "2 months ago",
-          "time": 1777082956.414,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVue7ezUdQNUomOlp6-WZFZfN2ZJWy_4mzetsnTBdt7D_N96x_WYg=s128-c0x00000000-cc-rp-mo",
+          "text": "We had such a great experience shopping for jewelry with Emily! She was incredibly friendly, patient, and helpful throughout the entire process. She made us feel comfortable and never pressured, and she gave us such amazing discounts on the pieces we bought. You can really tell she cares about her customers and wants them to leave happy. We absolutely love our jewelry and will definitely be coming back. Thank you again, Emily!",
+          "relativeTime": "a month ago",
+          "time": 1780782699.756,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVw6qoewvIuvTuSluQV5G_uX1PF4CEo-5HOL8VP5kKohHSk3bVs=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -1693,12 +1684,12 @@
           "language": "en"
         },
         {
-          "authorName": "Alyssa Kamille",
+          "authorName": "Pallavi RaS",
           "rating": 5,
-          "text": "We had such a great experience shopping for jewelry with Emily! She was incredibly friendly, patient, and helpful throughout the entire process. She made us feel comfortable and never pressured, and she gave us such amazing discounts on the pieces we bought. You can really tell she cares about her customers and wants them to leave happy. We absolutely love our jewelry and will definitely be coming back. Thank you again, Emily!",
-          "relativeTime": "a month ago",
-          "time": 1780782699.756,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVw6qoewvIuvTuSluQV5G_uX1PF4CEo-5HOL8VP5kKohHSk3bVs=s128-c0x00000000-cc-rp-mo",
+          "text": "I had such an amazing experience working with Sean and Diana! From the very beginning, they were incredibly patient, knowledgeable, and genuinely invested in helping me find the perfect diamond. They took the time to explain everything clearly, never made me feel rushed, and made the entire process feel special and exciting.\n\nWhat truly meant the most to me was how deeply they understood the sentimental side of this purchase. My grandmother (RIP) had come to another branch of this store before, and that connection was really important to me. Sean and Diana honored that in such a thoughtful and respectful way, which made the experience feel even more meaningful and personal.\n\nThey really listened to what I wanted and guided me toward something that felt so me. The final ring is absolutely stunning…honestly better than I could have imagined. I still catch myself staring at it all the time!\n\nIf you’re looking for a team that truly cares and goes above and beyond, I can’t recommend Sean and Diana enough. Thank you both for making this such a memorable and heartfelt experience.",
+          "relativeTime": "2 months ago",
+          "time": 1777082956.414,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVue7ezUdQNUomOlp6-WZFZfN2ZJWy_4mzetsnTBdt7D_N96x_WYg=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -1709,9 +1700,18 @@
           "time": 1772294067.204,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocK5c-OGlZ30UsgAkyulrKZ92iq6PSeY_fEVW3LQr8xdg2358w=s128-c0x00000000-cc-rp-mo",
           "language": "en"
+        },
+        {
+          "authorName": "Michael Angelo Rabuco",
+          "rating": 5,
+          "text": "I had such a great experience working with Jhobelyn at the jewelry store. From the moment I walked in, she was welcoming, attentive, and genuinely interested in helping me find exactly what I was looking for. I had a specific chain in mind, and she went above and beyond to guide me through the options, explain the details, and make sure I was confident in my choice.\nshe made the whole process feel easy and enjoyable. Thanks to her expertise, I left with the perfect chain that matched my style Jhobelyn truly made the shopping experience memorable, and I’d highly recommend asking for her if you’re looking for jewelry with great customer service. 👍",
+          "relativeTime": "7 months ago",
+          "time": 1764706132.584,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLN72_CBGEQawRqHnITx9Yi3_nQCdAIX6dQ2UeGZqKXAQLepW7a=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:09.861Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:37.231Z"
     },
     {
       "id": "inland-center",
@@ -1815,25 +1815,16 @@
       "geocodedAddress": "500 Inland Center Dr #426, San Bernardino, CA 92408, USA",
       "googlePlaceId": "ChIJff8M4Bet3IARhFlRZkB-_GI",
       "googleRating": 4.9,
-      "googleReviewCount": 1082,
+      "googleReviewCount": 1084,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=7132714724907637124&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "Yvette Martinez",
-          "rating": 3,
-          "text": "I wasn't sure what I was looking for at the time I entered the store. The lovely young counter woman invited me in and made me feel right at home. She was very attentive , respectful, and helpful. She took time to give me her onsite on the jewelry in my budget range. And went out of her way to get me an even better discount on my purchased item.\nI would MAYBEY be a return customer as long as the nice lady is helping me with my purchase.",
-          "relativeTime": "4 months ago",
-          "time": 1773106760.639,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLAoBuF26SH35ppPEWxz6GXRol73bs7xq9LX9Xlgq997HlWZQ=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "April Ayon",
-          "rating": 1,
-          "text": "If I could give 0 stars I would. This ring was purchased on October 5 and was not received until the last week of October. From the beginning, the experience with this jewelry store was frustrating. I was repeatedly told the ring would be ready in one week, then two weeks, and eventually three weeks, with no clear communication or consistency.\n\nI received the ring in November and have only worn it for one month. Despite minimal wear, a diamond has already fallen out. I took the ring to a different jeweler in hopes of having it repaired, but they refused to work on it due to the poor craftsmanship.\n\nThe jeweler explained that whoever made this ring attempted to create the hidden halo by repeatedly adding more gold instead of properly ordering or designing one. This caused structural issues, including chipped prongs from multiple attempts at fixing the ring. According to them, the added gold failed to properly secure the hidden halo diamonds, which is why one has already fallen out. Their concern was that if this continues, more diamonds will follow.\n\nFrom the moment I first saw the ring, I noticed issues. The ring looks uneven, the hidden halo is visibly uneven, and even the center diamond is not set straight. The quality of workmanship is extremely disappointing, especially for such an important and expensive piece.\n\nI will be providing photos to show the condition of the ring and the poor work done by this jeweler. This has been a very upsetting experience, and I would not recommend this store.",
-          "relativeTime": "6 months ago",
-          "time": 1766100989.422,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIYsQhfAsVskTqojGOD2VyNTSO-3tRwX7YrzbJpa533dN2_VQ8T=s128-c0x00000000-cc-rp-mo",
+          "authorName": "Osman Lopez",
+          "rating": 5,
+          "text": "I recommend this jewelry store without hesitation! They have a beautiful selection, and the quality is impressive. What I liked most is that the prices are super fair and affordable compared to other places. The staff is very friendly and helps you find exactly what you're looking for—without any pressure! I recommend these guys. Shila, Oman r and ADI. Thank you ✨",
+          "relativeTime": "a month ago",
+          "time": 1779560815.297,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWUVpyeeAfzjfAQz6yVNaKDVLHhfZtTa4LdRPlYfYOzZoF9kZQW=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -1855,16 +1846,25 @@
           "language": "en"
         },
         {
-          "authorName": "Osman Lopez",
-          "rating": 5,
-          "text": "I recommend this jewelry store without hesitation! They have a beautiful selection, and the quality is impressive. What I liked most is that the prices are super fair and affordable compared to other places. The staff is very friendly and helps you find exactly what you're looking for—without any pressure! I recommend these guys. Shila, Oman r and ADI. Thank you ✨",
-          "relativeTime": "a month ago",
-          "time": 1779560815.297,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWUVpyeeAfzjfAQz6yVNaKDVLHhfZtTa4LdRPlYfYOzZoF9kZQW=s128-c0x00000000-cc-rp-mo",
+          "authorName": "Yvette Martinez",
+          "rating": 3,
+          "text": "I wasn't sure what I was looking for at the time I entered the store. The lovely young counter woman invited me in and made me feel right at home. She was very attentive , respectful, and helpful. She took time to give me her onsite on the jewelry in my budget range. And went out of her way to get me an even better discount on my purchased item.\nI would MAYBEY be a return customer as long as the nice lady is helping me with my purchase.",
+          "relativeTime": "4 months ago",
+          "time": 1773106760.639,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLAoBuF26SH35ppPEWxz6GXRol73bs7xq9LX9Xlgq997HlWZQ=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "April Ayon",
+          "rating": 1,
+          "text": "If I could give 0 stars I would. This ring was purchased on October 5 and was not received until the last week of October. From the beginning, the experience with this jewelry store was frustrating. I was repeatedly told the ring would be ready in one week, then two weeks, and eventually three weeks, with no clear communication or consistency.\n\nI received the ring in November and have only worn it for one month. Despite minimal wear, a diamond has already fallen out. I took the ring to a different jeweler in hopes of having it repaired, but they refused to work on it due to the poor craftsmanship.\n\nThe jeweler explained that whoever made this ring attempted to create the hidden halo by repeatedly adding more gold instead of properly ordering or designing one. This caused structural issues, including chipped prongs from multiple attempts at fixing the ring. According to them, the added gold failed to properly secure the hidden halo diamonds, which is why one has already fallen out. Their concern was that if this continues, more diamonds will follow.\n\nFrom the moment I first saw the ring, I noticed issues. The ring looks uneven, the hidden halo is visibly uneven, and even the center diamond is not set straight. The quality of workmanship is extremely disappointing, especially for such an important and expensive piece.\n\nI will be providing photos to show the condition of the ring and the poor work done by this jeweler. This has been a very upsetting experience, and I would not recommend this store.",
+          "relativeTime": "6 months ago",
+          "time": 1766100989.422,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIYsQhfAsVskTqojGOD2VyNTSO-3tRwX7YrzbJpa533dN2_VQ8T=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:10.922Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:37.745Z"
     },
     {
       "id": "arden-fair",
@@ -1968,7 +1968,7 @@
       "geocodedAddress": "1689 Arden Wy #1046, Sacramento, CA 95815, USA",
       "googlePlaceId": "ChIJM1CpwjPbmoARulhU90_0Gic",
       "googleRating": 5,
-      "googleReviewCount": 1032,
+      "googleReviewCount": 1038,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=2817833141162760378&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
@@ -1978,24 +1978,6 @@
           "relativeTime": "2 months ago",
           "time": 1778181056.129,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUq1_GUdWpDR6GQfOlJba90WIPG0jHcaoZhB3CejEJoQBFmr44=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Barney P. Yannacone",
-          "rating": 5,
-          "text": "Well, here I am again, which says everything about Valliani Jewelers. I made friends and they took care of me as such especially during my selection of my girl’s engagement ring. I already had chosen two to select from, when another wedding set caught the corner of my eye. That was it!!  THE ONE RING! The others had halos around them. This did not. It was a center stone piece propped by delicately diamond-decorated prongs holding it up. The stone was absolutely brilliant just like my future wife. She’s my rock and she deserves to be seen with one as beautiful as this. It definitely says, “She’s mine!”.\n\nI took her to my hometown of San Francisco and proposed to her at my favorite childhood memory, Fort Point, underneath the Golden Gate Bridge. She said yes of course. When you find your soulmate, you want to spend the rest of your life with her. I am the most blessed man in this universe.\n\nI highly recommend asking for Yama as he truly epitomizes customer service. I highly recommend Valliani Jewelers for all your diamond needs especially the engagement rings.",
-          "relativeTime": "6 months ago",
-          "time": 1765990930.236,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXoHuAEXmNr3NCOpy6FJtYu71-l84vgu_gAmLoRWK8M9UPhYmnS=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Ada Mirna Gutiérrez",
-          "rating": 5,
-          "text": "I’m greatly satisfied by the excellent service that Lady Diana gave my sister & I on Saturday evening while shopping for\nblack Friday. Her outstanding service provided us a remarkable shopping experience.  I bought something special, like the chain for a pendant that I have had stored for so many years. Then I decided to also buy a matching sterling silver bracelet. Thanks Lady Diana for the outstanding service you gave my sister and  me!!",
-          "relativeTime": "7 months ago",
-          "time": 1764611703.132,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVvO7XpG3cRZ2Wz5a6TiUhdGZV4SaTmyQhuxY9VB249ZxjxXbyb=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -2015,9 +1997,27 @@
           "time": 1771871236.611,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVphDJNRUn0kUwtRubugbm9n2mhFT7bKJx45SdbJHAB-mbWW0A=s128-c0x00000000-cc-rp-mo",
           "language": "en"
+        },
+        {
+          "authorName": "Barney P. Yannacone",
+          "rating": 5,
+          "text": "Well, here I am again, which says everything about Valliani Jewelers. I made friends and they took care of me as such especially during my selection of my girl’s engagement ring. I already had chosen two to select from, when another wedding set caught the corner of my eye. That was it!!  THE ONE RING! The others had halos around them. This did not. It was a center stone piece propped by delicately diamond-decorated prongs holding it up. The stone was absolutely brilliant just like my future wife. She’s my rock and she deserves to be seen with one as beautiful as this. It definitely says, “She’s mine!”.\n\nI took her to my hometown of San Francisco and proposed to her at my favorite childhood memory, Fort Point, underneath the Golden Gate Bridge. She said yes of course. When you find your soulmate, you want to spend the rest of your life with her. I am the most blessed man in this universe.\n\nI highly recommend asking for Yama as he truly epitomizes customer service. I highly recommend Valliani Jewelers for all your diamond needs especially the engagement rings.",
+          "relativeTime": "6 months ago",
+          "time": 1765990930.236,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXoHuAEXmNr3NCOpy6FJtYu71-l84vgu_gAmLoRWK8M9UPhYmnS=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Ada Mirna Gutiérrez",
+          "rating": 5,
+          "text": "I’m greatly satisfied by the excellent service that Lady Diana gave my sister & I on Saturday evening while shopping for\nblack Friday. Her outstanding service provided us a remarkable shopping experience.  I bought something special, like the chain for a pendant that I have had stored for so many years. Then I decided to also buy a matching sterling silver bracelet. Thanks Lady Diana for the outstanding service you gave my sister and  me!!",
+          "relativeTime": "7 months ago",
+          "time": 1764611703.132,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVvO7XpG3cRZ2Wz5a6TiUhdGZV4SaTmyQhuxY9VB249ZxjxXbyb=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:11.997Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:38.227Z"
     },
     {
       "id": "westfield-culver-city",
@@ -2121,7 +2121,7 @@
       "geocodedAddress": "6000 Sepulveda Blvd #2501, Culver City, CA 90230, USA",
       "googlePlaceId": "ChIJf_7mjD-xwoARW2doN1BhgR8",
       "googleRating": 4.9,
-      "googleReviewCount": 793,
+      "googleReviewCount": 794,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=2270202684326307675&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
@@ -2143,21 +2143,21 @@
           "language": "en"
         },
         {
-          "authorName": "Coltyn Sadler",
-          "rating": 5,
-          "text": "Antonia, Alexandra, and MT, were wonderful! They helped me out with resizing my watch made sure I was taken care! They went out of their way to set me up and make sure I was happy before leaving. One thing I notice, from everyone who works here, they truly try to give you the best possible deal. Great experience every time I come in.",
-          "relativeTime": "a month ago",
-          "time": 1778532954.445,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXm-DH6aRx8wh1oLX1X4C3AostHndiWw87VxiSK2PhY-enIvWw=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
           "authorName": "David Nikiza Kirokiro",
           "rating": 5,
           "text": "This is by far the best jewelry place I’ve ever been to. I tried to fix my chain a couple weeks ago. Couldn’t really find the right place but when I brought it over here, they were able to do it at an amazing price. Steven  and Alexa took care of Us with no problem. Everything was smooth.",
-          "relativeTime": "a month ago",
+          "relativeTime": "2 months ago",
           "time": 1778638660.797,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjX0FXSJp1QCk-Ka785TTzPdRzmpb6Va3YpGy2yR94ACu-52yqU1=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Coltyn Sadler",
+          "rating": 5,
+          "text": "Antonia, Alexandra, and MT, were wonderful! They helped me out with resizing my watch made sure I was taken care! They went out of their way to set me up and make sure I was happy before leaving. One thing I notice, from everyone who works here, they truly try to give you the best possible deal. Great experience every time I come in.",
+          "relativeTime": "2 months ago",
+          "time": 1778532954.445,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXm-DH6aRx8wh1oLX1X4C3AostHndiWw87VxiSK2PhY-enIvWw=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -2170,7 +2170,7 @@
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:12.478Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:39.462Z"
     },
     {
       "id": "the-shops-at-santa-anita",
@@ -2277,36 +2277,9 @@
       "geocodedAddress": "400 S Baldwin Ave space t56, Arcadia, CA 91007, USA",
       "googlePlaceId": "ChIJaam63vHbwoARkyObmP7Vf1Y",
       "googleRating": 4.9,
-      "googleReviewCount": 447,
+      "googleReviewCount": 448,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=6232935698762769299&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
-        {
-          "authorName": "Frederic Cruz",
-          "rating": 5,
-          "text": "Jesse and Sunny were excellent . They were very professional and helped me find such wonderful gifts for my family. They loved the watch and the necklace that Jesse showed me at the store.\n\nReasonable prices and a great experience! Thank you both again.",
-          "relativeTime": "9 months ago",
-          "time": 1758424724.217,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIziLiOsnnMGdLauaAfVri7Y6_feB6Z0oWqhj2lc2AtR5YiC7I=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Optimus Bearus",
-          "rating": 5,
-          "text": "Highly recommend Jessie - super experienced, friendly with patience.  Walked us through different diamond types from lab grown to natural and the different gold and metals available.  He helped rush our order to make our date to Vegas!  Thanks Jessie!  We shopped around and definitely experienced seasoned jewelers here vs the national chains that have young inexperienced sales people. Best selection for gold and diamonds here.  10 stars!  Super friendly not pushy staff.",
-          "relativeTime": "8 months ago",
-          "time": 1760402819.185,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjU-i8t3SArVOZGgScoMNG-jJ46qZqJQp-S-Gv_k2zIzfeDtgZU=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Ribkah Lim",
-          "rating": 5,
-          "text": "I had no plan to purchase anything. I was just browsing around and came across this beauty. Lucy showed all their collection patiently, answered all my questions and gave me a really good price for a really beautiful ring. It was meant to be mine. Thank you so much Lucy. It is stunning and sparkling. You made my day.",
-          "relativeTime": "4 months ago",
-          "time": 1772335298.995,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKzVHT8graa-DCnyX4qCaAwBr7Q47FnGnUAy9pA_GTOY2RWwg=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
         {
           "authorName": "Rafael Lopez",
           "rating": 5,
@@ -2324,9 +2297,36 @@
           "time": 1774929793.922,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocId7jSstd6kGJjBQWnJCFylOzAB5aF0Eaj7Lvzq3RdmYyDjiQ=s128-c0x00000000-cc-rp-mo",
           "language": "en"
+        },
+        {
+          "authorName": "Ribkah Lim",
+          "rating": 5,
+          "text": "I had no plan to purchase anything. I was just browsing around and came across this beauty. Lucy showed all their collection patiently, answered all my questions and gave me a really good price for a really beautiful ring. It was meant to be mine. Thank you so much Lucy. It is stunning and sparkling. You made my day.",
+          "relativeTime": "4 months ago",
+          "time": 1772335298.995,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKzVHT8graa-DCnyX4qCaAwBr7Q47FnGnUAy9pA_GTOY2RWwg=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Optimus Bearus",
+          "rating": 5,
+          "text": "Highly recommend Jessie - super experienced, friendly with patience.  Walked us through different diamond types from lab grown to natural and the different gold and metals available.  He helped rush our order to make our date to Vegas!  Thanks Jessie!  We shopped around and definitely experienced seasoned jewelers here vs the national chains that have young inexperienced sales people. Best selection for gold and diamonds here.  10 stars!  Super friendly not pushy staff.",
+          "relativeTime": "9 months ago",
+          "time": 1760402819.185,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjU-i8t3SArVOZGgScoMNG-jJ46qZqJQp-S-Gv_k2zIzfeDtgZU=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Frederic Cruz",
+          "rating": 5,
+          "text": "Jesse and Sunny were excellent . They were very professional and helped me find such wonderful gifts for my family. They loved the watch and the necklace that Jesse showed me at the store.\n\nReasonable prices and a great experience! Thank you both again.",
+          "relativeTime": "9 months ago",
+          "time": 1758424724.217,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIziLiOsnnMGdLauaAfVri7Y6_feB6Z0oWqhj2lc2AtR5YiC7I=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:13.563Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:39.961Z"
     },
     {
       "id": "the-mall-of-victor-valley",
@@ -2432,9 +2432,18 @@
       "geocodedAddress": "14400 Bear Valley Rd #641, Victorville, CA 92392, USA",
       "googlePlaceId": "ChIJa8IrTS9nw4ARdZqN7PymEKM",
       "googleRating": 4.9,
-      "googleReviewCount": 961,
+      "googleReviewCount": 967,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=11750075033040296565&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
+        {
+          "authorName": "Gina Uribes",
+          "rating": 5,
+          "text": "Tim, Jamie, MK truly made my shopping easy. I bought these gorgeous diamond earrings they were very expensive and tim gave me amazing discount that I just couldn't refuse. I'm a happy camper. I will definitely be going bk to buy more jewelry. Thank you all for making my day 🥰",
+          "relativeTime": "3 weeks ago",
+          "time": 1782178461.454,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVk-fiYZfvw53EQrjblhM6-ygkHdqrx5Jxsf0u2ab5Mr0EdY0WU4g=s128-c0x00000000-cc-rp-mo-ba5",
+          "language": "en"
+        },
         {
           "authorName": "Layna Real",
           "rating": 5,
@@ -2442,6 +2451,15 @@
           "relativeTime": "3 weeks ago",
           "time": 1781715230.086,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLBLxlCpWclIZAcEEIVODdsWF96tccOfgmZKjiOKNlDQH9N1Q=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Tyli McCord",
+          "rating": 5,
+          "text": "Jami, MK, and Alex did a phenomenal job helping me find the perfect engagement ring for my fiancé. The diamond was high quality alongside the service they provided. Amazing job - highly recommend.",
+          "relativeTime": "a month ago",
+          "time": 1780785589.142,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWujqUe_Hb_yeweIcnqTWjaAhY9_13sQN278SpBChlhNs0xOvfC=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -2461,27 +2479,9 @@
           "time": 1777514249.513,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXAklo5_-XDoGfmGQYtxAWsMW-jgiixCdQNzNvi1cCBMmwujSxZ=s128-c0x00000000-cc-rp-mo",
           "language": "en"
-        },
-        {
-          "authorName": "Gina Uribes",
-          "rating": 5,
-          "text": "Tim, Jamie, MK truly made my shopping easy. I bought these gorgeous diamond earrings they were very expensive and tim gave me amazing discount that I just couldn't refuse. I'm a happy camper. I will definitely be going bk to buy more jewelry. Thank you all for making my day 🥰",
-          "relativeTime": "2 weeks ago",
-          "time": 1782178461.454,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVk-fiYZfvw53EQrjblhM6-ygkHdqrx5Jxsf0u2ab5Mr0EdY0WU4g=s128-c0x00000000-cc-rp-mo-ba5",
-          "language": "en"
-        },
-        {
-          "authorName": "Tyli McCord",
-          "rating": 5,
-          "text": "Jami, MK, and Alex did a phenomenal job helping me find the perfect engagement ring for my fiancé. The diamond was high quality alongside the service they provided. Amazing job - highly recommend.",
-          "relativeTime": "a month ago",
-          "time": 1780785589.142,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWujqUe_Hb_yeweIcnqTWjaAhY9_13sQN278SpBChlhNs0xOvfC=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:14.664Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:40.693Z"
     },
     {
       "id": "ontario-mills",
@@ -2589,19 +2589,10 @@
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=9639214822437350366&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "Sad Sayari",
-          "rating": 5,
-          "text": "I had an amazing shopping experience from beginning to end I bought a Rolex woth flexible payment apotion without interest.\nKeya and Rosela are the best in the jewel I’m gett industry !",
-          "relativeTime": "4 months ago",
-          "time": 1772247643.564,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLTfzpBpgaNCE7tLxilUB5_lbaNQsFrwLVLSy4FNoXxHfD2wA=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
           "authorName": "Gloria Salas",
           "rating": 5,
           "text": "Adnan and Sonia Did such an amazing job attending to our needs we walked in thinking we were just going to shop and compare pricing but how can you walk away from such an amazing deal and a beautiful ring thank you so much",
-          "relativeTime": "2 weeks ago",
+          "relativeTime": "3 weeks ago",
           "time": 1781992340.404,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjU0EeXcs46XCVG_aPvtw4HQQ3UfHZDFabrU4bmvcxRGY6U6sWXI=s128-c0x00000000-cc-rp-mo",
           "language": "en"
@@ -2616,6 +2607,24 @@
           "language": "en"
         },
         {
+          "authorName": "Sad Sayari",
+          "rating": 5,
+          "text": "I had an amazing shopping experience from beginning to end I bought a Rolex woth flexible payment apotion without interest.\nKeya and Rosela are the best in the jewel I’m gett industry !",
+          "relativeTime": "4 months ago",
+          "time": 1772247643.564,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLTfzpBpgaNCE7tLxilUB5_lbaNQsFrwLVLSy4FNoXxHfD2wA=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Raman Raman",
+          "rating": 5,
+          "text": "⭐️⭐️⭐️⭐️⭐️\nI recently purchased a Rolex from valliani Jewelers and my experience was excellent thanks Ridwan\nRidwan handle everything from Mr. to finish with great professionalism and care. He was very knowledgeable honest made the whole bank process easy and comfortable. His customer service truly stands out if you’re looking for someone who can trust red one is the best highly recommended.",
+          "relativeTime": "7 months ago",
+          "time": 1765755176.025,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKeGmAjo2JRMk3wgTiLBmSBH1H7Ag6Rafr_fClXoG3RXsAROw=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
           "authorName": "Monu Sharma",
           "rating": 5,
           "text": "Ridwan and keya  made my day.\nAmazing service and Great personality.\nRidwan is honestly best- he really knows his stuff and helped me pick the perfect one.\n\nI highly recommend Ridwan ❤️\n⭐️⭐️⭐️⭐️⭐️",
@@ -2623,18 +2632,9 @@
           "time": 1762822630.289,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJ-slLA12e7_veZWeJdRMvChO2MxLq-dfcGRp5yB_ox2FpThA=s128-c0x00000000-cc-rp-mo",
           "language": "en"
-        },
-        {
-          "authorName": "Raman Raman",
-          "rating": 5,
-          "text": "⭐️⭐️⭐️⭐️⭐️\nI recently purchased a Rolex from valliani Jewelers and my experience was excellent thanks Ridwan\nRidwan handle everything from Mr. to finish with great professionalism and care. He was very knowledgeable honest made the whole bank process easy and comfortable. His customer service truly stands out if you’re looking for someone who can trust red one is the best highly recommended.",
-          "relativeTime": "6 months ago",
-          "time": 1765755176.025,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKeGmAjo2JRMk3wgTiLBmSBH1H7Ag6Rafr_fClXoG3RXsAROw=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:15.783Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:41.206Z"
     },
     {
       "id": "westfield-plaza-bonita",
@@ -2741,25 +2741,16 @@
       "geocodedAddress": "3030 Plaza Bonita Rd Spc 1076, National City, CA 91950, USA",
       "googlePlaceId": "ChIJu_sf1j9R2YARVP57Aff6f7c",
       "googleRating": 5,
-      "googleReviewCount": 978,
+      "googleReviewCount": 980,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=13222562969771834964&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "isaiah rivera",
+          "authorName": "Patsy Contreras",
           "rating": 5,
-          "text": "I had an amazing experience at Valliani Jewelers! I came in to pick out an engagement ring for my future fiancée, and from the moment I walked in, I was greeted with a warm welcome from Liezel. They were both incredibly kind, patient, and knowledgeable — they helped me find the perfect ring and made the entire process stress-free and enjoyable. Their customer service truly went above and beyond. I highly recommend Valliani Jewelers to anyone looking for beautiful jewelry and a wonderful shopping experience!",
-          "relativeTime": "7 months ago",
-          "time": 1765071140.648,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL5bNsVWKX33izVSNQ3kPE1TMAFIMd__Ec9B_9P-JqpFDflUw=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Gladis Escobedo",
-          "rating": 5,
-          "text": "I highly recommend Vivian from Valliani Jewelry. Her service is truly exceptional—always kind, patient, and with an incredible eye for detail. From the very beginning, she perfectly understood what I was looking for and turned it into a beautiful, elegant, high-quality piece.\n\nShe also offered me the best price compared to all the jewelry stores in Plaza Bonita, which made the experience even better.\n\nYou can clearly see the passion and dedication she puts into her work, taking care of every detail to ensure the final result is perfect. The entire process was smooth, trustworthy, and with excellent communication throughout.\n\nWithout a doubt, it’s an experience absolutely worth it. If you’re looking for something special, unique, and crafted with care, Vivian is the best choice. ✨",
-          "relativeTime": "2 months ago",
-          "time": 1776720749.35,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjU6qnb0fj960MJRXsIbucvvkRoSrLfppVUXINo4J-4e-QgsSdsB=s128-c0x00000000-cc-rp-mo",
+          "text": "Liezl was great, very polite and patient! Explained everything in detail. I am very excited about my purchase, Mark assisted aswell. Great team, Thank you!",
+          "relativeTime": "a month ago",
+          "time": 1781321877.495,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJDE5nxDFFP1DaELaRT3U8rEFTMITzPeW-PsUtcDp6txM1s8g=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -2772,6 +2763,15 @@
           "language": "en"
         },
         {
+          "authorName": "Gladis Escobedo",
+          "rating": 5,
+          "text": "I highly recommend Vivian from Valliani Jewelry. Her service is truly exceptional—always kind, patient, and with an incredible eye for detail. From the very beginning, she perfectly understood what I was looking for and turned it into a beautiful, elegant, high-quality piece.\n\nShe also offered me the best price compared to all the jewelry stores in Plaza Bonita, which made the experience even better.\n\nYou can clearly see the passion and dedication she puts into her work, taking care of every detail to ensure the final result is perfect. The entire process was smooth, trustworthy, and with excellent communication throughout.\n\nWithout a doubt, it’s an experience absolutely worth it. If you’re looking for something special, unique, and crafted with care, Vivian is the best choice. ✨",
+          "relativeTime": "2 months ago",
+          "time": 1776720749.35,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjU6qnb0fj960MJRXsIbucvvkRoSrLfppVUXINo4J-4e-QgsSdsB=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
           "authorName": "Tuyet Le",
           "rating": 5,
           "text": "Syed and liezl are amazing persons. They gave me a great deal with my earings lab diamond. It's so sparkling and beautiful. Cannot beat the price. If you want a lab grown diamonds, come and see them. They have a bunch of styles earnings, rings, bracelets....",
@@ -2781,16 +2781,16 @@
           "language": "en"
         },
         {
-          "authorName": "Patsy Contreras",
+          "authorName": "isaiah rivera",
           "rating": 5,
-          "text": "Liezl was great, very polite and patient! Explained everything in detail. I am very excited about my purchase, Mark assisted aswell. Great team, Thank you!",
-          "relativeTime": "3 weeks ago",
-          "time": 1781321877.495,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJDE5nxDFFP1DaELaRT3U8rEFTMITzPeW-PsUtcDp6txM1s8g=s128-c0x00000000-cc-rp-mo",
+          "text": "I had an amazing experience at Valliani Jewelers! I came in to pick out an engagement ring for my future fiancée, and from the moment I walked in, I was greeted with a warm welcome from Liezel. They were both incredibly kind, patient, and knowledgeable — they helped me find the perfect ring and made the entire process stress-free and enjoyable. Their customer service truly went above and beyond. I highly recommend Valliani Jewelers to anyone looking for beautiful jewelry and a wonderful shopping experience!",
+          "relativeTime": "7 months ago",
+          "time": 1765071140.648,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL5bNsVWKX33izVSNQ3kPE1TMAFIMd__Ec9B_9P-JqpFDflUw=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:16.249Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:41.923Z"
     },
     {
       "id": "weberstown-mall",
@@ -2894,9 +2894,36 @@
       "geocodedAddress": "Game Stop, 4950 Pacific Ave #115, Stockton, CA 95207, USA",
       "googlePlaceId": "ChIJjfMjOlcMkIARy7Ca-cDXp8E",
       "googleRating": 4.9,
-      "googleReviewCount": 612,
+      "googleReviewCount": 613,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=13954359194252128459&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
+        {
+          "authorName": "xavii",
+          "rating": 5,
+          "text": "Cristina had wonderful service and took care of us very well. Thank you for the support and opportunity.",
+          "relativeTime": "a month ago",
+          "time": 1780363756.233,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXcuvJ0fgQrx-JcUTFz_2RXf8FHLetdNIpubYWMP6RX8w9SUNLn=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Pam Sahi",
+          "rating": 5,
+          "text": "Purchased a bracelet for my son from the store in Stockton. The staff was very helpful and friendly, they showed lots of options and were fair about the price. Great people, would definitely recommend!",
+          "relativeTime": "a month ago",
+          "time": 1779659086.05,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL29cLsK3Rqf8RE4t95synFyOnka-jlQR9Ti4-aruXZuzYY0w=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Gabriel McCreary",
+          "rating": 5,
+          "text": "Shammie was awesome! Very helpful and energetic. Super honest people and willing to work deals for you. She helped us nail down which Rolex we will be buying for my wife in the future. Kevin is awesome too! Longtime friend I’ve known him for about five years and love doing business with these guys!",
+          "relativeTime": "4 months ago",
+          "time": 1773002470.978,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocI5SWvdW6iXGtrSnYSQKgZKPFle7PToHzfsZJJa4SowMgHjVA=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
         {
           "authorName": "John Betita",
           "rating": 5,
@@ -2914,36 +2941,9 @@
           "time": 1764472076.215,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWN8BYB3SjaMa3lmLeDOVctKbMR4_z4zFf8mDdrESUArB_PXHM=s128-c0x00000000-cc-rp-mo",
           "language": "en"
-        },
-        {
-          "authorName": "xavii",
-          "rating": 5,
-          "text": "Cristina had wonderful service and took care of us very well. Thank you for the support and opportunity.",
-          "relativeTime": "a month ago",
-          "time": 1780363756.233,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXcuvJ0fgQrx-JcUTFz_2RXf8FHLetdNIpubYWMP6RX8w9SUNLn=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Gabriel McCreary",
-          "rating": 5,
-          "text": "Shammie was awesome! Very helpful and energetic. Super honest people and willing to work deals for you. She helped us nail down which Rolex we will be buying for my wife in the future. Kevin is awesome too! Longtime friend I’ve known him for about five years and love doing business with these guys!",
-          "relativeTime": "4 months ago",
-          "time": 1773002470.978,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocI5SWvdW6iXGtrSnYSQKgZKPFle7PToHzfsZJJa4SowMgHjVA=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Pam Sahi",
-          "rating": 5,
-          "text": "Purchased a bracelet for my son from the store in Stockton. The staff was very helpful and friendly, they showed lots of options and were fair about the price. Great people, would definitely recommend!",
-          "relativeTime": "a month ago",
-          "time": 1779659086.05,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL29cLsK3Rqf8RE4t95synFyOnka-jlQR9Ti4-aruXZuzYY0w=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:17.290Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:42.447Z"
     },
     {
       "id": "meadowood-mall",
@@ -3047,25 +3047,16 @@
       "geocodedAddress": "5000 Meadowood Mall Cir c 112, Reno, NV 89502, USA",
       "googlePlaceId": "ChIJNe3wNWI_mYARQAffahQeCUQ",
       "googleRating": 4.9,
-      "googleReviewCount": 822,
+      "googleReviewCount": 831,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=4902482742410676032&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
-          "authorName": "Cheyanne Renfro",
+          "authorName": "Brittany Murray",
           "rating": 5,
-          "text": "I had such an amazing experience at Valliani Jewelers! I came in to buy a bracelet and not only was the service wonderful, but the store manager Eindra went above and beyond to help us. She was warm, patient, and made the whole process feel effortless.\n\nShe also gave us a great deal, which we truly appreciated! It’s rare to find customer service that feels both professional and genuinely caring, but that’s exactly what we got here.\n\nIf you’re looking for beautiful jewelry and a team that actually takes care of you, Valliani Jewelers, especially Eindra, is the place to go. Highly recommend!",
-          "relativeTime": "7 months ago",
-          "time": 1764884588.908,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWnonThcOAHj9zX94__RAAKvRgc1ojPoT8FcrzanPieXAgspI6_=s128-c0x00000000-cc-rp-mo-ba2",
-          "language": "en"
-        },
-        {
-          "authorName": "Aeron Zentner",
-          "rating": 5,
-          "text": "I purchased an item from Valliani Jewelers in Reno and had a good, straightforward experience. The store was clean and well organized, with a solid selection of jewelry on display. The atmosphere felt professional and comfortable, which made it easy to browse without feeling rushed.\n\nThe staff was helpful and knowledgeable. They answered my questions clearly, explained different options, and gave me time to consider my purchase without pressure. I appreciated that they focused on being informative rather than trying to upsell. Pricing seemed reasonable for the type and quality of jewelry offered, especially compared to other local options.\n\nThe purchase process itself was smooth. The item was reviewed with me before finalizing the sale, and the staff explained basic care and maintenance. Overall communication was clear, and the transaction felt efficient and well managed.\n\nThe piece I purchased met my expectations in terms of appearance and quality. There were no issues during or after the purchase, and the experience felt consistent with what I would expect from a local jewelry store.\n\nOverall, Valliani Jewelers provided a positive and professional buying experience. I would consider returning for future purchases and would recommend the store to someone looking for a reliable jeweler with helpful staff and a good selection, as long as they take the time to ask questions and confirm details, as with any jewelry purchase.",
-          "relativeTime": "6 months ago",
-          "time": 1765685927.539,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUKIH2OaXNWXX6k-XAomOqPDuNh3hUGJFU9EWzrnoTwyNKUcrU=s128-c0x00000000-cc-rp-mo-ba5",
+          "text": "Claire was amazing. She helped us find everything we needed and she was so friendly. Her positive energy and sales techniques do not pressure you but make you feel welcomed and she is happy to help with your purchase. Thanks babe. We appreciate you.",
+          "relativeTime": "a month ago",
+          "time": 1780690654.805,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIKBFhOkkrwGq3dIcPabZg0WL_3k6iRPg6a5audfb9jT5Y1mA=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -3078,25 +3069,34 @@
           "language": "en"
         },
         {
-          "authorName": "Carlos B",
+          "authorName": "Juan Cervantez",
           "rating": 5,
-          "text": "Eindra and Maricel, were two beautiful women that assisted me in my purchase at this Location here in Reno. They were well educated and respectful when it came to assisting me with my purchase. They were patient and kind, as well in being willing to work with me in price with the item I was interested in purchasing. There was not one complaint from them as I was questioning them and assessing their sales methods. I would definitely recommend doing business here, especially with these two women. They made my shopping experience pleasant and smooth. 10/10 experience for sure. Will be coming back shop here at this location again! No complaints:)",
-          "relativeTime": "4 weeks ago",
-          "time": 1781130650.046,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUyjHB1vjIFap8GebkQ_IhwXdJs_7_aTgz1aRwUnsRQwoZ4I-6kzA=s128-c0x00000000-cc-rp-mo-ba2",
+          "text": "Mahesh and Kai did a great job helping me through my purchase and really went above and beyond to make sure I was happy.  Highly recommend for a complete jewelry buying experience.  Will continue to come back for all our purchases.",
+          "relativeTime": "3 months ago",
+          "time": 1774990218.272,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIsjpEG10BHOCD54-9ZLWLDCNGF4DnFtXKzGGfpsDPLko4J9A=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
-          "authorName": "Brittany Murray",
+          "authorName": "Aeron Zentner",
           "rating": 5,
-          "text": "Claire was amazing. She helped us find everything we needed and she was so friendly. Her positive energy and sales techniques do not pressure you but make you feel welcomed and she is happy to help with your purchase. Thanks babe. We appreciate you.",
-          "relativeTime": "a month ago",
-          "time": 1780690654.805,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIKBFhOkkrwGq3dIcPabZg0WL_3k6iRPg6a5audfb9jT5Y1mA=s128-c0x00000000-cc-rp-mo",
+          "text": "I purchased an item from Valliani Jewelers in Reno and had a good, straightforward experience. The store was clean and well organized, with a solid selection of jewelry on display. The atmosphere felt professional and comfortable, which made it easy to browse without feeling rushed.\n\nThe staff was helpful and knowledgeable. They answered my questions clearly, explained different options, and gave me time to consider my purchase without pressure. I appreciated that they focused on being informative rather than trying to upsell. Pricing seemed reasonable for the type and quality of jewelry offered, especially compared to other local options.\n\nThe purchase process itself was smooth. The item was reviewed with me before finalizing the sale, and the staff explained basic care and maintenance. Overall communication was clear, and the transaction felt efficient and well managed.\n\nThe piece I purchased met my expectations in terms of appearance and quality. There were no issues during or after the purchase, and the experience felt consistent with what I would expect from a local jewelry store.\n\nOverall, Valliani Jewelers provided a positive and professional buying experience. I would consider returning for future purchases and would recommend the store to someone looking for a reliable jeweler with helpful staff and a good selection, as long as they take the time to ask questions and confirm details, as with any jewelry purchase.",
+          "relativeTime": "7 months ago",
+          "time": 1765685927.539,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUKIH2OaXNWXX6k-XAomOqPDuNh3hUGJFU9EWzrnoTwyNKUcrU=s128-c0x00000000-cc-rp-mo-ba5",
+          "language": "en"
+        },
+        {
+          "authorName": "Cheyanne Renfro",
+          "rating": 5,
+          "text": "I had such an amazing experience at Valliani Jewelers! I came in to buy a bracelet and not only was the service wonderful, but the store manager Eindra went above and beyond to help us. She was warm, patient, and made the whole process feel effortless.\n\nShe also gave us a great deal, which we truly appreciated! It’s rare to find customer service that feels both professional and genuinely caring, but that’s exactly what we got here.\n\nIf you’re looking for beautiful jewelry and a team that actually takes care of you, Valliani Jewelers, especially Eindra, is the place to go. Highly recommend!",
+          "relativeTime": "7 months ago",
+          "time": 1764884588.908,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWnonThcOAHj9zX94__RAAKvRgc1ojPoT8FcrzanPieXAgspI6_=s128-c0x00000000-cc-rp-mo-ba2",
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:18.336Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:43.171Z"
     },
     {
       "id": "solano-town-center",
@@ -3199,11 +3199,11 @@
       "notes": "Address corrected from Google Maps listing (STE 1455 A, not Ste 1464 B). Hours and rating synced from Google Maps 2026-07-10.",
       "geocodedAddress": "1350 Travis Blvd STE 1455 A, Fairfield, CA 94533, United States",
       "googlePlaceId": "ChIJ8cGBtyYUhYAR2jUJTC8KqGs",
-      "googleRating": 5,
-      "googleReviewCount": 485,
+      "googleRating": null,
+      "googleReviewCount": null,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=7757461556401092058&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [],
-      "googleRatingSyncedAt": "2026-07-10T06:00:00.000Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:43.669Z"
     },
     {
       "id": "santa-rosa-plaza",
@@ -3307,18 +3307,9 @@
       "geocodedAddress": "1071 Santa Rosa Plaza space 1058a, Santa Rosa, CA 95401, USA",
       "googlePlaceId": "ChIJb4pCkx5HhIARWbDPBxwhXBI",
       "googleRating": 5,
-      "googleReviewCount": 535,
+      "googleReviewCount": 540,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=1322968794813935705&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
-        {
-          "authorName": "Maria Dwyer",
-          "rating": 5,
-          "text": "Very highly recommended!! Thank you to Ahsan and Jonald making the experience of buying our beautiful wedding rings so delightful. The quality of their jewelry is exquisite. The whole experience from beginning to end is worth it. Knowledgeable, respectful, welcoming, and patient! If you are in the market for any kind of jewelry- go here first.",
-          "relativeTime": "2 months ago",
-          "time": 1777240580.547,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKYPbOGzbf9756BPTJK-VEiE_ibp9F8V-k54WaGhWJ-9hC2bg=s128-c0x00000000-cc-rp-mo-ba3",
-          "language": "en"
-        },
         {
           "authorName": "alex placencia",
           "rating": 5,
@@ -3338,12 +3329,12 @@
           "language": "en"
         },
         {
-          "authorName": "Andrea Restrepo",
+          "authorName": "Maria Dwyer",
           "rating": 5,
-          "text": "I had an excellent experience at the jewelry shop thanks to Jazmin. Her customer service was amazing. She was friendly, patient, and very helpful throughout the whole process. She answered all my questions and made the experience feel easy and enjoyable. She truly made a difference, and I’m very happy with my purchase. I would definitely recommend asking for Jazmin if you visit the shop.",
-          "relativeTime": "5 months ago",
-          "time": 1768358356.191,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUsxYUaJLz72czUlXMdx6W8lGxmrrkvzV3WoTZ0GNoR1wVGlSuY=s128-c0x00000000-cc-rp-mo-ba2",
+          "text": "Very highly recommended!! Thank you to Ahsan and Jonald making the experience of buying our beautiful wedding rings so delightful. The quality of their jewelry is exquisite. The whole experience from beginning to end is worth it. Knowledgeable, respectful, welcoming, and patient! If you are in the market for any kind of jewelry- go here first.",
+          "relativeTime": "2 months ago",
+          "time": 1777240580.547,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKYPbOGzbf9756BPTJK-VEiE_ibp9F8V-k54WaGhWJ-9hC2bg=s128-c0x00000000-cc-rp-mo-ba3",
           "language": "en"
         },
         {
@@ -3354,9 +3345,18 @@
           "time": 1774416207.848,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXBgy_Mz9cAEWaYM-7GAFzH1gCCE5CYFFB4Fn4XvZLhnmmBzGgZ=s128-c0x00000000-cc-rp-mo-ba3",
           "language": "en"
+        },
+        {
+          "authorName": "Andrea Restrepo",
+          "rating": 5,
+          "text": "I had an excellent experience at the jewelry shop thanks to Jazmin. Her customer service was amazing. She was friendly, patient, and very helpful throughout the whole process. She answered all my questions and made the experience feel easy and enjoyable. She truly made a difference, and I’m very happy with my purchase. I would definitely recommend asking for Jazmin if you visit the shop.",
+          "relativeTime": "6 months ago",
+          "time": 1768358356.191,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUsxYUaJLz72czUlXMdx6W8lGxmrrkvzV3WoTZ0GNoR1wVGlSuY=s128-c0x00000000-cc-rp-mo-ba2",
+          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:19.920Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:44.418Z"
     },
     {
       "id": "chandler-fashion-center",
@@ -3460,9 +3460,18 @@
       "geocodedAddress": "3111 W Chandler Blvd space 2300, Chandler, AZ 85226, USA",
       "googlePlaceId": "ChIJoTNk7lgBK4cRisT5DiBtXbE",
       "googleRating": 4.9,
-      "googleReviewCount": 284,
+      "googleReviewCount": 287,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=12780491302004966538&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
+        {
+          "authorName": "Ravi P",
+          "rating": 5,
+          "text": "We just went for casual browsing for something cute for my wife and ended up buying this. Gina showed us variety of jewelry with great patience and was accommodating to our needs and price range. Will certainly consider coming here again.",
+          "relativeTime": "a month ago",
+          "time": 1780635509.123,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJfYBMlYwG_tRqOc-anNRWL4nJK_9nUmuOiqKlE8eQUUJEeeR0=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
         {
           "authorName": "vicente zamora",
           "rating": 5,
@@ -3470,6 +3479,15 @@
           "relativeTime": "a month ago",
           "time": 1780069189.576,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIVerh041e1A85cXOEQp_VH4RUznGoQbB4FZrN0qQiXdu8DZA=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Sandel",
+          "rating": 5,
+          "text": "6 stars if I could and I hardly make reviews. Zoey was awesome with helping me choose a watch she helped me find one that I’ve been wanting for the longest time.\nDenver too was quick to remove the chain links.\nIt was a quick, easy, and fast process thanks to these guys shouts out to them I will be coming back!",
+          "relativeTime": "a month ago",
+          "time": 1779905487.913,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXB8EgTbdjGjyenwE0yG0wZ4QmszATEk9qVtdCBnINb0znnzfxG=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -3482,15 +3500,6 @@
           "language": "en"
         },
         {
-          "authorName": "Ravi P",
-          "rating": 5,
-          "text": "We just went for casual browsing for something cute for my wife and ended up buying this. Gina showed us variety of jewelry with great patience and was accommodating to our needs and price range. Will certainly consider coming here again.",
-          "relativeTime": "a month ago",
-          "time": 1780635509.123,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJfYBMlYwG_tRqOc-anNRWL4nJK_9nUmuOiqKlE8eQUUJEeeR0=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
           "authorName": "Bhong Lesther Abrea",
           "rating": 5,
           "text": "Jhovelyn and Denver helped us well with our purchase. Well explained and give us a good discount. We found our dream watch in a discounted price and the good thing is you can pay it in installment without interest. I highly recommend them for your watch needs.",
@@ -3498,18 +3507,9 @@
           "time": 1777759174.391,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVxYZR3wYONCU4ckqhLKHnS7ZofdwwSh-6Q8bPvYlR57lOZ4Od5zw=s128-c0x00000000-cc-rp-mo-ba3",
           "language": "en"
-        },
-        {
-          "authorName": "Sandel",
-          "rating": 5,
-          "text": "6 stars if I could and I hardly make reviews. Zoey was awesome with helping me choose a watch she helped me find one that I’ve been wanting for the longest time.\nDenver too was quick to remove the chain links.\nIt was a quick, easy, and fast process thanks to these guys shouts out to them I will be coming back!",
-          "relativeTime": "a month ago",
-          "time": 1779905487.913,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXB8EgTbdjGjyenwE0yG0wZ4QmszATEk9qVtdCBnINb0znnzfxG=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:21.007Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:44.917Z"
     },
     {
       "id": "longview-mall",
@@ -3613,9 +3613,18 @@
       "geocodedAddress": "3500 McCann Rd m9, Longview, TX 75605, USA",
       "googlePlaceId": "ChIJHwaiJqM_NoYR1f1wKbjA2ls",
       "googleRating": 5,
-      "googleReviewCount": 369,
+      "googleReviewCount": 374,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=6618814499576151509&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
+        {
+          "authorName": "Deisy Barrios",
+          "rating": 5,
+          "text": "The best help we could have ever asked for was from Ana! She is truly the sweetest and most wonderful person. My fiancé and I came in looking for wedding bands, and Ana made the entire experience so enjoyable.\n\nShe was incredibly patient, knowledgeable, and helpful every step of the way. Most importantly, she gave us exceptional service without ever making us feel pressured. She took the time to answer all of our questions and made sure we felt comfortable and confident with our decision.\n\nIf you’re looking for jewelry or have any specific needs, I highly recommend asking for Ana. She will take great care of you and make your experience feel special from start to finish. Thank you, Ana, for helping us find our perfect wedding bands!",
+          "relativeTime": "a month ago",
+          "time": 1780268660.881,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXUsotZX3DBOZmrYcUtcbt_fFPNLFjlhWPhrTrnsN5lOJ2hiIgY=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
         {
           "authorName": "Brandon Anton",
           "rating": 5,
@@ -3623,6 +3632,15 @@
           "relativeTime": "a month ago",
           "time": 1779386711.251,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUxs4w2pfCm2o4E-XwsbB9kh1t1-CkUOv6VvRl2dFN7DqYvlqSFsQ=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Taylor Blythe",
+          "rating": 5,
+          "text": "I had such a great experience at this store thanks to the sales associate Lily.She was very detail oriented in helping me pick out my gift! I would 10/10 recommend shopping here",
+          "relativeTime": "2 months ago",
+          "time": 1778367818.179,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKHF4AvmtqKYfzon0wERJ6iBZDowlUTSoIjfeq-9pGMXq3CNQ=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -3635,15 +3653,6 @@
           "language": "en"
         },
         {
-          "authorName": "Deisy Barrios",
-          "rating": 5,
-          "text": "The best help we could have ever asked for was from Ana! She is truly the sweetest and most wonderful person. My fiancé and I came in looking for wedding bands, and Ana made the entire experience so enjoyable.\n\nShe was incredibly patient, knowledgeable, and helpful every step of the way. Most importantly, she gave us exceptional service without ever making us feel pressured. She took the time to answer all of our questions and made sure we felt comfortable and confident with our decision.\n\nIf you’re looking for jewelry or have any specific needs, I highly recommend asking for Ana. She will take great care of you and make your experience feel special from start to finish. Thank you, Ana, for helping us find our perfect wedding bands!",
-          "relativeTime": "a month ago",
-          "time": 1780268660.881,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXUsotZX3DBOZmrYcUtcbt_fFPNLFjlhWPhrTrnsN5lOJ2hiIgY=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
           "authorName": "Enjela Gaya",
           "rating": 5,
           "text": "Bradley B. was very helpful with our experience in choosing a wedding band for my fiancé. He was very knowledgeable in terms of different materials. Definitely would recommend! Go see him for your jewelry needs! He also gifted me this cute tote bag!",
@@ -3651,18 +3660,9 @@
           "time": 1759091613.589,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKjuiqIOJ1t2BQPsLy-9y49webZRBS6sAA16VUc19sYGKrmsg=s128-c0x00000000-cc-rp-mo",
           "language": "en"
-        },
-        {
-          "authorName": "Taylor Blythe",
-          "rating": 5,
-          "text": "I had such a great experience at this store thanks to the sales associate Lily.She was very detail oriented in helping me pick out my gift! I would 10/10 recommend shopping here",
-          "relativeTime": "2 months ago",
-          "time": 1778367818.179,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKHF4AvmtqKYfzon0wERJ6iBZDowlUTSoIjfeq-9pGMXq3CNQ=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:22.084Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:45.402Z"
     },
     {
       "id": "northridge-fashion-center",
@@ -3766,9 +3766,18 @@
       "geocodedAddress": "9301 Tampa Ave space # 180, Northridge, CA 91324, USA",
       "googlePlaceId": "ChIJ55SDIQGbwoARIno4rt_4bBA",
       "googleRating": 5,
-      "googleReviewCount": 582,
+      "googleReviewCount": 587,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=1183594441675930146&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
+        {
+          "authorName": "Angela Velasquez (PeruvianQueen)",
+          "rating": 5,
+          "text": "DJ and MJ amazing experience! Both girls brought my goals to life and made my whole memories come true for my sister birthday gift thank you ladies I will be coming back again.  I highly recommend 👌 their professionalism.",
+          "relativeTime": "a month ago",
+          "time": 1781305750.225,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUpsD3-DcrJoLzp4w-LCDj0fmRQzj9MMGQThK1BNO_MTXR8W86Mzg=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
         {
           "authorName": "Лев Свободный",
           "rating": 5,
@@ -3776,24 +3785,6 @@
           "relativeTime": "a month ago",
           "time": 1780535723.847,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWE3HHPTezJI9PxQBWnzxr5LxbM0y8NfDGhbVahq1incppdj0I=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Joel Scolavino",
-          "rating": 5,
-          "text": "Fantastic service, the store was clean and Jorge the store manager was amazing. This was a special purchase for my wife, we got herself her first Rolex. Amazing experience at Valliani Jewelers Northridge.",
-          "relativeTime": "7 months ago",
-          "time": 1763851890.418,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUhc6dA5sb8vp9Bh9fmhcWehQr1b_vxweuwZ4iJaCkaOlnz1nE=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Angela Velasquez (PeruvianQueen)",
-          "rating": 5,
-          "text": "DJ and MJ amazing experience! Both girls brought my goals to life and made my whole memories come true for my sister birthday gift thank you ladies I will be coming back again.  I highly recommend 👌 their professionalism.",
-          "relativeTime": "3 weeks ago",
-          "time": 1781305750.225,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUpsD3-DcrJoLzp4w-LCDj0fmRQzj9MMGQThK1BNO_MTXR8W86Mzg=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -3806,6 +3797,15 @@
           "language": "en"
         },
         {
+          "authorName": "Joel Scolavino",
+          "rating": 5,
+          "text": "Fantastic service, the store was clean and Jorge the store manager was amazing. This was a special purchase for my wife, we got herself her first Rolex. Amazing experience at Valliani Jewelers Northridge.",
+          "relativeTime": "7 months ago",
+          "time": 1763851890.418,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUhc6dA5sb8vp9Bh9fmhcWehQr1b_vxweuwZ4iJaCkaOlnz1nE=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
           "authorName": "Eduardo Cordova",
           "rating": 5,
           "text": "Angie Rosso was very helpful and very nice! She helped me walkout with the watch I wanted! I really recommend her. If you’re going to get a new watch ask for her.",
@@ -3815,7 +3815,7 @@
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:23.193Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:45.898Z"
     },
     {
       "id": "antelope-valley-mall",
@@ -3919,16 +3919,25 @@
       "geocodedAddress": "1233 Rancho Vista Blvd space # 235, Palmdale, CA 93551, USA",
       "googlePlaceId": "ChIJKwnybB5ZwoARZT7Z3TfXY8M",
       "googleRating": 4.9,
-      "googleReviewCount": 229,
+      "googleReviewCount": 230,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=14079333495035477605&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
           "authorName": "Leslie Uribe-Aguilar",
           "rating": 5,
           "text": "From the moment we walked into the store, we were greeted with such kindness and genuine hospitality. Cecy immediately helped us start looking at engagement rings and made the entire experience enjoyable and stress-free.\n\nI had no idea what style of ring I wanted because there were so many beautiful options to choose from. She patiently helped me explore different ideas, answered all my questions, and encouraged me to try on several rings until I found the one I absolutely fell in love with. Christina was so helpful with the whole process and information She helped make sure I got the perfect size. At the same time, she assisted my fiancé in finding a ring that he loved as well.\n\nThe entire experience felt warm, personal, and welcoming. We originally came in just to do some window shopping and gather ideas as we started planning our wedding. We had no intention of purchasing that day, but the exceptional customer service and positive atmosphere made us feel so comfortable and confident in our decision.\n\nWe are beyond happy with our rings and so grateful for the wonderful experience. Thank you for helping make such a special milestone in our lives even more memorable!",
-          "relativeTime": "3 weeks ago",
+          "relativeTime": "4 weeks ago",
           "time": 1781495611.047,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVIfCbxj0bvd_0snQmEEoecfn6bg44SQrvcMqFKJspzkcD1eEHcEw=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Beth Quintana",
+          "rating": 5,
+          "text": "I just came in just to look around, but OMG!  Maribel, James, and Sean are amazing. You will not regret coming in to the store. I’ve been to all the other jewelry stores at the mall. This one is the best price and the most friendliest, very reasonable prices, beautiful jewelry best service ever!",
+          "relativeTime": "a month ago",
+          "time": 1781401904.142,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLg19Ckj31ODcJrDfOheVnp3g8VtoC5I2l5uflJ2CDp1bitlJQ=s128-c0x00000000-cc-rp-mo-ba3",
           "language": "en"
         },
         {
@@ -3941,15 +3950,6 @@
           "language": "en"
         },
         {
-          "authorName": "Maria Pina",
-          "rating": 5,
-          "text": "Cecy Hernandez and Alexzandra Reyes were both amazing . They were both very  helpful and their customers service was without a doubt very helpful. They made my experience of purchasing my 30th wedding anniversary/birthday rings an unforgettable experience.\nI would recommend them to anyone especially my own family.\nThank you so much for making my special day/birthday an unforgettable one.",
-          "relativeTime": "3 months ago",
-          "time": 1774653566.971,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLsaEjEE0SOfav-6T3IL4o47Ye-0hlEgPknwwNvaukaAU7s6Q=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
           "authorName": "J P",
           "rating": 5,
           "text": "I accidentally stumbled upon this store, and I fell in love with everything it has to offer. Their jewelry is absolutely stunning, and the store itself is both nice and clean.  I appreciated the thoughtful touch of being offered water and coffee. The entire experience felt glamorous, especially considering the affordable prices. Alexzandra and James provided stellar customer service; they were incredibly friendly, professional, patient and kind, going above and beyond to help me find the ring I truly wanted. The store offers layaway and easy financing options. The purchasing process was fast . Overall, I had a perfect 5-star experience and highly recommend this store to anyone looking for beautiful affordable jewelry and exceptional service.",
@@ -3959,16 +3959,16 @@
           "language": "en"
         },
         {
-          "authorName": "Beth Quintana",
+          "authorName": "Maria Pina",
           "rating": 5,
-          "text": "I just came in just to look around, but OMG!  Maribel, James, and Sean are amazing. You will not regret coming in to the store. I’ve been to all the other jewelry stores at the mall. This one is the best price and the most friendliest, very reasonable prices, beautiful jewelry best service ever!",
-          "relativeTime": "3 weeks ago",
-          "time": 1781401904.142,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLg19Ckj31ODcJrDfOheVnp3g8VtoC5I2l5uflJ2CDp1bitlJQ=s128-c0x00000000-cc-rp-mo-ba3",
+          "text": "Cecy Hernandez and Alexzandra Reyes were both amazing . They were both very  helpful and their customers service was without a doubt very helpful. They made my experience of purchasing my 30th wedding anniversary/birthday rings an unforgettable experience.\nI would recommend them to anyone especially my own family.\nThank you so much for making my special day/birthday an unforgettable one.",
+          "relativeTime": "3 months ago",
+          "time": 1774653566.971,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLsaEjEE0SOfav-6T3IL4o47Ye-0hlEgPknwwNvaukaAU7s6Q=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:24.254Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:46.399Z"
     },
     {
       "id": "great-mall",
@@ -4073,7 +4073,7 @@
       "geocodedAddress": "302 Great Mall Dr, Milpitas, CA 95035, USA",
       "googlePlaceId": "ChIJt3hTq8vOj4AReg_4aQVd-7s",
       "googleRating": 4.8,
-      "googleReviewCount": 963,
+      "googleReviewCount": 964,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=13545522582080982906&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
@@ -4086,12 +4086,12 @@
           "language": "en"
         },
         {
-          "authorName": "Elizabeth Aguila",
+          "authorName": "Sheila Torres",
           "rating": 5,
-          "text": "Yesterday for Valentine’s Day I took my boyfriend to pick out part of his present. He decided to go with mavado watch with the help of many people here. I didn’t catch the names but literally everyone in there is so helpful, kind, and amazing customer service. One thing I also liked even when they were busy they still made sure to talk with us and we didn’t have to wait long at all maybe like 1 minute. They make sure there fully staffed so everyone can be helped. This is why we chose to buy my boyfriend’s watch here. Honestly great customer service and never felt pushed or forced into anything.  I highly suggest this location and everyone who works here.  Thank you again for helping my boyfriend pick his perfect watch.",
-          "relativeTime": "4 months ago",
-          "time": 1771203751.175,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL1m0fVp06c7-AS7Q0IDqYsh_ggtdQbAn5VgjZaxil1AIip1A=s128-c0x00000000-cc-rp-mo",
+          "text": "Excelente costumer service Emely and Akram they make my wife happy thank you so much with a great selection 100 percent recommended",
+          "relativeTime": "2 months ago",
+          "time": 1777168292.823,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVzlvq2IQI_IQKY8TDzcTXmh1nOEy5Vul38w0rnbKf1i-vpWLyI=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -4104,12 +4104,12 @@
           "language": "en"
         },
         {
-          "authorName": "Sheila Torres",
+          "authorName": "Elizabeth Aguila",
           "rating": 5,
-          "text": "Excelente costumer service Emely and Akram they make my wife happy thank you so much with a great selection 100 percent recommended",
-          "relativeTime": "2 months ago",
-          "time": 1777168292.823,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVzlvq2IQI_IQKY8TDzcTXmh1nOEy5Vul38w0rnbKf1i-vpWLyI=s128-c0x00000000-cc-rp-mo",
+          "text": "Yesterday for Valentine’s Day I took my boyfriend to pick out part of his present. He decided to go with mavado watch with the help of many people here. I didn’t catch the names but literally everyone in there is so helpful, kind, and amazing customer service. One thing I also liked even when they were busy they still made sure to talk with us and we didn’t have to wait long at all maybe like 1 minute. They make sure there fully staffed so everyone can be helped. This is why we chose to buy my boyfriend’s watch here. Honestly great customer service and never felt pushed or forced into anything.  I highly suggest this location and everyone who works here.  Thank you again for helping my boyfriend pick his perfect watch.",
+          "relativeTime": "4 months ago",
+          "time": 1771203751.175,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL1m0fVp06c7-AS7Q0IDqYsh_ggtdQbAn5VgjZaxil1AIip1A=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         },
         {
@@ -4122,7 +4122,7 @@
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:24.718Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:46.878Z"
     },
     {
       "id": "baybrook",
@@ -4230,7 +4230,7 @@
       "googleReviewCount": null,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=3724051687334844915&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [],
-      "googleRatingSyncedAt": "2026-07-09T08:32:25.153Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:47.345Z"
     },
     {
       "id": "deerbrook",
@@ -4332,20 +4332,47 @@
       "geocodedAddress": "20131 US-59 space # 1074, Humble, TX 77338, USA",
       "googlePlaceId": "ChIJrV0Z6D6zQIYREnlexbDHL14",
       "googleRating": 5,
-      "googleReviewCount": 1,
+      "googleReviewCount": 4,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=6786862725510101266&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
+        {
+          "authorName": "Lorena Lopez",
+          "rating": 5,
+          "text": "Great service. Very knowledgeable. Friendly and attentive.",
+          "relativeTime": "in the last week",
+          "time": 1783895152.838,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLg8KDBp0q3akmGZpSVGMsbV0iuYf-iKvCF_FkTaNpb9_HE0Q=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "Adriel Salazar",
+          "rating": 5,
+          "text": "I really appreciated Nick’s customer service.  He was very attentive, knew everything about his products, and paired me with a beautiful piece of jewelry! If you go, definitely ask for him. 10/10!",
+          "relativeTime": "in the last week",
+          "time": 1783873530.156,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXfj6mxDBEVzeY12yfo-YBfFL7zD2Jb1AwsK71CHH9oVC8yifA3gw=s128-c0x00000000-cc-rp-mo-ba2",
+          "language": "en"
+        },
+        {
+          "authorName": "Peaches",
+          "rating": 5,
+          "text": "Great customer service! I bought this pretty necklace, the charm spends.",
+          "relativeTime": "in the last week",
+          "time": 1783821453.131,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUVxZgWmVkOqpr2ULur7Y5hhnQNoeC7iJNykyv3jCh6mbQ5LWhi=s128-c0x00000000-cc-rp-mo-ba4",
+          "language": "en"
+        },
         {
           "authorName": "Felipe Rodriguez",
           "rating": 5,
           "text": "Great customer service. I really appreciated Kacy who helped. Thank y'all so much for the wonderful experience.",
-          "relativeTime": "in the last week",
+          "relativeTime": "a week ago",
           "time": 1783271720.772,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjU9VJwip3gX5tnbHcJL-ky80VhWRXMre8biJxL5TN1tZsuOHQ4=s128-c0x00000000-cc-rp-mo-ba2",
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:26.210Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:47.828Z"
     },
     {
       "id": "vintage-faire-mall",
@@ -4449,25 +4476,16 @@
       ],
       "notes": "Added manually from Google listing — was missing from official page extract.",
       "googleRating": 4.9,
-      "googleReviewCount": 878,
+      "googleReviewCount": 879,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=10076933392007534263&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
         {
           "authorName": "Emilio Villegas",
           "rating": 5,
           "text": "Excellent service from start to finish! Jorge is the best & was friendly, knowledgeable, and helped me find the perfect piece of jewelry. The selection was beautiful, the quality was outstanding, and the entire experience felt welcoming and stress-free. I truly appreciated the attention to detail and customer care. I highly recommend this jewelry store to anyone looking for quality jewelry and exceptional service. I'll definitely be back! Come see Jorge if you want if you want the best customer service",
-          "relativeTime": "3 weeks ago",
+          "relativeTime": "4 weeks ago",
           "time": 1781472434.858,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUbWfAbRwXrNzVlKjfCrXws_uNzHyo1DlTW_6Irh1DrT-KV-5vw=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
-          "authorName": "Vanessa Carter",
-          "rating": 5,
-          "text": "I recently visited Villiani Jewelers to purchase a new gold band for my husband, and I received nothing but the best customer service. The staff was knowledgeable, patient, and genuinely helpful throughout the process. They made what could have been an overwhelming purchase feel easy and special. Highly recommend! Look at the mirror finish. Polish is incredible they where the only jeweler’s that could provide me with what I wanted in the whole mall.",
-          "relativeTime": "4 months ago",
-          "time": 1771099291.181,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKImz6FENKLMaUU1l0GZ4lhY_LSfBg7LcYFxm_f0c9k5KOjZHRY=s128-c0x00000000-cc-rp-mo-ba3",
           "language": "en"
         },
         {
@@ -4477,6 +4495,15 @@
           "relativeTime": "a month ago",
           "time": 1780677813.674,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXZria9Gc49YJF503YsSF4v9XoTuh1aaRXAfvfb5pSTEAC-_W7e=s128-c0x00000000-cc-rp-mo-ba2",
+          "language": "en"
+        },
+        {
+          "authorName": "Vanessa Carter",
+          "rating": 5,
+          "text": "I recently visited Villiani Jewelers to purchase a new gold band for my husband, and I received nothing but the best customer service. The staff was knowledgeable, patient, and genuinely helpful throughout the process. They made what could have been an overwhelming purchase feel easy and special. Highly recommend! Look at the mirror finish. Polish is incredible they where the only jeweler’s that could provide me with what I wanted in the whole mall.",
+          "relativeTime": "4 months ago",
+          "time": 1771099291.181,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKImz6FENKLMaUU1l0GZ4lhY_LSfBg7LcYFxm_f0c9k5KOjZHRY=s128-c0x00000000-cc-rp-mo-ba3",
           "language": "en"
         },
         {
@@ -4492,13 +4519,13 @@
           "authorName": "Brian Porter",
           "rating": 5,
           "text": "In the most honest way possible, Big thanks to Estefany and Kevin. They treated me like family ;) They were beyond flexible with me and did not push whatsoever. Instead, I genuinely felt like I was able to speak and they’d listen. I pick up on things like that when making a large purchase so big Thankyou for that. Another thing I want to add that enhanced the experience:  the piece I wanted originally had sold earlier that day… not a sweat for estefany & Kevin. Mentally I timed it, & I’d estimate that within about 3 minutes, they sourced the exact piece I wanted originally. I paid, signed, and from start to finish I was in and out in about 30 minutes. Thankyou Valliani for help making this process easy and smooth!",
-          "relativeTime": "6 months ago",
+          "relativeTime": "7 months ago",
           "time": 1765686568.399,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVLvfC7QcT30_AU8jDCDORQ2nrDIMFJdPFyJ-58iazsQR_Q2ubC=s128-c0x00000000-cc-rp-mo",
           "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:27.272Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:48.312Z"
     },
     {
       "id": "galleria-at-sunset",
@@ -4604,27 +4631,9 @@
       ],
       "notes": "Added manually from Google listing — was missing from official page extract. Mall listed as Mershops Galleria at Sunset.",
       "googleRating": 5,
-      "googleReviewCount": 43,
+      "googleReviewCount": 48,
       "googleMapsPlaceUrl": "https://maps.google.com/?cid=3785686504989440531&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
       "googleReviews": [
-        {
-          "authorName": "Nancy N.",
-          "rating": 5,
-          "text": "Went to see Arnold P. today and found the ring of my dreams! I've been buying my jewelry from him for over 20 years and he always takes such good care of me! He's  very knowledgeable, professional and such a delight to deal with. I love this store and the outstanding quality and selection of their jewelry! Thank you again Arnold for such a pleasant experience! I will be back to see you again my friend! 💜😊",
-          "relativeTime": "a month ago",
-          "time": 1779655051.705,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjV-cdrVme7OjC-FSdzyPuVe-4lEXK19dL8mEoEKWNMy_ktDa62y4w=s128-c0x00000000-cc-rp-mo-ba5",
-          "language": "en"
-        },
-        {
-          "authorName": "CC & Lita - Travel & RVing Adventures",
-          "rating": 5,
-          "text": "Mr. Arnold Prepena was very knowledgeable and helpful when my husband and I went to shop for a  diamond ring for my 37 year anniversary. My husband gave me a 1.30 carat natural diamond engagement ring in 1989. We decided to get a bigger one for our 37 years anniversary.\nArnold was a great help during the process. He educated us on the difference between natural diamonds and lab grown diamonds. Because of the information he provided, we decided to purchased a lab grown diamond with 3.5 carat center diamond and smaller diamonds on each side.\nWe saved a lot of money by purchasing the lab grown diamond and gained an amazingly beautiful ring. We are very pleased with Arnold’s professionalism and genuine dedication in providing excellent customer service.\nWe highly recommend Arnold and Valliani Jewelry Store to anyone who is looking to purchase any type of jewelry.\nThank you,\nCC and Lita Motes",
-          "relativeTime": "a month ago",
-          "time": 1779114634.22,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXPiDTAHR_Cw2N6BpDynqWXncqRE53kx6aaLDNPtrEhGEZJFeg=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
         {
           "authorName": "Kelvin Jones",
           "rating": 5,
@@ -4635,15 +4644,6 @@
           "language": "en"
         },
         {
-          "authorName": "Shawn Loaiza",
-          "rating": 5,
-          "text": "First and foremost thank you ARNOLD & NICOLETA you guys were amazing from the moment I walked in you both greeted me with extreme kindness. I appreciate the love and support you guys have given. Making this experience possible and helping me through out the process. Your kindness will never be forgotten. I thank you guys for all you have done. Please give them a visit. I will be back for more and more thank you for everything honestly. I will look back and remember the joy you both brought into my life. Thank God for blessing me and blessing them seriously",
-          "relativeTime": "3 weeks ago",
-          "time": 1781565471.281,
-          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVl9nkFkek-dyzdOWoHKlMJ0xM6BCTHPX0eaIFo-pFUujN--s8lkw=s128-c0x00000000-cc-rp-mo",
-          "language": "en"
-        },
-        {
           "authorName": "Lorena Cabrera",
           "rating": 5,
           "text": "I had such an amazing experience purchasing our wedding ring. From the moment we walked in, the customer service was truly above and beyond. Arnold was so patient, knowledgeable, and genuinely cared about helping us find the perfect ring for such a special moment in our lives.\n\nThe attention to detail, kindness, and professionalism made the entire experience unforgettable and stress-free. We never felt rushed, and every question was answered with care. We absolutely love the ring and will gladly recommend to family and friends.",
@@ -4651,9 +4651,36 @@
           "time": 1779833964.2,
           "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVrvwD66ty3tP-7Mo6rFjhdWVuPlSxjFFXmkWQOrN0vVkXUUFA=s128-c0x00000000-cc-rp-mo",
           "language": "en"
+        },
+        {
+          "authorName": "Nancy N.",
+          "rating": 5,
+          "text": "Went to see Arnold P. today and found the ring of my dreams! I've been buying my jewelry from him for over 20 years and he always takes such good care of me! He's  very knowledgeable, professional and such a delight to deal with. I love this store and the outstanding quality and selection of their jewelry! Thank you again Arnold for such a pleasant experience! I will be back to see you again my friend! 💜😊",
+          "relativeTime": "a month ago",
+          "time": 1779655051.705,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjV-cdrVme7OjC-FSdzyPuVe-4lEXK19dL8mEoEKWNMy_ktDa62y4w=s128-c0x00000000-cc-rp-mo-ba5",
+          "language": "en"
+        },
+        {
+          "authorName": "jean legaspi",
+          "rating": 5,
+          "text": "Went to another jewelry store and bought something, then I decided to visit a new store and met Arnold. He was very friendly and welcomed us like family. I decided to buy a bracelet, and I am very happy with his service, knowledge, and professionalism. He is a great person and an excellent salesman. I would highly recommend Valliani Jewelers to all my family and friends. Great personality and outstanding customer service!",
+          "relativeTime": "a month ago",
+          "time": 1779393329.056,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKF21Psp5kO-SjQqhqSMDHokuvAzF2MA0F--0AM_qfOhDUvpw=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
+        },
+        {
+          "authorName": "CC & Lita - Travel & RVing Adventures",
+          "rating": 5,
+          "text": "Mr. Arnold Prepena was very knowledgeable and helpful when my husband and I went to shop for a  diamond ring for my 37 year anniversary. My husband gave me a 1.30 carat natural diamond engagement ring in 1989. We decided to get a bigger one for our 37 years anniversary.\nArnold was a great help during the process. He educated us on the difference between natural diamonds and lab grown diamonds. Because of the information he provided, we decided to purchased a lab grown diamond with 3.5 carat center diamond and smaller diamonds on each side.\nWe saved a lot of money by purchasing the lab grown diamond and gained an amazingly beautiful ring. We are very pleased with Arnold’s professionalism and genuine dedication in providing excellent customer service.\nWe highly recommend Arnold and Valliani Jewelry Store to anyone who is looking to purchase any type of jewelry.\nThank you,\nCC and Lita Motes",
+          "relativeTime": "a month ago",
+          "time": 1779114634.22,
+          "profilePhotoUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXPiDTAHR_Cw2N6BpDynqWXncqRE53kx6aaLDNPtrEhGEZJFeg=s128-c0x00000000-cc-rp-mo",
+          "language": "en"
         }
       ],
-      "googleRatingSyncedAt": "2026-07-09T08:32:28.393Z"
+      "googleRatingSyncedAt": "2026-07-14T11:41:48.794Z"
     }
   ],
   "storeCount": 31

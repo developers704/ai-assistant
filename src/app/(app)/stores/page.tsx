@@ -845,12 +845,17 @@ function StoreDetailCard({
 
       {store.googleReviews && store.googleReviews.length > 0 && (
         <div className="space-y-2 pt-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
-            Recent Google reviews
-          </p>
-          <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
-            {store.googleReviews.slice(0, 3).map((review, i) => (
-              <li key={`${review.authorName}-${i}`}>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+              Recent Google reviews
+            </p>
+            <p className="text-[10px] text-white/30 shrink-0">Newest first</p>
+          </div>
+          <ul className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            {[...store.googleReviews]
+              .sort((a, b) => (b.time ?? 0) - (a.time ?? 0))
+              .map((review, i) => (
+              <li key={`${review.authorName}-${review.time ?? i}`}>
                 <button
                   type="button"
                   onClick={() => setOpenReview(review)}
@@ -882,6 +887,13 @@ function StoreDetailCard({
               </li>
             ))}
           </ul>
+          {typeof store.googleReviewCount === "number" &&
+            store.googleReviewCount > store.googleReviews.length && (
+              <p className="text-[10px] text-white/35 leading-relaxed">
+                Showing {store.googleReviews.length} of{" "}
+                {store.googleReviewCount.toLocaleString()} (Google Places max is 5).
+              </p>
+            )}
         </div>
       )}
 

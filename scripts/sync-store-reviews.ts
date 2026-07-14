@@ -1,12 +1,15 @@
 /**
  * Sync Google Places ratings & reviews into the Valliani store directory.
  *
- * Uses Places API (New):
- *   https://places.googleapis.com/v1/places:searchText
- *   https://places.googleapis.com/v1/places/{PLACE_ID}
+ * Uses:
+ *   Places API (New) Text Search → place IDs
+ *   Place Details (Legacy) with reviews_sort=newest → up to 5 newest reviews
+ *
+ * Google hard-caps Places Details at 5 reviews per place. Full review history
+ * requires Google Business Profile API (verified owner) or a partner aggregator.
  *
  * Google Cloud Console:
- *   1. Enable "Places API (New)"
+ *   1. Enable "Places API (New)" and legacy "Places API"
  *   2. Billing enabled on the project
  *   3. API key in .env.local as GOOGLE_MAPS_API_KEY
  *
@@ -57,19 +60,12 @@ type Store = {
   googleMapsUrl?: string | null;
 };
 
-type PlaceDetailsNew = {
-  id?: string;
-  displayName?: { text?: string };
+type PlaceDetailsMapped = {
+  id: string;
   rating?: number;
   userRatingCount?: number;
-  googleMapsUri?: string;
-  reviews?: Array<{
-    authorAttribution?: { displayName?: string; photoUri?: string };
-    rating?: number;
-    text?: { text?: string; languageCode?: string };
-    relativePublishTimeDescription?: string;
-    publishTime?: string;
-  }>;
+  googleMapsUri?: string | null;
+  reviews: NonNullable<Store["googleReviews"]>;
 };
 
 function sleep(ms: number) {
@@ -136,8 +132,19 @@ async function textSearchNew(
   };
 }
 
-async function placeDetailsNew(placeId: string, apiKey: string): Promise<PlaceDetailsNew | null> {
-  const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+/**
+ * Place Details (New) — returns max 5 reviews (Google hard-cap).
+ * Sort is relevance by default; we reorder by publishTime client-side.
+ * True `reviews_sort=newest` only exists on Place Details (Legacy).
+ */
+async function placeDetailsNew(
+  placeId: string,
+  apiKey: string
+): Promise<PlaceDetailsMapped | null> {
+  const url = new URL(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`);
+  url.searchParams.set("languageCode", "en");
+
+  const res = await fetch(url.toString(), {
     method: "GET",
     headers: {
       "X-Goog-Api-Key": apiKey,
@@ -146,15 +153,113 @@ async function placeDetailsNew(placeId: string, apiKey: string): Promise<PlaceDe
     },
   });
 
-  const json = (await res.json()) as PlaceDetailsNew & {
-    error?: { message?: string; status?: string };
+  const json = (await res.json()) as {
+    error?: { message?: string };
+    id?: string;
+    rating?: number;
+    userRatingCount?: number;
+    googleMapsUri?: string;
+    reviews?: Array<{
+      authorAttribution?: { displayName?: string; photoUri?: string };
+      rating?: number;
+      text?: { text?: string; languageCode?: string };
+      relativePublishTimeDescription?: string;
+      publishTime?: string;
+    }>;
   };
 
   if (!res.ok) {
     throw new Error(`Place Details (New) ${res.status}: ${json.error?.message ?? res.statusText}`);
   }
 
-  return json;
+  const reviews = (json.reviews ?? [])
+    .map((r) => ({
+      authorName: r.authorAttribution?.displayName ?? "Google user",
+      rating: r.rating ?? 0,
+      text: r.text?.text ?? "",
+      relativeTime: r.relativePublishTimeDescription ?? "",
+      time: r.publishTime ? Date.parse(r.publishTime) / 1000 : null,
+      profilePhotoUrl: r.authorAttribution?.photoUri ?? null,
+      language: r.text?.languageCode ?? null,
+    }))
+    .sort((a, b) => (b.time ?? 0) - (a.time ?? 0));
+
+  return {
+    id: json.id ?? placeId,
+    rating: json.rating,
+    userRatingCount: json.userRatingCount,
+    googleMapsUri: json.googleMapsUri ?? null,
+    reviews,
+  };
+}
+
+/**
+ * Place Details (Legacy) with reviews_sort=newest — preferred when key allows it.
+ */
+async function placeDetailsLegacyNewest(
+  placeId: string,
+  apiKey: string
+): Promise<PlaceDetailsMapped | null> {
+  const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
+  url.searchParams.set("place_id", placeId);
+  url.searchParams.set(
+    "fields",
+    "place_id,name,rating,user_ratings_total,url,reviews"
+  );
+  url.searchParams.set("reviews_sort", "newest");
+  url.searchParams.set("language", "en");
+  url.searchParams.set("key", apiKey);
+
+  const res = await fetch(url.toString());
+  const json = (await res.json()) as {
+    status?: string;
+    error_message?: string;
+    result?: {
+      place_id?: string;
+      rating?: number;
+      user_ratings_total?: number;
+      url?: string;
+      reviews?: Array<{
+        author_name?: string;
+        rating?: number;
+        text?: string;
+        relative_time_description?: string;
+        time?: number;
+        profile_photo_url?: string;
+        language?: string;
+      }>;
+    };
+  };
+
+  if (json.status === "REQUEST_DENIED") {
+    return null; // caller falls back to Places API (New)
+  }
+  if (json.status && json.status !== "OK" && json.status !== "ZERO_RESULTS") {
+    throw new Error(
+      `Place Details (Legacy) ${json.status}: ${json.error_message ?? "request failed"}`
+    );
+  }
+  if (!json.result) return null;
+
+  const reviews = (json.result.reviews ?? [])
+    .map((r) => ({
+      authorName: r.author_name ?? "Google user",
+      rating: r.rating ?? 0,
+      text: r.text ?? "",
+      relativeTime: r.relative_time_description ?? "",
+      time: r.time ?? null,
+      profilePhotoUrl: r.profile_photo_url ?? null,
+      language: r.language ?? null,
+    }))
+    .sort((a, b) => (b.time ?? 0) - (a.time ?? 0));
+
+  return {
+    id: json.result.place_id ?? placeId,
+    rating: json.result.rating,
+    userRatingCount: json.result.user_ratings_total,
+    googleMapsUri: json.result.url ?? null,
+    reviews,
+  };
 }
 
 async function main() {
@@ -171,15 +276,30 @@ async function main() {
     ? JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"))
     : {};
 
-  // Drop legacy-API cache entries so we refetch with Places API (New)
+  // Bust details cache for a fresh pull
   for (const key of Object.keys(cache)) {
-    if (key.startsWith("search:") || key.startsWith("details:")) {
-      // keep new-format only; wipe old failed/empty legacy payloads
-      const val = cache[key];
-      if (val == null || (typeof val === "object" && !("id" in (val as object)) && !("placeId" in (val as object)))) {
-        delete cache[key];
-      }
+    if (
+      key.startsWith("details:") ||
+      key.startsWith("detailsNew") ||
+      key.startsWith("detailsLegacy") ||
+      key.startsWith("detailsRefresh")
+    ) {
+      delete cache[key];
     }
+  }
+  fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+
+  // Probe Legacy once — REQUEST_DENIED means key only has Places API (New).
+  let useLegacyNewest = false;
+  const probeId = stores.find((s) => isBusinessPlaceId(s.googlePlaceId))?.googlePlaceId;
+  if (probeId) {
+    const probe = await placeDetailsLegacyNewest(probeId, apiKey);
+    useLegacyNewest = probe != null;
+    console.log(
+      useLegacyNewest
+        ? "Using Place Details (Legacy) reviews_sort=newest"
+        : "Legacy Places denied — using Places API (New); sorting returned reviews by date"
+    );
   }
 
   let resolved = 0;
@@ -223,11 +343,16 @@ async function main() {
         }
       }
 
-      const detailsKey = `detailsNew:${placeId}`;
-      let details = cache[detailsKey] as PlaceDetailsNew | null | undefined;
+      const detailsKey = `detailsRefresh:${placeId}`;
+      let details = cache[detailsKey] as PlaceDetailsMapped | null | undefined;
       if (details === undefined) {
         console.log(`Fetching reviews · ${store.mall}`);
-        details = await placeDetailsNew(placeId!, apiKey);
+        details = useLegacyNewest
+          ? await placeDetailsLegacyNewest(placeId!, apiKey)
+          : await placeDetailsNew(placeId!, apiKey);
+        if (!details && useLegacyNewest) {
+          details = await placeDetailsNew(placeId!, apiKey);
+        }
         cache[detailsKey] = details;
         fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
         await sleep(250);
@@ -243,19 +368,11 @@ async function main() {
       store.googleReviewCount = details.userRatingCount ?? null;
       store.googleMapsPlaceUrl = details.googleMapsUri ?? store.googleMapsUrl ?? null;
       if (details.googleMapsUri) store.googleMapsUrl = details.googleMapsUri;
-      store.googleReviews = (details.reviews ?? []).slice(0, 5).map((r) => ({
-        authorName: r.authorAttribution?.displayName ?? "Google user",
-        rating: r.rating ?? 0,
-        text: r.text?.text ?? "",
-        relativeTime: r.relativePublishTimeDescription ?? "",
-        time: r.publishTime ? Date.parse(r.publishTime) / 1000 : null,
-        profilePhotoUrl: r.authorAttribution?.photoUri ?? null,
-        language: r.text?.languageCode ?? null,
-      }));
+      store.googleReviews = details.reviews;
       store.googleRatingSyncedAt = new Date().toISOString();
       rated++;
       console.log(
-        `  ✓ ${store.mall}: ${store.googleRating ?? "—"}★ (${store.googleReviewCount ?? 0} reviews)`
+        `  ✓ ${store.mall}: ${store.googleRating ?? "—"}★ · ${store.googleReviews.length} reviews (of ${store.googleReviewCount ?? 0} total on Google)`
       );
     } catch (err) {
       failed++;
@@ -268,6 +385,12 @@ async function main() {
   fs.writeFileSync(STORE_FILE, JSON.stringify(directory, null, 2));
   console.log(`\nDone. Rated ${rated}/${stores.length} · resolved IDs ${resolved} · failed ${failed}`);
   console.log(`Updated ${STORE_FILE}`);
+  console.log(`
+Note: Google Places API returns a MAXIMUM of 5 reviews per store (newest first).
+Total review counts (e.g. 704) are shown, but full history is not available via Places API.
+To pull ALL reviews for Valliani locations, use Google Business Profile API (verified owner)
+or a approved review-aggregation partner — not public Places Details.
+`);
   if (failed === stores.length) {
     console.log(`
 If every store failed with PERMISSION_DENIED / API not enabled:
