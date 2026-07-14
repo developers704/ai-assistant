@@ -68,7 +68,7 @@ async function queryDashboardSlice(opts: {
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const dateParam = sp.get("date")?.trim() ?? "";
-  const filterDate = dateParam ? parseReportFilterDate(dateParam) : undefined;
+  const filterDate = dateParam ? parseReportFilterDate(dateParam) ?? undefined : undefined;
   const filterStore = sp.get("store")?.trim() || undefined;
   const filterDepartment = sp.get("department")?.trim() || undefined;
   const filterDesign = sp.get("design")?.trim() || undefined;
