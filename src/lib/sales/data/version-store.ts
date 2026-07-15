@@ -18,6 +18,8 @@ export interface SalesVersionMetadata {
   dataVersion: string;
   fileName?: string;
   fileHash: string;
+  /** When exclusion / return-pair rules change, refresh rebuilds even if fileHash matches. */
+  exclusionRulesVersion?: number;
   reportId?: string;
   generatedAt: string;
   refreshedAt: string;

@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { filterExcludedSalesRows } from "@/lib/utils";
+import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
 import {
   getLatestReportMeta,
   getLatestReportWithSummary,
@@ -71,7 +71,10 @@ export async function refreshSalesData(options?: {
       const pointer = readActivePointer();
       if (pointer.activeVersion && !options?.force) {
         const existing = readVersionMetadata(pointer.activeVersion);
-        if (existing?.fileHash === fileHash) {
+        if (
+          existing?.fileHash === fileHash &&
+          existing.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION
+        ) {
           return {
             success: true,
             dataVersion: pointer.activeVersion,
@@ -155,6 +158,7 @@ export async function refreshSalesData(options?: {
           dataVersion,
           fileName: latest.meta.fileName,
           fileHash,
+          exclusionRulesVersion: SALES_EXCLUSION_RULES_VERSION,
           reportId: latest.meta.id,
           generatedAt,
           refreshedAt: generatedAt,

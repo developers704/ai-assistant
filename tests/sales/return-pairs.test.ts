@@ -6,33 +6,33 @@ describe("dropMatchedSalesReturnPairs", () => {
     const rows = [
       {
         transactionId: "AR-10291959",
-        storeName: "VI-ARON",
+        storeName: "VJ-ARDN",
         vendorModel: "D67",
         sku: "236292Y",
         quantity: -1,
         netRevenue: -3700,
-        department: "LADYS RING",
         inventoryCost: 1212,
+        department: "B",
       },
       {
         transactionId: "AR-10291959",
-        storeName: "VI-ARON",
+        storeName: "VJ-ARDN",
         vendorModel: "D67",
         sku: "236292Y",
         quantity: 1,
         netRevenue: 3700,
-        department: "LADYS RING",
         inventoryCost: 1212,
+        department: "B",
       },
       {
         transactionId: "VR-102291107",
-        storeName: "VI-ROSE",
+        storeName: "VJ-ROSE",
         vendorModel: "D67",
-        sku: "236297Y",
+        sku: "236292Y",
         quantity: 1,
         netRevenue: 3499,
-        department: "LADYS RING",
         inventoryCost: 1212,
+        department: "B",
       },
     ];
 
@@ -46,23 +46,58 @@ describe("dropMatchedSalesReturnPairs", () => {
     expect(marginPct).toBe(65.4);
   });
 
+  it("still pairs when qty was corrupted to +1 on the return leg", () => {
+    const rows = [
+      {
+        transactionId: "AR-10291959",
+        storeName: "VJ-ARDN",
+        vendorModel: "D67",
+        sku: "236292Y",
+        quantity: 1,
+        netRevenue: -3700,
+        department: "B",
+      },
+      {
+        transactionId: "AR-10291959",
+        storeName: "VJ-ARDN",
+        vendorModel: "D67",
+        sku: "236292Y",
+        quantity: 1,
+        netRevenue: 3700,
+        department: "B",
+      },
+      {
+        transactionId: "VR-102291107",
+        storeName: "VJ-ROSE",
+        vendorModel: "D67",
+        sku: "236292Y",
+        quantity: 1,
+        netRevenue: 3499,
+        department: "B",
+      },
+    ];
+    expect(dropMatchedSalesReturnPairs(rows).map((r) => r.transactionId)).toEqual([
+      "VR-102291107",
+    ]);
+  });
+
   it("does not drop a real sale when only a same-model sale exists at another store", () => {
     const rows = [
       {
         transactionId: "T-NEG",
-        storeName: "VI-ARON",
+        storeName: "VJ-ARDN",
         vendorModel: "D67",
         quantity: -1,
         netRevenue: -3700,
-        department: "LADYS RING",
+        department: "B",
       },
       {
         transactionId: "T-POS",
-        storeName: "VI-ROSE",
+        storeName: "VJ-ROSE",
         vendorModel: "D67",
         quantity: 1,
         netRevenue: 3700,
-        department: "LADYS RING",
+        department: "B",
       },
     ];
     expect(dropMatchedSalesReturnPairs(rows)).toHaveLength(2);

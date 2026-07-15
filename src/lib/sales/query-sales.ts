@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { filterExcludedSalesRows } from "@/lib/utils";
+import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
 import {
   getLatestReportMeta,
   readReportCsv,
@@ -47,12 +47,14 @@ function loadReportRows(): {
     const pointer = readActivePointer();
     const versionRows = pointer.activeVersion ? readNormalizedRows(pointer.activeVersion) : null;
     if (versionRows?.length) {
+      // Always re-apply exclusions (incl. return pairs) — cached versions may predate rule bumps.
+      const clean = filterExcludedSalesRows(versionRows);
       const meta = pointer.activeVersion
         ? readVersionMetadata(pointer.activeVersion)
         : null;
-      const dates = [...new Set(versionRows.map((r) => r.date).filter(Boolean))].sort();
+      const dates = [...new Set(clean.map((r) => r.date).filter(Boolean))].sort();
       return {
-        rows: versionRows,
+        rows: clean,
         reportName: meta?.fileName ?? "Sales Intelligence",
         reportStart: meta?.dateRange.from ?? dates[0] ?? null,
         reportEnd: meta?.dateRange.to ?? dates[dates.length - 1] ?? null,

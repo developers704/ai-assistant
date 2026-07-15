@@ -69,7 +69,7 @@ function loadAllRows(): { rows: VendorPosRow[]; reportLabel: string | null } {
     if (versionRows?.length) {
       const latest = getLatestReportWithSummary();
       return {
-        rows: versionRows,
+        rows: filterExcludedSalesRows(versionRows),
         reportLabel: latest?.meta.label ?? "Sales report",
       };
     }

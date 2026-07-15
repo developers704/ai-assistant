@@ -21,7 +21,7 @@ These rows are treated as **deleted** from the sales report. They must **not** a
 | `JVS-200940` | Watch battery service (repair, not product) |
 | `217365`, `217286`, `159004` | Legacy excluded SKUs |
 | Blank / empty **Department** | Incomplete line — drop the row |
-| **Matched return / void pair** | Negative qty + matching positive qty with **same abs qty**, **same store**, **same absolute net amount**, same SKU/vendor model — drop **both** legs. Prefer same Transaction #; otherwise match across txns on store+amount+item. Stand-alone sales (different store / amount / unpaired) are kept. |
+| **Matched return / void pair** | Negative qty **or** negative amount + matching sale with **same store**, **same absolute Total/net**, same SKU/vendor model — drop **both** legs (prefer same Transaction #). Stand-alone sales (e.g. different store) are kept. Cached sales versions rebuild when this rule version bumps. |
 
 ### Implementation (do not bypass on upload)
 

@@ -61,6 +61,9 @@ export function isExcludedSalesRow(row: {
   return isExcludedSalesSku(sku);
 }
 
+/** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
+export const SALES_EXCLUSION_RULES_VERSION = 2;
+
 type SalesReturnPairRow = {
   sku?: string | null;
   itemNumber?: string | null;
@@ -68,6 +71,7 @@ type SalesReturnPairRow = {
   storeName?: string | null;
   quantity?: number | null;
   netRevenue?: number | null;
+  grossSales?: number | null;
   transactionId?: string | null;
   vendorModel?: string | null;
 };
@@ -80,6 +84,35 @@ function salesItemKey(row: SalesReturnPairRow): string {
   return (row.vendorModel || row.sku || row.itemNumber || "").trim().toUpperCase();
 }
 
+function salesSkuKey(row: SalesReturnPairRow): string {
+  return (row.sku || row.itemNumber || "").trim().toUpperCase();
+}
+
+/** Absolute amount used for pairing — prefer Total (net), fall back to gross sales. */
+function pairAmountCents(row: SalesReturnPairRow): number {
+  const net = Number(row.netRevenue ?? 0);
+  if (net !== 0) return roundMoneyCents(Math.abs(net));
+  return roundMoneyCents(Math.abs(Number(row.grossSales ?? 0)));
+}
+
+/** Return / void leg: negative qty, or negative net/gross (covers corrupted +qty on returns). */
+function isReturnLeg(row: SalesReturnPairRow): boolean {
+  const qty = Number(row.quantity ?? 0);
+  if (qty < 0) return true;
+  const net = Number(row.netRevenue ?? 0);
+  if (net < 0) return true;
+  const gross = Number(row.grossSales ?? 0);
+  return gross < 0;
+}
+
+function isSaleLeg(row: SalesReturnPairRow): boolean {
+  const qty = Number(row.quantity ?? 0);
+  const net = Number(row.netRevenue ?? 0);
+  const gross = Number(row.grossSales ?? 0);
+  if (qty < 0 || net < 0 || gross < 0) return false;
+  return qty > 0 || net > 0 || gross > 0;
+}
+
 function findReturnPairMatch(
   rows: SalesReturnPairRow[],
   negIdx: number,
@@ -88,32 +121,43 @@ function findReturnPairMatch(
   requireSameTxn: boolean
 ): number {
   const neg = rows[negIdx];
-  const negQty = Number(neg.quantity ?? 0);
-  if (!(negQty < 0)) return -1;
+  if (!isReturnLeg(neg)) return -1;
 
   const store = (neg.storeName ?? "").trim().toLowerCase();
   if (!store) return -1;
-  const amountCents = roundMoneyCents(Math.abs(Number(neg.netRevenue ?? 0)));
+  const amountCents = pairAmountCents(neg);
+  if (!(amountCents > 0)) return -1;
   const item = salesItemKey(neg);
+  const sku = salesSkuKey(neg);
   const txn = (neg.transactionId ?? "").trim().toUpperCase();
-  const absNegQty = Math.abs(negQty);
+  const absNegQty = Math.abs(Number(neg.quantity ?? 0));
 
   for (let j = 0; j < rows.length; j++) {
     if (negIdx === j || drop.has(j) || usedPositive.has(j)) continue;
     const pos = rows[j];
-    const posQty = Number(pos.quantity ?? 0);
-    if (!(posQty > 0) || Math.abs(posQty) !== absNegQty) continue;
+    if (!isSaleLeg(pos)) continue;
     if ((pos.storeName ?? "").trim().toLowerCase() !== store) continue;
-    if (roundMoneyCents(Math.abs(Number(pos.netRevenue ?? 0))) !== amountCents) continue;
+    if (pairAmountCents(pos) !== amountCents) continue;
 
     const posItem = salesItemKey(pos);
+    const posSku = salesSkuKey(pos);
+    if (sku && posSku && sku !== posSku) continue;
+    if (!sku && item && posItem && item !== posItem) continue;
     if (item && posItem && item !== posItem) continue;
+
+    // Prefer matching opposite absolute qty when both legs have a real qty signal
+    const absPosQty = Math.abs(Number(pos.quantity ?? 0));
+    if (absNegQty > 0 && absPosQty > 0 && absNegQty !== absPosQty) {
+      // Allow qty both +1 with opposite-signed money (legacy parse quirk)
+      const negQty = Number(neg.quantity ?? 0);
+      const posQty = Number(pos.quantity ?? 0);
+      if (!(negQty > 0 && posQty > 0 && Number(neg.netRevenue ?? 0) < 0)) continue;
+    }
 
     const posTxn = (pos.transactionId ?? "").trim().toUpperCase();
     if (requireSameTxn) {
       if (!txn || !posTxn || txn !== posTxn) continue;
     } else if (txn && posTxn && txn === posTxn) {
-      // Already considered in the same-txn pass
       continue;
     }
 
@@ -123,10 +167,8 @@ function findReturnPairMatch(
 }
 
 /**
- * Drop return / void pairs: a negative-qty line that mirrors a positive-qty line
- * with the same store, absolute qty, and absolute net amount (and same SKU /
- * vendor model when present). Prefer pairing within the same Transaction #;
- * otherwise match across transactions with the same store + amount + item.
+ * Drop return / void pairs: a return leg that mirrors a sale leg with the same
+ * store, absolute amount, and same SKU/vendor model. Prefer same Transaction #.
  *
  * Example: AR-10291959 has qty −1 and +1 for D67 at the same store / amount —
  * both rows are ignored. A later stand-alone sale (e.g. VR-102291107) is kept.
@@ -140,7 +182,7 @@ export function dropMatchedSalesReturnPairs<T extends SalesReturnPairRow>(rows: 
   const pairPass = (requireSameTxn: boolean) => {
     for (let i = 0; i < rows.length; i++) {
       if (drop.has(i)) continue;
-      if (!(Number(rows[i].quantity ?? 0) < 0)) continue;
+      if (!isReturnLeg(rows[i])) continue;
       const match = findReturnPairMatch(rows, i, usedPositive, drop, requireSameTxn);
       if (match >= 0) {
         drop.add(i);
@@ -165,6 +207,7 @@ export function filterExcludedSalesRows<
     storeName?: string | null;
     quantity?: number | null;
     netRevenue?: number | null;
+    grossSales?: number | null;
     transactionId?: string | null;
     vendorModel?: string | null;
   }
