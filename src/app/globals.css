@@ -2,15 +2,13 @@
    remove FuturisticBackground from src/app/(app)/layout.tsx, and git checkout
    globals.css tailwind.config.ts + ui components (Card, Button, Input, Badge, Sidebar). */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-inter: 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* Inter loaded via next/font — matches clean product-UI sans (Ovani-like) */
+  --font-display: var(--font-inter), system-ui, sans-serif;
   --glass-bg: rgba(15, 23, 42, 0.35);
   --glass-bg-strong: rgba(15, 23, 42, 0.52);
   --glass-border: rgba(255, 255, 255, 0.12);
@@ -27,21 +25,21 @@
   }
 
   html[data-theme="futuristic"] body {
-    @apply text-ink font-sans antialiased min-h-screen font-semibold;
-    letter-spacing: -0.015em;
+    @apply text-ink font-sans antialiased min-h-screen font-normal;
+    letter-spacing: -0.011em;
     background: #1e2733;
   }
 
   html:not([data-theme="futuristic"]) body {
-    @apply text-ink font-sans antialiased font-semibold;
+    @apply text-ink font-sans antialiased font-normal;
     background: #020617; /* Dark navy background */
-    letter-spacing: -0.015em;
+    letter-spacing: -0.011em;
   }
 
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
 }
 
@@ -164,7 +162,7 @@
     letter-spacing: -0.02em;
   }
 
-  /** Big KPI / money numbers — Plus Jakarta Sans Bold 700 */
+  /** Big KPI / money numbers — Inter Bold 700 */
   .font-metric-num {
     font-family: var(--font-display);
     font-weight: 700;

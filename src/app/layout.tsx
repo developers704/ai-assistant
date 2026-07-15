@@ -1,7 +1,15 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/store/app-context";
 import { SplashOverlay } from "@/components/layout/SplashOverlay";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+  weight: ["400", "500", "600", "700", "800"],
+});
 
 export const metadata: Metadata = {
   title: "Alexa — executive assistance",
@@ -29,8 +37,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="futuristic">
-      <body>
+    <html lang="en" data-theme="futuristic" className={inter.variable}>
+      <body className={inter.className}>
         <AppProvider>
           <SplashOverlay />
           {children}
