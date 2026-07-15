@@ -92,16 +92,32 @@ function inheritDashboardContext(input: SalesQueryInput): SalesQueryInput {
   if (input.comparison?.entities?.length) return input;
 
   const ctx = getActiveSalesContext();
-  const hasExplicit =
+  const hasEntity =
     (input.stores?.length ?? 0) > 0 ||
     (input.departments?.length ?? 0) > 0 ||
     (input.designs?.length ?? 0) > 0 ||
     (input.vendors?.length ?? 0) > 0 ||
-    (input.classes?.length ?? 0) > 0 ||
+    (input.classes?.length ?? 0) > 0;
+
+  // Fresh entity from the utterance (e.g. "Great Mall sales") — never AND leftover
+  // design/dept/vendor/class filters from a prior dashboard/voice turn (e.g. EA).
+  if (hasEntity) {
+    return {
+      ...input,
+      stores: input.stores ?? [],
+      departments: input.departments ?? [],
+      designs: input.designs ?? [],
+      vendors: input.vendors ?? [],
+      classes: input.classes ?? [],
+      dateRange: input.dateRange,
+    };
+  }
+
+  const hasExplicitDate =
     Boolean(input.dateRange?.type && input.dateRange.type !== "all_dates") ||
     Boolean(input.dateRange?.startDate);
 
-  // Only fill missing filters from dashboard context
+  // Only fill missing filters from dashboard context when this turn named none
   return {
     ...input,
     stores: input.stores?.length ? input.stores : ctx.stores,
@@ -110,7 +126,7 @@ function inheritDashboardContext(input: SalesQueryInput): SalesQueryInput {
     vendors: input.vendors?.length ? input.vendors : ctx.vendors,
     classes: input.classes?.length ? input.classes : ctx.classes,
     dateRange:
-      hasExplicit || input.dateRange
+      hasExplicitDate || input.dateRange
         ? input.dateRange
         : ctx.dateRange?.from && ctx.dateRange?.to
           ? {
@@ -283,17 +299,50 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
     display.navigateToSales = false;
   }
 
+  const preferSpokenEntities = Boolean(display.navigateToSales);
+
   return {
     ...input,
-    stores: input.stores?.length ? input.stores : extracted.stores,
-    departments: input.departments?.length ? input.departments : extracted.departments,
-    designs: input.designs?.length ? input.designs : extracted.designs,
-    vendors: input.vendors?.length ? input.vendors : extracted.vendors,
-    classes: input.classes?.length ? input.classes : extracted.classes,
+    stores: preferSpokenEntities
+      ? extracted.stores ?? []
+      : input.stores?.length
+        ? input.stores
+        : extracted.stores,
+    departments: preferSpokenEntities
+      ? extracted.departments ?? []
+      : input.departments?.length
+        ? input.departments
+        : extracted.departments,
+    designs: preferSpokenEntities
+      ? extracted.designs ?? []
+      : input.designs?.length
+        ? input.designs
+        : extracted.designs,
+    vendors: preferSpokenEntities
+      ? extracted.vendors ?? []
+      : input.vendors?.length
+        ? input.vendors
+        : extracted.vendors,
+    classes: preferSpokenEntities
+      ? extracted.classes ?? []
+      : input.classes?.length
+        ? input.classes
+        : extracted.classes,
     groupBy,
     limit: input.limit ?? limitFromMsg,
     comparison,
     display,
+    // Show/open filtered sales: only the entities named in this turn (no stale design/store mix).
+    resetContext:
+      input.resetContext ||
+      (preferSpokenEntities &&
+        Boolean(
+          extracted.stores?.length ||
+            extracted.departments?.length ||
+            extracted.designs?.length ||
+            extracted.vendors?.length ||
+            extracted.classes?.length
+        )),
   };
 }
 

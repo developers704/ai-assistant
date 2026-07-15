@@ -437,15 +437,25 @@ export async function executeVoiceTool(
       }
 
       if (name === "apply_sales_dashboard_filters") {
+        // Entity filters come from the spoken line only — do not trust model-filled
+        // designs/stores/etc. (e.g. leftover "EA" when user said "Great Mall sales").
         const result = await querySales({
-          userMessage,
-          designs: Array.isArray(args.designs) ? (args.designs as string[]) : undefined,
-          departments: Array.isArray(args.departments)
-            ? (args.departments as string[])
-            : undefined,
-          stores: Array.isArray(args.stores) ? (args.stores as string[]) : undefined,
-          vendors: Array.isArray(args.vendors) ? (args.vendors as string[]) : undefined,
-          classes: Array.isArray(args.classes) ? (args.classes as string[]) : undefined,
+          userMessage:
+            userMessage ||
+            [
+              Array.isArray(args.stores) ? (args.stores as string[]).join(" ") : "",
+              Array.isArray(args.designs) ? (args.designs as string[]).join(" ") : "",
+              Array.isArray(args.departments)
+                ? (args.departments as string[]).join(" ")
+                : "",
+              Array.isArray(args.vendors) ? (args.vendors as string[]).join(" ") : "",
+              Array.isArray(args.classes) ? (args.classes as string[]).join(" ") : "",
+              args.date ? String(args.date) : "",
+              "sales",
+            ]
+              .filter(Boolean)
+              .join(" "),
+          resetContext: true,
           dateRange: args.date
             ? { type: "custom", startDate: String(args.date), endDate: String(args.date) }
             : undefined,

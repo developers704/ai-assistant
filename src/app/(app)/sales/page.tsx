@@ -90,6 +90,8 @@ export default function SalesPage() {
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
   const knownReportIdRef = useRef<string | null>(null);
   const skipUrlSyncRef = useRef(false);
+  const lastUrlKeyRef = useRef<string | null>(null);
+  const filtersHydratedRef = useRef(false);
 
   const resetFiltersForNewReport = () => {
     skipUrlSyncRef.current = true;
@@ -100,6 +102,7 @@ export default function SalesPage() {
     setFilterVendor("");
     setFilterClass("");
     setRankDetail(null);
+    lastUrlKeyRef.current = "";
     router.replace("/sales", { scroll: false });
   };
 
@@ -111,41 +114,56 @@ export default function SalesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- subscribe once; reset uses stable setters
   }, []);
 
+  // Voice / deep-link: apply URL → filters only when the URL itself changes.
+  // (Do not re-apply on every local filter change — that causes the glitch.)
   useEffect(() => {
     if (skipUrlSyncRef.current) {
       skipUrlSyncRef.current = false;
+      lastUrlKeyRef.current = searchParams.toString();
+      filtersHydratedRef.current = true;
       return;
     }
-    const next = rangeFromSearchParams(searchParams);
-    if (
-      (next?.from ?? "") !== (dateRange?.from ?? "") ||
-      (next?.to ?? "") !== (dateRange?.to ?? "")
-    ) {
-      // Only sync when URL actually carries date params (voice / deep links).
-      if (searchParams.get("from") || searchParams.get("to") || searchParams.get("date")) {
-        setDateRange(next);
-      }
+    const key = searchParams.toString();
+    if (!filtersHydratedRef.current) {
+      filtersHydratedRef.current = true;
+      lastUrlKeyRef.current = key;
+      return;
     }
-    if (storeFromUrl != null && storeFromUrl !== filterStore) setFilterStore(storeFromUrl);
-    if (departmentFromUrl != null && departmentFromUrl !== filterDepartment) {
-      setFilterDepartment(departmentFromUrl);
-    }
-    if (designFromUrl != null && designFromUrl !== filterDesign) setFilterDesign(designFromUrl);
-    if (vendorFromUrl != null && vendorFromUrl !== filterVendor) setFilterVendor(vendorFromUrl);
-    if (classFromUrl != null && classFromUrl !== filterClass) setFilterClass(classFromUrl);
+    if (key === lastUrlKeyRef.current) return;
+    lastUrlKeyRef.current = key;
+
+    setDateRange(rangeFromSearchParams(searchParams));
+    setFilterStore(searchParams.get("store") ?? "");
+    setFilterDepartment(searchParams.get("department") ?? "");
+    setFilterDesign(searchParams.get("design") ?? "");
+    setFilterVendor(searchParams.get("vendor") ?? "");
+    setFilterClass(searchParams.get("class") ?? "");
+  }, [searchParams]);
+
+  // Manual filter changes → keep the URL in sync so voice deep-links and UI stay aligned.
+  useEffect(() => {
+    if (!filtersHydratedRef.current) return;
+    if (skipUrlSyncRef.current) return;
+
+    const params = new URLSearchParams();
+    appendDateParams(params, dateRange);
+    if (filterStore) params.set("store", filterStore);
+    if (filterDepartment) params.set("department", filterDepartment);
+    if (filterDesign) params.set("design", filterDesign);
+    if (filterVendor) params.set("vendor", filterVendor);
+    if (filterClass) params.set("class", filterClass);
+    const key = params.toString();
+    if (key === lastUrlKeyRef.current) return;
+    lastUrlKeyRef.current = key;
+    router.replace(key ? `/sales?${key}` : "/sales", { scroll: false });
   }, [
-    searchParams,
-    storeFromUrl,
-    departmentFromUrl,
-    designFromUrl,
-    vendorFromUrl,
-    classFromUrl,
     dateRange,
     filterStore,
     filterDepartment,
     filterDesign,
     filterVendor,
     filterClass,
+    router,
   ]);
 
   useEffect(() => {
