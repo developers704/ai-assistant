@@ -9,6 +9,7 @@ import { ensureActiveSalesVersion } from "@/lib/sales/refresh/service";
 import { setActiveSalesContext, clearActiveSalesContext } from "@/lib/sales/active-context";
 import { readActivePointer } from "@/lib/sales/data/version-store";
 import type { SalesQueryResult } from "@/lib/sales/sales-types";
+import { parseMultiParam } from "@/lib/sales/filter-params";
 
 function shiftIsoDate(iso: string, days: number): string {
   const d = new Date(`${iso}T12:00:00.000Z`);
@@ -27,11 +28,11 @@ async function queryDashboardSlice(opts: {
   date?: string;
   dateFrom?: string;
   dateTo?: string;
-  store?: string;
-  department?: string;
-  design?: string;
-  vendor?: string;
-  className?: string;
+  stores?: string[];
+  departments?: string[];
+  designs?: string[];
+  vendors?: string[];
+  classes?: string[];
   /** Comparison-only queries need all stores, not product top-20. */
   mode?: "dashboard" | "comparison";
 }): Promise<SalesQueryResult> {
@@ -43,11 +44,11 @@ async function queryDashboardSlice(opts: {
       from && to
         ? { type: "custom", startDate: from, endDate: to }
         : { type: "all_dates" },
-    stores: opts.store ? [opts.store] : undefined,
-    departments: opts.department ? [opts.department] : undefined,
-    designs: opts.design ? [opts.design] : undefined,
-    vendors: opts.vendor ? [opts.vendor] : undefined,
-    classes: opts.className ? [opts.className] : undefined,
+    stores: opts.stores?.length ? opts.stores : undefined,
+    departments: opts.departments?.length ? opts.departments : undefined,
+    designs: opts.designs?.length ? opts.designs : undefined,
+    vendors: opts.vendors?.length ? opts.vendors : undefined,
+    classes: opts.classes?.length ? opts.classes : undefined,
     resetContext: true,
     limit: isCompare ? 500 : 20,
     sortBy: "quantity",
@@ -101,11 +102,11 @@ export async function GET(req: NextRequest) {
       ? filterDateFrom
       : undefined;
 
-  const filterStore = sp.get("store")?.trim() || undefined;
-  const filterDepartment = sp.get("department")?.trim() || undefined;
-  const filterDesign = sp.get("design")?.trim() || undefined;
-  const filterVendor = sp.get("vendor")?.trim() || undefined;
-  const filterClass = sp.get("class")?.trim() || undefined;
+  const filterStores = parseMultiParam(sp, "store", "stores");
+  const filterDepartments = parseMultiParam(sp, "department", "departments");
+  const filterDesigns = parseMultiParam(sp, "design", "designs");
+  const filterVendors = parseMultiParam(sp, "vendor", "vendors");
+  const filterClasses = parseMultiParam(sp, "class", "classes");
 
   if (dateParam && (!singleDate || !isValidIsoDate(singleDate))) {
     return NextResponse.json({ error: "Invalid date. Use MM/DD/YY or YYYY-MM-DD." }, { status: 400 });
@@ -117,14 +118,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid to date." }, { status: 400 });
   }
 
-  // Publish dashboard filter state for Chat/Voice inheritance.
   if (
     !filterDateFrom &&
-    !filterStore &&
-    !filterDepartment &&
-    !filterDesign &&
-    !filterVendor &&
-    !filterClass
+    !filterStores.length &&
+    !filterDepartments.length &&
+    !filterDesigns.length &&
+    !filterVendors.length &&
+    !filterClasses.length
   ) {
     clearActiveSalesContext();
   }
@@ -137,11 +137,11 @@ export async function GET(req: NextRequest) {
           timezone: process.env.BUSINESS_TIMEZONE || "America/Los_Angeles",
         }
       : undefined,
-    stores: filterStore ? [filterStore] : [],
-    departments: filterDepartment ? [filterDepartment] : [],
-    designs: filterDesign ? [filterDesign] : [],
-    vendors: filterVendor ? [filterVendor] : [],
-    classes: filterClass ? [filterClass] : [],
+    stores: filterStores,
+    departments: filterDepartments,
+    designs: filterDesigns,
+    vendors: filterVendors,
+    classes: filterClasses,
     dataVersion: readActivePointer().activeVersion ?? undefined,
   });
 
@@ -153,11 +153,11 @@ export async function GET(req: NextRequest) {
         date: filterDate,
         dateFrom: filterDateFrom,
         dateTo: filterDateTo,
-        store: filterStore,
-        department: filterDepartment,
-        design: filterDesign,
-        vendor: filterVendor,
-        className: filterClass,
+        stores: filterStores,
+        departments: filterDepartments,
+        designs: filterDesigns,
+        vendors: filterVendors,
+        classes: filterClasses,
       };
       const result = await queryDashboardSlice({ ...slice, mode: "dashboard" });
 
@@ -212,11 +212,16 @@ export async function GET(req: NextRequest) {
         filterDate: filterDate ?? null,
         filterDateFrom: filterDateFrom ?? null,
         filterDateTo: filterDateTo ?? null,
-        filterStore: filterStore ?? null,
-        filterDepartment: filterDepartment ?? null,
-        filterDesign: filterDesign ?? null,
-        filterVendor: filterVendor ?? null,
-        filterClass: filterClass ?? null,
+        filterStores,
+        filterDepartments,
+        filterDesigns,
+        filterVendors,
+        filterClasses,
+        filterStore: filterStores[0] ?? null,
+        filterDepartment: filterDepartments[0] ?? null,
+        filterDesign: filterDesigns[0] ?? null,
+        filterVendor: filterVendors[0] ?? null,
+        filterClass: filterClasses[0] ?? null,
         dataVersion: result.freshness?.dataVersion ?? null,
         dataThrough: result.freshness?.dataThrough ?? null,
         engine: "sales_unified",
@@ -227,11 +232,11 @@ export async function GET(req: NextRequest) {
   const latest = getLatestReportWithSummary({
     ...(filterDate ? { filterDate } : {}),
     ...(filterDateFrom && filterDateTo ? { filterDateFrom, filterDateTo } : {}),
-    ...(filterStore ? { filterStore } : {}),
-    ...(filterDepartment ? { filterDepartment } : {}),
-    ...(filterDesign ? { filterDesign } : {}),
-    ...(filterVendor ? { filterVendor } : {}),
-    ...(filterClass ? { filterClass } : {}),
+    ...(filterStores.length ? { filterStores } : {}),
+    ...(filterDepartments.length ? { filterDepartments } : {}),
+    ...(filterDesigns.length ? { filterDesigns } : {}),
+    ...(filterVendors.length ? { filterVendors } : {}),
+    ...(filterClasses.length ? { filterClasses } : {}),
   });
 
   if (latest) {
@@ -253,11 +258,16 @@ export async function GET(req: NextRequest) {
       filterDate: filterDate ?? null,
       filterDateFrom: filterDateFrom ?? null,
       filterDateTo: filterDateTo ?? null,
-      filterStore: filterStore ?? null,
-      filterDepartment: filterDepartment ?? null,
-      filterDesign: filterDesign ?? null,
-      filterVendor: filterVendor ?? null,
-      filterClass: filterClass ?? null,
+      filterStores,
+      filterDepartments,
+      filterDesigns,
+      filterVendors,
+      filterClasses,
+      filterStore: filterStores[0] ?? null,
+      filterDepartment: filterDepartments[0] ?? null,
+      filterDesign: filterDesigns[0] ?? null,
+      filterVendor: filterVendors[0] ?? null,
+      filterClass: filterClasses[0] ?? null,
     });
   }
 
@@ -275,6 +285,11 @@ export async function GET(req: NextRequest) {
     filterDate: null,
     filterDateFrom: null,
     filterDateTo: null,
+    filterStores: [],
+    filterDepartments: [],
+    filterDesigns: [],
+    filterVendors: [],
+    filterClasses: [],
     filterStore: null,
     filterDepartment: null,
     filterDesign: null,

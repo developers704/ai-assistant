@@ -9,6 +9,7 @@ import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { filterExcludedSalesRows } from "@/lib/utils";
 import type { VendorPosRow, RankDimension } from "@/lib/reports/types";
+import { parseMultiParam } from "@/lib/sales/filter-params";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,11 @@ function normalizeFilterKey(value: string): string {
     .toLowerCase()
     .replace(/[\u2010-\u2015\u2212]/g, "-")
     .replace(/\s+/g, " ");
+}
+
+function multiSet(values: string[]): Set<string> | null {
+  if (!values.length) return null;
+  return new Set(values.map(normalizeFilterKey));
 }
 
 function dimensionValue(row: VendorPosRow, dimension: RankDimension): string {
@@ -47,11 +53,11 @@ export async function GET(req: Request) {
   const date = searchParams.get("date")?.trim() || undefined;
   const from = searchParams.get("from")?.trim() || undefined;
   const to = searchParams.get("to")?.trim() || undefined;
-  const store = searchParams.get("store")?.trim() || undefined;
-  const department = searchParams.get("department")?.trim() || undefined;
-  const design = searchParams.get("design")?.trim() || undefined;
-  const vendor = searchParams.get("vendor")?.trim() || undefined;
-  const productClass = searchParams.get("class")?.trim() || undefined;
+  const stores = parseMultiParam(searchParams, "store", "stores");
+  const departments = parseMultiParam(searchParams, "department", "departments");
+  const designs = parseMultiParam(searchParams, "design", "designs");
+  const vendors = parseMultiParam(searchParams, "vendor", "vendors");
+  const classes = parseMultiParam(searchParams, "class", "classes");
   const id = searchParams.get("id")?.trim() || undefined;
 
   const allowed: RankDimension[] = [
@@ -96,25 +102,25 @@ export async function GET(req: Request) {
   } else if (date) {
     rows = rows.filter((r) => r.date === date);
   }
-  if (store) {
-    const needle = normalizeFilterKey(store);
-    rows = rows.filter((r) => normalizeFilterKey(r.storeName) === needle);
+  const storeSet = multiSet(stores);
+  const deptSet = multiSet(departments);
+  const designSet = multiSet(designs);
+  const vendorSet = multiSet(vendors);
+  const classSet = multiSet(classes);
+  if (storeSet) {
+    rows = rows.filter((r) => storeSet.has(normalizeFilterKey(r.storeName)));
   }
-  if (department) {
-    const needle = normalizeFilterKey(department);
-    rows = rows.filter((r) => normalizeFilterKey(r.department) === needle);
+  if (deptSet) {
+    rows = rows.filter((r) => deptSet.has(normalizeFilterKey(r.department)));
   }
-  if (design) {
-    const needle = normalizeFilterKey(design);
-    rows = rows.filter((r) => normalizeFilterKey(r.design) === needle);
+  if (designSet) {
+    rows = rows.filter((r) => designSet.has(normalizeFilterKey(r.design)));
   }
-  if (vendor) {
-    const needle = normalizeFilterKey(vendor);
-    rows = rows.filter((r) => normalizeFilterKey(r.vendor) === needle);
+  if (vendorSet) {
+    rows = rows.filter((r) => vendorSet.has(normalizeFilterKey(r.vendor)));
   }
-  if (productClass) {
-    const needle = normalizeFilterKey(productClass);
-    rows = rows.filter((r) => normalizeFilterKey(r.productClass) === needle);
+  if (classSet) {
+    rows = rows.filter((r) => classSet.has(normalizeFilterKey(r.productClass)));
   }
 
   const needle = normalizeFilterKey(value);

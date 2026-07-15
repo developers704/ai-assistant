@@ -234,10 +234,15 @@ export function getLatestReportWithSummary(options?: {
   filterDateFrom?: string;
   filterDateTo?: string;
   filterStore?: string;
+  filterStores?: string[];
   filterDepartment?: string;
+  filterDepartments?: string[];
   filterDesign?: string;
+  filterDesigns?: string[];
   filterClass?: string;
+  filterClasses?: string[];
   filterVendor?: string;
+  filterVendors?: string[];
 }): {
   meta: StoredReportMeta;
   summary: ReportSummary;
@@ -271,10 +276,15 @@ export function getLatestReportWithSummary(options?: {
     filterDateFrom: options?.filterDateFrom,
     filterDateTo: options?.filterDateTo,
     filterStore: options?.filterStore,
+    filterStores: options?.filterStores,
     filterDepartment: options?.filterDepartment,
+    filterDepartments: options?.filterDepartments,
     filterDesign: options?.filterDesign,
+    filterDesigns: options?.filterDesigns,
     filterClass: options?.filterClass,
+    filterClasses: options?.filterClasses,
     filterVendor: options?.filterVendor,
+    filterVendors: options?.filterVendors,
   });
   return {
     meta,

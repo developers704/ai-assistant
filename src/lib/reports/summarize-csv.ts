@@ -282,10 +282,15 @@ export interface SummarizeOptions {
   filterDateFrom?: string;
   filterDateTo?: string;
   filterStore?: string;
+  filterStores?: string[];
   filterDepartment?: string;
+  filterDepartments?: string[];
   filterDesign?: string;
+  filterDesigns?: string[];
   filterClass?: string;
+  filterClasses?: string[];
   filterVendor?: string;
+  filterVendors?: string[];
 }
 
 export function summarizeCsvText(
@@ -357,10 +362,15 @@ export function summarizeCsvText(
       filterDateFrom: meta?.filterDateFrom,
       filterDateTo: meta?.filterDateTo,
       filterStore: meta?.filterStore,
+      filterStores: meta?.filterStores,
       filterDepartment: meta?.filterDepartment,
+      filterDepartments: meta?.filterDepartments,
       filterDesign: meta?.filterDesign,
+      filterDesigns: meta?.filterDesigns,
       filterClass: meta?.filterClass,
+      filterClasses: meta?.filterClasses,
       filterVendor: meta?.filterVendor,
+      filterVendors: meta?.filterVendors,
       schema: "store_sales",
       reportCategory: "sales",
     });
@@ -389,10 +399,15 @@ export function summarizeCsvText(
       filterDateFrom: meta?.filterDateFrom,
       filterDateTo: meta?.filterDateTo,
       filterStore: meta?.filterStore,
+      filterStores: meta?.filterStores,
       filterDepartment: meta?.filterDepartment,
+      filterDepartments: meta?.filterDepartments,
       filterDesign: meta?.filterDesign,
+      filterDesigns: meta?.filterDesigns,
       filterClass: meta?.filterClass,
+      filterClasses: meta?.filterClasses,
       filterVendor: meta?.filterVendor,
+      filterVendors: meta?.filterVendors,
       schema: "vendor_pos",
       reportCategory: "vendor",
     });

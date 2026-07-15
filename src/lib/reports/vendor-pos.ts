@@ -250,10 +250,15 @@ export function summarizeVendorPos(
     filterDateFrom?: string;
     filterDateTo?: string;
     filterStore?: string;
+    filterStores?: string[];
     filterDepartment?: string;
+    filterDepartments?: string[];
     filterDesign?: string;
+    filterDesigns?: string[];
     filterClass?: string;
+    filterClasses?: string[];
     filterVendor?: string;
+    filterVendors?: string[];
     schema?: "vendor_pos" | "store_sales";
     reportCategory?: import("./types").ReportCategory;
   }
@@ -307,30 +312,61 @@ export function summarizeVendorPos(
     );
   }
 
-  if (opts.filterStore) {
-    const needle = norm(opts.filterStore);
-    periodRows = periodRows.filter((r) => norm(r.storeName) === needle);
-    compareRows = compareRows.filter((r) => norm(r.storeName) === needle);
+  const storeList =
+    opts.filterStores?.length
+      ? opts.filterStores
+      : opts.filterStore
+        ? [opts.filterStore]
+        : [];
+  const deptList =
+    opts.filterDepartments?.length
+      ? opts.filterDepartments
+      : opts.filterDepartment
+        ? [opts.filterDepartment]
+        : [];
+  const designList =
+    opts.filterDesigns?.length
+      ? opts.filterDesigns
+      : opts.filterDesign
+        ? [opts.filterDesign]
+        : [];
+  const vendorList =
+    opts.filterVendors?.length
+      ? opts.filterVendors
+      : opts.filterVendor
+        ? [opts.filterVendor]
+        : [];
+  const classList =
+    opts.filterClasses?.length
+      ? opts.filterClasses
+      : opts.filterClass
+        ? [opts.filterClass]
+        : [];
+
+  if (storeList.length) {
+    const set = new Set(storeList.map(norm));
+    periodRows = periodRows.filter((r) => set.has(norm(r.storeName)));
+    compareRows = compareRows.filter((r) => set.has(norm(r.storeName)));
   }
-  if (opts.filterDepartment) {
-    const needle = norm(opts.filterDepartment);
-    periodRows = periodRows.filter((r) => norm(r.department) === needle);
-    compareRows = compareRows.filter((r) => norm(r.department) === needle);
+  if (deptList.length) {
+    const set = new Set(deptList.map(norm));
+    periodRows = periodRows.filter((r) => set.has(norm(r.department)));
+    compareRows = compareRows.filter((r) => set.has(norm(r.department)));
   }
-  if (opts.filterDesign) {
-    const needle = norm(opts.filterDesign);
-    periodRows = periodRows.filter((r) => norm(r.design) === needle);
-    compareRows = compareRows.filter((r) => norm(r.design) === needle);
+  if (designList.length) {
+    const set = new Set(designList.map(norm));
+    periodRows = periodRows.filter((r) => set.has(norm(r.design)));
+    compareRows = compareRows.filter((r) => set.has(norm(r.design)));
   }
-  if (opts.filterVendor) {
-    const needle = norm(opts.filterVendor);
-    periodRows = periodRows.filter((r) => norm(r.vendor) === needle);
-    compareRows = compareRows.filter((r) => norm(r.vendor) === needle);
+  if (vendorList.length) {
+    const set = new Set(vendorList.map(norm));
+    periodRows = periodRows.filter((r) => set.has(norm(r.vendor)));
+    compareRows = compareRows.filter((r) => set.has(norm(r.vendor)));
   }
-  if (opts.filterClass) {
-    const needle = norm(opts.filterClass);
-    periodRows = periodRows.filter((r) => norm(r.productClass) === needle);
-    compareRows = compareRows.filter((r) => norm(r.productClass) === needle);
+  if (classList.length) {
+    const set = new Set(classList.map(norm));
+    periodRows = periodRows.filter((r) => set.has(norm(r.productClass)));
+    compareRows = compareRows.filter((r) => set.has(norm(r.productClass)));
   }
 
   const totalRevenue = periodRows.reduce((s, r) => s + r.netRevenue, 0);

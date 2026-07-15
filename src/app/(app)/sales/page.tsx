@@ -27,12 +27,15 @@ import {
   SalesDateRangePicker,
   type SalesDateRangeValue,
 } from "@/components/sales/SalesDateRangePicker";
+import { SalesMultiSelectFilter } from "@/components/sales/SalesMultiSelectFilter";
+import {
+  appendMultiParam,
+  parseMultiParam,
+  pruneUnavailable,
+} from "@/lib/sales/filter-params";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
-import { TrendingUp, TrendingDown, Package, Store, LineChart } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, Store, LineChart, GitCompareArrows } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const selectClass =
-  "select-dark h-9 px-3 rounded-xl text-sm backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400/40";
 
 function rangeFromSearchParams(sp: {
   get: (key: string) => string | null;
@@ -58,14 +61,26 @@ function appendDateParams(params: URLSearchParams, range: SalesDateRangeValue | 
   }
 }
 
+function appendFilterParams(
+  params: URLSearchParams,
+  filters: {
+    stores: string[];
+    departments: string[];
+    designs: string[];
+    vendors: string[];
+    classes: string[];
+  }
+) {
+  appendMultiParam(params, "store", filters.stores);
+  appendMultiParam(params, "department", filters.departments);
+  appendMultiParam(params, "design", filters.designs);
+  appendMultiParam(params, "vendor", filters.vendors);
+  appendMultiParam(params, "class", filters.classes);
+}
+
 export default function SalesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const storeFromUrl = searchParams.get("store");
-  const departmentFromUrl = searchParams.get("department");
-  const designFromUrl = searchParams.get("design");
-  const vendorFromUrl = searchParams.get("vendor");
-  const classFromUrl = searchParams.get("class");
   const detailTypeFromUrl = searchParams.get("detail");
   const detailValueFromUrl = searchParams.get("detailValue");
   const [summary, setSummary] = useState<SalesSummary | null>(null);
@@ -81,11 +96,21 @@ export default function SalesPage() {
   const [dateRange, setDateRange] = useState<SalesDateRangeValue | null>(() =>
     rangeFromSearchParams(searchParams)
   );
-  const [filterStore, setFilterStore] = useState(() => storeFromUrl ?? "");
-  const [filterDepartment, setFilterDepartment] = useState(() => departmentFromUrl ?? "");
-  const [filterDesign, setFilterDesign] = useState(() => designFromUrl ?? "");
-  const [filterVendor, setFilterVendor] = useState(() => vendorFromUrl ?? "");
-  const [filterClass, setFilterClass] = useState(() => classFromUrl ?? "");
+  const [filterStores, setFilterStores] = useState<string[]>(() =>
+    parseMultiParam(searchParams, "store", "stores")
+  );
+  const [filterDepartments, setFilterDepartments] = useState<string[]>(() =>
+    parseMultiParam(searchParams, "department", "departments")
+  );
+  const [filterDesigns, setFilterDesigns] = useState<string[]>(() =>
+    parseMultiParam(searchParams, "design", "designs")
+  );
+  const [filterVendors, setFilterVendors] = useState<string[]>(() =>
+    parseMultiParam(searchParams, "vendor", "vendors")
+  );
+  const [filterClasses, setFilterClasses] = useState<string[]>(() =>
+    parseMultiParam(searchParams, "class", "classes")
+  );
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
   const knownReportIdRef = useRef<string | null>(null);
@@ -96,11 +121,11 @@ export default function SalesPage() {
   const resetFiltersForNewReport = () => {
     skipUrlSyncRef.current = true;
     setDateRange(null);
-    setFilterStore("");
-    setFilterDepartment("");
-    setFilterDesign("");
-    setFilterVendor("");
-    setFilterClass("");
+    setFilterStores([]);
+    setFilterDepartments([]);
+    setFilterDesigns([]);
+    setFilterVendors([]);
+    setFilterClasses([]);
     setRankDetail(null);
     lastUrlKeyRef.current = "";
     router.replace("/sales", { scroll: false });
@@ -133,11 +158,11 @@ export default function SalesPage() {
     lastUrlKeyRef.current = key;
 
     setDateRange(rangeFromSearchParams(searchParams));
-    setFilterStore(searchParams.get("store") ?? "");
-    setFilterDepartment(searchParams.get("department") ?? "");
-    setFilterDesign(searchParams.get("design") ?? "");
-    setFilterVendor(searchParams.get("vendor") ?? "");
-    setFilterClass(searchParams.get("class") ?? "");
+    setFilterStores(parseMultiParam(searchParams, "store", "stores"));
+    setFilterDepartments(parseMultiParam(searchParams, "department", "departments"));
+    setFilterDesigns(parseMultiParam(searchParams, "design", "designs"));
+    setFilterVendors(parseMultiParam(searchParams, "vendor", "vendors"));
+    setFilterClasses(parseMultiParam(searchParams, "class", "classes"));
   }, [searchParams]);
 
   // Manual filter changes → keep the URL in sync so voice deep-links and UI stay aligned.
@@ -147,22 +172,24 @@ export default function SalesPage() {
 
     const params = new URLSearchParams();
     appendDateParams(params, dateRange);
-    if (filterStore) params.set("store", filterStore);
-    if (filterDepartment) params.set("department", filterDepartment);
-    if (filterDesign) params.set("design", filterDesign);
-    if (filterVendor) params.set("vendor", filterVendor);
-    if (filterClass) params.set("class", filterClass);
+    appendFilterParams(params, {
+      stores: filterStores,
+      departments: filterDepartments,
+      designs: filterDesigns,
+      vendors: filterVendors,
+      classes: filterClasses,
+    });
     const key = params.toString();
     if (key === lastUrlKeyRef.current) return;
     lastUrlKeyRef.current = key;
     router.replace(key ? `/sales?${key}` : "/sales", { scroll: false });
   }, [
     dateRange,
-    filterStore,
-    filterDepartment,
-    filterDesign,
-    filterVendor,
-    filterClass,
+    filterStores,
+    filterDepartments,
+    filterDesigns,
+    filterVendors,
+    filterClasses,
     router,
   ]);
 
@@ -182,11 +209,13 @@ export default function SalesPage() {
   useEffect(() => {
     const params = new URLSearchParams();
     appendDateParams(params, dateRange);
-    if (filterStore) params.set("store", filterStore);
-    if (filterDepartment) params.set("department", filterDepartment);
-    if (filterDesign) params.set("design", filterDesign);
-    if (filterVendor) params.set("vendor", filterVendor);
-    if (filterClass) params.set("class", filterClass);
+    appendFilterParams(params, {
+      stores: filterStores,
+      departments: filterDepartments,
+      designs: filterDesigns,
+      vendors: filterVendors,
+      classes: filterClasses,
+    });
     const qs = params.toString() ? `?${params}` : "";
     fetch(`/api/sales${qs}`)
       .then((r) => r.json())
@@ -230,25 +259,11 @@ export default function SalesPage() {
           ) {
             setDateRange(null);
           }
-          if (filterStore && stores.length && !stores.includes(filterStore)) {
-            setFilterStore("");
-          }
-          if (
-            filterDepartment &&
-            departments.length &&
-            !departments.includes(filterDepartment)
-          ) {
-            setFilterDepartment("");
-          }
-          if (filterDesign && designs.length && !designs.includes(filterDesign)) {
-            setFilterDesign("");
-          }
-          if (filterVendor && vendors.length && !vendors.includes(filterVendor)) {
-            setFilterVendor("");
-          }
-          if (filterClass && classes.length && !classes.includes(filterClass)) {
-            setFilterClass("");
-          }
+          setFilterStores((prev) => pruneUnavailable(prev, stores));
+          setFilterDepartments((prev) => pruneUnavailable(prev, departments));
+          setFilterDesigns((prev) => pruneUnavailable(prev, designs));
+          setFilterVendors((prev) => pruneUnavailable(prev, vendors));
+          setFilterClasses((prev) => pruneUnavailable(prev, classes));
         } else {
           setReportSummary(null);
           setAvailableDates([]);
@@ -264,11 +279,11 @@ export default function SalesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- resetFilters uses router; intentional deps are filters/nonce
   }, [
     dateRange,
-    filterStore,
-    filterDepartment,
-    filterDesign,
-    filterVendor,
-    filterClass,
+    filterStores,
+    filterDepartments,
+    filterDesigns,
+    filterVendors,
+    filterClasses,
     refreshNonce,
   ]);
 
@@ -339,24 +354,50 @@ export default function SalesPage() {
               : undefined
           }
           action={
-            <Link
-              href={(() => {
-                const params = new URLSearchParams();
-                appendDateParams(params, dateRange);
-                if (filterStore) params.set("store", filterStore);
-                if (filterDepartment) params.set("department", filterDepartment);
-                if (filterDesign) params.set("design", filterDesign);
-                if (filterVendor) params.set("vendor", filterVendor);
-                if (filterClass) params.set("class", filterClass);
-                const qs = params.toString();
-                return qs ? `/sales/visualizations?${qs}` : "/sales/visualizations";
-              })()}
-            >
-              <Button size="sm" className="gap-1.5">
-                <LineChart size={14} />
-                Visualization
-              </Button>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={(() => {
+                  const params = new URLSearchParams();
+                  appendDateParams(params, dateRange);
+                  appendFilterParams(params, {
+                    stores: filterStores,
+                    departments: filterDepartments,
+                    designs: filterDesigns,
+                    vendors: filterVendors,
+                    classes: filterClasses,
+                  });
+                  const qs = params.toString();
+                  return qs
+                    ? `/sales/lookup-compare?${qs}`
+                    : "/sales/lookup-compare";
+                })()}
+              >
+                <Button size="sm" className="gap-1.5">
+                  <GitCompareArrows size={14} />
+                  Lookup & Compare
+                </Button>
+              </Link>
+              <Link
+                href={(() => {
+                  const params = new URLSearchParams();
+                  appendDateParams(params, dateRange);
+                  appendFilterParams(params, {
+                    stores: filterStores,
+                    departments: filterDepartments,
+                    designs: filterDesigns,
+                    vendors: filterVendors,
+                    classes: filterClasses,
+                  });
+                  const qs = params.toString();
+                  return qs ? `/sales/visualizations?${qs}` : "/sales/visualizations";
+                })()}
+              >
+                <Button size="sm" className="gap-1.5">
+                  <LineChart size={14} />
+                  Visualization
+                </Button>
+              </Link>
+            </div>
           }
         />
 
@@ -375,79 +416,49 @@ export default function SalesPage() {
               onChange={setDateRange}
             />
             {availableStores.length > 0 && (
-              <select
-                value={filterStore}
-                onChange={(e) => setFilterStore(e.target.value)}
-                className={selectClass}
-                aria-label="Filter by store"
-              >
-                <option value="">All stores</option>
-                {availableStores.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <SalesMultiSelectFilter
+                label="Stores"
+                allLabel="All stores"
+                options={availableStores}
+                value={filterStores}
+                onChange={setFilterStores}
+              />
             )}
             {availableDepartments.length > 0 && (
-              <select
-                value={filterDepartment}
-                onChange={(e) => setFilterDepartment(e.target.value)}
-                className={selectClass}
-                aria-label="Filter by department"
-              >
-                <option value="">All departments</option>
-                {availableDepartments.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <SalesMultiSelectFilter
+                label="Departments"
+                allLabel="All departments"
+                options={availableDepartments}
+                value={filterDepartments}
+                onChange={setFilterDepartments}
+              />
             )}
             {availableDesigns.length > 0 && (
-              <select
-                value={filterDesign}
-                onChange={(e) => setFilterDesign(e.target.value)}
-                className={selectClass}
-                aria-label="Filter by design"
-              >
-                <option value="">All designs</option>
-                {availableDesigns.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <SalesMultiSelectFilter
+                label="Designs"
+                allLabel="All designs"
+                options={availableDesigns}
+                value={filterDesigns}
+                onChange={setFilterDesigns}
+              />
             )}
             {availableVendors.length > 0 && (
-              <select
-                value={filterVendor}
-                onChange={(e) => setFilterVendor(e.target.value)}
-                className={selectClass}
-                aria-label="Filter by vendor"
-              >
-                <option value="">All vendors</option>
-                {availableVendors.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <SalesMultiSelectFilter
+                label="Vendors"
+                allLabel="All vendors"
+                options={availableVendors}
+                value={filterVendors}
+                onChange={setFilterVendors}
+              />
             )}
             {availableClasses.length > 0 && (
-              <select
-                value={filterClass}
-                onChange={(e) => setFilterClass(e.target.value)}
-                className={selectClass}
-                aria-label="Filter by class"
-              >
-                <option value="">All classes</option>
-                {availableClasses.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <SalesMultiSelectFilter
+                label="Classes"
+                allLabel="All classes"
+                options={availableClasses}
+                value={filterClasses}
+                onChange={setFilterClasses}
+              />
             )}
           </div>
         )}
@@ -657,11 +668,11 @@ export default function SalesPage() {
         }
         filterDateFrom={dateRange?.from}
         filterDateTo={dateRange?.to}
-        filterStore={filterStore || undefined}
-        filterDepartment={filterDepartment || undefined}
-        filterDesign={filterDesign || undefined}
-        filterVendor={filterVendor || undefined}
-        filterClass={filterClass || undefined}
+        filterStore={filterStores.length ? filterStores.join(",") : undefined}
+        filterDepartment={filterDepartments.length ? filterDepartments.join(",") : undefined}
+        filterDesign={filterDesigns.length ? filterDesigns.join(",") : undefined}
+        filterVendor={filterVendors.length ? filterVendors.join(",") : undefined}
+        filterClass={filterClasses.length ? filterClasses.join(",") : undefined}
         reportId={
           reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
             ? reportId
