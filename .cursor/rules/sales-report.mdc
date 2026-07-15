@@ -21,12 +21,13 @@ These rows are treated as **deleted** from the sales report. They must **not** a
 | `JVS-200940` | Watch battery service (repair, not product) |
 | `217365`, `217286`, `159004` | Legacy excluded SKUs |
 | Blank / empty **Department** | Incomplete line — drop the row |
+| **Matched return / void pair** | Negative qty + matching positive qty with **same abs qty**, **same store**, **same absolute net amount**, same SKU/vendor model — drop **both** legs. Prefer same Transaction #; otherwise match across txns on store+amount+item. Stand-alone sales (different store / amount / unpaired) are kept. |
 
 ### Implementation (do not bypass on upload)
 
-- **Single source of truth:** `isExcludedSalesSku()` + `isExcludedSalesRow()` + `filterExcludedSalesRows()` in `src/lib/utils.ts`
+- **Single source of truth:** `isExcludedSalesSku()` + `isExcludedSalesRow()` + `dropMatchedSalesReturnPairs()` + `filterExcludedSalesRows()` in `src/lib/utils.ts`
 - **On every summarize/upload:** filter `periodRows` (and `compareRows`) in `summarizeVendorPos()` via `filterExcludedSalesRows()`
-- **On rank-detail:** filter rows in `/api/reports/rank-detail` the same way
+- **On rank-detail / visualizations / sales version refresh:** filter rows the same way
 
 When adding exclusions, update `src/lib/utils.ts` only.
 

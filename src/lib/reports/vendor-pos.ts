@@ -123,7 +123,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       vendorModel: vendorModelCol ? String(rec[vendorModelCol] ?? "").trim() : "",
       productClass: classCol ? String(rec[classCol] ?? "").trim() : "",
       subClass: subClassCol ? String(rec[subClassCol] ?? "").trim() : "",
-      quantity: qty || 1,
+      quantity: qty === 0 || qty == null || Number.isNaN(qty) ? 1 : qty,
       inventoryCost,
       grossSales: gross,
       discountAmount: discCol ? parseNumber(rec[discCol]) : Math.max(0, gross - net),

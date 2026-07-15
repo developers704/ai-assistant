@@ -61,10 +61,116 @@ export function isExcludedSalesRow(row: {
   return isExcludedSalesSku(sku);
 }
 
+type SalesReturnPairRow = {
+  sku?: string | null;
+  itemNumber?: string | null;
+  department?: string | null;
+  storeName?: string | null;
+  quantity?: number | null;
+  netRevenue?: number | null;
+  transactionId?: string | null;
+  vendorModel?: string | null;
+};
+
+function roundMoneyCents(n: number): number {
+  return Math.round(n * 100);
+}
+
+function salesItemKey(row: SalesReturnPairRow): string {
+  return (row.vendorModel || row.sku || row.itemNumber || "").trim().toUpperCase();
+}
+
+function findReturnPairMatch(
+  rows: SalesReturnPairRow[],
+  negIdx: number,
+  usedPositive: Set<number>,
+  drop: Set<number>,
+  requireSameTxn: boolean
+): number {
+  const neg = rows[negIdx];
+  const negQty = Number(neg.quantity ?? 0);
+  if (!(negQty < 0)) return -1;
+
+  const store = (neg.storeName ?? "").trim().toLowerCase();
+  if (!store) return -1;
+  const amountCents = roundMoneyCents(Math.abs(Number(neg.netRevenue ?? 0)));
+  const item = salesItemKey(neg);
+  const txn = (neg.transactionId ?? "").trim().toUpperCase();
+  const absNegQty = Math.abs(negQty);
+
+  for (let j = 0; j < rows.length; j++) {
+    if (negIdx === j || drop.has(j) || usedPositive.has(j)) continue;
+    const pos = rows[j];
+    const posQty = Number(pos.quantity ?? 0);
+    if (!(posQty > 0) || Math.abs(posQty) !== absNegQty) continue;
+    if ((pos.storeName ?? "").trim().toLowerCase() !== store) continue;
+    if (roundMoneyCents(Math.abs(Number(pos.netRevenue ?? 0))) !== amountCents) continue;
+
+    const posItem = salesItemKey(pos);
+    if (item && posItem && item !== posItem) continue;
+
+    const posTxn = (pos.transactionId ?? "").trim().toUpperCase();
+    if (requireSameTxn) {
+      if (!txn || !posTxn || txn !== posTxn) continue;
+    } else if (txn && posTxn && txn === posTxn) {
+      // Already considered in the same-txn pass
+      continue;
+    }
+
+    return j;
+  }
+  return -1;
+}
+
+/**
+ * Drop return / void pairs: a negative-qty line that mirrors a positive-qty line
+ * with the same store, absolute qty, and absolute net amount (and same SKU /
+ * vendor model when present). Prefer pairing within the same Transaction #;
+ * otherwise match across transactions with the same store + amount + item.
+ *
+ * Example: AR-10291959 has qty −1 and +1 for D67 at the same store / amount —
+ * both rows are ignored. A later stand-alone sale (e.g. VR-102291107) is kept.
+ */
+export function dropMatchedSalesReturnPairs<T extends SalesReturnPairRow>(rows: T[]): T[] {
+  if (rows.length < 2) return rows;
+
+  const drop = new Set<number>();
+  const usedPositive = new Set<number>();
+
+  const pairPass = (requireSameTxn: boolean) => {
+    for (let i = 0; i < rows.length; i++) {
+      if (drop.has(i)) continue;
+      if (!(Number(rows[i].quantity ?? 0) < 0)) continue;
+      const match = findReturnPairMatch(rows, i, usedPositive, drop, requireSameTxn);
+      if (match >= 0) {
+        drop.add(i);
+        drop.add(match);
+        usedPositive.add(match);
+      }
+    }
+  };
+
+  pairPass(true);
+  pairPass(false);
+
+  if (!drop.size) return rows;
+  return rows.filter((_, idx) => !drop.has(idx));
+}
+
 export function filterExcludedSalesRows<
-  T extends { sku?: string | null; itemNumber?: string | null; department?: string | null }
+  T extends {
+    sku?: string | null;
+    itemNumber?: string | null;
+    department?: string | null;
+    storeName?: string | null;
+    quantity?: number | null;
+    netRevenue?: number | null;
+    transactionId?: string | null;
+    vendorModel?: string | null;
+  }
 >(rows: T[]): T[] {
-  return rows.filter((r) => !isExcludedSalesRow(r));
+  const withoutSkuDept = rows.filter((r) => !isExcludedSalesRow(r));
+  return dropMatchedSalesReturnPairs(withoutSkuDept);
 }
 
 export function filterTopProductSkus<
