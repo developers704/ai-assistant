@@ -3,60 +3,43 @@
 import { useEffect, useState } from "react";
 import { AppSplash } from "@/components/layout/AppSplash";
 import { useApp } from "@/lib/store/app-context";
+import { cn } from "@/lib/utils";
 
-const MIN_SPLASH_MS = 650;
-const EXIT_MS = 160;
-
-function readPwaFlag(): boolean {
-  if (typeof document === "undefined") return false;
-  if (document.documentElement.dataset.pwa === "1") return true;
-  if (typeof window === "undefined") return false;
-  const mq = window.matchMedia("(display-mode: standalone)");
-  if (mq.matches) return true;
-  const nav = window.navigator as Navigator & { standalone?: boolean };
-  if (nav.standalone === true) return true;
-  if (window.matchMedia("(display-mode: fullscreen)").matches) return true;
-  if (window.matchMedia("(display-mode: minimal-ui)").matches) return true;
-  return false;
-}
+const MIN_SPLASH_MS = 600;
 
 /**
- * Desktop / browser tab: show one branded splash until ready.
- * Installed mobile app (PWA): skip — OS already showed the icon splash.
- * That second in-app splash was the “two icons” on phone.
+ * Single launch splash — stays until app data is ready (no double splash).
  */
 export function SplashOverlay() {
   const { loading } = useApp();
-  const [isPwa] = useState(readPwaFlag);
-  const [readyToHide, setReadyToHide] = useState(false);
-  const [hidden, setHidden] = useState(isPwa);
+  const [phase, setPhase] = useState<"visible" | "hiding" | "hidden">("visible");
+  const [minElapsed, setMinElapsed] = useState(false);
 
   useEffect(() => {
-    if (isPwa) {
-      setHidden(true);
-      return;
-    }
-    const timer = window.setTimeout(() => setReadyToHide(true), MIN_SPLASH_MS);
+    const timer = window.setTimeout(() => setMinElapsed(true), MIN_SPLASH_MS);
     return () => window.clearTimeout(timer);
-  }, [isPwa]);
+  }, []);
 
   useEffect(() => {
-    if (isPwa || hidden) return;
-    if (!loading && readyToHide) {
-      const done = window.setTimeout(() => setHidden(true), EXIT_MS);
+    if (!loading && minElapsed && phase === "visible") {
+      setPhase("hiding");
+      const done = window.setTimeout(() => setPhase("hidden"), 320);
       return () => window.clearTimeout(done);
     }
-  }, [loading, readyToHide, hidden, isPwa]);
+  }, [loading, minElapsed, phase]);
 
-  if (isPwa || hidden) return null;
+  if (phase === "hidden") return null;
 
   return (
     <div
-      className="fixed inset-0 z-[9999] bg-[#1e2733]"
+      className={cn(
+        "fixed inset-0 z-[9999] bg-[#1e2733] transition-opacity duration-300",
+        phase === "hiding" ? "opacity-0 pointer-events-none" : "opacity-100"
+      )}
+      aria-hidden={phase === "hiding"}
       aria-busy={loading}
-      aria-label="Loading Alexa"
     >
-      <AppSplash variant="os-match" />
+      <AppSplash />
     </div>
   );
 }
