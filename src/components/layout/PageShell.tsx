@@ -192,7 +192,7 @@ export function LushMetric({
     <div className="rounded-2xl ring-1 ring-white/[0.08] bg-white/[0.03] p-4 sm:p-5 relative overflow-hidden">
       <div className="pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full bg-white/[0.03] blur-2xl" />
       <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35 relative">{label}</p>
-      <p className={cn("text-2xl sm:text-3xl mt-1.5 tabular-nums tracking-tight relative", valueColors[accent], accent !== "amber" && "font-bold")}>
+      <p className={cn("text-2xl sm:text-3xl mt-1.5 font-metric-num relative", valueColors[accent])}>
         {value}
       </p>
       {footer && <div className="mt-2 relative text-sm">{footer}</div>}

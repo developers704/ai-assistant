@@ -1,6 +1,5 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { FuturisticBackground } from "@/components/layout/FuturisticBackground";
 import { cn } from "@/lib/utils";
 
@@ -11,8 +10,7 @@ interface AppSplashProps {
 }
 
 /**
- * Branded launch splash — icon + Alexa name (not icon-only).
- * Used while app state hydrates after PWA/home-screen open.
+ * Branded launch splash — same mark as the home-screen / PWA icon (`/icon.svg`).
  */
 export function AppSplash({ variant = "fullscreen", className }: AppSplashProps) {
   const compact = variant === "compact";
@@ -32,21 +30,22 @@ export function AppSplash({ variant = "fullscreen", className }: AppSplashProps)
 
       <div
         className={cn(
-          "flex flex-col items-center animate-in fade-in zoom-in-95 duration-500",
+          "relative z-[1] flex flex-col items-center",
           compact ? "gap-3" : "gap-4"
         )}
       >
-        <div
+        {/* Same asset as installed app icon — avoids a second mismatched mark on launch */}
+        <img
+          src="/icon.svg"
+          alt=""
+          width={compact ? 56 : 80}
+          height={compact ? 56 : 80}
           className={cn(
-            "app-logo-badge icon-badge flex items-center justify-center rounded-2xl ring-1 ring-violet-400/35 shadow-glow",
-            compact ? "h-14 w-14" : "h-[4.5rem] w-[4.5rem] sm:h-20 sm:w-20"
+            "rounded-[22%] shadow-[0_12px_40px_rgba(76,29,149,0.45)] ring-1 ring-white/15",
+            compact ? "h-14 w-14" : "h-20 w-20 sm:h-[5.5rem] sm:w-[5.5rem]"
           )}
-        >
-          <Sparkles
-            className={cn("text-amber-300", compact ? "h-7 w-7" : "h-9 w-9 sm:h-10 sm:w-10")}
-            strokeWidth={1.75}
-          />
-        </div>
+          draggable={false}
+        />
 
         <div className="space-y-1">
           <h1

@@ -178,13 +178,17 @@ function MetricCard({
   icon?: typeof TrendingUp;
 }) {
   const valueColor =
-    accent === "emerald" ? "text-emerald-300 font-bold" : accent === "amber" ? "text-gold-metric" : "text-ink font-bold";
+    accent === "emerald"
+      ? "text-emerald-300"
+      : accent === "amber"
+        ? "text-gold-metric"
+        : "text-ink";
   return (
     <div className="rounded-3xl p-4 glass-panel">
       <p className="text-xs text-ink-muted flex items-center gap-1.5">
         {Icon && <Icon size={12} />} {label}
       </p>
-      <p className={cn("text-xl mt-1", valueColor)}>{value}</p>
+      <p className={cn("text-xl mt-1 font-metric-num", valueColor)}>{value}</p>
       {sub && <p className="text-[11px] text-ink-muted mt-0.5">{sub}</p>}
     </div>
   );
@@ -204,7 +208,7 @@ function SmallMetric({
       <p className="text-xs text-ink-muted flex items-center gap-1.5">
         <Icon size={12} /> {label}
       </p>
-      <p className="text-lg font-bold text-ink mt-1">{value}</p>
+      <p className="text-lg font-metric-num text-ink mt-1">{value}</p>
     </div>
   );
 }
@@ -243,7 +247,7 @@ function ListCard({
                   <span className="text-ink-muted text-xs"> ({item.share.toFixed(1)}%)</span>
                 )}
               </span>
-              <span className="font-medium text-ink shrink-0 flex items-center gap-1">
+              <span className="font-metric-num text-ink shrink-0 flex items-center gap-1 text-sm">
                 {formatCurrency(item.revenue)}
                 {onItemClick && <ChevronRight size={12} className="text-white/25" />}
               </span>

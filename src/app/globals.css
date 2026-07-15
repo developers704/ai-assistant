@@ -159,8 +159,17 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-weight: 700;
     letter-spacing: -0.02em;
+  }
+
+  /** Big KPI / money numbers — Plus Jakarta Sans Bold 700 */
+  .font-metric-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
 
   .chat-orb-glow {

@@ -3,41 +3,38 @@
 import { useEffect, useState } from "react";
 import { AppSplash } from "@/components/layout/AppSplash";
 import { useApp } from "@/lib/store/app-context";
-import { cn } from "@/lib/utils";
 
-const MIN_SPLASH_MS = 600;
+const MIN_SPLASH_MS = 700;
+const EXIT_MS = 180;
 
 /**
- * Single launch splash — stays until app data is ready (no double splash).
+ * Single launch splash. Background stays fully opaque until unmount so the
+ * chat UI never shows through a transparent fade (which looked like two icons).
  */
 export function SplashOverlay() {
   const { loading } = useApp();
-  const [phase, setPhase] = useState<"visible" | "hiding" | "hidden">("visible");
-  const [minElapsed, setMinElapsed] = useState(false);
+  const [readyToHide, setReadyToHide] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setMinElapsed(true), MIN_SPLASH_MS);
+    const timer = window.setTimeout(() => setReadyToHide(true), MIN_SPLASH_MS);
     return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (!loading && minElapsed && phase === "visible") {
-      setPhase("hiding");
-      const done = window.setTimeout(() => setPhase("hidden"), 320);
+    if (!loading && readyToHide && !hidden) {
+      const done = window.setTimeout(() => setHidden(true), EXIT_MS);
       return () => window.clearTimeout(done);
     }
-  }, [loading, minElapsed, phase]);
+  }, [loading, readyToHide, hidden]);
 
-  if (phase === "hidden") return null;
+  if (hidden) return null;
 
   return (
     <div
-      className={cn(
-        "fixed inset-0 z-[9999] bg-[#1e2733] transition-opacity duration-300",
-        phase === "hiding" ? "opacity-0 pointer-events-none" : "opacity-100"
-      )}
-      aria-hidden={phase === "hiding"}
+      className="fixed inset-0 z-[9999] bg-[#1e2733]"
       aria-busy={loading}
+      aria-label="Loading Alexa"
     >
       <AppSplash />
     </div>
