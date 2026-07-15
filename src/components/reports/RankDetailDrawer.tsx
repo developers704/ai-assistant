@@ -30,6 +30,8 @@ type RankDetailResponse = {
       vendorModel: string;
       revenue: number;
       units: number;
+      margin?: number;
+      marginRate?: number;
       imageUrl?: string | null;
       sku?: string;
     }[];
@@ -274,6 +276,17 @@ export function RankDetailDrawer({
                 { label: "Gross", value: formatCurrency(t.grossSales) },
                 { label: "Discounts", value: formatCurrency(t.discountTotal) },
                 {
+                  label: "Profit",
+                  value: formatCurrency(t.margin),
+                },
+                {
+                  label: "Profit margin",
+                  value:
+                    t.revenue > 0
+                      ? `${((t.margin / t.revenue) * 100).toFixed(1)}%`
+                      : "—",
+                },
+                {
                   label: "Transactions",
                   value: t.uniqueTransactions.toLocaleString(),
                 },
@@ -339,13 +352,33 @@ export function RankDetailDrawer({
                           {m.vendorModel}
                         </p>
                       </div>
-                      <div className="text-right shrink-0">
+                      <div className="text-right shrink-0 min-w-[4.75rem]">
                         <p className="text-sm tabular-nums text-ink">
                           {formatCurrency(m.revenue)}
                         </p>
                         <p className="text-[11px] text-white/40 tabular-nums">
                           {formatPieceCount(m.units)}
                         </p>
+                        {(typeof m.marginRate === "number" || typeof m.margin === "number") && (
+                          <p
+                            className={cn(
+                              "text-[11px] font-semibold tabular-nums mt-0.5",
+                              (m.marginRate ??
+                                (m.revenue > 0 ? (m.margin ?? 0) / m.revenue : 0)) >= 0.4
+                                ? "text-emerald-300"
+                                : (m.marginRate ??
+                                      (m.revenue > 0 ? (m.margin ?? 0) / m.revenue : 0)) >= 0.25
+                                  ? "text-amber-200"
+                                  : "text-rose-300"
+                            )}
+                          >
+                            {(
+                              (m.marginRate ??
+                                (m.revenue > 0 ? (m.margin ?? 0) / m.revenue : 0)) * 100
+                            ).toFixed(1)}
+                            % margin
+                          </p>
+                        )}
                       </div>
                     </li>
                   );

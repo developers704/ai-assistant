@@ -18,6 +18,10 @@ export interface TopProductRow {
   imageUrl?: string | null;
   revenue: number;
   units: number;
+  /** Profit = net sales − inventory cost */
+  margin?: number;
+  /** Profit margin = profit / net sales (0–1) */
+  marginRate?: number;
 }
 
 interface TopProductsTableProps {
@@ -26,7 +30,21 @@ interface TopProductsTableProps {
 }
 
 const ROW_GRID =
-  "grid grid-cols-1 sm:grid-cols-[2rem_3.25rem_5.5rem_minmax(0,1fr)_4.5rem_6.5rem] lg:grid-cols-[2rem_3.5rem_6.5rem_minmax(0,2fr)_4.5rem_7rem] gap-x-3 gap-y-1";
+  "grid grid-cols-1 sm:grid-cols-[2rem_3.25rem_5rem_minmax(0,1fr)_3.75rem_5.5rem_5rem] lg:grid-cols-[2rem_3.5rem_6rem_minmax(0,2fr)_4rem_6rem_5.5rem] gap-x-3 gap-y-1";
+
+function marginRateOf(product: TopProductRow): number {
+  if (typeof product.marginRate === "number" && Number.isFinite(product.marginRate)) {
+    return product.marginRate;
+  }
+  if (
+    typeof product.margin === "number" &&
+    product.revenue > 0 &&
+    Number.isFinite(product.margin)
+  ) {
+    return product.margin / product.revenue;
+  }
+  return 0;
+}
 
 export function TopProductsTable({
   products,
@@ -51,7 +69,7 @@ export function TopProductsTable({
         <div
           className={cn(
             "hidden sm:grid gap-x-3 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-ink-muted bg-white/5 border-b border-white/10",
-            "sm:grid-cols-[2rem_3.25rem_5.5rem_minmax(0,1fr)_4.5rem_6.5rem] lg:grid-cols-[2rem_3.5rem_6.5rem_minmax(0,2fr)_4.5rem_7rem]"
+            "sm:grid-cols-[2rem_3.25rem_5rem_minmax(0,1fr)_3.75rem_5.5rem_5rem] lg:grid-cols-[2rem_3.5rem_6rem_minmax(0,2fr)_4rem_6rem_5.5rem]"
           )}
         >
           <span>#</span>
@@ -60,11 +78,14 @@ export function TopProductsTable({
           <span>Product</span>
           <span className="text-right">Qty</span>
           <span className="text-right">Revenue</span>
+          <span className="text-right">Margin</span>
         </div>
         <ul className="max-h-[min(36rem,70vh)] overflow-y-auto divide-y divide-white/5">
           {rows.map((product, i) => {
             const displayName = formatProductDisplayName(product.name);
             const model = product.vendorModel?.trim() || product.itemNumber || "—";
+            const rate = marginRateOf(product);
+            const profit = product.margin ?? rate * product.revenue;
             return (
               <li
                 key={`${product.vendorModel ?? ""}-${product.itemNumber ?? ""}-${product.name}-${i}`}
@@ -99,9 +120,9 @@ export function TopProductsTable({
                   )}
                 </p>
 
-                <div className="flex sm:contents items-center justify-between gap-3 sm:col-span-2 col-span-full pt-1 sm:pt-0 border-t border-white/5 sm:border-0">
+                <div className="flex sm:contents items-center justify-between gap-3 sm:col-span-3 col-span-full pt-1 sm:pt-0 border-t border-white/5 sm:border-0">
                   <span className="sm:hidden text-[11px] text-ink-muted uppercase tracking-wide">
-                    Qty / Revenue
+                    Qty / Revenue / Margin
                   </span>
                   <span className="text-sm font-semibold text-emerald-300/90 tabular-nums sm:text-right shrink-0">
                     {formatPieceCount(product.units)}
@@ -109,6 +130,23 @@ export function TopProductsTable({
                   <span className="font-medium text-ink text-sm tabular-nums sm:text-right shrink-0">
                     {formatCurrency(product.revenue)}
                   </span>
+                  <div className="sm:text-right shrink-0">
+                    <p
+                      className={cn(
+                        "text-sm font-semibold tabular-nums",
+                        rate >= 0.4
+                          ? "text-emerald-300"
+                          : rate >= 0.25
+                            ? "text-amber-200"
+                            : "text-rose-300"
+                      )}
+                    >
+                      {(rate * 100).toFixed(1)}%
+                    </p>
+                    <p className="text-[11px] text-white/40 tabular-nums">
+                      {formatCurrency(profit)}
+                    </p>
+                  </div>
                 </div>
               </li>
             );

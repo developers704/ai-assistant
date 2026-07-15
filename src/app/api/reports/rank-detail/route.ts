@@ -144,6 +144,7 @@ export async function GET(req: Request) {
       vendorModel: string;
       revenue: number;
       units: number;
+      margin: number;
       imageDir?: string;
       sku?: string;
     }
@@ -174,6 +175,7 @@ export async function GET(req: Request) {
         vendorModel: model,
         revenue: 0,
         units: 0,
+        margin: 0,
         imageDir: r.imageDir || undefined,
         sku: r.sku || r.itemNumber || undefined,
       };
@@ -182,6 +184,7 @@ export async function GET(req: Request) {
         vendorModel: model,
         revenue: ex.revenue + r.netRevenue,
         units: ex.units + r.quantity,
+        margin: ex.margin + r.margin,
         imageDir: ex.imageDir || r.imageDir || undefined,
         sku: ex.sku || r.sku || r.itemNumber || undefined,
       });
@@ -202,6 +205,7 @@ export async function GET(req: Request) {
     .slice(0, 15)
     .map((m) => ({
       ...m,
+      marginRate: m.revenue > 0 ? m.margin / m.revenue : 0,
       imageUrl: resolveProductImageUrl(m.imageDir),
     }));
 

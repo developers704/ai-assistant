@@ -436,7 +436,7 @@ export default function SalesPage() {
       </PageShellHeader>
 
         <PageShellBody>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             <LushMetric
               label={isFinancingReport || isStoreSalesReport ? "Net Sales" : "Total Revenue"}
               value={formatCurrency(summary.totalRevenue)}
@@ -499,6 +499,25 @@ export default function SalesPage() {
                 </p>
               }
             />
+            {!isFinancingReport && (
+              <LushMetric
+                label="Profit Margin"
+                value={`${(((reportSummary?.marginRate ?? 0) as number) * 100).toFixed(1)}%`}
+                accent="emerald"
+                footer={
+                  <p className="text-sm text-white/35">
+                    {formatCurrency(reportSummary?.totalMargin ?? 0)} profit
+                    {summary.totalRevenue > 0 && (reportSummary?.totalMargin != null)
+                      ? ` · cost ${formatCurrency(
+                          summary.totalRevenue - (reportSummary.totalMargin ?? 0)
+                        )}`
+                      : typeof reportSummary?.totalInventoryCost === "number"
+                        ? ` · cost ${formatCurrency(reportSummary.totalInventoryCost)}`
+                        : ""}
+                  </p>
+                }
+              />
+            )}
           </div>
 
           {reportSummary && dataSource === "report" && (

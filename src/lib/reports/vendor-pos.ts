@@ -189,6 +189,7 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
       imageDir?: string;
       revenue: number;
       units: number;
+      margin: number;
     }
   >();
 
@@ -213,6 +214,7 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
       imageDir: r.imageDir?.trim() || undefined,
       revenue: 0,
       units: 0,
+      margin: 0,
     };
 
     map.set(key, {
@@ -222,6 +224,7 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
       imageDir: existing.imageDir || r.imageDir?.trim() || undefined,
       revenue: existing.revenue + r.netRevenue,
       units: existing.units + r.quantity,
+      margin: existing.margin + r.margin,
     });
   }
 
@@ -230,6 +233,7 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
     .slice(0, limit)
     .map((p) => ({
       ...p,
+      marginRate: p.revenue > 0 ? p.margin / p.revenue : 0,
       imageUrl: resolveProductImageUrl(p.imageDir),
     }));
 }

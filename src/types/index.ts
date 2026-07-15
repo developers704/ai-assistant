@@ -162,6 +162,10 @@ export interface SalesSummary {
     imageUrl?: string | null;
     revenue: number;
     units: number;
+    /** Profit = net sales − inventory cost */
+    margin?: number;
+    /** Profit margin = profit / net sales (0–1) */
+    marginRate?: number;
   }[];
   underperformingStores: { name: string; revenue: number; change: number }[];
   recommendations: string[];
