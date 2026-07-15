@@ -29,6 +29,7 @@ const EXCLUDED_SALES_SKUS = new Set([
   "217286",
   "159004",
   "JVS-200940",
+  "229080", // White bag with blue ribbon — packaging / $0 sale line
 ]);
 
 /** True when SKU / Item # matches an excluded product rule. */
@@ -62,7 +63,7 @@ export function isExcludedSalesRow(row: {
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 2;
+export const SALES_EXCLUSION_RULES_VERSION = 3;
 
 type SalesReturnPairRow = {
   sku?: string | null;

@@ -20,6 +20,7 @@ These rows are treated as **deleted** from the sales report. They must **not** a
 | Starts with `MLB-` | Mulberry lifetime / care plans |
 | `JVS-200940` | Watch battery service (repair, not product) |
 | `217365`, `217286`, `159004` | Legacy excluded SKUs |
+| `229080` | White bag with blue ribbon — packaging / $0 sale lines |
 | Blank / empty **Department** | Incomplete line — drop the row |
 | **Matched return / void pair** | Negative qty **or** negative amount + matching sale with **same store**, **same absolute Total/net**, same SKU/vendor model — drop **both** legs (prefer same Transaction #). Stand-alone sales (e.g. different store) are kept. Cached sales versions rebuild when this rule version bumps. |
 
