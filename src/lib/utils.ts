@@ -63,7 +63,7 @@ export function isExcludedSalesRow(row: {
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 3;
+export const SALES_EXCLUSION_RULES_VERSION = 4;
 
 type SalesReturnPairRow = {
   sku?: string | null;
@@ -200,6 +200,16 @@ export function dropMatchedSalesReturnPairs<T extends SalesReturnPairRow>(rows: 
   return rows.filter((_, idx) => !drop.has(idx));
 }
 
+/**
+ * Sales dashboard is sales-only: drop any remaining negative-qty return lines
+ * (stand-alone returns that did not form a void/exchange pair).
+ */
+export function dropStandaloneNegativeQtyReturns<T extends { quantity?: number | null }>(
+  rows: T[]
+): T[] {
+  return rows.filter((r) => !(Number(r.quantity ?? 0) < 0));
+}
+
 export function filterExcludedSalesRows<
   T extends {
     sku?: string | null;
@@ -214,7 +224,8 @@ export function filterExcludedSalesRows<
   }
 >(rows: T[]): T[] {
   const withoutSkuDept = rows.filter((r) => !isExcludedSalesRow(r));
-  return dropMatchedSalesReturnPairs(withoutSkuDept);
+  const withoutVoidPairs = dropMatchedSalesReturnPairs(withoutSkuDept);
+  return dropStandaloneNegativeQtyReturns(withoutVoidPairs);
 }
 
 export function filterTopProductSkus<

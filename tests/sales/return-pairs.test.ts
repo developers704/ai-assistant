@@ -81,7 +81,7 @@ describe("dropMatchedSalesReturnPairs", () => {
     ]);
   });
 
-  it("does not drop a real sale when only a same-model sale exists at another store", () => {
+  it("does not pair a cross-store return with a different-store sale (pair step only)", () => {
     const rows = [
       {
         transactionId: "T-NEG",
@@ -101,5 +101,35 @@ describe("dropMatchedSalesReturnPairs", () => {
       },
     ];
     expect(dropMatchedSalesReturnPairs(rows)).toHaveLength(2);
+  });
+
+  it("drops stand-alone negative-qty returns from sales dashboard (BANGLE-style)", () => {
+    const rows = [
+      {
+        transactionId: "GM-10293035",
+        storeName: "DBC-GM",
+        vendorModel: "MBG10000045",
+        sku: "227983S",
+        quantity: 1,
+        netRevenue: 727.27,
+        inventoryCost: 180,
+        department: "BANGLE",
+      },
+      {
+        transactionId: "VS-10291914",
+        storeName: "VJ-SERRA",
+        vendorModel: "MBG05000049",
+        sku: "229161V",
+        quantity: -1,
+        netRevenue: -370.18,
+        inventoryCost: 100,
+        department: "BANGLE",
+      },
+    ];
+    const out = filterExcludedSalesRows(rows);
+    expect(out).toHaveLength(1);
+    expect(out[0].transactionId).toBe("GM-10293035");
+    expect(out[0].netRevenue).toBeCloseTo(727.27);
+    expect(out.reduce((s, r) => s + r.quantity, 0)).toBe(1);
   });
 });

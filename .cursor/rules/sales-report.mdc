@@ -22,13 +22,16 @@ These rows are treated as **deleted** from the sales report. They must **not** a
 | `217365`, `217286`, `159004` | Legacy excluded SKUs |
 | `229080` | White bag with blue ribbon — packaging / $0 sale lines |
 | Blank / empty **Department** | Incomplete line — drop the row |
-| **Matched return / void pair** | Negative qty **or** negative amount + matching sale with **same store**, **same absolute Total/net**, same SKU/vendor model — drop **both** legs (prefer same Transaction #). Stand-alone sales (e.g. different store) are kept. Cached sales versions rebuild when this rule version bumps. |
+| **Matched return / void pair** | Negative qty **or** negative amount + matching sale with **same store**, **same absolute Total/net**, same SKU/vendor model — drop **both** legs (prefer same Transaction #). |
+| **Stand-alone returns (negative qty)** | After void-pair removal, drop any remaining negative-qty lines (sales dashboard is sales-only). Different store / SKU returns no longer pull down net or units. |
+| Blank / empty **Department** | Incomplete line — drop the row |
 
 ### Implementation (do not bypass on upload)
 
-- **Single source of truth:** `isExcludedSalesSku()` + `isExcludedSalesRow()` + `dropMatchedSalesReturnPairs()` + `filterExcludedSalesRows()` in `src/lib/utils.ts`
+- **Single source of truth:** `isExcludedSalesSku()` + `isExcludedSalesRow()` + `dropMatchedSalesReturnPairs()` + `dropStandaloneNegativeQtyReturns()` + `filterExcludedSalesRows()` in `src/lib/utils.ts`
 - **On every summarize/upload:** filter `periodRows` (and `compareRows`) in `summarizeVendorPos()` via `filterExcludedSalesRows()`
 - **On rank-detail / visualizations / sales version refresh:** filter rows the same way
+- Cached sales versions rebuild when `SALES_EXCLUSION_RULES_VERSION` bumps
 
 When adding exclusions, update `src/lib/utils.ts` only.
 
