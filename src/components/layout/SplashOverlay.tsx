@@ -4,31 +4,51 @@ import { useEffect, useState } from "react";
 import { AppSplash } from "@/components/layout/AppSplash";
 import { useApp } from "@/lib/store/app-context";
 
-const MIN_SPLASH_MS = 700;
-const EXIT_MS = 180;
+const MIN_SPLASH_MS = 650;
+const EXIT_MS = 160;
+
+function readPwaFlag(): boolean {
+  if (typeof document === "undefined") return false;
+  if (document.documentElement.dataset.pwa === "1") return true;
+  if (typeof window === "undefined") return false;
+  const mq = window.matchMedia("(display-mode: standalone)");
+  if (mq.matches) return true;
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  if (nav.standalone === true) return true;
+  if (window.matchMedia("(display-mode: fullscreen)").matches) return true;
+  if (window.matchMedia("(display-mode: minimal-ui)").matches) return true;
+  return false;
+}
 
 /**
- * Single launch splash. Background stays fully opaque until unmount so the
- * chat UI never shows through a transparent fade (which looked like two icons).
+ * Desktop / browser tab: show one branded splash until ready.
+ * Installed mobile app (PWA): skip — OS already showed the icon splash.
+ * That second in-app splash was the “two icons” on phone.
  */
 export function SplashOverlay() {
   const { loading } = useApp();
+  const [isPwa] = useState(readPwaFlag);
   const [readyToHide, setReadyToHide] = useState(false);
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = useState(isPwa);
 
   useEffect(() => {
+    if (isPwa) {
+      setHidden(true);
+      return;
+    }
     const timer = window.setTimeout(() => setReadyToHide(true), MIN_SPLASH_MS);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [isPwa]);
 
   useEffect(() => {
-    if (!loading && readyToHide && !hidden) {
+    if (isPwa || hidden) return;
+    if (!loading && readyToHide) {
       const done = window.setTimeout(() => setHidden(true), EXIT_MS);
       return () => window.clearTimeout(done);
     }
-  }, [loading, readyToHide, hidden]);
+  }, [loading, readyToHide, hidden, isPwa]);
 
-  if (hidden) return null;
+  if (isPwa || hidden) return null;
 
   return (
     <div
@@ -36,7 +56,7 @@ export function SplashOverlay() {
       aria-busy={loading}
       aria-label="Loading Alexa"
     >
-      <AppSplash />
+      <AppSplash variant="os-match" />
     </div>
   );
 }
