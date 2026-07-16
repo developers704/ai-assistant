@@ -10,12 +10,14 @@ import type { SalesDateRangeValue } from "@/components/sales/SalesDateRangePicke
 type SkuLookupResult = {
   sku: string;
   itemNumber: string;
+  style?: string | null;
   vendorModel: string | null;
   description: string | null;
   design: string | null;
   department: string | null;
   vendor: string | null;
   productClass: string | null;
+  matchType?: "sku" | "vendorModel" | "style";
   units: number;
   netRevenue: number;
   grossSales: number;
@@ -29,6 +31,14 @@ type SkuLookupResult = {
   imageDir: string | null;
   imageUrl: string | null;
   stores: { store: string; units: number; revenue: number; cost: number }[];
+  variants?: {
+    sku: string;
+    style: string | null;
+    description: string | null;
+    units: number;
+    revenue: number;
+    cost: number;
+  }[];
   dates: string[];
 };
 
@@ -165,10 +175,14 @@ export function SalesSkuLookup({ dateRange }: { dateRange: SalesDateRangeValue |
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <Fact label="Item #" value={result.itemNumber} />
               <Fact label="Vendor model" value={result.vendorModel} />
+              <Fact label="Style #" value={result.style} />
               <Fact label="Design" value={result.design} />
               <Fact label="Department" value={result.department} />
               <Fact label="Vendor" value={result.vendor} />
               <Fact label="Class" value={result.productClass} />
+              {result.matchType === "vendorModel" && (
+                <Fact label="Match" value="Vendor model (same as Top 20)" />
+              )}
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -192,6 +206,33 @@ export function SalesSkuLookup({ dateRange }: { dateRange: SalesDateRangeValue |
                 </div>
               ))}
             </div>
+
+            {result.variants && result.variants.length > 1 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-ink-muted mb-2">
+                  SKU / style variants in this model
+                </p>
+                <ul className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {result.variants.map((v) => (
+                    <li
+                      key={v.sku}
+                      className="flex items-center justify-between gap-2 text-sm rounded-lg px-2.5 py-1.5 bg-white/[0.03] border border-white/8"
+                    >
+                      <span className="min-w-0 truncate">
+                        <span className="font-mono text-cyan-300/90">{v.sku}</span>
+                        {v.style && v.style !== v.sku && (
+                          <span className="text-ink-muted text-xs ml-1.5">{v.style}</span>
+                        )}
+                      </span>
+                      <span className="shrink-0 font-metric-num text-ink-secondary">
+                        {formatCurrency(v.revenue)}
+                        <span className="text-ink-muted text-xs ml-1.5">· {v.units}pc</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div>
               <p className="text-[10px] uppercase tracking-wide text-ink-muted mb-2">

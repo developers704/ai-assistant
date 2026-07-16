@@ -9,32 +9,43 @@ import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import type { VendorPosRow } from "@/lib/reports/types";
 import Papa from "papaparse";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
+import {
+  groupSalesLookupVariants,
+  resolveSalesLookupRows,
+} from "@/lib/sales/sku-lookup";
 
-function key(s: string) {
-  return s
-    .trim()
-    .toLowerCase()
-    .replace(/[\u2010-\u2015\u2212]/g, "-")
-    .replace(/\s+/g, " ");
-}
-
-function loadRows(): VendorPosRow[] {
-  if (isSalesUnifiedIntelligenceEnabled()) {
-    const pointer = readActivePointer();
-    const versionRows = pointer.activeVersion
-      ? readNormalizedRows(pointer.activeVersion)
-      : null;
-    if (versionRows?.length) return filterExcludedSalesRows(versionRows);
-  }
-  const latest = getLatestReportWithSummary();
-  if (!latest) return [];
-  const csv = readReportCsv(latest.meta.id);
-  if (!csv) return [];
+function parseCsvRows(csv: string): VendorPosRow[] {
   const parsed = Papa.parse<Record<string, unknown>>(csv, {
     header: true,
     skipEmptyLines: true,
   });
   return filterExcludedSalesRows(parseVendorPosRows(parsed.data ?? []).rows);
+}
+
+function loadRows(): VendorPosRow[] {
+  const latest = getLatestReportWithSummary();
+  const fromCsv = (): VendorPosRow[] => {
+    if (!latest) return [];
+    const csv = readReportCsv(latest.meta.id);
+    if (!csv) return [];
+    return parseCsvRows(csv);
+  };
+
+  if (isSalesUnifiedIntelligenceEnabled()) {
+    const pointer = readActivePointer();
+    const versionRows = pointer.activeVersion
+      ? readNormalizedRows(pointer.activeVersion)
+      : null;
+    if (versionRows?.length) {
+      // Stale/test caches (e.g. 4 fixture rows) must not shadow the real report.
+      const reportRows = latest?.meta.rowCount ?? 0;
+      if (reportRows > 0 && versionRows.length < Math.max(50, reportRows * 0.25)) {
+        return fromCsv();
+      }
+      return filterExcludedSalesRows(versionRows);
+    }
+  }
+  return fromCsv();
 }
 
 export async function GET(req: NextRequest) {
@@ -65,32 +76,21 @@ export async function GET(req: NextRequest) {
     await ensureActiveSalesVersion();
   }
 
-  const needle = key(skuRaw);
-  let rows = loadRows().filter((r) => {
-    const sku = key(r.sku || "");
-    const item = key(r.itemNumber || "");
-    const model = key(r.vendorModel || "");
-    return sku === needle || item === needle || model === needle;
-  });
-
+  let scoped = loadRows();
   if (from && to) {
     const a = from <= to ? from : to;
     const b = from <= to ? to : from;
-    rows = rows.filter((r) => r.date && r.date >= a && r.date <= b);
+    scoped = scoped.filter((r) => r.date && r.date >= a && r.date <= b);
   }
 
-  if (!rows.length) {
+  const { matchRows, matchType } = resolveSalesLookupRows(scoped, skuRaw);
+
+  if (!matchRows.length) {
     return NextResponse.json(
       { error: `No sales found for “${skuRaw}” in the current report.`, sku: skuRaw },
       { status: 404 }
     );
   }
-
-  // Prefer exact SKU/item match over vendor-model alias collisions
-  const exact = rows.filter(
-    (r) => key(r.sku || "") === needle || key(r.itemNumber || "") === needle
-  );
-  const matchRows = exact.length ? exact : rows;
 
   const byStore = new Map<
     string,
@@ -107,6 +107,7 @@ export async function GET(req: NextRequest) {
   let vendorModel = "";
   let sku = "";
   let itemNumber = "";
+  let style = "";
   let design = "";
   let department = "";
   let vendor = "";
@@ -124,6 +125,7 @@ export async function GET(req: NextRequest) {
     if (!vendorModel && r.vendorModel) vendorModel = r.vendorModel;
     if (!sku && r.sku) sku = r.sku;
     if (!itemNumber && r.itemNumber) itemNumber = r.itemNumber;
+    if (!style && r.style) style = r.style;
     if (!design && r.design) design = r.design;
     if (!department && r.department) department = r.department;
     if (!vendor && r.vendor) vendor = r.vendor;
@@ -139,18 +141,28 @@ export async function GET(req: NextRequest) {
 
   const profit = netRevenue - inventoryCost;
   const marginRate = netRevenue > 0 ? profit / netRevenue : 0;
-
+  const variants = groupSalesLookupVariants(matchRows);
   const stores = [...byStore.values()].sort((a, b) => b.revenue - a.revenue);
 
+  // For model-level lookups, surface the model as the primary id (matches Top 20 label).
+  const displaySku =
+    matchType === "vendorModel"
+      ? vendorModel || skuRaw
+      : matchType === "style"
+        ? style || skuRaw
+        : sku || itemNumber || skuRaw;
+
   return NextResponse.json({
-    sku: sku || skuRaw,
+    sku: displaySku,
     itemNumber: itemNumber || sku || skuRaw,
+    style: style || null,
     vendorModel: vendorModel || null,
     description: description || null,
     design: design || null,
     department: department || null,
     vendor: vendor || null,
     productClass: productClass || null,
+    matchType,
     units,
     netRevenue,
     grossSales,
@@ -164,6 +176,7 @@ export async function GET(req: NextRequest) {
     imageDir: imageDir || null,
     imageUrl: resolveProductImageUrl(imageDir),
     stores,
+    variants: variants.length > 1 ? variants : [],
     dates: [...new Set(matchRows.map((r) => r.date).filter(Boolean))].sort(),
   });
 }
