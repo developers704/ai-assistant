@@ -30,7 +30,17 @@ const EXCLUDED_SALES_SKUS = new Set([
   "159004",
   "JVS-200940",
   "229080", // White bag with blue ribbon — packaging / $0 sale line
+  "WATCH WINDER-1",
+  "WATCH WINDER",
 ]);
+
+/** True when vendor model matches an excluded product (e.g. complimentary watch winder). */
+export function isExcludedSalesVendorModel(vendorModel?: string | null): boolean {
+  const normalized = (vendorModel ?? "").trim().toUpperCase();
+  if (!normalized) return false;
+  if (normalized === "WATCH WINDER" || normalized.startsWith("WATCH WINDER")) return true;
+  return false;
+}
 
 /** True when SKU / Item # matches an excluded product rule. */
 export function isExcludedSalesSku(sku?: string | null): boolean {
@@ -38,6 +48,7 @@ export function isExcludedSalesSku(sku?: string | null): boolean {
   if (!normalized) return false;
   if (EXCLUDED_SALES_SKUS.has(normalized)) return true;
   if (normalized.startsWith("MLB-")) return true;
+  if (normalized.startsWith("WATCH WINDER")) return true;
   return false;
 }
 
@@ -55,15 +66,21 @@ export function isExcludedSalesRow(row: {
   sku?: string | null;
   itemNumber?: string | null;
   department?: string | null;
+  vendorModel?: string | null;
+  style?: string | null;
 }): boolean {
   const dept = (row.department ?? "").trim();
   if (!dept || dept === "—" || /^uncategorized$/i.test(dept)) return true;
-  const sku = (row.sku ?? "").trim() || (row.itemNumber ?? "").trim();
+  if (isExcludedSalesVendorModel(row.vendorModel)) return true;
+  const sku =
+    (row.sku ?? "").trim() ||
+    (row.itemNumber ?? "").trim() ||
+    (row.style ?? "").trim();
   return isExcludedSalesSku(sku);
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 4;
+export const SALES_EXCLUSION_RULES_VERSION = 5;
 
 type SalesReturnPairRow = {
   sku?: string | null;
@@ -232,7 +249,8 @@ export function filterTopProductSkus<
   T extends { itemNumber?: string; vendorModel?: string; sku?: string }
 >(products: T[]): T[] {
   return products.filter((p) => {
-    const sku = p.itemNumber || p.sku;
+    if (isExcludedSalesVendorModel(p.vendorModel)) return false;
+    const sku = p.itemNumber || p.sku || p.vendorModel;
     return !isExcludedSalesSku(sku);
   });
 }

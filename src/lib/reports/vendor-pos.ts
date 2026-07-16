@@ -1,5 +1,5 @@
 import type { SalesSummary } from "@/types";
-import { filterExcludedSalesRows, isExcludedSalesSku } from "@/lib/utils";
+import { filterExcludedSalesRows, isExcludedSalesRow, isExcludedSalesSku } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
@@ -194,10 +194,10 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
   >();
 
   for (const r of rows) {
+    if (isExcludedSalesRow(r)) continue;
+
     const sku = r.sku?.trim() ?? "";
     const itemNumber = sku || r.itemNumber?.trim() || "";
-    if (itemNumber && isExcludedSalesSku(itemNumber)) continue;
-
     const vendorModel = r.vendorModel?.trim() || "";
     const key = vendorModel
       ? `model:${vendorModel.toUpperCase()}`

@@ -132,4 +132,42 @@ describe("dropMatchedSalesReturnPairs", () => {
     expect(out[0].netRevenue).toBeCloseTo(727.27);
     expect(out.reduce((s, r) => s + r.quantity, 0)).toBe(1);
   });
+
+  it("drops complimentary Watch Winder lines (SKU, style, or vendor model)", () => {
+    const rows = [
+      {
+        transactionId: "GM-10292985",
+        storeName: "DBC-GM",
+        vendorModel: "WATCH WINDER",
+        sku: "217365",
+        style: "WATCH WINDER-1",
+        quantity: 1,
+        netRevenue: 0,
+        inventoryCost: 13.8,
+        department: "MISC",
+      },
+      {
+        transactionId: "HE-10001358",
+        storeName: "VJ-HEND",
+        vendorModel: "WATCH WINDER",
+        sku: "WATCH WINDER-1",
+        quantity: 1,
+        netRevenue: 79,
+        inventoryCost: 13.8,
+        department: "MISC",
+      },
+      {
+        transactionId: "VR-102291107",
+        storeName: "VJ-ROSE",
+        vendorModel: "D67",
+        sku: "236292Y",
+        quantity: 1,
+        netRevenue: 3499,
+        department: "B",
+      },
+    ];
+    const out = filterExcludedSalesRows(rows);
+    expect(out).toHaveLength(1);
+    expect(out[0].vendorModel).toBe("D67");
+  });
 });
