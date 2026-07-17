@@ -133,6 +133,11 @@ export interface SalesQueryInput {
   userMessage?: string;
   /** When true, ignore previous sales memory and start fresh. */
   resetContext?: boolean;
+  /**
+   * When true, treat store/department/design/vendor/class filters as exact
+   * UI values (no chat/voice fuzzy matching). Used by the Sales Dashboard.
+   */
+  exactFilters?: boolean;
 }
 
 export interface SalesMetricSummary {

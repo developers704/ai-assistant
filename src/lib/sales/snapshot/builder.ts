@@ -69,7 +69,7 @@ function filterOptions(
   const map = new Map<string, { count: number; net: number }>();
   for (const r of rows) {
     const v = String(r[key] ?? "").trim();
-    if (!v) continue;
+    if (!v || isPlaceholderFilterValue(v)) continue;
     const cur = map.get(v) ?? { count: 0, net: 0 };
     cur.count += 1;
     cur.net += r.netRevenue;
@@ -83,6 +83,16 @@ function filterOptions(
       netSales: v.net,
     }))
     .sort((a, b) => b.netSales - a.netSales);
+}
+
+/** POS placeholders that are not real metal/class labels. */
+function isPlaceholderFilterValue(v: string): boolean {
+  const t = v.trim();
+  if (!t) return true;
+  if (t === "-" || t === "—" || t === "--") return true;
+  // Quoted blanks from CSV quirks: "--" or "-"
+  if (/^["']?-{1,3}["']?$/.test(t)) return true;
+  return false;
 }
 
 function dailyTrends(rows: VendorPosRow[]) {

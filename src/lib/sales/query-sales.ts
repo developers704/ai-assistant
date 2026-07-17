@@ -454,7 +454,8 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
       skus: input.skus,
       vendorModels: input.vendorModels,
     },
-    index
+    index,
+    { exact: Boolean(input.exactFilters) }
   );
 
   const metrics = normalizeMetrics(input.metrics);

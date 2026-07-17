@@ -109,6 +109,14 @@ export function matchEntity(
   const q = raw.trim();
   if (!q) return { status: "none", message: `Empty ${fieldLabel}.` };
 
+  // Prefer exact / case-insensitive equality before aliases (dashboard multi-select
+  // sends canonical values like "10K" that must not collide with "10KT").
+  const qKey = normalizeKey(q);
+  const exactHit = known.find((k) => k === q) ?? known.find((k) => normalizeKey(k) === qKey);
+  if (exactHit) {
+    return { status: "exact", value: exactHit, score: 100 };
+  }
+
   // Alias expansion: try preferred substrings against known list
   for (const hint of ALIAS_HINTS) {
     if (!hint.pattern.test(q)) continue;
@@ -233,7 +241,8 @@ export function normalizeFilterInputs(
     skus?: string[];
     vendorModels?: string[];
   },
-  index: EntityIndex
+  index: EntityIndex,
+  opts?: { exact?: boolean }
 ): {
   filters: SalesQueryFilters;
   clarification?: SalesClarification;
@@ -241,6 +250,30 @@ export function normalizeFilterInputs(
 } {
   const filters = emptyFilters();
   const warnings: string[] = [];
+
+  if (opts?.exact) {
+    const applyExact = (raw: string[] | undefined, known: string[]) => {
+      if (!raw?.length) return [] as string[];
+      const knownByKey = new Map(known.map((k) => [normalizeKey(k), k]));
+      const out: string[] = [];
+      for (const r of raw) {
+        const t = r.trim();
+        if (!t) continue;
+        const hit = known.find((k) => k === t) ?? knownByKey.get(normalizeKey(t));
+        if (hit) out.push(hit);
+      }
+      return [...new Set(out)];
+    };
+    filters.stores = applyExact(input.stores, index.stores);
+    filters.departments = applyExact(input.departments, index.departments);
+    filters.designs = applyExact(input.designs, index.designs);
+    filters.vendors = applyExact(input.vendors, index.vendors);
+    filters.classes = applyExact(input.classes, index.classes);
+    filters.skus = applyExact(input.skus, index.skus);
+    filters.vendorModels = applyExact(input.vendorModels, index.vendorModels);
+    filters.products = applyExact(input.products, index.products);
+    return { filters, warnings };
+  }
 
   const steps: Array<{
     raw?: string[];

@@ -50,6 +50,7 @@ async function queryDashboardSlice(opts: {
     vendors: opts.vendors?.length ? opts.vendors : undefined,
     classes: opts.classes?.length ? opts.classes : undefined,
     resetContext: true,
+    exactFilters: true,
     limit: isCompare ? 500 : 20,
     sortBy: "quantity",
     groupBy: ["store"],
