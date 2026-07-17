@@ -506,14 +506,9 @@ export function extractReportDimensions(csvText: string): {
         designs: [...new Set(kept.map((r) => r.design).filter(Boolean))].sort((a, b) =>
           a.localeCompare(b)
         ),
-        classes: [...new Set(kept.map((r) => r.productClass).filter(Boolean))]
-          .filter((c) => {
-            const t = c.trim();
-            if (!t || t === "-" || t === "—" || t === "--") return false;
-            if (/^["']?-{1,3}["']?$/.test(t)) return false;
-            return true;
-          })
-          .sort((a, b) => a.localeCompare(b)),
+        classes: [...new Set(kept.map((r) => r.productClass).filter(Boolean))].sort((a, b) =>
+          a.localeCompare(b)
+        ),
         vendors: [...new Set(kept.map((r) => r.vendor).filter(Boolean))].sort((a, b) =>
           a.localeCompare(b)
         ),

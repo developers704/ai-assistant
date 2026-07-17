@@ -254,12 +254,20 @@ export function normalizeFilterInputs(
   if (opts?.exact) {
     const applyExact = (raw: string[] | undefined, known: string[]) => {
       if (!raw?.length) return [] as string[];
-      const knownByKey = new Map(known.map((k) => [normalizeKey(k), k]));
+      const knownByKey = new Map(
+        known
+          .map((k) => [normalizeKey(k), k] as const)
+          .filter(([nk]) => Boolean(nk))
+      );
       const out: string[] = [];
       for (const r of raw) {
         const t = r.trim();
         if (!t) continue;
-        const hit = known.find((k) => k === t) ?? knownByKey.get(normalizeKey(t));
+        // Exact string match first (keeps placeholder classes like "-" / "--")
+        const hit =
+          known.find((k) => k === t) ??
+          known.find((k) => k.toLowerCase() === t.toLowerCase()) ??
+          knownByKey.get(normalizeKey(t));
         if (hit) out.push(hit);
       }
       return [...new Set(out)];

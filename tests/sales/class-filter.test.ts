@@ -36,9 +36,9 @@ describe("class filter matching", () => {
     expect(res.filters.classes).toEqual(index.classes);
   });
 
-  it("dashboard exactFilters keeps a single class selection", () => {
-    const res = normalizeFilterInputs({ classes: ["UV"] }, index, { exact: true });
+  it("dashboard exactFilters keeps placeholder class '-'", () => {
+    const res = normalizeFilterInputs({ classes: ["-"] }, index, { exact: true });
     expect(res.clarification).toBeUndefined();
-    expect(res.filters.classes).toEqual(["UV"]);
+    expect(res.filters.classes).toEqual(["-"]);
   });
 });
