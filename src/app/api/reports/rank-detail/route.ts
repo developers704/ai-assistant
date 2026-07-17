@@ -10,6 +10,7 @@ import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { filterExcludedSalesRows } from "@/lib/utils";
 import type { VendorPosRow, RankDimension } from "@/lib/reports/types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
+import { dimensionValue } from "@/lib/reports/rank-dimension";
 
 export const runtime = "nodejs";
 
@@ -27,23 +28,6 @@ function normalizeFilterKey(value: string): string {
 function multiSet(values: string[]): Set<string> | null {
   if (!values.length) return null;
   return new Set(values.map(normalizeFilterKey));
-}
-
-function dimensionValue(row: VendorPosRow, dimension: RankDimension): string {
-  switch (dimension) {
-    case "store":
-      return row.storeName;
-    case "department":
-      return row.department;
-    case "vendor":
-      return row.vendor;
-    case "design":
-      return row.design;
-    case "class":
-      return row.productClass;
-    case "vendorModel":
-      return row.vendorModel;
-  }
 }
 
 export async function GET(req: Request) {
@@ -108,19 +92,29 @@ export async function GET(req: Request) {
   const vendorSet = multiSet(vendors);
   const classSet = multiSet(classes);
   if (storeSet) {
-    rows = rows.filter((r) => storeSet.has(normalizeFilterKey(r.storeName)));
+    rows = rows.filter((r) =>
+      storeSet.has(normalizeFilterKey(dimensionValue(r, "store")))
+    );
   }
   if (deptSet) {
-    rows = rows.filter((r) => deptSet.has(normalizeFilterKey(r.department)));
+    rows = rows.filter((r) =>
+      deptSet.has(normalizeFilterKey(dimensionValue(r, "department")))
+    );
   }
   if (designSet) {
-    rows = rows.filter((r) => designSet.has(normalizeFilterKey(r.design)));
+    rows = rows.filter((r) =>
+      designSet.has(normalizeFilterKey(dimensionValue(r, "design")))
+    );
   }
   if (vendorSet) {
-    rows = rows.filter((r) => vendorSet.has(normalizeFilterKey(r.vendor)));
+    rows = rows.filter((r) =>
+      vendorSet.has(normalizeFilterKey(dimensionValue(r, "vendor")))
+    );
   }
   if (classSet) {
-    rows = rows.filter((r) => classSet.has(normalizeFilterKey(r.productClass)));
+    rows = rows.filter((r) =>
+      classSet.has(normalizeFilterKey(dimensionValue(r, "class")))
+    );
   }
 
   const needle = normalizeFilterKey(value);

@@ -186,11 +186,11 @@ export function filterRows(
 
   return rows.filter((r) => {
     if (dateSet && (!r.date || !dateSet.has(r.date))) return false;
-    if (storeSet && !storeSet.has(key(r.storeName))) return false;
-    if (deptSet && !deptSet.has(key(r.department))) return false;
-    if (designSet && !designSet.has(key(r.design))) return false;
-    if (vendorSet && !vendorSet.has(key(r.vendor))) return false;
-    if (classSet && !classSet.has(key(r.productClass))) return false;
+    if (storeSet && !storeSet.has(key(r.storeName || "Unknown store"))) return false;
+    if (deptSet && !deptSet.has(key(r.department || "Unknown department"))) return false;
+    if (designSet && !designSet.has(key(r.design || "Unknown design"))) return false;
+    if (vendorSet && !vendorSet.has(key(r.vendor || "Unknown vendor"))) return false;
+    if (classSet && !classSet.has(key(r.productClass || "Unknown class"))) return false;
     if (skuSet && !skuSet.has(key(r.sku || r.itemNumber))) return false;
     if (modelSet && !modelSet.has(key(r.vendorModel))) return false;
     if (productSet && !productSet.has(key(r.description))) return false;
