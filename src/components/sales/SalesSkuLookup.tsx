@@ -181,7 +181,7 @@ export function SalesSkuLookup({ dateRange }: { dateRange: SalesDateRangeValue |
               <Fact label="Vendor" value={result.vendor} />
               <Fact label="Class" value={result.productClass} />
               {result.matchType === "vendorModel" && (
-                <Fact label="Match" value="Vendor model (same as Top 20)" />
+                <Fact label="Match" value="Vendor model (same as Vendor Models list)" />
               )}
             </div>
 

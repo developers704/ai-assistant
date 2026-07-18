@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   formatCurrency,
   formatPieceCount,
@@ -9,12 +9,20 @@ import {
   filterTopProductSkus,
 } from "@/lib/utils";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
+import { VendorModelTextFilter } from "@/components/reports/VendorModelTextFilter";
+import {
+  applyVendorModelTextFilter,
+  buildVendorModelSearchText,
+  type VendorModelTextFilterMode,
+} from "@/lib/sales/vendor-model-text-filter";
 
 export interface TopProductSkuLine {
   sku: string;
   units: number;
   revenue: number;
   margin?: number;
+  marginRate?: number;
+  stores?: string[];
 }
 
 export interface TopProductRow {
@@ -59,14 +67,33 @@ export function TopProductsTable({
   products,
   emptyLabel = "No product data in this report.",
 }: TopProductsTableProps) {
-  const rows = filterTopProductSkus(products);
+  const baseRows = filterTopProductSkus(products);
+  const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<VendorModelTextFilterMode>("include");
   const [preview, setPreview] = useState<{
     src: string;
     alt: string;
     subtitle?: string;
   } | null>(null);
 
-  if (!rows.length) {
+  const rows = useMemo(
+    () =>
+      applyVendorModelTextFilter(
+        baseRows,
+        (p) =>
+          buildVendorModelSearchText({
+            name: p.name,
+            vendorModel: p.vendorModel,
+            itemNumber: p.itemNumber,
+            skus: p.skus,
+          }),
+        query,
+        mode
+      ),
+    [baseRows, query, mode]
+  );
+
+  if (!baseRows.length) {
     return (
       <p className="text-sm text-ink-muted py-6 text-center">{emptyLabel}</p>
     );
@@ -74,6 +101,17 @@ export function TopProductsTable({
 
   return (
     <>
+      <div className="mb-3">
+        <VendorModelTextFilter
+          query={query}
+          mode={mode}
+          onQueryChange={setQuery}
+          onModeChange={setMode}
+          matchCount={rows.length}
+          totalCount={baseRows.length}
+        />
+      </div>
+
       <div className="overflow-hidden rounded-xl ring-1 ring-white/10">
         <div
           className={cn(
@@ -89,107 +127,118 @@ export function TopProductsTable({
           <span className="text-right">Revenue</span>
           <span className="text-right">Margin</span>
         </div>
-        <ul className="max-h-[min(36rem,70vh)] overflow-y-auto divide-y divide-white/5">
-          {rows.map((product, i) => {
-            const displayName = formatProductDisplayName(product.name);
-            const model = product.vendorModel?.trim() || product.itemNumber || "—";
-            const rate = marginRateOf(product);
-            const profit = product.margin ?? rate * product.revenue;
-            const skuLines: TopProductSkuLine[] =
-              product.skus?.length
-                ? product.skus
-                : product.itemNumber
-                  ? [
-                      {
-                        sku: product.itemNumber,
-                        units: product.units,
-                        revenue: product.revenue,
-                      },
-                    ]
-                  : [];
-            return (
-              <li
-                key={`${product.vendorModel ?? ""}-${product.itemNumber ?? ""}-${product.name}-${i}`}
-                className={cn(
-                  ROW_GRID,
-                  "px-3 py-3 sm:py-2.5 sm:items-center",
-                  i % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
-                )}
-              >
-                <span className="text-xs font-medium text-ink-muted tabular-nums sm:text-sm">
-                  {i + 1}
-                </span>
-
-                <ProductThumb
-                  imageDir={product.imageDir}
-                  imageUrl={product.imageUrl}
-                  alt={displayName || model}
-                  subtitle={model !== "—" ? model : undefined}
-                  onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
-                />
-
-                <span className="font-mono text-[11px] text-cyan-300/90 tabular-nums break-all">
-                  {model}
-                </span>
-
-                <div className="sm:col-span-1 col-span-full -mt-1 sm:mt-0 min-w-0">
-                  <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words whitespace-normal line-clamp-3">
-                    {displayName}
-                  </p>
-                  {skuLines.length > 0 && (
-                    <ul className="mt-1.5 space-y-0.5">
-                      {skuLines.map((line) => (
-                        <li
-                          key={line.sku}
-                          className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11px] font-mono font-normal tracking-normal text-ink-muted/85"
-                        >
-                          <span className="text-cyan-300/75">SKU #{line.sku}</span>
-                          <span className="text-ink-muted/55">·</span>
-                          <span className="tabular-nums text-emerald-300/70">
-                            {formatPieceCount(line.units)}
-                          </span>
-                          <span className="text-ink-muted/55">·</span>
-                          <span className="tabular-nums text-ink-muted/70">
-                            {formatCurrency(line.revenue)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+        {rows.length === 0 ? (
+          <p className="text-sm text-ink-muted py-8 text-center px-3">
+            No vendor models match this filter.
+          </p>
+        ) : (
+          <ul className="max-h-[min(48rem,75vh)] overflow-y-auto divide-y divide-white/5">
+            {rows.map((product, i) => {
+              const displayName = formatProductDisplayName(product.name);
+              const model = product.vendorModel?.trim() || product.itemNumber || "—";
+              const rate = marginRateOf(product);
+              const profit = product.margin ?? rate * product.revenue;
+              const skuLines: TopProductSkuLine[] =
+                product.skus?.length
+                  ? product.skus
+                  : product.itemNumber
+                    ? [
+                        {
+                          sku: product.itemNumber,
+                          units: product.units,
+                          revenue: product.revenue,
+                          margin: product.margin,
+                          marginRate: rate,
+                        },
+                      ]
+                    : [];
+              return (
+                <li
+                  key={`${product.vendorModel ?? ""}-${product.itemNumber ?? ""}-${product.name}-${i}`}
+                  className={cn(
+                    ROW_GRID,
+                    "px-3 py-3 sm:py-2.5 sm:items-start",
+                    i % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
                   )}
-                </div>
+                >
+                  <span className="text-xs font-medium text-ink-muted tabular-nums sm:text-sm sm:pt-1">
+                    {i + 1}
+                  </span>
 
-                <div className="flex sm:contents items-center justify-between gap-3 sm:col-span-3 col-span-full pt-1 sm:pt-0 border-t border-white/5 sm:border-0">
-                  <span className="sm:hidden text-[11px] text-ink-muted uppercase tracking-wide">
-                    Qty / Revenue / Margin
+                  <ProductThumb
+                    imageDir={product.imageDir}
+                    imageUrl={product.imageUrl}
+                    alt={displayName || model}
+                    subtitle={model !== "—" ? model : undefined}
+                    onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
+                  />
+
+                  <span className="font-mono text-[11px] text-cyan-300/90 tabular-nums break-all sm:pt-1">
+                    {model}
                   </span>
-                  <span className="text-sm font-semibold text-emerald-300/90 tabular-nums sm:text-right shrink-0">
-                    {formatPieceCount(product.units)}
-                  </span>
-                  <span className="font-medium text-ink text-sm tabular-nums sm:text-right shrink-0">
-                    {formatCurrency(product.revenue)}
-                  </span>
-                  <div className="sm:text-right shrink-0">
-                    <p
-                      className={cn(
-                        "text-sm font-semibold tabular-nums",
-                        rate >= 0.4
-                          ? "text-emerald-300"
-                          : rate >= 0.25
-                            ? "text-amber-200"
-                            : "text-rose-300"
-                      )}
-                    >
-                      {(rate * 100).toFixed(1)}%
+
+                  <div className="sm:col-span-1 col-span-full -mt-1 sm:mt-0 min-w-0">
+                    <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words whitespace-normal line-clamp-3">
+                      {displayName}
                     </p>
-                    <p className="text-[11px] text-white/40 tabular-nums">
-                      {formatCurrency(profit)}
-                    </p>
+                    {skuLines.length > 0 && (
+                      <ul className="mt-1.5 space-y-1.5">
+                        {skuLines.map((line) => (
+                          <li
+                            key={line.sku}
+                            className="text-[11px] font-mono font-normal tracking-normal text-ink-muted/85"
+                          >
+                            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                              <span className="text-cyan-300/75">SKU #{line.sku}</span>
+                              <span className="text-ink-muted/55">·</span>
+                              <span className="tabular-nums text-emerald-300/70">
+                                {formatPieceCount(line.units)}
+                              </span>
+                            </div>
+                            {line.stores && line.stores.length > 0 && (
+                              <p className="mt-0.5 text-[10px] text-white/40 font-sans tracking-normal">
+                                Stores: {line.stores.join(", ")}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+
+                  <div className="flex sm:contents items-center justify-between gap-3 sm:col-span-3 col-span-full pt-1 sm:pt-0 border-t border-white/5 sm:border-0">
+                    <span className="sm:hidden text-[11px] text-ink-muted uppercase tracking-wide">
+                      Qty / Revenue / Margin
+                    </span>
+                    <span className="text-sm font-semibold text-emerald-300/90 tabular-nums sm:text-right shrink-0">
+                      {formatPieceCount(product.units)}
+                    </span>
+                    <span className="font-medium text-ink text-sm tabular-nums sm:text-right shrink-0">
+                      {formatCurrency(product.revenue)}
+                    </span>
+                    <div className="sm:text-right shrink-0">
+                      <p
+                        className={cn(
+                          "text-sm font-semibold tabular-nums",
+                          rate >= 0.4
+                            ? "text-emerald-300"
+                            : rate >= 0.25
+                              ? "text-amber-200"
+                              : "text-rose-300"
+                        )}
+                      >
+                        {(rate * 100).toFixed(1)}%
+                      </p>
+                      <p className="text-[11px] text-white/40 tabular-nums">
+                        {formatCurrency(profit)}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       {preview && (

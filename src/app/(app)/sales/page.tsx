@@ -321,7 +321,7 @@ export default function SalesPage() {
       ? summary.worstStores
       : [...summary.topStores].sort((a, b) => a.revenue - b.revenue).slice(0, 10);
   const maxWorstRevenue = Math.max(...worstStores.map((s) => s.revenue), 1);
-  const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts)).slice(0, 20);
+  const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts));
 
   const isFinancingReport =
     reportSummary?.schema === "financing" || reportSummary?.reportCategory === "financing";
@@ -553,7 +553,7 @@ export default function SalesPage() {
             <ReportInsightsCards summary={reportSummary} onRankClick={openRank} />
           )}
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="flex flex-col gap-5">
             {isStoreSalesReport && summary.topStores.length > 0 && (
               <Card className="p-0 overflow-hidden">
                 <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
@@ -642,16 +642,16 @@ export default function SalesPage() {
               </div>
             </Card>
 
-            <Card className="p-0 overflow-hidden xl:col-span-2">
+            <Card className="p-0 overflow-hidden">
               <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Package size={17} className="text-sky-300" />
-                  {isFinancingReport ? "Top Pay Programs" : "Top Vendor Models"}
+                  {isFinancingReport ? "Top Pay Programs" : "Vendor Models"}
                 </CardTitle>
                 <span className="text-xs text-ink-muted">
                   {isFinancingReport
                     ? "By net sales amount"
-                    : "Top 20 by quantity sold · SKUs under each model · photos"}
+                    : `${topProducts.length} models by qty · SKUs with qty & stores · scroll for all`}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">

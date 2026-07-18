@@ -1,7 +1,8 @@
 import type { SalesSummary } from "@/types";
-import { filterExcludedSalesRows, isExcludedSalesRow, isExcludedSalesSku } from "@/lib/utils";
+import { filterExcludedSalesRows, isExcludedSalesRow } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
+import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
 
 function shiftIso(iso: string, days: number): string {
@@ -188,8 +189,8 @@ function rankMap(
     .slice(0, limit);
 }
 
-/** Top products for display — group by Vendor Model (qty then revenue). */
-function rankProducts(rows: VendorPosRow[], limit = 20) {
+/** All vendor models for display — sorted by qty then revenue (includes SKU + store breakdown). */
+function rankProducts(rows: VendorPosRow[], limit?: number | null) {
   const map = new Map<
     string,
     {
@@ -200,7 +201,7 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
       revenue: number;
       units: number;
       margin: number;
-      skuMap: Map<string, { sku: string; units: number; revenue: number; margin: number }>;
+      rows: VendorPosRow[];
     }
   >();
 
@@ -226,22 +227,9 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
       revenue: 0,
       units: 0,
       margin: 0,
-      skuMap: new Map(),
+      rows: [],
     };
-
-    if (itemNumber && !isExcludedSalesSku(itemNumber)) {
-      const skuKey = itemNumber.toUpperCase();
-      const skuLine = existing.skuMap.get(skuKey) ?? {
-        sku: itemNumber,
-        units: 0,
-        revenue: 0,
-        margin: 0,
-      };
-      skuLine.units += r.quantity;
-      skuLine.revenue += r.netRevenue;
-      skuLine.margin += r.margin;
-      existing.skuMap.set(skuKey, skuLine);
-    }
+    existing.rows.push(r);
 
     map.set(key, {
       name: label || existing.name,
@@ -251,24 +239,25 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
       revenue: existing.revenue + r.netRevenue,
       units: existing.units + r.quantity,
       margin: existing.margin + r.margin,
-      skuMap: existing.skuMap,
+      rows: existing.rows,
     });
   }
 
-  return [...map.values()]
-    .sort((a, b) => b.units - a.units || b.revenue - a.revenue)
-    .slice(0, limit)
-    .map(({ skuMap, ...p }) => {
-      const skus = [...skuMap.values()].sort(
-        (a, b) => b.units - a.units || b.revenue - a.revenue
-      );
-      return {
-        ...p,
-        skus: skus.length ? skus : undefined,
-        marginRate: p.revenue > 0 ? p.margin / p.revenue : 0,
-        imageUrl: resolveProductImageUrl(p.imageDir),
-      };
-    });
+  const ranked = [...map.values()].sort(
+    (a, b) => b.units - a.units || b.revenue - a.revenue
+  );
+  const sliced =
+    limit == null || limit <= 0 ? ranked : ranked.slice(0, limit);
+
+  return sliced.map(({ rows: modelRows, ...p }) => {
+    const skus = skuLinesForModel(modelRows);
+    return {
+      ...p,
+      skus: skus.length ? skus : undefined,
+      marginRate: p.revenue > 0 ? p.margin / p.revenue : 0,
+      imageUrl: resolveProductImageUrl(p.imageDir),
+    };
+  });
 }
 
 export function summarizeVendorPos(
@@ -487,7 +476,7 @@ export function summarizeVendorPos(
     (r) => r.quantity
   );
 
-  const topProducts = rankProducts(periodRows, 20);
+  const topProducts = rankProducts(periodRows);
 
   const underperformingStores = topStores.filter((s) => s.change < 0);
   const avgDiscountRate =

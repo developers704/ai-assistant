@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatCurrency, formatPieceCount, formatProductDisplayName, cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import type { RankDimension } from "@/lib/reports/types";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
+import { VendorModelTextFilter } from "@/components/reports/VendorModelTextFilter";
+import {
+  applyVendorModelTextFilter,
+  buildVendorModelSearchText,
+  type VendorModelTextFilterMode,
+} from "@/lib/sales/vendor-model-text-filter";
 
 type RankDetailResponse = {
   dimension: RankDimension;
@@ -18,6 +24,7 @@ type RankDetailResponse = {
     inventoryCost: number;
     lineCount: number;
     uniqueTransactions: number;
+    modelCount?: number;
   };
   breakdowns: {
     stores: { name: string; revenue: number; units: number }[];
@@ -34,25 +41,16 @@ type RankDetailResponse = {
       marginRate?: number;
       imageUrl?: string | null;
       sku?: string;
+      skus?: {
+        sku: string;
+        units: number;
+        revenue: number;
+        margin?: number;
+        marginRate?: number;
+        stores?: string[];
+      }[];
     }[];
   };
-  lineItems: Array<{
-    date: string;
-    transactionId?: string;
-    storeName: string;
-    department: string;
-    design: string;
-    vendor: string;
-    vendorModel: string;
-    sku: string;
-    description: string;
-    productClass: string;
-    quantity: number;
-    netRevenue: number;
-    margin: number;
-    imageUrl?: string | null;
-    imageDir?: string | null;
-  }>;
 };
 
 const DIMENSION_LABEL: Record<RankDimension, string> = {
@@ -126,19 +124,40 @@ export function RankDetailDrawer({
   const [data, setData] = useState<RankDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelQuery, setModelQuery] = useState("");
+  const [modelFilterMode, setModelFilterMode] =
+    useState<VendorModelTextFilterMode>("include");
   const [preview, setPreview] = useState<{
     src: string;
     alt: string;
     subtitle?: string;
   } | null>(null);
 
+  const filteredModels = useMemo(() => {
+    const models = data?.breakdowns.models ?? [];
+    return applyVendorModelTextFilter(
+      models,
+      (m) =>
+        buildVendorModelSearchText({
+          name: m.name,
+          vendorModel: m.vendorModel,
+          sku: m.sku,
+          skus: m.skus,
+        }),
+      modelQuery,
+      modelFilterMode
+    );
+  }, [data?.breakdowns.models, modelQuery, modelFilterMode]);
+
   useEffect(() => {
     if (!selection) {
       setData(null);
       setError(null);
       setPreview(null);
+      setModelQuery("");
       return;
     }
+    setModelQuery("");
     const params = new URLSearchParams({
       dimension: selection.dimension,
       value: selection.value,
@@ -327,15 +346,61 @@ export function RankDetailDrawer({
           )}
 
           {b && b.models.length > 0 && (
-            <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-3">
-                Top vendor models
-              </p>
-              <ul className="space-y-2.5">
-                {b.models.slice(0, 10).map((m) => {
+            <div className="flex h-[min(70vh,42rem)] flex-col rounded-xl ring-1 ring-white/10 bg-white/[0.03] overflow-hidden">
+              <div className="shrink-0 px-3 py-2.5 border-b border-white/10 space-y-2.5">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                    Vendor models ({data?.totals.modelCount ?? b.models.length})
+                  </p>
+                  <p className="text-[11px] text-white/35 mt-0.5">
+                    All models by qty sold · SKUs with qty & stores
+                  </p>
+                </div>
+                <VendorModelTextFilter
+                  query={modelQuery}
+                  mode={modelFilterMode}
+                  onQueryChange={setModelQuery}
+                  onModeChange={setModelFilterMode}
+                  matchCount={filteredModels.length}
+                  totalCount={b.models.length}
+                />
+              </div>
+              {filteredModels.length === 0 ? (
+                <p className="text-sm text-ink-muted py-8 text-center px-3">
+                  No vendor models match this filter.
+                </p>
+              ) : (
+              <ul className="min-h-0 flex-1 overflow-y-auto divide-y divide-white/5 px-3">
+                {filteredModels.map((m, i) => {
                   const label = formatProductDisplayName(m.name);
+                  const modelRate =
+                    m.marginRate ??
+                    (m.revenue > 0 ? (m.margin ?? 0) / m.revenue : 0);
+                  const skuLines =
+                    m.skus?.length
+                      ? m.skus
+                      : m.sku
+                        ? [
+                            {
+                              sku: m.sku,
+                              units: m.units,
+                              revenue: m.revenue,
+                              margin: m.margin,
+                              marginRate: modelRate,
+                            },
+                          ]
+                        : [];
                   return (
-                    <li key={m.vendorModel} className="flex items-center gap-3">
+                    <li
+                      key={m.vendorModel}
+                      className={cn(
+                        "flex items-start gap-3 py-3",
+                        i % 2 === 0 ? "bg-white/[0.015]" : ""
+                      )}
+                    >
+                      <span className="w-6 shrink-0 text-xs font-medium text-ink-muted tabular-nums pt-1">
+                        {i + 1}
+                      </span>
                       <ProductThumb
                         imageUrl={m.imageUrl}
                         alt={label}
@@ -351,6 +416,29 @@ export function RankDetailDrawer({
                         <p className="text-[11px] font-mono text-cyan-300/80">
                           {m.vendorModel}
                         </p>
+                        {skuLines.length > 0 && (
+                          <ul className="mt-1.5 space-y-1.5">
+                            {skuLines.map((line) => (
+                              <li
+                                key={line.sku}
+                                className="text-[11px] font-mono text-ink-muted/85"
+                              >
+                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                  <span className="text-cyan-300/75">SKU #{line.sku}</span>
+                                  <span className="text-ink-muted/55">·</span>
+                                  <span className="tabular-nums text-emerald-300/70">
+                                    {formatPieceCount(line.units)}
+                                  </span>
+                                </div>
+                                {line.stores && line.stores.length > 0 && (
+                                  <p className="mt-0.5 text-[10px] text-white/40 font-sans tracking-normal">
+                                    Stores: {line.stores.join(", ")}
+                                  </p>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                       <div className="text-right shrink-0 min-w-[4.75rem]">
                         <p className="text-sm tabular-nums text-ink">
@@ -359,86 +447,24 @@ export function RankDetailDrawer({
                         <p className="text-[11px] text-white/40 tabular-nums">
                           {formatPieceCount(m.units)}
                         </p>
-                        {(typeof m.marginRate === "number" || typeof m.margin === "number") && (
-                          <p
-                            className={cn(
-                              "text-[11px] font-semibold tabular-nums mt-0.5",
-                              (m.marginRate ??
-                                (m.revenue > 0 ? (m.margin ?? 0) / m.revenue : 0)) >= 0.4
-                                ? "text-emerald-300"
-                                : (m.marginRate ??
-                                      (m.revenue > 0 ? (m.margin ?? 0) / m.revenue : 0)) >= 0.25
-                                  ? "text-amber-200"
-                                  : "text-rose-300"
-                            )}
-                          >
-                            {(
-                              (m.marginRate ??
-                                (m.revenue > 0 ? (m.margin ?? 0) / m.revenue : 0)) * 100
-                            ).toFixed(1)}
-                            % margin
-                          </p>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          {data && data.lineItems.length > 0 && (
-            <div className="flex h-[min(70vh,40rem)] flex-col rounded-xl ring-1 ring-white/10 overflow-hidden">
-              <p className="shrink-0 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white/40 bg-white/[0.03] border-b border-white/10">
-                Line items ({data.totals.lineCount}
-                {data.lineItems.length < data.totals.lineCount
-                  ? ` · showing ${data.lineItems.length}`
-                  : ""}
-                )
-              </p>
-              <ul className="min-h-0 flex-1 overflow-y-auto divide-y divide-white/5">
-                {data.lineItems.map((row, i) => {
-                  const label = formatProductDisplayName(row.description);
-                  const skuOrModel = row.vendorModel || row.sku;
-                  return (
-                    <li
-                      key={`${row.transactionId ?? row.date}-${row.sku}-${i}`}
-                      className={cn(
-                        "px-3 py-2.5 flex items-start gap-3",
-                        i % 2 === 0 ? "bg-white/[0.015]" : ""
-                      )}
-                    >
-                      <ProductThumb
-                        imageDir={row.imageDir ?? undefined}
-                        imageUrl={row.imageUrl ?? undefined}
-                        alt={label}
-                        subtitle={skuOrModel}
-                        onOpen={(src, alt, subtitle) =>
-                          setPreview({ src, alt, subtitle })
-                        }
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[13px] text-ink/95 font-medium leading-snug tracking-[0.01em] line-clamp-2">
-                          {label}
-                        </p>
-                        <p className="text-[11px] text-white/40 mt-0.5 truncate">
-                          {[row.date, row.storeName, skuOrModel, row.department]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0 min-w-[4.5rem]">
-                        <p className="text-sm tabular-nums text-ink">
-                          {formatCurrency(row.netRevenue)}
-                        </p>
-                        <p className="text-[11px] text-white/40 tabular-nums">
-                          {formatPieceCount(row.quantity)}
+                        <p
+                          className={cn(
+                            "text-[11px] font-semibold tabular-nums mt-0.5",
+                            modelRate >= 0.4
+                              ? "text-emerald-300"
+                              : modelRate >= 0.25
+                                ? "text-amber-200"
+                                : "text-rose-300"
+                          )}
+                        >
+                          {(modelRate * 100).toFixed(1)}% margin
                         </p>
                       </div>
                     </li>
                   );
                 })}
               </ul>
+              )}
             </div>
           )}
           </div>

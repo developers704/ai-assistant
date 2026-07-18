@@ -167,7 +167,14 @@ export interface SalesSummary {
     /** Profit margin = profit / net sales (0–1) */
     marginRate?: number;
     /** Distinct SKUs sold under this vendor model */
-    skus?: { sku: string; units: number; revenue: number; margin?: number }[];
+    skus?: {
+      sku: string;
+      units: number;
+      revenue: number;
+      margin?: number;
+      marginRate?: number;
+      stores?: string[];
+    }[];
   }[];
   underperformingStores: { name: string; revenue: number; change: number }[];
   recommendations: string[];

@@ -159,6 +159,10 @@ export interface VendorModelSkuLine {
   units: number;
   revenue: number;
   margin?: number;
+  /** Profit margin = margin / revenue (0–1) */
+  marginRate?: number;
+  /** Stores that sold this SKU (under the parent model / filter slice) */
+  stores?: string[];
 }
 
 export interface SalesBreakdownRow {

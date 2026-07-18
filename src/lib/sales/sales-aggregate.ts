@@ -8,19 +8,41 @@ import type {
   VendorModelSkuLine,
 } from "./sales-types";
 
-function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
-  const map = new Map<string, VendorModelSkuLine>();
+export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
+  const map = new Map<
+    string,
+    VendorModelSkuLine & { storeSet: Set<string> }
+  >();
   for (const r of rows) {
     const sku = (r.sku || r.itemNumber || "").trim();
     if (!sku || isExcludedSalesSku(sku)) continue;
     const key = sku.toUpperCase();
-    const cur = map.get(key) ?? { sku, units: 0, revenue: 0, margin: 0 };
+    const cur = map.get(key) ?? {
+      sku,
+      units: 0,
+      revenue: 0,
+      margin: 0,
+      storeSet: new Set<string>(),
+    };
     cur.units += r.quantity;
     cur.revenue += r.netRevenue;
     cur.margin = (cur.margin ?? 0) + r.margin;
+    const store = r.storeName?.trim();
+    if (store) cur.storeSet.add(store);
     map.set(key, cur);
   }
-  return [...map.values()].sort((a, b) => b.units - a.units || b.revenue - a.revenue);
+  return [...map.values()]
+    .map(({ storeSet, ...line }) => {
+      const margin = line.margin ?? 0;
+      const stores = [...storeSet].sort((a, b) => a.localeCompare(b));
+      return {
+        ...line,
+        margin,
+        marginRate: line.revenue > 0 ? margin / line.revenue : 0,
+        stores: stores.length ? stores : undefined,
+      };
+    })
+    .sort((a, b) => b.units - a.units || b.revenue - a.revenue);
 }
 
 export function summarizeRows(rows: VendorPosRow[]): SalesMetricSummary {
@@ -98,7 +120,8 @@ function groupKey(row: VendorPosRow, by: SalesGroupBy): string {
 export function groupRows(
   rows: VendorPosRow[],
   by: SalesGroupBy,
-  limit = 50,
+  /** Cap results; omit / null / 0 = return all ranked rows. */
+  limit: number | null = 50,
   sortBy: "netSales" | "unitsSold" | "estimatedMargin" = "netSales",
   sortDirection: "asc" | "desc" = "desc"
 ): SalesBreakdownRow[] {
@@ -157,6 +180,7 @@ export function groupRows(
     return sortDirection === "asc" ? as - bs : bs - as;
   });
 
+  if (limit == null || limit <= 0) return list;
   return list.slice(0, limit);
 }
 

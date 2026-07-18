@@ -8,9 +8,11 @@ import {
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { filterExcludedSalesRows } from "@/lib/utils";
-import type { VendorPosRow, RankDimension } from "@/lib/reports/types";
+import type { RankDimension } from "@/lib/reports/types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 import { dimensionValue } from "@/lib/reports/rank-dimension";
+import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
+import type { VendorModelSkuLine } from "@/lib/sales/sales-types";
 
 export const runtime = "nodejs";
 
@@ -147,6 +149,7 @@ export async function GET(req: Request) {
       margin: number;
       imageDir?: string;
       sku?: string;
+      rows: typeof matched;
     }
   >();
 
@@ -178,7 +181,9 @@ export async function GET(req: Request) {
         margin: 0,
         imageDir: r.imageDir || undefined,
         sku: r.sku || r.itemNumber || undefined,
+        rows: [],
       };
+      ex.rows.push(r);
       byModel.set(model, {
         name: r.description || ex.name,
         vendorModel: model,
@@ -187,6 +192,7 @@ export async function GET(req: Request) {
         margin: ex.margin + r.margin,
         imageDir: ex.imageDir || r.imageDir || undefined,
         sku: ex.sku || r.sku || r.itemNumber || undefined,
+        rows: ex.rows,
       });
     }
   }
@@ -202,36 +208,15 @@ export async function GET(req: Request) {
 
   const topModels = [...byModel.values()]
     .sort((a, b) => b.units - a.units || b.revenue - a.revenue)
-    .slice(0, 15)
-    .map((m) => ({
-      ...m,
-      marginRate: m.revenue > 0 ? m.margin / m.revenue : 0,
-      imageUrl: resolveProductImageUrl(m.imageDir),
-    }));
-
-  const lineItems = matched
-    .slice()
-    .sort((a, b) => b.netRevenue - a.netRevenue)
-    .slice(0, 200)
-    .map((r) => ({
-      date: r.date,
-      transactionId: r.transactionId,
-      storeName: r.storeName,
-      department: r.department,
-      design: r.design,
-      vendor: r.vendor,
-      vendorModel: r.vendorModel,
-      sku: r.sku || r.itemNumber,
-      description: r.description,
-      productClass: r.productClass,
-      subClass: r.subClass,
-      quantity: r.quantity,
-      netRevenue: r.netRevenue,
-      margin: r.margin,
-      inventoryCost: r.inventoryCost,
-      imageUrl: resolveProductImageUrl(r.imageDir),
-      imageDir: r.imageDir || null,
-    }));
+    .map(({ rows: modelRows, ...m }) => {
+      const skus: VendorModelSkuLine[] = skuLinesForModel(modelRows);
+      return {
+        ...m,
+        skus: skus.length ? skus : undefined,
+        marginRate: m.revenue > 0 ? m.margin / m.revenue : 0,
+        imageUrl: resolveProductImageUrl(m.imageDir),
+      };
+    });
 
   return NextResponse.json({
     dimension,
@@ -246,6 +231,7 @@ export async function GET(req: Request) {
       inventoryCost,
       lineCount: matched.length,
       uniqueTransactions,
+      modelCount: topModels.length,
     },
     breakdowns: {
       stores: topN(byStore),
@@ -255,6 +241,5 @@ export async function GET(req: Request) {
       vendors: topN(byVendor),
       models: topModels,
     },
-    lineItems,
   });
 }

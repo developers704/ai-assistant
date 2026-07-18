@@ -6,17 +6,18 @@ export function getTopVendorModels(
   rows: VendorPosRow[],
   opts?: {
     sortBy?: "revenue" | "quantity" | "margin";
-    limit?: number;
+    /** Cap results; omit for all vendor models (qty-sorted). */
+    limit?: number | null;
   }
 ): SalesBreakdownRow[] {
-  // Dashboard + voice default: Top 20 by pieces sold (revenue as tiebreaker).
+  // Dashboard default: all models by pieces sold (revenue as tiebreaker).
   const sortBy =
     opts?.sortBy === "revenue"
       ? "netSales"
       : opts?.sortBy === "margin"
         ? "estimatedMargin"
         : "unitsSold";
-  return groupRows(rows, "vendor_model", opts?.limit ?? 20, sortBy, "desc");
+  return groupRows(rows, "vendor_model", opts?.limit ?? null, sortBy, "desc");
 }
 
 export function getTopProducts(
