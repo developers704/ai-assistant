@@ -651,7 +651,7 @@ export default function SalesPage() {
                 <span className="text-xs text-ink-muted">
                   {isFinancingReport
                     ? "By net sales amount"
-                    : "Top 20 by quantity sold · with revenue & product photos"}
+                    : "Top 20 by quantity sold · SKUs under each model · photos"}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">

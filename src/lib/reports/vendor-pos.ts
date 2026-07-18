@@ -200,6 +200,7 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
       revenue: number;
       units: number;
       margin: number;
+      skuMap: Map<string, { sku: string; units: number; revenue: number; margin: number }>;
     }
   >();
 
@@ -225,7 +226,22 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
       revenue: 0,
       units: 0,
       margin: 0,
+      skuMap: new Map(),
     };
+
+    if (itemNumber && !isExcludedSalesSku(itemNumber)) {
+      const skuKey = itemNumber.toUpperCase();
+      const skuLine = existing.skuMap.get(skuKey) ?? {
+        sku: itemNumber,
+        units: 0,
+        revenue: 0,
+        margin: 0,
+      };
+      skuLine.units += r.quantity;
+      skuLine.revenue += r.netRevenue;
+      skuLine.margin += r.margin;
+      existing.skuMap.set(skuKey, skuLine);
+    }
 
     map.set(key, {
       name: label || existing.name,
@@ -235,17 +251,24 @@ function rankProducts(rows: VendorPosRow[], limit = 20) {
       revenue: existing.revenue + r.netRevenue,
       units: existing.units + r.quantity,
       margin: existing.margin + r.margin,
+      skuMap: existing.skuMap,
     });
   }
 
   return [...map.values()]
     .sort((a, b) => b.units - a.units || b.revenue - a.revenue)
     .slice(0, limit)
-    .map((p) => ({
-      ...p,
-      marginRate: p.revenue > 0 ? p.margin / p.revenue : 0,
-      imageUrl: resolveProductImageUrl(p.imageDir),
-    }));
+    .map(({ skuMap, ...p }) => {
+      const skus = [...skuMap.values()].sort(
+        (a, b) => b.units - a.units || b.revenue - a.revenue
+      );
+      return {
+        ...p,
+        skus: skus.length ? skus : undefined,
+        marginRate: p.revenue > 0 ? p.margin / p.revenue : 0,
+        imageUrl: resolveProductImageUrl(p.imageDir),
+      };
+    });
 }
 
 export function summarizeVendorPos(

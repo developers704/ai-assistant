@@ -153,6 +153,14 @@ export interface SalesMetricSummary {
   averageUnitPrice: number | null;
 }
 
+/** SKUs that contributed to a vendor-model ranking row. */
+export interface VendorModelSkuLine {
+  sku: string;
+  units: number;
+  revenue: number;
+  margin?: number;
+}
+
 export interface SalesBreakdownRow {
   name: string;
   netSales: number;
@@ -166,6 +174,8 @@ export interface SalesBreakdownRow {
   sku?: string;
   vendorModel?: string;
   description?: string;
+  /** Distinct SKUs sold under this vendor model (Top Vendor Models). */
+  skus?: VendorModelSkuLine[];
 }
 
 export interface SalesClarification {

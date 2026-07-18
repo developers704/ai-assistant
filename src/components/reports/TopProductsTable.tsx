@@ -10,6 +10,13 @@ import {
 } from "@/lib/utils";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 
+export interface TopProductSkuLine {
+  sku: string;
+  units: number;
+  revenue: number;
+  margin?: number;
+}
+
 export interface TopProductRow {
   name: string;
   itemNumber?: string;
@@ -22,6 +29,8 @@ export interface TopProductRow {
   margin?: number;
   /** Profit margin = profit / net sales (0–1) */
   marginRate?: number;
+  /** Distinct SKUs sold under this vendor model */
+  skus?: TopProductSkuLine[];
 }
 
 interface TopProductsTableProps {
@@ -86,6 +95,18 @@ export function TopProductsTable({
             const model = product.vendorModel?.trim() || product.itemNumber || "—";
             const rate = marginRateOf(product);
             const profit = product.margin ?? rate * product.revenue;
+            const skuLines: TopProductSkuLine[] =
+              product.skus?.length
+                ? product.skus
+                : product.itemNumber
+                  ? [
+                      {
+                        sku: product.itemNumber,
+                        units: product.units,
+                        revenue: product.revenue,
+                      },
+                    ]
+                  : [];
             return (
               <li
                 key={`${product.vendorModel ?? ""}-${product.itemNumber ?? ""}-${product.name}-${i}`}
@@ -111,14 +132,31 @@ export function TopProductsTable({
                   {model}
                 </span>
 
-                <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words whitespace-normal line-clamp-3 sm:col-span-1 col-span-full -mt-1 sm:mt-0">
-                  {displayName}
-                  {product.itemNumber && product.vendorModel && (
-                    <span className="block text-[11px] text-ink-muted/80 mt-1 font-mono font-normal tracking-normal">
-                      SKU #{product.itemNumber}
-                    </span>
+                <div className="sm:col-span-1 col-span-full -mt-1 sm:mt-0 min-w-0">
+                  <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words whitespace-normal line-clamp-3">
+                    {displayName}
+                  </p>
+                  {skuLines.length > 0 && (
+                    <ul className="mt-1.5 space-y-0.5">
+                      {skuLines.map((line) => (
+                        <li
+                          key={line.sku}
+                          className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11px] font-mono font-normal tracking-normal text-ink-muted/85"
+                        >
+                          <span className="text-cyan-300/75">SKU #{line.sku}</span>
+                          <span className="text-ink-muted/55">·</span>
+                          <span className="tabular-nums text-emerald-300/70">
+                            {formatPieceCount(line.units)}
+                          </span>
+                          <span className="text-ink-muted/55">·</span>
+                          <span className="tabular-nums text-ink-muted/70">
+                            {formatCurrency(line.revenue)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </p>
+                </div>
 
                 <div className="flex sm:contents items-center justify-between gap-3 sm:col-span-3 col-span-full pt-1 sm:pt-0 border-t border-white/5 sm:border-0">
                   <span className="sm:hidden text-[11px] text-ink-muted uppercase tracking-wide">

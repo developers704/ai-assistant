@@ -84,6 +84,7 @@ export function reportSummaryFromQueryResult(
       units: r.unitsSold,
       margin: r.estimatedMargin,
       marginRate: r.netSales > 0 ? r.estimatedMargin / r.netSales : 0,
+      skus: r.skus,
     })
   );
 

@@ -1,6 +1,27 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import type { SalesBreakdownRow, SalesGroupBy, SalesMetricSummary } from "./sales-types";
+import { isExcludedSalesSku } from "@/lib/utils";
+import type {
+  SalesBreakdownRow,
+  SalesGroupBy,
+  SalesMetricSummary,
+  VendorModelSkuLine,
+} from "./sales-types";
+
+function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
+  const map = new Map<string, VendorModelSkuLine>();
+  for (const r of rows) {
+    const sku = (r.sku || r.itemNumber || "").trim();
+    if (!sku || isExcludedSalesSku(sku)) continue;
+    const key = sku.toUpperCase();
+    const cur = map.get(key) ?? { sku, units: 0, revenue: 0, margin: 0 };
+    cur.units += r.quantity;
+    cur.revenue += r.netRevenue;
+    cur.margin = (cur.margin ?? 0) + r.margin;
+    map.set(key, cur);
+  }
+  return [...map.values()].sort((a, b) => b.units - a.units || b.revenue - a.revenue);
+}
 
 export function summarizeRows(rows: VendorPosRow[]): SalesMetricSummary {
   if (!rows.length) {
@@ -106,6 +127,7 @@ export function groupRows(
   const totalNet = rows.reduce((s, r) => s + r.netRevenue, 0) || 1;
   const list: SalesBreakdownRow[] = [...map.entries()].map(([name, v]) => {
     const s = summarizeRows(v.rows);
+    const skus = by === "vendor_model" ? skuLinesForModel(v.rows) : undefined;
     return {
       name,
       netSales: s.netSales ?? 0,
@@ -119,6 +141,7 @@ export function groupRows(
       sku: v.sku,
       vendorModel: v.vendorModel,
       description: v.description,
+      skus: skus?.length ? skus : undefined,
     };
   });
 
