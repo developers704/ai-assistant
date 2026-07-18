@@ -72,7 +72,8 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   const deptCol = findCol(columns, [/^department$/]);
   const designCol = findCol(columns, [/^design$/]);
   const descCol = findCol(columns, [/^description$/]);
-  const itemCol = findCol(columns, [/^item\s*#?$/, /^item number$/, /^sku\s*#?$/]);
+  // Umair / POS variants: "Item  #", "SKU  #", or "SKU #"
+  const itemCol = findCol(columns, [/^item\s*#?$/, /^item number$/]);
   const skuCol = findCol(columns, [/^sku\s*#?$/]);
   const styleCol = findCol(columns, [/^style\s*#?$/]);
   const txnCol = findCol(columns, [/transaction\s*#/, /^transaction id$/]);
@@ -85,7 +86,12 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   const subClassCol = findCol(columns, [/sub-class/, /sub class/]);
   const discRateCol = findCol(columns, [/disc rate/, /discount rate/]);
   const vendorCol = findCol(columns, [/^vendor\s*name$/, /^vendor\s*#?$/, /^vendor$/]);
-  const vendorModelCol = findCol(columns, [/^vendor\s*model$/]);
+  // Umair export uses "VendorModel1"; standard feeds use "Vendor Model"
+  const vendorModelCol = findCol(columns, [
+    /^vendor\s*model\s*1?$/,
+    /^vendormodel1?$/,
+    /^vendor\s*model$/,
+  ]);
   const imageDirCol = findCol(columns, [/^image\s*dir\.?$/, /^image\s*directory$/, /^image$/]);
   const typeCol = findCol(columns, [/^type$/]);
 
@@ -99,7 +105,11 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
     const department = deptCol ? String(rec[deptCol] ?? "").trim() : "";
     const date = dateCol ? normalizeDate(rec[dateCol]) : null;
     const txnId = txnCol ? String(rec[txnCol] ?? "").trim() : "";
-    const sku = skuCol ? String(rec[skuCol] ?? "").trim() : itemCol ? String(rec[itemCol] ?? "").trim() : "";
+    const rawItem = itemCol ? String(rec[itemCol] ?? "").trim() : "";
+    const rawSku = skuCol ? String(rec[skuCol] ?? "").trim() : "";
+    // Either column is the product id — keep both fields populated for lookups / Top 20
+    const sku = rawSku || rawItem;
+    const itemNumber = rawItem || rawSku;
     const margin = net - inventoryCost;
 
     if (!store && !department && net === 0 && qty === 0) continue;
@@ -115,7 +125,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       // Keep blank — excluded later by filterExcludedSalesRows (do not invent "Uncategorized")
       department,
       design: designCol ? String(rec[designCol] ?? "").trim() : "",
-      itemNumber: itemCol ? String(rec[itemCol] ?? "").trim() : sku,
+      itemNumber,
       sku,
       style: styleCol ? String(rec[styleCol] ?? "").trim() : "",
       description: descCol ? String(rec[descCol] ?? "").trim() || department : department,
