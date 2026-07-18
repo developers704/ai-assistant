@@ -422,7 +422,8 @@ export function summarizeVendorPos(
     500
   );
 
-  const topStores = allStoresRanked.slice(0, 10).map((s) => ({
+  // Full list highest → lowest for Store Performance (single scroll).
+  const topStores = allStoresRanked.map((s) => ({
     name: s.name,
     revenue: s.revenue,
     change: storeChange(s.name, s.revenue),

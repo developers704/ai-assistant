@@ -316,11 +316,6 @@ export default function SalesPage() {
     );
   }
 
-  const worstStores =
-    summary.worstStores?.length > 0
-      ? summary.worstStores
-      : [...summary.topStores].sort((a, b) => a.revenue - b.revenue).slice(0, 10);
-  const maxWorstRevenue = Math.max(...worstStores.map((s) => s.revenue), 1);
   const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts));
 
   const isFinancingReport =
@@ -329,7 +324,10 @@ export default function SalesPage() {
   const isStoreSalesReport =
     reportSummary?.schema === "store_sales" || reportSummary?.reportCategory === "sales";
 
-  const maxTopStoreRevenue = Math.max(...summary.topStores.map((s) => s.revenue), 1);
+  const storePerformance = [...summary.topStores].sort(
+    (a, b) => b.revenue - a.revenue || a.name.localeCompare(b.name)
+  );
+  const maxStoreRevenue = Math.max(...storePerformance.map((s) => s.revenue), 1);
 
   const openRank = (dimension: RankDimension, value: string) => {
     setRankDetail({ dimension, value });
@@ -554,93 +552,67 @@ export default function SalesPage() {
           )}
 
           <div className="flex flex-col gap-5">
-            {isStoreSalesReport && summary.topStores.length > 0 && (
+            {storePerformance.length > 0 && (
               <Card className="p-0 overflow-hidden">
                 <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Store size={17} className="text-emerald-300" />
-                    Top Performing Stores
+                    Store Performance
                   </CardTitle>
-                  <span className="text-xs text-ink-muted">Highest net sales in this report</span>
+                  <span className="text-xs text-ink-muted">
+                    {storePerformance.length} stores · highest to lowest net sales · scroll for all
+                  </span>
                 </CardHeader>
-                <div className="max-h-[min(28rem,60vh)] overflow-y-auto p-4 space-y-3">
-                  {summary.topStores.slice(0, 12).map((store, i) => (
-                    <button
-                      key={store.name}
-                      type="button"
-                      onClick={() => openRank("store", store.name)}
-                      className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
-                    >
-                      <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink truncate mb-1.5">{store.name}</p>
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-400/80 rounded-full transition-all"
-                            style={{ width: `${(store.revenue / maxTopStoreRevenue) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                      <span className="text-sm font-semibold text-ink tabular-nums text-right">
-                        {formatCurrency(store.revenue)}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-xs font-medium tabular-nums text-right",
-                          store.change >= 0 ? "text-emerald-400" : "text-accent-rose"
-                        )}
+                <div className="max-h-[min(36rem,70vh)] overflow-y-auto p-4 space-y-3">
+                  {storePerformance.map((store, i) => {
+                    const barPct = (i / Math.max(storePerformance.length - 1, 1)) * 100;
+                    const barClass =
+                      barPct < 40
+                        ? "bg-emerald-400/80"
+                        : barPct < 70
+                          ? "bg-amber-300/70"
+                          : "bg-accent-rose/80";
+                    return (
+                      <button
+                        key={store.name}
+                        type="button"
+                        onClick={() => openRank("store", store.name)}
+                        className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
                       >
-                        {store.change >= 0 ? "+" : ""}
-                        {store.change.toFixed(1)}%
-                      </span>
-                    </button>
-                  ))}
+                        <span className="text-xs font-medium text-ink-muted tabular-nums">
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-ink truncate mb-1.5">
+                            {store.name}
+                          </p>
+                          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className={cn("h-full rounded-full transition-all", barClass)}
+                              style={{
+                                width: `${(store.revenue / maxStoreRevenue) * 100}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-sm font-semibold text-ink tabular-nums text-right">
+                          {formatCurrency(store.revenue)}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs font-medium tabular-nums text-right",
+                            store.change >= 0 ? "text-emerald-400" : "text-accent-rose"
+                          )}
+                        >
+                          {store.change >= 0 ? "+" : ""}
+                          {store.change.toFixed(1)}%
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </Card>
             )}
-
-            <Card className="p-0 overflow-hidden">
-              <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Store size={17} className="text-accent-rose" />
-                  {isStoreSalesReport ? "Lowest Revenue Stores" : "Worst Performing Stores"}
-                </CardTitle>
-                <span className="text-xs text-ink-muted">Lowest revenue in report</span>
-              </CardHeader>
-              <div className="max-h-[min(28rem,60vh)] overflow-y-auto p-4 space-y-3">
-                {worstStores.map((store, i) => (
-                  <button
-                    key={store.name}
-                    type="button"
-                    onClick={() => openRank("store", store.name)}
-                    className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
-                  >
-                    <span className="text-xs font-medium text-ink-muted tabular-nums">{i + 1}</span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink truncate mb-1.5">{store.name}</p>
-                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-accent-rose/80 rounded-full transition-all"
-                          style={{ width: `${(store.revenue / maxWorstRevenue) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-sm font-semibold text-ink tabular-nums text-right">
-                      {formatCurrency(store.revenue)}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-xs font-medium tabular-nums text-right",
-                        store.change >= 0 ? "text-emerald-400" : "text-accent-rose"
-                      )}
-                    >
-                      {store.change >= 0 ? "+" : ""}
-                      {store.change.toFixed(1)}%
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </Card>
 
             <Card className="p-0 overflow-hidden">
               <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
