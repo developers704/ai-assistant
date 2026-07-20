@@ -22,13 +22,40 @@ ${signer.name}
 ${signer.role} | ${signer.company}`;
 }
 
-function emailBodyForDraft(email: Email): string {
+function plainBody(email: Email, max = 1800): string {
   const raw = email.body || email.preview || "";
   const plain = looksLikeHtml(raw) ? htmlToPlainText(raw) : raw;
-  return plain.replace(/\s+/g, " ").trim().slice(0, 2000);
+  return plain.replace(/\s+/g, " ").trim().slice(0, max);
 }
 
-/** LLM-written reply; falls back to template if OpenAI is unavailable. */
+/** Build chronological thread transcript for the LLM (oldest → newest). */
+export function formatThreadForDraft(email: Email): string {
+  const messages =
+    email.threadMessages && email.threadMessages.length > 0
+      ? email.threadMessages
+      : [email];
+
+  return messages
+    .map((m, i) => {
+      const when = m.receivedAt
+        ? new Date(m.receivedAt).toLocaleString(undefined, {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : "";
+      const body = plainBody(m, 1200);
+      return `--- Message ${i + 1} of ${messages.length} (${when}) ---
+From: ${m.from} <${m.fromEmail}>
+Subject: ${m.subject}
+
+${body}`;
+    })
+    .join("\n\n");
+}
+
+/** LLM-written reply using full thread context; falls back to template if OpenAI is unavailable. */
 export async function generateSmartEmailReply(
   email: Email,
   signer: EmailSigner
@@ -38,35 +65,38 @@ export async function generateSmartEmailReply(
     return buildTemplateReply(email, signer);
   }
 
-  const bodyPlain = emailBodyForDraft(email);
-  if (!bodyPlain) {
+  const threadText = formatThreadForDraft(email);
+  if (!threadText.trim()) {
     return buildTemplateReply(email, signer);
   }
+
+  const messageCount = email.threadMessages?.length ?? 1;
 
   try {
     const client = new OpenAI({ apiKey });
     const completion = await client.chat.completions.create({
       model: OPENAI_CHAT_MODEL,
       temperature: 0.4,
-      max_tokens: 450,
+      max_tokens: 550,
       messages: [
         {
           role: "system",
           content: `You draft professional executive email replies for ${signer.name}, ${signer.role} at ${signer.company}.
+You receive a FULL email thread (${messageCount} message${messageCount === 1 ? "" : "s"}), oldest to newest.
+Read the entire conversation before drafting. Address open questions, prior commitments, and the latest message.
 Write plain text only (no markdown, no bullet lists). Warm, concise, confident — 2 to 4 short paragraphs.
-Address the sender's specific points from the email. End with a sign-off using exactly:
+Do not invent facts that are not in the thread. End with a sign-off using exactly:
 Best regards,
 ${signer.name}
 ${signer.role} | ${signer.company}`,
         },
         {
           role: "user",
-          content: `Draft a reply to this email:
+          content: `Draft a reply that continues this email thread. Reply to the latest message from ${email.from}.
 
-From: ${email.from} <${email.fromEmail}>
-Subject: ${email.subject}
+Thread subject: ${email.subject}
 
-${bodyPlain}`,
+${threadText}`,
         },
       ],
     });

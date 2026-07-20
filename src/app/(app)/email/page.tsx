@@ -25,6 +25,7 @@ import {
   ChevronLeft,
   Search,
   ChevronDown,
+  MessagesSquare,
 } from "lucide-react";
 
 const MOBILE_HEIGHT =
@@ -35,10 +36,18 @@ type InboxFilter = "all" | "unread" | "reply";
 function dedupeEmails(emails: Email[]): Email[] {
   const seen = new Set<string>();
   return emails.filter((e) => {
-    if (seen.has(e.id)) return false;
-    seen.add(e.id);
+    const key = e.threadId || e.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
+}
+
+function threadMessagesOf(email: Email): Email[] {
+  if (email.threadMessages && email.threadMessages.length > 0) {
+    return email.threadMessages;
+  }
+  return [email];
 }
 
 export default function EmailPage() {
@@ -81,12 +90,19 @@ export default function EmailPage() {
     if (filter === "reply") list = list.filter((e) => e.needsReply);
     const q = query.trim().toLowerCase();
     if (q) {
-      list = list.filter(
-        (e) =>
+      list = list.filter((e) => {
+        const inLatest =
           e.from.toLowerCase().includes(q) ||
           e.subject.toLowerCase().includes(q) ||
-          e.preview.toLowerCase().includes(q)
-      );
+          e.preview.toLowerCase().includes(q);
+        if (inLatest) return true;
+        return threadMessagesOf(e).some(
+          (m) =>
+            m.from.toLowerCase().includes(q) ||
+            m.body.toLowerCase().includes(q) ||
+            m.preview.toLowerCase().includes(q)
+        );
+      });
     }
     return list;
   }, [baseEmails, filter, query]);
@@ -95,8 +111,11 @@ export default function EmailPage() {
 
   const googleConnected = state.integrations?.google?.connected ?? false;
 
-  const selected = baseEmails.find((e) => e.id === selectedId);
-  const urgentCount = baseEmails.filter((e) => e.category === "urgent").length;
+  const selected =
+    baseEmails.find((e) => e.id === selectedId || e.threadId === selectedId) ??
+    null;
+  const conversation = selected ? threadMessagesOf(selected) : [];
+  const messageCount = selected?.messageCount ?? conversation.length;
   const needsReplyCount = baseEmails.filter((e) => e.needsReply).length;
   const unreadCount = baseEmails.filter((e) => !e.isRead).length;
   const mobileReading = !!selectedId;
@@ -134,7 +153,12 @@ export default function EmailPage() {
   };
 
   const handleDraftReply = async (email: Email) => {
-    await runAssistant(`Draft a reply to ${email.from} about "${email.subject}"`);
+    const count = email.messageCount ?? threadMessagesOf(email).length;
+    await runAssistant(
+      count > 1
+        ? `Draft a reply to the thread with ${email.from} about "${email.subject}" using the full conversation`
+        : `Draft a reply to ${email.from} about "${email.subject}"`
+    );
   };
 
   const handleFollowUp = async (email: Email) => {
@@ -145,11 +169,23 @@ export default function EmailPage() {
     const size = small ? "text-[10px] px-1.5 py-0" : undefined;
     switch (cat) {
       case "urgent":
-        return <Badge variant="danger" className={size}>Urgent</Badge>;
+        return (
+          <Badge variant="danger" className={size}>
+            Urgent
+          </Badge>
+        );
       case "important":
-        return <Badge variant="warning" className={size}>Important</Badge>;
+        return (
+          <Badge variant="warning" className={size}>
+            Important
+          </Badge>
+        );
       case "promotional":
-        return <Badge variant="default" className={size}>Promo</Badge>;
+        return (
+          <Badge variant="default" className={size}>
+            Promo
+          </Badge>
+        );
       default:
         return null;
     }
@@ -180,7 +216,7 @@ export default function EmailPage() {
         {assistantBusy ? (
           <p className="text-sm text-ink-muted flex items-center gap-2 py-2">
             <Loader2 size={16} className="animate-spin text-violet-300 shrink-0" />
-            Working on your request…
+            Reading thread & drafting…
           </p>
         ) : assistantMessage ? (
           <ChatBubble
@@ -241,7 +277,8 @@ export default function EmailPage() {
                     Email
                   </h1>
                   <p className="text-xs sm:text-sm text-white/40 mt-0.5">
-                    {googleConnected ? "Gmail inbox" : "Demo inbox"}
+                    {googleConnected ? "Gmail threads" : "Demo threads"}
+                    {unreadCount > 0 ? ` · ${unreadCount} unread` : ""}
                   </p>
                 </div>
                 <Button
@@ -291,7 +328,7 @@ export default function EmailPage() {
                   autoComplete="off"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search sender or subject…"
+                  placeholder="Search threads…"
                   className="input-dark w-full min-h-[44px] pl-10 pr-10 py-2.5 rounded-2xl text-sm text-ink"
                 />
                 {query && (
@@ -310,7 +347,9 @@ export default function EmailPage() {
 
           {!googleConnected && !mobileReading && (
             <div className="mt-3 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ring-1 ring-amber-400/20 bg-amber-500/10">
-              <p className="text-xs sm:text-sm text-ink-secondary">Connect Gmail for your real inbox.</p>
+              <p className="text-xs sm:text-sm text-ink-secondary">
+                Connect Gmail for your real inbox threads.
+              </p>
               <Link href="/settings">
                 <Button size="sm" variant="outline" className="shrink-0">
                   <Link2 size={14} />
@@ -325,7 +364,7 @@ export default function EmailPage() {
           {loading && googleConnected && baseEmails.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-ink-muted text-sm gap-3">
               <Loader2 size={24} className="animate-spin text-blue-300" />
-              Loading Gmail inbox…
+              Loading Gmail threads…
             </div>
           ) : baseEmails.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
@@ -336,7 +375,7 @@ export default function EmailPage() {
           ) : emails.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
               <Search size={32} className="text-ink-muted mb-3" />
-              <p className="text-ink-secondary font-medium">No emails match</p>
+              <p className="text-ink-secondary font-medium">No threads match</p>
               <p className="text-sm text-ink-muted mt-1">Try a different filter or search.</p>
             </div>
           ) : (
@@ -344,70 +383,90 @@ export default function EmailPage() {
               <aside
                 className={cn(
                   "flex flex-col min-h-0",
-                  mobileReading ? "hidden lg:flex lg:w-72 xl:w-80 lg:shrink-0" : "flex-1 lg:w-72 xl:w-80 lg:shrink-0"
+                  mobileReading
+                    ? "hidden lg:flex lg:w-[19rem] xl:w-80 lg:shrink-0"
+                    : "flex-1 lg:w-[19rem] xl:w-80 lg:shrink-0"
                 )}
               >
                 <div className="flex-1 overflow-y-auto overscroll-y-contain space-y-1.5 pr-0.5 min-h-0 pb-2">
-                  {emails.map((email) => (
-                    <button
-                      key={email.id}
-                      type="button"
-                      className={cn(
-                        "w-full text-left rounded-2xl p-3 sm:p-3.5 transition-all active:scale-[0.99] ring-1",
-                        selectedId === email.id
-                          ? "ring-violet-400/50 bg-violet-500/10"
-                          : !email.isRead
-                            ? "ring-white/12 bg-white/[0.07]"
-                            : "ring-white/5 bg-white/[0.03] opacity-95"
-                      )}
-                      onClick={() => setSelectedId(email.id)}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div
-                          className={cn(
-                            "mt-1.5 w-2 h-2 rounded-full shrink-0",
-                            !email.isRead ? "bg-blue-400" : "bg-transparent"
-                          )}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                            <span
+                  {emails.map((email) => {
+                    const count = email.messageCount ?? 1;
+                    const active =
+                      selectedId === email.id || selectedId === email.threadId;
+                    return (
+                      <button
+                        key={email.threadId || email.id}
+                        type="button"
+                        className={cn(
+                          "w-full text-left rounded-2xl p-3 sm:p-3.5 transition-all active:scale-[0.99] ring-1",
+                          active
+                            ? "ring-violet-400/50 bg-violet-500/10"
+                            : !email.isRead
+                              ? "ring-white/12 bg-white/[0.07]"
+                              : "ring-white/[0.06] bg-white/[0.025] hover:bg-white/[0.05]"
+                        )}
+                        onClick={() => setSelectedId(email.id)}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div
+                            className={cn(
+                              "mt-1.5 w-2 h-2 rounded-full shrink-0",
+                              !email.isRead ? "bg-blue-400" : "bg-transparent"
+                            )}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                              <span
+                                className={cn(
+                                  "text-[13px] sm:text-sm truncate",
+                                  !email.isRead
+                                    ? "font-semibold text-ink"
+                                    : "font-medium text-ink-secondary"
+                                )}
+                              >
+                                {email.from}
+                              </span>
+                              <span className="text-[10px] text-ink-muted shrink-0 tabular-nums">
+                                {formatRelativeTime(email.receivedAt)}
+                              </span>
+                            </div>
+                            <p
                               className={cn(
-                                "text-[13px] sm:text-sm truncate",
-                                !email.isRead ? "font-semibold text-ink" : "font-medium text-ink-secondary"
+                                "text-[13px] sm:text-sm line-clamp-1 leading-snug",
+                                !email.isRead
+                                  ? "text-ink font-medium"
+                                  : "text-ink-secondary"
                               )}
                             >
-                              {email.from}
-                            </span>
-                            <span className="text-[10px] text-ink-muted shrink-0 tabular-nums">
-                              {formatRelativeTime(email.receivedAt)}
-                            </span>
-                          </div>
-                          <p
-                            className={cn(
-                              "text-[13px] sm:text-sm line-clamp-1 leading-snug",
-                              !email.isRead ? "text-ink font-medium" : "text-ink-secondary"
-                            )}
-                          >
-                            {email.subject}
-                          </p>
-                          {email.preview && (
-                            <p className="text-xs text-ink-muted line-clamp-1 mt-0.5">
-                              {toEmailPreview(email.preview)}
+                              {email.subject}
                             </p>
-                          )}
-                          <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                            {categoryBadge(email.category, true)}
-                            {email.needsReply && (
-                              <Badge variant="info" className="text-[10px] px-1.5 py-0">
-                                Reply
-                              </Badge>
+                            {email.preview && (
+                              <p className="text-xs text-ink-muted line-clamp-1 mt-0.5">
+                                {toEmailPreview(email.preview)}
+                              </p>
                             )}
+                            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                              {count > 1 && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200 ring-1 ring-violet-400/25">
+                                  <MessagesSquare size={10} />
+                                  {count}
+                                </span>
+                              )}
+                              {categoryBadge(email.category, true)}
+                              {email.needsReply && (
+                                <Badge
+                                  variant="info"
+                                  className="text-[10px] px-1.5 py-0"
+                                >
+                                  Reply
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
 
                   {hasMore && filter === "all" && !query && (
                     <button
@@ -424,7 +483,7 @@ export default function EmailPage() {
                       ) : (
                         <>
                           <ChevronDown size={16} />
-                          Load more emails
+                          Load more threads
                         </>
                       )}
                     </button>
@@ -439,34 +498,74 @@ export default function EmailPage() {
                 )}
               >
                 {selected ? (
-                  <div className="flex flex-col flex-1 min-h-0 rounded-2xl ring-1 ring-white/10 bg-black/10 overflow-hidden">
-                    <div className="px-3 sm:px-5 py-3 border-b border-white/10 shrink-0">
-                      <h2 className="text-[15px] sm:text-lg font-semibold text-ink leading-snug break-words">
-                        {selected.subject}
-                      </h2>
-                      <div className="flex items-center justify-between gap-2 mt-1.5">
+                  <div className="flex flex-col flex-1 min-h-0 rounded-2xl ring-1 ring-white/10 bg-black/15 overflow-hidden">
+                    <div className="px-3 sm:px-5 py-3 border-b border-white/10 shrink-0 bg-white/[0.02]">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm text-ink-secondary truncate">{selected.from}</p>
-                          <p className="text-[11px] text-ink-muted truncate">{selected.fromEmail}</p>
+                          <h2 className="text-[15px] sm:text-lg font-semibold text-ink leading-snug break-words">
+                            {selected.subject}
+                          </h2>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-[11px] text-ink-muted">
+                            <span className="inline-flex items-center gap-1 text-violet-200/90">
+                              <MessagesSquare size={12} />
+                              {messageCount} message{messageCount === 1 ? "" : "s"}
+                            </span>
+                            <span>·</span>
+                            <span>{formatRelativeTime(selected.receivedAt)}</span>
+                          </div>
                         </div>
-                        <div className="flex gap-1 shrink-0">{categoryBadge(selected.category, true)}</div>
+                        <div className="flex gap-1 shrink-0">
+                          {categoryBadge(selected.category, true)}
+                        </div>
                       </div>
-                      <p className="text-[11px] text-ink-muted mt-1">
-                        {formatRelativeTime(selected.receivedAt)}
-                      </p>
                     </div>
 
-                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-3 pb-4">
-                      <EmailBody
-                        body={selected.body}
-                        bodyHtml={selected.bodyHtml}
-                        preview={selected.preview}
-                      />
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-4 space-y-3 pb-4">
+                      {conversation.map((msg, idx) => {
+                        const isLatest = idx === conversation.length - 1;
+                        const isBoss =
+                          /valliani|kash@/i.test(msg.fromEmail) ||
+                          /kash/i.test(msg.from);
+                        return (
+                          <article
+                            key={msg.id}
+                            className={cn(
+                              "rounded-2xl ring-1 p-3.5 sm:p-4",
+                              isLatest
+                                ? "ring-violet-400/30 bg-violet-500/[0.08]"
+                                : "ring-white/[0.07] bg-white/[0.03]",
+                              isBoss && "ring-cyan-400/20 bg-cyan-500/[0.05]"
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2.5">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-ink truncate">
+                                  {msg.from}
+                                  {isBoss && (
+                                    <span className="ml-1.5 text-[10px] font-medium text-cyan-300/80">
+                                      You
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-[11px] text-ink-muted truncate">
+                                  {msg.fromEmail}
+                                </p>
+                              </div>
+                              <p className="text-[10px] text-ink-muted shrink-0 tabular-nums">
+                                {formatRelativeTime(msg.receivedAt)}
+                              </p>
+                            </div>
+                            <EmailBody
+                              body={msg.body}
+                              bodyHtml={msg.bodyHtml}
+                              preview={msg.preview}
+                            />
+                          </article>
+                        );
+                      })}
                     </div>
 
-                    <div
-                      className="shrink-0 px-3 sm:px-5 py-2.5 border-t border-white/10 bg-black/30 backdrop-blur-md flex gap-2 safe-area-bottom"
-                    >
+                    <div className="shrink-0 px-3 sm:px-5 py-2.5 border-t border-white/10 bg-black/35 backdrop-blur-md flex gap-2 safe-area-bottom">
                       <Button
                         size="sm"
                         disabled={assistantBusy}
@@ -489,9 +588,13 @@ export default function EmailPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center">
-                    <Mail size={28} className="text-blue-300 mb-3" />
-                    <p className="text-ink font-medium">Select an email</p>
+                  <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center rounded-2xl ring-1 ring-white/[0.06] bg-white/[0.02]">
+                    <Mail size={28} className="text-violet-300/70 mb-3" />
+                    <p className="text-ink font-medium">Select a thread</p>
+                    <p className="text-sm text-ink-muted mt-1 max-w-xs">
+                      Open a conversation to read the full thread and draft a reply
+                      with context.
+                    </p>
                   </div>
                 )}
               </section>
@@ -516,9 +619,7 @@ export default function EmailPage() {
             aria-label="Close assistant"
             onClick={() => setMobileAssistantOpen(false)}
           />
-          <div
-            className="lg:hidden fixed inset-x-0 bottom-0 z-50 glass-panel-strong rounded-t-2xl ring-1 ring-violet-400/30 shadow-elevated p-4 max-h-[70vh] overflow-y-auto safe-area-bottom"
-          >
+          <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 glass-panel-strong rounded-t-2xl ring-1 ring-violet-400/30 shadow-elevated p-4 max-h-[70vh] overflow-y-auto safe-area-bottom">
             {assistantPanel}
           </div>
         </>

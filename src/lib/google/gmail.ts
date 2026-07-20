@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import type { gmail_v1 } from "googleapis";
 import type { GoogleOAuth2Client } from "./client";
 import { getAuthenticatedClient } from "./client";
 import type { Email } from "@/types";
@@ -78,8 +79,98 @@ function isLikelyAutomated(from: string, subject: string): boolean {
   const text = `${from} ${subject}`.toLowerCase();
   return (
     /noreply|no-reply|donotreply|mailer-daemon|notification@|notifications@/.test(text) ||
-    /order has been received|login details|password reset|verify your email|your receipt|unsubscribe|newsletter|wordpress/.test(text)
+    /order has been received|login details|password reset|verify your email|your receipt|unsubscribe|newsletter|wordpress/.test(
+      text
+    )
   );
+}
+
+function parseGmailMessage(msg: gmail_v1.Schema$Message): Email | null {
+  if (!msg?.id) return null;
+
+  const labelIds = msg.labelIds ?? [];
+  const headers = msg.payload?.headers;
+  const fromRaw = getHeader(headers, "From");
+  const { name, email } = parseFrom(fromRaw);
+  const subject = getHeader(headers, "Subject") || "(No subject)";
+  const { plain, html } = extractEmailParts(msg.payload as MimePart | undefined);
+  const body = plain || toPlainText(msg.snippet ?? "") || "";
+  const preview = toEmailPreview(body || html || msg.snippet || "");
+  const bodyHtml = html || undefined;
+  const receivedAt = msg.internalDate
+    ? new Date(Number(msg.internalDate)).toISOString()
+    : new Date().toISOString();
+  const isRead = !labelIds.includes("UNREAD");
+  const isImportant = labelIds.includes("IMPORTANT") || labelIds.includes("STARRED");
+  const category = mapCategory(labelIds);
+  const needsReply =
+    !isRead &&
+    category !== "promotional" &&
+    !isLikelyAutomated(fromRaw, subject) &&
+    (isImportant || category === "important");
+
+  const rfcMessageId = getHeader(headers, "Message-ID") || getHeader(headers, "Message-Id") || undefined;
+  const inReplyTo = getHeader(headers, "In-Reply-To") || undefined;
+  const references = getHeader(headers, "References") || undefined;
+  const threadId = msg.threadId || msg.id;
+
+  return {
+    id: msg.id,
+    threadId,
+    from: name,
+    fromEmail: email,
+    subject,
+    preview,
+    body: body || msg.snippet || "",
+    bodyHtml,
+    receivedAt,
+    isImportant,
+    isRead,
+    needsReply,
+    category,
+    rfcMessageId,
+    inReplyTo,
+    references,
+    messageCount: 1,
+  };
+}
+
+/** Collapse messages in one thread into a single inbox row (latest on top). */
+export function collapseThread(messages: Email[]): Email | null {
+  if (messages.length === 0) return null;
+  const ordered = [...messages].sort(
+    (a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime()
+  );
+  const latest = ordered[ordered.length - 1];
+  const anyUnread = ordered.some((m) => !m.isRead);
+  const anyImportant = ordered.some((m) => m.isImportant);
+  const anyNeedsReply = ordered.some((m) => m.needsReply);
+  const worstCategory = ordered.some((m) => m.category === "urgent")
+    ? "urgent"
+    : ordered.some((m) => m.category === "important")
+      ? "important"
+      : ordered.some((m) => m.category === "promotional") &&
+          ordered.every((m) => m.category === "promotional")
+        ? "promotional"
+        : latest.category;
+
+  // Strip nested threadMessages on children to avoid huge payloads
+  const threadMessages = ordered.map(({ threadMessages: _t, ...rest }) => ({
+    ...rest,
+    messageCount: 1,
+  }));
+
+  return {
+    ...latest,
+    isRead: !anyUnread,
+    isImportant: anyImportant || latest.isImportant,
+    needsReply: anyNeedsReply,
+    category: worstCategory as Email["category"],
+    threadId: latest.threadId || latest.id,
+    threadMessages,
+    messageCount: ordered.length,
+    preview: latest.preview,
+  };
 }
 
 export interface GmailInboxPage {
@@ -91,75 +182,74 @@ export async function fetchGmailInbox(
   client: GoogleOAuth2Client,
   options: { maxResults?: number; pageToken?: string } = {}
 ): Promise<GmailInboxPage> {
-  const maxResults = options.maxResults ?? 40;
+  const maxResults = options.maxResults ?? 25;
   const gmail = google.gmail({ version: "v1", auth: client });
 
-  const list = await gmail.users.messages.list({
+  const list = await gmail.users.threads.list({
     userId: "me",
     maxResults,
     pageToken: options.pageToken,
     q: "in:inbox",
   });
 
-  const messageIds = list.data.messages ?? [];
-  if (messageIds.length === 0) {
+  const threadRefs = list.data.threads ?? [];
+  if (threadRefs.length === 0) {
     return { emails: [], nextPageToken: list.data.nextPageToken ?? undefined };
   }
 
-  const messages = await Promise.all(
-    messageIds.map(async (item) => {
+  const threads = await Promise.all(
+    threadRefs.map(async (item) => {
       if (!item.id) return null;
-      const { data: msg } = await gmail.users.messages.get({
+      const { data: thread } = await gmail.users.threads.get({
         userId: "me",
         id: item.id,
         format: "full",
       });
-      return msg;
+      return thread;
     })
   );
 
   const emails: Email[] = [];
 
-  for (const msg of messages) {
-    if (!msg?.id) continue;
+  for (const thread of threads) {
+    if (!thread?.id || !thread.messages?.length) continue;
+    const messages = thread.messages
+      .map((msg) => parseGmailMessage(msg))
+      .filter((e): e is Email => e != null)
+      .map((e) => ({ ...e, threadId: thread.id! }));
 
-    const labelIds = msg.labelIds ?? [];
-    const fromRaw = getHeader(msg.payload?.headers, "From");
-    const { name, email } = parseFrom(fromRaw);
-    const subject = getHeader(msg.payload?.headers, "Subject") || "(No subject)";
-    const { plain, html } = extractEmailParts(msg.payload as MimePart | undefined);
-    const body = plain || toPlainText(msg.snippet ?? "") || "";
-    const preview = toEmailPreview(body || html || msg.snippet || "");
-    const bodyHtml = html || undefined;
-    const receivedAt = msg.internalDate
-      ? new Date(Number(msg.internalDate)).toISOString()
-      : new Date().toISOString();
-    const isRead = !labelIds.includes("UNREAD");
-    const isImportant = labelIds.includes("IMPORTANT") || labelIds.includes("STARRED");
-    const category = mapCategory(labelIds);
-    const needsReply =
-      !isRead &&
-      category !== "promotional" &&
-      !isLikelyAutomated(fromRaw, subject) &&
-      (isImportant || category === "important");
-
-    emails.push({
-      id: msg.id!,
-      from: name,
-      fromEmail: email,
-      subject,
-      preview,
-      body: body || msg.snippet || "",
-      bodyHtml,
-      receivedAt,
-      isImportant,
-      isRead,
-      needsReply,
-      category,
-    });
+    const collapsed = collapseThread(messages);
+    if (collapsed) emails.push(collapsed);
   }
 
   return { emails, nextPageToken: list.data.nextPageToken ?? undefined };
+}
+
+/** Fetch one thread by id (full conversation). */
+export async function fetchGmailThread(
+  client: GoogleOAuth2Client,
+  threadId: string
+): Promise<Email | null> {
+  const gmail = google.gmail({ version: "v1", auth: client });
+  const { data: thread } = await gmail.users.threads.get({
+    userId: "me",
+    id: threadId,
+    format: "full",
+  });
+  if (!thread?.messages?.length) return null;
+  const messages = thread.messages
+    .map((msg) => parseGmailMessage(msg))
+    .filter((e): e is Email => e != null)
+    .map((e) => ({ ...e, threadId: thread.id || threadId }));
+  return collapseThread(messages);
+}
+
+function encodeRawMessage(raw: string): string {
+  return Buffer.from(raw)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 export async function sendGmailMessage(params: {
@@ -167,6 +257,10 @@ export async function sendGmailMessage(params: {
   subject: string;
   body: string;
   threadId?: string;
+  /** RFC Message-ID of the message being replied to. */
+  inReplyTo?: string;
+  /** Existing References chain (optional). */
+  references?: string;
 }): Promise<{ ok: boolean; error?: string; messageId?: string }> {
   const client = await getAuthenticatedClient();
   if (!client) {
@@ -178,25 +272,25 @@ export async function sendGmailMessage(params: {
 
   try {
     const gmail = google.gmail({ version: "v1", auth: client });
-    const raw = [
+    const headers = [
       `To: ${params.to}`,
       `Subject: ${params.subject}`,
       'Content-Type: text/plain; charset="UTF-8"',
       "MIME-Version: 1.0",
-      "",
-      params.body,
-    ].join("\r\n");
+    ];
 
-    const encoded = Buffer.from(raw)
-      .toString("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
+    if (params.inReplyTo) {
+      headers.push(`In-Reply-To: ${params.inReplyTo}`);
+      const refs = [params.references, params.inReplyTo].filter(Boolean).join(" ").trim();
+      if (refs) headers.push(`References: ${refs}`);
+    }
+
+    const raw = [...headers, "", params.body].join("\r\n");
 
     const { data } = await gmail.users.messages.send({
       userId: "me",
       requestBody: {
-        raw: encoded,
+        raw: encodeRawMessage(raw),
         threadId: params.threadId,
       },
     });

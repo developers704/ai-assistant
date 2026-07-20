@@ -60,7 +60,7 @@ export function buildWhatCanYouDoHere(ctx: SectionRuntimeContext): string {
 
   if (ctx.sectionId === "email" && ctx.selectedEmail) {
     lines.push(
-      `\nYou have **${ctx.selectedEmail.from}** — "${ctx.selectedEmail.subject}" selected. Say **reply to this** to draft a response.`
+      `\nYou have the **${ctx.selectedEmail.from}** thread — "${ctx.selectedEmail.subject}" selected (${ctx.selectedEmail.messageCount ?? 1} messages). Say **reply to this** to draft a response using the full conversation.`
     );
   } else if (ctx.sectionId === "email") {
     lines.push(`\n${ctx.section.exampleResponses.replyNoSelection ?? "Select an email to reply."}`);

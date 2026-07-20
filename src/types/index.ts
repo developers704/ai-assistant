@@ -67,6 +67,8 @@ export interface CalendarEvent {
 
 export interface Email {
   id: string;
+  /** Gmail thread id (demo threads use a stable string). */
+  threadId: string;
   from: string;
   fromEmail: string;
   subject: string;
@@ -79,6 +81,16 @@ export interface Email {
   isRead: boolean;
   needsReply: boolean;
   category: "urgent" | "important" | "normal" | "promotional";
+  /** RFC 2822 Message-ID of this message (for In-Reply-To). */
+  rfcMessageId?: string;
+  /** RFC In-Reply-To header value. */
+  inReplyTo?: string;
+  /** RFC References header value. */
+  references?: string;
+  /** Messages in this thread, oldest → newest (includes this message). */
+  threadMessages?: Email[];
+  /** Message count in the thread (convenience for list badges). */
+  messageCount?: number;
 }
 
 export interface WhatsAppMessage {

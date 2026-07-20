@@ -107,7 +107,9 @@ export function buildEmailVoiceScript(emails: Email[]): string {
 function pickEmailForDraft(emails: Email[]): Email | undefined {
   const selectedId = getUiContext().selectedEmailId;
   if (selectedId) {
-    const selected = emails.find((e) => e.id === selectedId);
+    const selected = emails.find(
+      (e) => e.id === selectedId || e.threadId === selectedId
+    );
     if (selected) return selected;
   }
   return (
@@ -126,6 +128,8 @@ export interface VoiceEmailDraftResult {
     subject: string;
     to: string;
     threadId?: string;
+    rfcMessageId?: string;
+    references?: string;
   };
   draftPreview?: string;
   pendingAction?: PendingAction;
@@ -169,14 +173,22 @@ export async function buildVoiceEmailDraft(hints?: {
     company: state.user?.company || "Valliani Jewelers",
   });
 
+  const latestInThread =
+    target.threadMessages && target.threadMessages.length > 0
+      ? target.threadMessages[target.threadMessages.length - 1]
+      : target;
+
   const pending = saveVoiceEmailDraftPending(
     {
       script: "",
       targetEmail: {
-        id: target.id,
+        id: latestInThread.id,
         from: target.from,
         subject: target.subject,
         to: target.fromEmail,
+        threadId: target.threadId || target.id,
+        rfcMessageId: latestInThread.rfcMessageId,
+        references: latestInThread.references,
       },
       draftPreview: body,
     },
@@ -184,16 +196,23 @@ export async function buildVoiceEmailDraft(hints?: {
   );
 
   const script = pending
-    ? `I've drafted a reply to **${target.from}** about "${target.subject}". Review the draft below and tap **Send email** when you're ready.`
+    ? `I've drafted a reply to **${target.from}** about "${target.subject}"${
+        (target.messageCount ?? 1) > 1
+          ? ` using the full ${target.messageCount}-message thread`
+          : ""
+      }. Review the draft below and tap **Send email** when you're ready.`
     : `I couldn't save the draft. Please try again from the Email page.`;
 
   return {
     script,
     targetEmail: {
-      id: target.id,
+      id: latestInThread.id,
       from: target.from,
       subject: target.subject,
       to: target.fromEmail,
+      threadId: target.threadId || target.id,
+      rfcMessageId: latestInThread.rfcMessageId,
+      references: latestInThread.references,
     },
     draftPreview: body,
     pendingAction: pending ?? undefined,
@@ -220,8 +239,10 @@ export function saveVoiceEmailDraftPending(
       subject,
       body: draft.draftPreview,
       to_name: draft.targetEmail.from,
-      inReplyTo: draft.targetEmail.id,
+      inReplyTo: draft.targetEmail.rfcMessageId || draft.targetEmail.id,
       threadId: draft.targetEmail.threadId,
+      references: draft.targetEmail.references,
+      rfcMessageId: draft.targetEmail.rfcMessageId,
     },
     toolName: "send_email_reply",
     source,

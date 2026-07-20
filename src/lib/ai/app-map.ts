@@ -147,14 +147,14 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
     whenToNavigate: "When user needs to browse threads or read full HTML bodies.",
     whenToClarify:
       "When no email is selected and user says 'reply to this' — ask which thread or offer inbox summary.",
-    whenToUseLiveTool: "Call get_email_summary for counts; draft_email_reply for compose (uses selectedEmail).",
+    whenToUseLiveTool: "Call get_email_summary for counts; draft_email_reply for compose (uses selected thread + full conversation).",
     exampleResponses: {
       explain:
-        "This is your **Email** workspace — inbox with urgent flags and reply drafting. Select a message, then say **reply to this**.",
+        "This is your **Email** workspace — threaded inbox with urgent flags and context-aware reply drafting. Select a thread, then say **reply to this**.",
       capabilities:
-        "Here I can summarize unread mail, surface urgent items, and draft replies to the selected email. Select a message first for *reply to this*.",
+        "Here I can summarize unread mail, open full threads, surface urgent items, and draft replies using the whole conversation. Select a thread first for *reply to this*.",
       replyNoSelection:
-        "Select an email on the left first, then say **reply to this** — or tell me who to email (e.g. *send email to Ross*).",
+        "Select a thread on the left first, then say **reply to this** — or tell me who to email (e.g. *send email to Ross*).",
     },
     aliases: ["email", "inbox", "mail", "gmail"],
   }),

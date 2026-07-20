@@ -236,86 +236,168 @@ export const mockEvents: CalendarEvent[] = [
 
 export const mockReminders: Reminder[] = [];
 
-export const mockEmails: Email[] = [
-  {
-    id: "em1",
+export const mockEmails: Email[] = (() => {
+  const ahmed1: Email = {
+    id: "em1a",
+    threadId: "thread-ahmed",
     from: "Ahmed Hassan",
     fromEmail: "ahmed@premierdiamonds.com",
     subject: "URGENT: Diamond Shipment Delay — Bridal Collection Affected",
     preview: "Our certified diamond shipment (Order #PDI-4821) has been delayed at customs. Expected arrival pushed to...",
     body: "Dear Kash,\n\nI wanted to inform you that our certified diamond shipment (Order #PDI-4821) has been delayed at customs inspection. The expected arrival date has been pushed from June 8 to June 14.\n\nThis affects your Q2 bridal collection inventory: 1ct solitaires, halo engagement rings, and matching wedding bands for 8 California locations.\n\nSanta Clara Valley Fair and Ontario Mills are your highest-volume bridal stores — I recommend prioritizing partial shipment to those locations.\n\nPlease let me know how you'd like to proceed.\n\nBest regards,\nAhmed Hassan\nPremier Diamond Imports",
+    receivedAt: emailTime(9, 0),
+    isImportant: true,
+    isRead: true,
+    needsReply: false,
+    category: "urgent",
+    rfcMessageId: "<ahmed-1@premierdiamonds.com>",
+  };
+  const ahmed2: Email = {
+    id: "em1b",
+    threadId: "thread-ahmed",
+    from: "Kash Valliani",
+    fromEmail: "kash@vallianijewelers.com",
+    subject: "Re: URGENT: Diamond Shipment Delay — Bridal Collection Affected",
+    preview: "Thanks Ahmed — please prioritize Santa Clara Valley Fair first, then Ontario Mills...",
+    body: "Hi Ahmed,\n\nThanks for the heads-up. Please prioritize a partial shipment to Santa Clara Valley Fair first, then Ontario Mills. Hold the remaining units until June 14 if needed.\n\nConfirm once customs clears.\n\nBest regards,\nKash Valliani\nFounder & President | Valliani Jewelers",
+    receivedAt: emailTime(8, 15),
+    isImportant: true,
+    isRead: true,
+    needsReply: false,
+    category: "urgent",
+    rfcMessageId: "<kash-reply-1@vallianijewelers.com>",
+    inReplyTo: "<ahmed-1@premierdiamonds.com>",
+    references: "<ahmed-1@premierdiamonds.com>",
+  };
+  const ahmed3: Email = {
+    id: "em1",
+    threadId: "thread-ahmed",
+    from: "Ahmed Hassan",
+    fromEmail: "ahmed@premierdiamonds.com",
+    subject: "Re: URGENT: Diamond Shipment Delay — Bridal Collection Affected",
+    preview: "Understood — Santa Clara first. Customs update expected tomorrow morning...",
+    body: "Dear Kash,\n\nUnderstood — Santa Clara Valley Fair first, then Ontario Mills.\n\nCustoms confirmed inspection is scheduled for tomorrow morning. I'll send tracking as soon as the partial clears.\n\nOne question: should we ship the remaining bridal bands with the June 14 lot, or hold until you confirm store demand?\n\nBest regards,\nAhmed Hassan\nPremier Diamond Imports",
     receivedAt: emailTime(7, 15),
     isImportant: true,
     isRead: false,
     needsReply: true,
     category: "urgent",
-  },
-  {
-    id: "em2",
-    from: "James Chen",
-    fromEmail: "james.chen@vallianijewelers.com",
-    subject: "Q2 Financial Summary — 29 Locations Performance",
-    preview: "Q2 financial summary ready. Revenue up 14% YoY across all open locations...",
-    body: "Hi Kash,\n\nThe Q2 financial summary is ready for your review. Key highlights across our 29 locations:\n\n- Total Revenue: $18.6M (+14% YoY)\n- Gross margin: 52.4% (strong bridal and diamond sales)\n- Top store: Santa Clara — Valley Fair ($1.2M)\n- Texas (Longview): On track, new stores pending\n- Operating expenses within budget\n\nPlease review before today's leadership standup.\n\nJames",
-    receivedAt: emailTime(6, 30),
-    isImportant: true,
-    isRead: true,
-    needsReply: false,
-    category: "important",
-  },
-  {
-    id: "em3",
-    from: "Maria Santos",
-    fromEmail: "maria.santos@vallianijewelers.com",
-    subject: "Valley Fair Store — Bridal Consultant Short-Staffed",
-    preview: "We have 2 unexpected absences today during peak bridal season. Need approval for temp staff...",
-    body: "Kash,\n\nWe have 2 unexpected absences at the Santa Clara Valley Fair store today — our busiest bridal season weekend. I've contacted our temp agency but need your approval for the additional $480 in staffing costs.\n\nWe have 6 engagement ring appointments scheduled this afternoon.\n\nCan you approve?\n\nMaria Santos\nStore Manager — Westfield Valley Fair",
-    receivedAt: emailTime(8, 0),
-    isImportant: true,
+    rfcMessageId: "<ahmed-2@premierdiamonds.com>",
+    inReplyTo: "<kash-reply-1@vallianijewelers.com>",
+    references: "<ahmed-1@premierdiamonds.com> <kash-reply-1@vallianijewelers.com>",
+  };
+
+  const threadAhmed: Email = {
+    ...ahmed3,
     isRead: false,
     needsReply: true,
-    category: "important",
-  },
-  {
-    id: "em4",
-    from: "Lisa Park",
-    fromEmail: "lisa.park@vallianijewelers.com",
-    subject: "Summer Bridal Campaign — All 29 Locations",
-    preview: "Draft campaign for engagement season across California, Nevada, Arizona, and Texas...",
-    body: "Hi Kash,\n\nPlease find attached the draft for our summer bridal campaign rolling out to all 29 locations. Key themes:\n\n- \"Celebrate Your Moment\" — engagement ring focus\n- Free ring sizing and cleaning at every store\n- Texas grand opening tie-in for Baybrook and Deerbrook\n\nWould love your feedback by Friday.\n\nLisa",
-    receivedAt: emailTime(7, 45),
-    isImportant: false,
-    isRead: true,
-    needsReply: true,
-    category: "normal",
-  },
-  {
-    id: "em5",
-    from: "Marcus Hill",
-    fromEmail: "marcus.hill@vallianijewelers.com",
-    subject: "Texas Expansion Update — Baybrook & Deerbrook Timeline",
-    preview: "Construction update for Friendswood and Humble locations. Target opening dates...",
-    body: "Kash,\n\nQuick update on our Texas expansion:\n\n- Baybrook Mall (Friendswood): Buildout 85% complete. Target opening: August 2026.\n- Deerbrook Mall (Humble): Permits approved. Construction starts next week.\n- Longview Mall: Steady performance, up 11% this quarter.\n\nHappy to walk through details in today's 4 PM meeting.\n\nMarcus Hill\nTexas Operations",
-    receivedAt: emailTime(7, 0),
-    isImportant: true,
-    isRead: false,
-    needsReply: false,
-    category: "important",
-  },
-  {
-    id: "em6",
-    from: "Jewelry Industry Digest",
-    fromEmail: "news@jewelryinsights.com",
-    subject: "Weekly Fine Jewelry Market Report",
-    preview: "Lab-grown vs natural diamond trends, bridal season forecasts, luxury watch demand...",
-    body: "Weekly fine jewelry industry trends and market insights...",
-    receivedAt: emailTime(5, 0),
-    isImportant: false,
-    isRead: true,
-    needsReply: false,
-    category: "promotional",
-  },
-];
+    messageCount: 3,
+    threadMessages: [ahmed1, ahmed2, ahmed3],
+    preview: ahmed3.preview,
+  };
+
+  const withThread = (email: Email, threadId: string, rfcMessageId: string): Email => ({
+    ...email,
+    threadId,
+    rfcMessageId,
+    messageCount: 1,
+    threadMessages: [{ ...email, threadId, rfcMessageId, messageCount: 1 }],
+  });
+
+  return [
+    threadAhmed,
+    withThread(
+      {
+        id: "em2",
+        threadId: "thread-james",
+        from: "James Chen",
+        fromEmail: "james.chen@vallianijewelers.com",
+        subject: "Q2 Financial Summary — 29 Locations Performance",
+        preview: "Q2 financial summary ready. Revenue up 14% YoY across all open locations...",
+        body: "Hi Kash,\n\nThe Q2 financial summary is ready for your review. Key highlights across our 29 locations:\n\n- Total Revenue: $18.6M (+14% YoY)\n- Gross margin: 52.4% (strong bridal and diamond sales)\n- Top store: Santa Clara — Valley Fair ($1.2M)\n- Texas (Longview): On track, new stores pending\n- Operating expenses within budget\n\nPlease review before today's leadership standup.\n\nJames",
+        receivedAt: emailTime(6, 30),
+        isImportant: true,
+        isRead: true,
+        needsReply: false,
+        category: "important",
+      },
+      "thread-james",
+      "<james-q2@vallianijewelers.com>"
+    ),
+    withThread(
+      {
+        id: "em3",
+        threadId: "thread-maria",
+        from: "Maria Santos",
+        fromEmail: "maria.santos@vallianijewelers.com",
+        subject: "Valley Fair Store — Bridal Consultant Short-Staffed",
+        preview: "We have 2 unexpected absences today during peak bridal season. Need approval for temp staff...",
+        body: "Kash,\n\nWe have 2 unexpected absences at the Santa Clara Valley Fair store today — our busiest bridal season weekend. I've contacted our temp agency but need your approval for the additional $480 in staffing costs.\n\nWe have 6 engagement ring appointments scheduled this afternoon.\n\nCan you approve?\n\nMaria Santos\nStore Manager — Westfield Valley Fair",
+        receivedAt: emailTime(8, 0),
+        isImportant: true,
+        isRead: false,
+        needsReply: true,
+        category: "important",
+      },
+      "thread-maria",
+      "<maria-staff@vallianijewelers.com>"
+    ),
+    withThread(
+      {
+        id: "em4",
+        threadId: "thread-lisa",
+        from: "Lisa Park",
+        fromEmail: "lisa.park@vallianijewelers.com",
+        subject: "Summer Bridal Campaign — All 29 Locations",
+        preview: "Draft campaign for engagement season across California, Nevada, Arizona, and Texas...",
+        body: "Hi Kash,\n\nPlease find attached the draft for our summer bridal campaign rolling out to all 29 locations. Key themes:\n\n- \"Celebrate Your Moment\" — engagement ring focus\n- Free ring sizing and cleaning at every store\n- Texas grand opening tie-in for Baybrook and Deerbrook\n\nWould love your feedback by Friday.\n\nLisa",
+        receivedAt: emailTime(7, 45),
+        isImportant: false,
+        isRead: true,
+        needsReply: true,
+        category: "normal",
+      },
+      "thread-lisa",
+      "<lisa-campaign@vallianijewelers.com>"
+    ),
+    withThread(
+      {
+        id: "em5",
+        threadId: "thread-marcus",
+        from: "Marcus Hill",
+        fromEmail: "marcus.hill@vallianijewelers.com",
+        subject: "Texas Expansion Update — Baybrook & Deerbrook Timeline",
+        preview: "Construction update for Friendswood and Humble locations. Target opening dates...",
+        body: "Kash,\n\nQuick update on our Texas expansion:\n\n- Baybrook Mall (Friendswood): Buildout 85% complete. Target opening: August 2026.\n- Deerbrook Mall (Humble): Permits approved. Construction starts next week.\n- Longview Mall: Steady performance, up 11% this quarter.\n\nHappy to walk through details in today's 4 PM meeting.\n\nMarcus Hill\nTexas Operations",
+        receivedAt: emailTime(7, 0),
+        isImportant: true,
+        isRead: false,
+        needsReply: false,
+        category: "important",
+      },
+      "thread-marcus",
+      "<marcus-tx@vallianijewelers.com>"
+    ),
+    withThread(
+      {
+        id: "em6",
+        threadId: "thread-digest",
+        from: "Jewelry Industry Digest",
+        fromEmail: "news@jewelryinsights.com",
+        subject: "Weekly Fine Jewelry Market Report",
+        preview: "Lab-grown vs natural diamond trends, bridal season forecasts, luxury watch demand...",
+        body: "Weekly fine jewelry industry trends and market insights...",
+        receivedAt: emailTime(5, 0),
+        isImportant: false,
+        isRead: true,
+        needsReply: false,
+        category: "promotional",
+      },
+      "thread-digest",
+      "<digest-weekly@jewelryinsights.com>"
+    ),
+  ];
+})();
 
 export const mockDocuments: Document[] = [
   {

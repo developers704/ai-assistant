@@ -210,11 +210,22 @@ export async function executeConfirmedPending(
 
   if (pending.type === "email" || pending.toolName === "send_email_reply") {
     const { sendGmailMessage } = await import("@/lib/google/gmail");
+    const inReplyToRaw = pending.payload.rfcMessageId || pending.payload.inReplyTo;
+    const inReplyTo =
+      inReplyToRaw && String(inReplyToRaw).includes("@")
+        ? String(inReplyToRaw)
+        : pending.payload.rfcMessageId
+          ? String(pending.payload.rfcMessageId)
+          : undefined;
     const sent = await sendGmailMessage({
       to: String(pending.payload.to ?? ""),
       subject: String(pending.payload.subject ?? ""),
       body: String(pending.payload.body ?? pending.preview ?? ""),
       threadId: pending.payload.threadId ? String(pending.payload.threadId) : undefined,
+      inReplyTo,
+      references: pending.payload.references
+        ? String(pending.payload.references)
+        : undefined,
     });
 
     if (sent.ok) {
