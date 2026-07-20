@@ -564,7 +564,7 @@ export default function StoresPage() {
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] gap-4 sm:gap-5">
             {/* Map hero */}
-            <div className="relative h-[min(58vh,32rem)] xl:h-auto xl:min-h-[36rem] xl:sticky xl:top-4">
+            <div className="relative w-full shrink-0 h-[min(58vh,28rem)] sm:h-[min(62vh,34rem)] xl:h-[min(70vh,40rem)] xl:sticky xl:top-4">
               <StoresMap
                 stores={filtered}
                 selectedId={selectedId}
@@ -597,8 +597,8 @@ export default function StoresPage() {
               )}
             </div>
 
-            {/* Detail + list */}
-            <div className="flex flex-col gap-4 min-h-0">
+            {/* Detail + list — scrolls on its own; does not drive map height */}
+            <div className="flex flex-col gap-4 min-h-0 xl:max-h-[min(70vh,40rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
               {selected && (
                 <StoreDetailCard
                   store={selected}
@@ -612,7 +612,7 @@ export default function StoresPage() {
                 />
               )}
 
-              <div className="rounded-[1.25rem] ring-1 ring-violet-400/15 bg-white/[0.025] overflow-hidden flex flex-col min-h-0 max-h-[min(42vh,24rem)] xl:max-h-none xl:flex-1">
+              <div className="rounded-[1.25rem] ring-1 ring-violet-400/15 bg-white/[0.025] overflow-hidden flex flex-col min-h-0 max-h-[min(48vh,26rem)] xl:max-h-none xl:min-h-[14rem] xl:flex-1">
                 <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wider text-violet-200/50">
                     Store list

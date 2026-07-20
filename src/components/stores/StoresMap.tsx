@@ -42,6 +42,22 @@ const selectedIcon = iconFor("selected");
 const pinAIcon = iconFor("a");
 const pinBIcon = iconFor("b");
 
+/** Leaflet must remeasure after the shell gets a fixed height (avoids grey/blank tiles). */
+function InvalidateOnResize() {
+  const map = useMap();
+  useEffect(() => {
+    const run = () => map.invalidateSize({ animate: false });
+    run();
+    const t = window.setTimeout(run, 120);
+    window.addEventListener("resize", run);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("resize", run);
+    };
+  }, [map]);
+  return null;
+}
+
 function FitView({
   stores,
   selectedId,
@@ -173,24 +189,25 @@ export function StoresMap({
 
   if (mappable.length === 0) {
     return (
-      <div className="flex h-full min-h-[320px] items-center justify-center rounded-[1.25rem] bg-violet-500/[0.06] ring-1 ring-violet-400/20">
+      <div className="absolute inset-0 flex items-center justify-center rounded-[1.25rem] bg-violet-500/[0.06] ring-1 ring-violet-400/20">
         <p className="text-sm text-white/40">No geocoded store locations yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="stores-map-shell h-full min-h-[320px] overflow-hidden rounded-[1.25rem] ring-1 ring-violet-400/25 shadow-[0_0_40px_rgba(139,92,246,0.15)]">
+    <div className="stores-map-shell absolute inset-0 h-full w-full overflow-hidden rounded-[1.25rem] ring-1 ring-violet-400/25 shadow-[0_0_40px_rgba(139,92,246,0.15)]">
       <MapContainer
         center={center}
         zoom={5}
-        className="h-full w-full min-h-[320px] z-0"
+        className="h-full w-full z-0"
         scrollWheelZoom
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
+        <InvalidateOnResize />
         <FitView
           stores={mappable}
           selectedId={focusRoute || focusUser ? null : selectedId}
