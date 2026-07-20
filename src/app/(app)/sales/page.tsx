@@ -34,7 +34,7 @@ import {
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
-import { TrendingUp, TrendingDown, Package, Store, LineChart, GitCompareArrows } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, Store, LineChart, GitCompareArrows, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function rangeFromSearchParams(sp: {
@@ -117,6 +117,7 @@ export default function SalesPage() {
   const skipUrlSyncRef = useRef(false);
   const lastUrlKeyRef = useRef<string | null>(null);
   const filtersHydratedRef = useRef(false);
+  const salesFetchGenRef = useRef(0);
 
   const resetFiltersForNewReport = () => {
     skipUrlSyncRef.current = true;
@@ -217,9 +218,15 @@ export default function SalesPage() {
       classes: filterClasses,
     });
     const qs = params.toString() ? `?${params}` : "";
-    fetch(`/api/sales${qs}`)
+    const gen = ++salesFetchGenRef.current;
+    const ac = new AbortController();
+
+    fetch(`/api/sales${qs}`, { signal: ac.signal })
       .then((r) => r.json())
       .then((d) => {
+        // Ignore stale responses so an older "all dates" fetch can't overwrite a newer day filter.
+        if (gen !== salesFetchGenRef.current) return;
+
         setSummary(d.summary);
         setDataSource(d.source === "report" ? "report" : "mock");
         if (d.source === "report") {
@@ -252,12 +259,14 @@ export default function SalesPage() {
           setAvailableVendors(vendors);
           setReportId(nextReportId ?? dateRange?.to ?? d.reportDate ?? "latest");
 
-          if (
-            dateRange &&
-            dates.length &&
-            (!dates.includes(dateRange.from) || !dates.includes(dateRange.to))
-          ) {
-            setDateRange(null);
+          // Only clear if the report's date list is loaded AND the selection is truly outside it.
+          // (Do not clear on empty availableDates — that briefly happens during load races.)
+          if (dateRange && dates.length > 0) {
+            const fromOk = dates.includes(dateRange.from);
+            const toOk = dates.includes(dateRange.to);
+            if (!fromOk || !toOk) {
+              setDateRange(null);
+            }
           }
           setFilterStores((prev) => pruneUnavailable(prev, stores));
           setFilterDepartments((prev) => pruneUnavailable(prev, departments));
@@ -275,7 +284,14 @@ export default function SalesPage() {
           setReportId(undefined);
           knownReportIdRef.current = null;
         }
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (gen !== salesFetchGenRef.current) return;
+        console.error("Sales dashboard fetch failed:", err);
       });
+
+    return () => ac.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- resetFilters uses router; intentional deps are filters/nonce
   }, [
     dateRange,
@@ -409,7 +425,15 @@ export default function SalesPage() {
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <SalesDateRangePicker
               availableDates={availableDates}
-              reportRange={reportSummary?.dateRange ?? null}
+              reportRange={
+                reportSummary?.dateRange ??
+                (availableDates.length
+                  ? {
+                      from: availableDates[0]!,
+                      to: availableDates[availableDates.length - 1]!,
+                    }
+                  : null)
+              }
               value={dateRange}
               onChange={setDateRange}
             />
@@ -463,6 +487,33 @@ export default function SalesPage() {
       </PageShellHeader>
 
         <PageShellBody>
+          {dateRange && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl bg-amber-500/10 ring-1 ring-amber-400/25 px-3 py-2 text-sm text-amber-100/90">
+              <CalendarDays size={15} className="text-amber-300 shrink-0" />
+              <span>
+                Showing{" "}
+                <span className="font-semibold tabular-nums text-amber-50">
+                  {dateRange.from === dateRange.to
+                    ? dateRange.from
+                    : `${dateRange.from} → ${dateRange.to}`}
+                </span>
+                {summary.totalTransactions != null && (
+                  <span className="text-amber-100/60">
+                    {" "}
+                    · {summary.totalTransactions.toLocaleString()} units ·{" "}
+                    {formatCurrency(summary.totalRevenue)}
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => setDateRange(null)}
+                className="ml-auto text-xs font-medium text-amber-200/80 hover:text-amber-50"
+              >
+                Clear date
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             <LushMetric
               label={isFinancingReport || isStoreSalesReport ? "Net Sales" : "Total Revenue"}

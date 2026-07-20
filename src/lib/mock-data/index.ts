@@ -64,8 +64,8 @@ export const mockStores: StoreLocation[] = [
   { id: "st25", city: "Reno", state: "NV", mall: "Meadowood Mall", region: "Nevada", status: "open", storeManager: "Tyler Jackson" },
   { id: "st26", city: "Chandler", state: "AZ", mall: "Chandler Fashion Center", region: "Arizona", status: "open", storeManager: "Olivia Reed" },
   { id: "st27", city: "Longview", state: "TX", mall: "Longview Mall", region: "Texas", status: "open", storeManager: "Marcus Hill" },
-  { id: "st28", city: "Friendswood", state: "TX", mall: "Baybrook Mall", region: "Texas", status: "opening_soon" },
-  { id: "st29", city: "Humble", state: "TX", mall: "Deerbrook Mall", region: "Texas", status: "opening_soon" },
+  { id: "st28", city: "Friendswood", state: "TX", mall: "Baybrook Mall", region: "Texas", status: "open" },
+  { id: "st29", city: "Humble", state: "TX", mall: "Deerbrook Mall", region: "Texas", status: "open" },
 ];
 
 export const mockContacts: Contact[] = [

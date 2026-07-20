@@ -19,6 +19,8 @@ export interface StoreGoogleReview {
 
 export interface StoreDirectoryEntry {
   id: string;
+  /** POS / sales report store code when known (e.g. VJ-BAY). */
+  storeCode?: string | null;
   officialName?: string | null;
   name: string;
   mall: string;

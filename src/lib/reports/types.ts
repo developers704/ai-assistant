@@ -65,6 +65,8 @@ export interface ReportSummary extends SalesSummary {
   discountTotal?: number;
   avgDiscountRate?: number;
   dateRange?: { from: string; to: string };
+  /** When set, summary reflects this filter slice (may equal dateRange for full report). */
+  filterDateRange?: { from: string; to: string };
   topDepartments?: { name: string; revenue: number; units: number; imageDir?: string; imageUrl?: string | null }[];
   topDesigns?: { name: string; revenue: number; units: number; imageDir?: string; imageUrl?: string | null }[];
   topVendors?: { name: string; revenue: number; units: number; imageDir?: string; imageUrl?: string | null }[];

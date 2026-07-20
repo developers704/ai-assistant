@@ -61,7 +61,22 @@ const unknown = findStore("Unknown Mall XYZ");
 assert("Unknown store is not found", unknown == null);
 
 const openingSoon = listStores({ status: "Opening Soon" });
-assert("Opening soon query includes Baybrook", openingSoon.stores.some((s) => /baybrook/i.test(s.mall)));
+assert(
+  "Opening soon query does not include Baybrook (now open)",
+  !openingSoon.stores.some((s) => /baybrook/i.test(s.mall))
+);
+
+const baybrook = findStore("Baybrook");
+assert("Baybrook is found", baybrook != null);
+assert("Baybrook status is Open", baybrook?.status === "Open");
+assert(
+  "Baybrook address includes Baybrook Mall",
+  /baybrook mall/i.test(baybrook?.address ?? baybrook?.fullAddress ?? "")
+);
+assert(
+  "Baybrook phone is set",
+  /281.*936.*1786/.test(baybrook?.phone ?? "")
+);
 
 console.log("\n────────────────────────────────────────────────────────────");
 console.log(`PASSED: ${passed}`);

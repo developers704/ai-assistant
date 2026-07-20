@@ -122,10 +122,10 @@ export function reportSummaryFromQueryResult(
     marginRate: s?.marginRate ?? (net > 0 ? margin / net : 0),
     uniqueTransactions: txns,
     transactionCount: result.availability.matchingRowCount,
-    dateRange:
-      dateFrom && dateTo
-        ? { from: dateFrom, to: dateTo }
-        : meta.dateRange,
+    dateRange: meta.dateRange,
+    /** Active filter window when querying a slice (may be a single day). */
+    filterDateRange:
+      dateFrom && dateTo ? { from: dateFrom, to: dateTo } : undefined,
     topDepartments: mapRank(result.rankings?.topDepartments ?? result.breakdowns?.byDepartment),
     topDesigns: mapRank(result.rankings?.topDesigns ?? result.breakdowns?.byDesign),
     topVendors: mapRank(result.rankings?.topVendors ?? result.breakdowns?.byVendor),
