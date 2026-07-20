@@ -11,6 +11,9 @@ import { readActivePointer } from "@/lib/sales/data/version-store";
 import type { SalesQueryResult } from "@/lib/sales/sales-types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function shiftIsoDate(iso: string, days: number): string {
   const d = new Date(`${iso}T12:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -195,38 +198,49 @@ export async function GET(req: NextRequest) {
         previousDay,
         previousWeek,
       });
-      return NextResponse.json({
-        summary,
-        report: latestMeta.meta,
-        data: [],
-        source: "report",
-        reportLabel: summary.reportLabel,
-        reportDate: summary.reportDate,
-        vendorCode: summary.vendorCode,
-        reportPeriod: summary.reportPeriod,
-        availableDates: latestMeta.availableDates,
-        availableStores: latestMeta.availableStores,
-        availableDepartments: latestMeta.availableDepartments,
-        availableDesigns: latestMeta.availableDesigns,
-        availableClasses: latestMeta.availableClasses,
-        availableVendors: latestMeta.availableVendors,
-        filterDate: filterDate ?? null,
-        filterDateFrom: filterDateFrom ?? null,
-        filterDateTo: filterDateTo ?? null,
-        filterStores,
-        filterDepartments,
-        filterDesigns,
-        filterVendors,
-        filterClasses,
-        filterStore: filterStores[0] ?? null,
-        filterDepartment: filterDepartments[0] ?? null,
-        filterDesign: filterDesigns[0] ?? null,
-        filterVendor: filterVendors[0] ?? null,
-        filterClass: filterClasses[0] ?? null,
-        dataVersion: result.freshness?.dataVersion ?? null,
-        dataThrough: result.freshness?.dataThrough ?? null,
-        engine: "sales_unified",
-      });
+      return NextResponse.json(
+        {
+          summary,
+          report: latestMeta.meta,
+          data: [],
+          source: "report",
+          reportLabel: summary.reportLabel,
+          reportDate: summary.reportDate,
+          vendorCode: summary.vendorCode,
+          reportPeriod: summary.reportPeriod,
+          availableDates: latestMeta.availableDates,
+          availableStores: latestMeta.availableStores,
+          availableDepartments: latestMeta.availableDepartments,
+          availableDesigns: latestMeta.availableDesigns,
+          availableClasses: latestMeta.availableClasses,
+          availableVendors: latestMeta.availableVendors,
+          filterDate: filterDate ?? null,
+          filterDateFrom: filterDateFrom ?? null,
+          filterDateTo: filterDateTo ?? null,
+          filterStores,
+          filterDepartments,
+          filterDesigns,
+          filterVendors,
+          filterClasses,
+          filterStore: filterStores[0] ?? null,
+          filterDepartment: filterDepartments[0] ?? null,
+          filterDesign: filterDesigns[0] ?? null,
+          filterVendor: filterVendors[0] ?? null,
+          filterClass: filterClasses[0] ?? null,
+          dataVersion: result.freshness?.dataVersion ?? null,
+          dataThrough: result.freshness?.dataThrough ?? null,
+          dateUnavailable: Boolean(
+            !result.ok && result.availability?.requestedRangeAvailable === false
+          ),
+          dateWarning: result.coverage?.warning ?? null,
+          engine: "sales_unified",
+        },
+        {
+          headers: {
+            "Cache-Control": "no-store, max-age=0",
+          },
+        }
+      );
     }
   }
 

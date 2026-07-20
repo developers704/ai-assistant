@@ -188,6 +188,9 @@ export function filterRows(
   rows: VendorPosRow[],
   opts: {
     dates?: string[];
+    /** Inclusive ISO bounds — preferred for dashboard day/range filters. */
+    dateFrom?: string | null;
+    dateTo?: string | null;
     stores?: string[];
     departments?: string[];
     designs?: string[];
@@ -206,6 +209,8 @@ export function filterRows(
       .replace(/\s+/g, " ");
 
   const dateSet = opts.dates?.length ? new Set(opts.dates) : null;
+  const dateFrom = opts.dateFrom && opts.dateFrom.length >= 10 ? opts.dateFrom.slice(0, 10) : null;
+  const dateTo = opts.dateTo && opts.dateTo.length >= 10 ? opts.dateTo.slice(0, 10) : null;
   const storeSet = opts.stores?.length
     ? new Set(opts.stores.map(key))
     : null;
@@ -232,7 +237,13 @@ export function filterRows(
     : null;
 
   return rows.filter((r) => {
-    if (dateSet && (!r.date || !dateSet.has(r.date))) return false;
+    if (dateFrom || dateTo) {
+      if (!r.date) return false;
+      if (dateFrom && r.date < dateFrom) return false;
+      if (dateTo && r.date > dateTo) return false;
+    } else if (dateSet && (!r.date || !dateSet.has(r.date))) {
+      return false;
+    }
     if (storeSet && !storeSet.has(key(r.storeName || "Unknown store"))) return false;
     if (deptSet && !deptSet.has(key(r.department || "Unknown department"))) return false;
     if (designSet && !designSet.has(key(r.design || "Unknown design"))) return false;

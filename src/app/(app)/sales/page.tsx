@@ -111,6 +111,7 @@ export default function SalesPage() {
   const [filterClasses, setFilterClasses] = useState<string[]>(() =>
     parseMultiParam(searchParams, "class", "classes")
   );
+  const [dateWarning, setDateWarning] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
   const knownReportIdRef = useRef<string | null>(null);
@@ -122,6 +123,7 @@ export default function SalesPage() {
   const resetFiltersForNewReport = () => {
     skipUrlSyncRef.current = true;
     setDateRange(null);
+    setDateWarning(null);
     setFilterStores([]);
     setFilterDepartments([]);
     setFilterDesigns([]);
@@ -221,13 +223,34 @@ export default function SalesPage() {
     const gen = ++salesFetchGenRef.current;
     const ac = new AbortController();
 
-    fetch(`/api/sales${qs}`, { signal: ac.signal })
+    fetch(`/api/sales${qs}`, { signal: ac.signal, cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         // Ignore stale responses so an older "all dates" fetch can't overwrite a newer day filter.
         if (gen !== salesFetchGenRef.current) return;
 
+        // Drop responses that clearly applied a different date window (stale race).
+        if (dateRange) {
+          const gotFrom = (d.filterDateFrom ?? d.filterDate) as string | null | undefined;
+          const gotTo = (d.filterDateTo ?? d.filterDate) as string | null | undefined;
+          if (
+            gotFrom &&
+            gotTo &&
+            (gotFrom !== dateRange.from || gotTo !== dateRange.to)
+          ) {
+            return;
+          }
+        } else if (d.filterDate || d.filterDateFrom || d.filterDateTo) {
+          return;
+        }
+
         setSummary(d.summary);
+        setDateWarning(
+          d.dateUnavailable || d.dateWarning
+            ? (d.dateWarning as string | null) ??
+                "No sales data for the selected date(s) in the loaded report."
+            : null
+        );
         setDataSource(d.source === "report" ? "report" : "mock");
         if (d.source === "report") {
           const nextReportId = (d.report?.id as string | undefined) ?? null;
@@ -259,12 +282,12 @@ export default function SalesPage() {
           setAvailableVendors(vendors);
           setReportId(nextReportId ?? dateRange?.to ?? d.reportDate ?? "latest");
 
-          // Only clear if the report's date list is loaded AND the selection is truly outside it.
-          // (Do not clear on empty availableDates — that briefly happens during load races.)
+          // Only clear if selection is outside the report's min–max window.
           if (dateRange && dates.length > 0) {
-            const fromOk = dates.includes(dateRange.from);
-            const toOk = dates.includes(dateRange.to);
-            if (!fromOk || !toOk) {
+            const min = dates[0]!;
+            const max = dates[dates.length - 1]!;
+            const inBounds = dateRange.from >= min && dateRange.to <= max;
+            if (!inBounds) {
               setDateRange(null);
             }
           }
@@ -512,6 +535,11 @@ export default function SalesPage() {
               >
                 Clear date
               </button>
+            </div>
+          )}
+          {dateWarning && (
+            <div className="mb-3 rounded-xl bg-rose-500/10 ring-1 ring-rose-400/30 px-3 py-2 text-sm text-rose-100/90">
+              {dateWarning}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">

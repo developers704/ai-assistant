@@ -91,6 +91,11 @@ export function reportSummaryFromQueryResult(
   const dateFrom = result.query.resolvedDateRange.startDate;
   const dateTo = result.query.resolvedDateRange.endDate;
 
+  // Keep date-unavailable / coverage warnings out of Insights — UI shows them as a banner.
+  const insightWarnings = (result.warnings ?? []).filter(
+    (w) => !/is not available|have not been loaded yet/i.test(w)
+  );
+
   return {
     totalRevenue: net,
     totalTransactions: units,
@@ -101,11 +106,13 @@ export function reportSummaryFromQueryResult(
     worstStores,
     topProducts,
     underperformingStores: worstStores.filter((store) => store.change < 0).slice(0, 5),
-    recommendations: result.warnings?.length
-      ? result.warnings
-      : [
-          `Net ${net.toLocaleString("en-US", { style: "currency", currency: "USD" })} across ${txns.toLocaleString()} transactions, ${units.toLocaleString()} units.`,
-        ],
+    recommendations: insightWarnings.length
+      ? insightWarnings
+      : result.ok
+        ? [
+            `Net ${net.toLocaleString("en-US", { style: "currency", currency: "USD" })} across ${txns.toLocaleString()} transactions, ${units.toLocaleString()} units.`,
+          ]
+        : [],
     source: "report",
     reportId: meta.id,
     reportLabel: meta.label,

@@ -442,7 +442,39 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     }
   }
 
-  const dateResolved = resolveDateRange(input.dateRange, loaded.dates, input.userMessage);
+  let dateResolved = resolveDateRange(input.dateRange, loaded.dates, input.userMessage);
+
+  // Recovery: if the discrete date-list check failed but rows exist in the ISO window,
+  // trust row.date (same source of truth as KPIs) instead of failing the dashboard.
+  if (
+    dateResolved.unavailableReason &&
+    input.dateRange?.type === "custom" &&
+    input.dateRange.startDate &&
+    input.dateRange.endDate
+  ) {
+    const from = input.dateRange.startDate;
+    const to = input.dateRange.endDate;
+    const inRangeDates = [
+      ...new Set(
+        loaded.rows
+          .map((r) => r.date)
+          .filter((d): d is string => Boolean(d) && d >= from && d <= to)
+      ),
+    ].sort();
+    if (inRangeDates.length > 0) {
+      dateResolved = {
+        type: "custom",
+        startDate: inRangeDates[0]!,
+        endDate: inRangeDates[inRangeDates.length - 1]!,
+        label:
+          inRangeDates[0] === inRangeDates[inRangeDates.length - 1]
+            ? inRangeDates[0]!
+            : `${inRangeDates[0]} to ${inRangeDates[inRangeDates.length - 1]}`,
+        dates: inRangeDates,
+      };
+    }
+  }
+
   const norm = normalizeFilterInputs(
     {
       stores: input.stores,
@@ -543,7 +575,9 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   }
 
   let filtered = filterRows(loaded.rows, {
-    dates: dateResolved.type === "report_all" ? undefined : dateResolved.dates,
+    // Inclusive ISO window — avoids discrete-list mismatches on the dashboard.
+    dateFrom: dateResolved.type === "report_all" ? undefined : dateResolved.startDate,
+    dateTo: dateResolved.type === "report_all" ? undefined : dateResolved.endDate,
     stores: norm.filters.stores,
     departments: norm.filters.departments,
     designs: norm.filters.designs,

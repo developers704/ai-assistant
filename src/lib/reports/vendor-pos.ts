@@ -1,7 +1,7 @@
 import type { SalesSummary } from "@/types";
 import { filterExcludedSalesRows, isExcludedSalesRow } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { isValidIsoDate } from "@/lib/reports/date-utils";
+import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
 
@@ -21,15 +21,18 @@ function parseNumber(raw: unknown): number {
 
 function normalizeDate(raw: unknown): string | null {
   if (raw == null || raw === "") return null;
-  const s = String(raw).trim();
-  const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (mdy) {
-    const y = mdy[3].length === 2 ? `20${mdy[3]}` : mdy[3];
-    return `${y}-${mdy[1].padStart(2, "0")}-${mdy[2].padStart(2, "0")}`;
+  // Excel/JS Date objects — use UTC calendar day to avoid TZ day-shift.
+  if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+    return `${raw.getUTCFullYear()}-${String(raw.getUTCMonth() + 1).padStart(2, "0")}-${String(raw.getUTCDate()).padStart(2, "0")}`;
   }
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  const d = new Date(s);
-  if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  const s = String(raw).trim();
+  const parsed = parseReportFilterDate(s);
+  if (parsed && isValidIsoDate(parsed)) return parsed;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const iso = s.slice(0, 10);
+    return isValidIsoDate(iso) ? iso : null;
+  }
+  // Do not use `new Date(s)` — locale/TZ parsing swaps MDY and shifts days.
   return null;
 }
 

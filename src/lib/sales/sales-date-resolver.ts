@@ -222,7 +222,12 @@ export function resolveDateRange(
 
   const requested = datesBetween(start!, end!);
   const availableSet = new Set(sorted);
-  const intersecting = requested.filter((d) => availableSet.has(d));
+  // Prefer discrete days present in the report; fall back to any report days
+  // inside the inclusive calendar window (handles sparse lists / list mismatches).
+  let intersecting = requested.filter((d) => availableSet.has(d));
+  if (intersecting.length === 0 && start && end) {
+    intersecting = sorted.filter((d) => d >= start! && d <= end!);
+  }
 
   if (intersecting.length === 0) {
     return {
