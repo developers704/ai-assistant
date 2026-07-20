@@ -23,15 +23,15 @@ const config: Config = {
           950: "#020617",
         },
         surface: {
-          DEFAULT: "rgba(255, 255, 255, 0.09)",
-          secondary: "rgba(255, 255, 255, 0.06)",
-          tertiary: "rgba(255, 255, 255, 0.12)",
-          card: "rgba(255, 255, 255, 0.13)",
+          DEFAULT: "rgba(255, 255, 255, 0.06)",
+          secondary: "rgba(255, 255, 255, 0.04)",
+          tertiary: "rgba(255, 255, 255, 0.09)",
+          card: "rgba(255, 255, 255, 0.1)",
         },
         ink: {
-          DEFAULT: "#f8fafc",
-          secondary: "rgba(248, 250, 252, 0.82)",
-          muted: "rgba(248, 250, 252, 0.48)",
+          DEFAULT: "#f1f5f9",
+          secondary: "rgba(241, 245, 249, 0.78)",
+          muted: "rgba(241, 245, 249, 0.42)",
         },
         accent: {
           gold: "#fbbf24",
