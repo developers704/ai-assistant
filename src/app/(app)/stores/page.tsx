@@ -19,7 +19,7 @@ import {
   getStoreOpenStatus,
   getWeeklyHoursRows,
 } from "@/lib/stores/store-hours";
-import { haversineMiles, roundMiles, sortStoresByDistance } from "@/lib/stores/distance";
+import { haversineMiles, roundMiles, milesToKm, formatKm, sortStoresByDistance } from "@/lib/stores/distance";
 import {
   MapPin,
   Phone,
@@ -305,6 +305,7 @@ export default function StoresPage() {
   );
 
   const displayMiles = routeResult?.distanceMiles ?? straightMiles;
+  const displayKm = milesToKm(displayMiles);
   const displayMode = routeResult?.mode ?? (straightMiles != null ? "straight" : null);
 
   const handleSelectStore = (id: string) => {
@@ -436,17 +437,17 @@ export default function StoresPage() {
                     </p>
                   </div>
                 </div>
-                {displayMiles != null && (
-                  <div className="rounded-xl bg-violet-500/15 ring-1 ring-violet-400/30 px-4 py-2 text-center min-w-[6.5rem]">
+                {displayKm != null && (
+                  <div className="rounded-xl bg-slate-950 ring-1 ring-violet-400/40 px-4 py-2.5 text-center min-w-[7rem] shadow-lg">
                     {routeLoading ? (
-                      <Loader2 size={16} className="mx-auto animate-spin text-violet-200" />
+                      <Loader2 size={16} className="mx-auto animate-spin text-violet-300" />
                     ) : (
                       <>
-                        <p className="text-xl font-semibold text-violet-100 tabular-nums leading-none">
-                          {displayMiles}
-                          <span className="text-sm font-medium ml-1">mi</span>
+                        <p className="text-xl font-semibold text-white tabular-nums leading-none">
+                          {displayKm}
+                          <span className="text-sm font-medium text-white/70 ml-1">km</span>
                         </p>
-                        <p className="text-[10px] text-violet-200/50 mt-1">
+                        <p className="text-[10px] text-violet-200/90 mt-1">
                           {displayMode === "driving"
                             ? routeResult?.durationMinutes
                               ? `~${routeResult.durationMinutes} min drive`
@@ -530,8 +531,8 @@ export default function StoresPage() {
                 <p className="mt-3 text-xs text-cyan-200/70">
                   You&apos;re on the map
                   {nearestFromMe[0].distanceMiles >= 100
-                    ? ` · ~${Math.round(nearestFromMe[0].distanceMiles).toLocaleString()} mi from nearest Valliani store`
-                    : ` · nearest store ${nearestFromMe[0].distanceMiles} mi away`}
+                    ? ` · ~${formatKm(nearestFromMe[0].distanceMiles)} km from nearest Valliani store`
+                    : ` · nearest store ${formatKm(nearestFromMe[0].distanceMiles)} km away`}
                   . Tap <span className="text-cyan-100 font-medium">Show my location</span> anytime to fly there.
                 </p>
               )}
@@ -550,7 +551,7 @@ export default function StoresPage() {
                       }}
                       className="rounded-full px-2.5 py-1 text-[11px] font-medium bg-cyan-500/10 text-cyan-100 ring-1 ring-cyan-400/25 hover:bg-cyan-500/20 transition-colors"
                     >
-                      {store.mall || store.name} · {distanceMiles} mi
+                      {store.mall || store.name} · {formatKm(distanceMiles)} km
                     </button>
                   ))}
                 </div>
@@ -578,20 +579,31 @@ export default function StoresPage() {
                 focusUserTick={focusUserTick}
               />
 
-              {/* Floating distance chip on map */}
-              {displayMiles != null && distanceToId && (
+              {/* Floating distance chip on map — chip-only white text (do not inherit page ink) */}
+              {displayKm != null && distanceToId && (
                 <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 z-[500]">
-                  <div className="pointer-events-auto rounded-full bg-[#0b0a14]/92 backdrop-blur-xl px-4 py-2 ring-1 ring-violet-400/40 shadow-[0_8px_32px_rgba(139,92,246,0.35)] flex items-center gap-2">
-                    <Navigation size={14} className="text-violet-300" />
-                    <span className="text-sm font-semibold text-white tabular-nums">
-                      {displayMiles} mi
+                  <div className="stores-miles-chip pointer-events-auto inline-flex items-center gap-2.5 rounded-full bg-slate-950 px-3.5 py-2 ring-1 ring-violet-400/50 shadow-[0_10px_36px_rgba(0,0,0,0.55)]">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/30 ring-1 ring-violet-400/50">
+                      <Navigation size={13} />
                     </span>
-                    <span className="text-[11px] text-violet-200/55">
-                      {displayMode === "driving" ? "drive" : "line"}
-                      {routeResult?.durationMinutes
-                        ? ` · ~${routeResult.durationMinutes} min`
-                        : ""}
-                    </span>
+                    <div className="flex flex-col leading-tight pr-0.5">
+                      <span className="stores-miles-chip__value tabular-nums">
+                        {displayKm.toLocaleString(undefined, {
+                          maximumFractionDigits: 1,
+                        })}{" "}
+                        <span className="stores-miles-chip__unit">km</span>
+                      </span>
+                      <span className="stores-miles-chip__meta">
+                        {displayMode === "driving"
+                          ? routeResult?.durationMinutes
+                            ? `~${routeResult.durationMinutes} min drive`
+                            : "Driving route"
+                          : "Straight-line distance"}
+                      </span>
+                    </div>
+                    {routeLoading && (
+                      <Loader2 size={14} className="stores-miles-chip__spin shrink-0 animate-spin" />
+                    )}
                   </div>
                 </div>
               )}
@@ -651,7 +663,7 @@ export default function StoresPage() {
                                 )}
                                 {fromMe != null && (
                                   <span className="text-cyan-300/70 ml-1.5">
-                                    · {fromMe} mi away
+                                    · {formatKm(fromMe)} km away
                                   </span>
                                 )}
                               </p>
@@ -730,7 +742,7 @@ function StoreDetailCard({
         <div className="flex items-center gap-2 rounded-xl bg-cyan-500/10 ring-1 ring-cyan-400/25 px-3 py-2">
           <LocateFixed size={14} className="text-cyan-300 shrink-0" />
           <p className="text-sm text-cyan-100">
-            <span className="font-semibold tabular-nums">{distanceFromUser} mi</span>
+            <span className="font-semibold tabular-nums">{formatKm(distanceFromUser)} km</span>
             <span className="text-cyan-200/60 ml-1.5">from your location</span>
           </p>
         </div>

@@ -9,12 +9,15 @@
 :root {
   /* Inter loaded via next/font — matches clean product-UI sans (Ovani-like) */
   --font-display: var(--font-inter), system-ui, sans-serif;
-  --glass-bg: rgba(15, 23, 42, 0.35);
-  --glass-bg-strong: rgba(15, 23, 42, 0.52);
-  --glass-border: rgba(255, 255, 255, 0.12);
+  /* Soft-dark base — a touch lighter than pure navy (not a light theme) */
+  --app-bg: #2a3444;
+  --app-bg-deep: #1f2836;
+  --glass-bg: rgba(36, 48, 66, 0.55);
+  --glass-bg-strong: rgba(42, 54, 72, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.14);
   --glass-blur: 24px;
-  --glow-purple: rgba(139, 92, 246, 0.4);
-  --glow-orange: rgba(251, 146, 60, 0.28);
+  --glow-purple: rgba(139, 92, 246, 0.38);
+  --glow-orange: rgba(251, 146, 60, 0.26);
 }
 
 @layer base {
@@ -27,12 +30,12 @@
   html[data-theme="futuristic"] body {
     @apply text-ink font-sans antialiased min-h-screen font-normal;
     letter-spacing: -0.011em;
-    background: #1e2733;
+    background: var(--app-bg);
   }
 
   html:not([data-theme="futuristic"]) body {
     @apply text-ink font-sans antialiased font-normal;
-    background: #020617; /* Dark navy background */
+    background: var(--app-bg-deep);
     letter-spacing: -0.011em;
   }
 
@@ -45,23 +48,23 @@
 
 @layer components {
   .glass-panel {
-    background: rgba(2, 6, 23, 0.35);
+    background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
     box-shadow:
-      0 8px 32px rgba(2, 6, 23, 0.18),
-      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      0 8px 32px rgba(15, 23, 42, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
   }
 
   .glass-panel-strong {
-    background: rgba(2, 6, 23, 0.52);
+    background: var(--glass-bg-strong);
     backdrop-filter: blur(calc(var(--glass-blur) + 4px));
     -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 4px));
-    border: 1px solid rgba(255, 255, 255, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.28);
     box-shadow:
-      0 12px 40px rgba(2, 6, 23, 0.22),
-      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      0 12px 40px rgba(15, 23, 42, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.32);
   }
 
   .glass-solid {
@@ -75,14 +78,14 @@
 
   .bg-mesh-gradient {
     background:
-      radial-gradient(ellipse 55% 45% at 8% 5%, rgba(109, 40, 217, 0.22), transparent 50%),
+      radial-gradient(ellipse 55% 45% at 8% 5%, rgba(109, 40, 217, 0.18), transparent 50%),
       radial-gradient(ellipse 45% 40% at 92% 12%, rgba(59, 130, 246, 0.12), transparent 45%),
-      radial-gradient(ellipse 40% 35% at 50% 100%, rgba(234, 88, 12, 0.08), transparent 50%),
-      linear-gradient(160deg, #0f172a 0%, #020617 50%, #000000 100%);
+      radial-gradient(ellipse 40% 35% at 50% 100%, rgba(234, 88, 12, 0.07), transparent 50%),
+      linear-gradient(160deg, #343f52 0%, #2a3444 45%, #222b3a 100%);
   }
 
   .bg-dot-grid {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
     background-size: 22px 22px;
   }
 
@@ -116,14 +119,14 @@
   }
 
   .btn-futuristic {
-    background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+    background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
     box-shadow:
-      0 8px 24px rgba(2, 6, 23, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      0 8px 24px rgba(15, 23, 42, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14);
   }
 
   .btn-futuristic:hover {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    background: linear-gradient(135deg, #3f4f63 0%, #273548 100%);
   }
 
   .btn-glass {
@@ -842,7 +845,7 @@
   }
 
   .select-dark option {
-    background-color: #0f172a;
+    background-color: #243044;
     color: #f1f5f9;
   }
 
@@ -1034,4 +1037,31 @@
 .stores-route-card {
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.55), rgba(217, 70, 239, 0.25) 45%, rgba(34, 211, 238, 0.2));
   box-shadow: 0 12px 40px rgba(76, 29, 149, 0.25);
+}
+
+/* Map distance chip only — force bright text (scoped; does not affect rest of app) */
+.stores-miles-chip {
+  color: #ffffff;
+}
+.stores-miles-chip svg {
+  color: #ddd6fe;
+}
+.stores-miles-chip__value {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #ffffff !important;
+}
+.stores-miles-chip__unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: #e2e8f0 !important;
+}
+.stores-miles-chip__meta {
+  font-size: 11px;
+  font-weight: 500;
+  color: #c4b5fd !important;
+}
+.stores-miles-chip__spin {
+  color: #c4b5fd !important;
 }

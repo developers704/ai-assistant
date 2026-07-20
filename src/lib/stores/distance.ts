@@ -35,6 +35,18 @@ export function roundMiles(miles: number | null): number | null {
   return Math.round(miles * 10) / 10;
 }
 
+/** Convert statute miles → km (1 decimal). */
+export function milesToKm(miles: number | null): number | null {
+  if (miles == null || Number.isNaN(miles)) return null;
+  return Math.round(miles * 1.60934 * 10) / 10;
+}
+
+export function formatKm(miles: number | null): string | null {
+  const km = milesToKm(miles);
+  if (km == null) return null;
+  return km.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
+
 export function sortStoresByDistance(
   source: StoreDirectoryEntry | LatLng,
   stores: StoreDirectoryEntry[]

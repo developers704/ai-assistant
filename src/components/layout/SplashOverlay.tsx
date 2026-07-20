@@ -33,7 +33,7 @@ export function SplashOverlay() {
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[9999] bg-[#1e2733] transition-opacity duration-300",
+        "fixed inset-0 z-[9999] bg-[#2a3444] transition-opacity duration-300",
         phase === "hiding" ? "opacity-0 pointer-events-none" : "opacity-100"
       )}
       aria-hidden={phase === "hiding"}
