@@ -101,3 +101,26 @@ Source lists these design labels/codes: 2STONE, 3STONE CUR, AANIKA.V, B STONE, C
 
 Metadata: `{"company": "Valliani Jewelers", "source_file": "Vallaini Company Overview.docx", "source_type": "company_overview_docx", "language": "en", "freshness": "verify live store list and policies against official website before production use", "tags": ["products", "designs", "taxonomy"], "answer_policy": "answer directly using this source; avoid adding facts not in source"}`
 
+## Payment methods and financing surcharges
+
+Valliani Jewelers in-store Payment Method options (Price Calculator / POS pricing):
+
+- **Cash** — no surcharge (0%).
+- **Credit Card** — 3.5% surcharge.
+- **Progressive / Acima / UOwn / Kefene** — 5% surcharge.
+- **Affirm** — 12% surcharge.
+
+These percentages are added on top of the cash/manager price when quoting a financed or card total.
+
+Separately, when payment type is **Financing** with a no-interest term plan:
+
+- 6 months — 3.5%
+- 12 months — 7%
+- 18 months — 12%
+- 24 months — 18%
+- 36 months — 22%
+- 48 months — 28%
+- 60 months — 32%
+
+Metadata: `{"company": "Valliani Jewelers", "source_file": "Price Calculator Payment Method UI + pricing.ts", "source_type": "internal_pricing", "language": "en", "freshness": "aligned with in-app Price Calculator payment fees", "tags": ["payment", "financing", "affirm", "progressive", "surcharge"], "answer_policy": "Answer with these exact surcharge percents. Do not invent other lenders or rates."}`
+
