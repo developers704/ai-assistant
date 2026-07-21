@@ -42,6 +42,19 @@ export function isExcludedSalesVendorModel(vendorModel?: string | null): boolean
   return false;
 }
 
+/**
+ * Earring pad / screwback pad accessory lines (e.g. "… Pad [s]") — not jewelry product revenue.
+ * Match description / style / vendor model text.
+ */
+export function isExcludedSalesPadLine(text?: string | null): boolean {
+  const normalized = (text ?? "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return false;
+  return /\bPAD\s*\[S\]/.test(normalized);
+}
+
 /** True when SKU / Item # matches an excluded product rule. */
 export function isExcludedSalesSku(sku?: string | null): boolean {
   const normalized = (sku ?? "").trim().toUpperCase();
@@ -68,10 +81,18 @@ export function isExcludedSalesRow(row: {
   department?: string | null;
   vendorModel?: string | null;
   style?: string | null;
+  description?: string | null;
 }): boolean {
   const dept = (row.department ?? "").trim();
   if (!dept || dept === "—" || /^uncategorized$/i.test(dept)) return true;
   if (isExcludedSalesVendorModel(row.vendorModel)) return true;
+  if (
+    isExcludedSalesPadLine(row.description) ||
+    isExcludedSalesPadLine(row.style) ||
+    isExcludedSalesPadLine(row.vendorModel)
+  ) {
+    return true;
+  }
   const sku =
     (row.sku ?? "").trim() ||
     (row.itemNumber ?? "").trim() ||
@@ -80,7 +101,7 @@ export function isExcludedSalesRow(row: {
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 5;
+export const SALES_EXCLUSION_RULES_VERSION = 6;
 
 type SalesReturnPairRow = {
   sku?: string | null;
@@ -238,6 +259,8 @@ export function filterExcludedSalesRows<
     grossSales?: number | null;
     transactionId?: string | null;
     vendorModel?: string | null;
+    style?: string | null;
+    description?: string | null;
   }
 >(rows: T[]): T[] {
   const withoutSkuDept = rows.filter((r) => !isExcludedSalesRow(r));
@@ -246,10 +269,17 @@ export function filterExcludedSalesRows<
 }
 
 export function filterTopProductSkus<
-  T extends { itemNumber?: string; vendorModel?: string; sku?: string }
+  T extends { itemNumber?: string; vendorModel?: string; sku?: string; name?: string; description?: string }
 >(products: T[]): T[] {
   return products.filter((p) => {
     if (isExcludedSalesVendorModel(p.vendorModel)) return false;
+    if (
+      isExcludedSalesPadLine(p.name) ||
+      isExcludedSalesPadLine(p.description) ||
+      isExcludedSalesPadLine(p.vendorModel)
+    ) {
+      return false;
+    }
     const sku = p.itemNumber || p.sku || p.vendorModel;
     return !isExcludedSalesSku(sku);
   });
