@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import type { Email } from "@/types";
 import { htmlToPlainText, looksLikeHtml } from "@/lib/email-html";
-import { OPENAI_CHAT_MODEL } from "@/lib/openai/config";
+import { OPENAI_CHAT_MODEL, chatCompletionLimits } from "@/lib/openai/config";
 
 export interface EmailSigner {
   name: string;
@@ -76,8 +76,10 @@ export async function generateSmartEmailReply(
     const client = new OpenAI({ apiKey });
     const completion = await client.chat.completions.create({
       model: OPENAI_CHAT_MODEL,
-      temperature: 0.4,
-      max_tokens: 550,
+      ...chatCompletionLimits(OPENAI_CHAT_MODEL, {
+        temperature: 0.4,
+        maxTokens: 550,
+      }),
       messages: [
         {
           role: "system",

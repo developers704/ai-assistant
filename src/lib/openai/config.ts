@@ -20,3 +20,28 @@ export function isOpenAIConfigured(): boolean {
   const key = process.env.OPENAI_API_KEY;
   return !!key && !key.includes("REPLACE");
 }
+
+/**
+ * gpt-5.6-* rejects custom temperature (only default 1) and `max_tokens`
+ * (use `max_completion_tokens`). Older models still accept both.
+ */
+export function usesFixedSampling(model: string): boolean {
+  return /gpt-5\.6|gpt-5\.5|o\d/i.test(model);
+}
+
+/** Safe chat.completions create params for the current model family. */
+export function chatCompletionLimits(
+  model: string,
+  opts: { temperature?: number; maxTokens?: number } = {}
+): { temperature?: number; max_completion_tokens?: number; max_tokens?: number } {
+  const fixed = usesFixedSampling(model);
+  if (fixed) {
+    return opts.maxTokens != null
+      ? { max_completion_tokens: opts.maxTokens }
+      : {};
+  }
+  return {
+    ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
+    ...(opts.maxTokens != null ? { max_tokens: opts.maxTokens } : {}),
+  };
+}

@@ -21,7 +21,7 @@ import {
 import { executeTool } from "@/lib/tools/registry";
 import { loadChatSystemPrompt } from "@/lib/prompts/loader";
 import { buildDynamicContext } from "./dynamic-context";
-import { OPENAI_CHAT_MODEL } from "@/lib/openai/config";
+import { OPENAI_CHAT_MODEL, chatCompletionLimits } from "@/lib/openai/config";
 import { synthesizeToolResponse } from "@/lib/ai/response-synthesizer";
 import { savePendingAction } from "@/lib/actions/confirmation";
 import { buildAppMapPromptBlock } from "@/lib/ai/app-intelligence";
@@ -266,8 +266,10 @@ ${formatRetrievedContext(retrieved)}`;
 
   const completion = await client.chat.completions.create({
     model: OPENAI_CHAT_MODEL,
-    temperature: 0.35,
-    max_tokens: 1200,
+    ...chatCompletionLimits(OPENAI_CHAT_MODEL, {
+      temperature: 0.35,
+      maxTokens: 1200,
+    }),
     messages,
     tools: ASSISTANT_CHAT_TOOLS,
     tool_choice: "auto",

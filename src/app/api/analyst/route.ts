@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import type { AnalystPlan, SchemaForLLM } from "@/lib/analyst/types";
-import { OPENAI_ANALYST_MODEL } from "@/lib/openai/config";
+import { OPENAI_ANALYST_MODEL, chatCompletionLimits } from "@/lib/openai/config";
 
 export const runtime = "nodejs";
 
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
   try {
     const completion = await client.chat.completions.create({
       model: OPENAI_ANALYST_MODEL,
-      temperature: 0.1,
+      ...chatCompletionLimits(OPENAI_ANALYST_MODEL, { temperature: 0.1 }),
       response_format: { type: "json_object" },
       messages,
     });

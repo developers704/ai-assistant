@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { OPENAI_CHAT_MODEL } from "@/lib/openai/config";
+import { OPENAI_CHAT_MODEL, chatCompletionLimits } from "@/lib/openai/config";
 import type { CompactDynamicContext } from "./dynamic-context";
 
 export interface PlannerStep {
@@ -29,8 +29,10 @@ export async function runPlanner(
   const client = new OpenAI({ apiKey });
   const completion = await client.chat.completions.create({
     model: OPENAI_CHAT_MODEL,
-    temperature: 0.2,
-    max_tokens: 600,
+    ...chatCompletionLimits(OPENAI_CHAT_MODEL, {
+      temperature: 0.2,
+      maxTokens: 600,
+    }),
     response_format: { type: "json_object" },
     messages: [
       {
