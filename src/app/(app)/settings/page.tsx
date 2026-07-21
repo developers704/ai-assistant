@@ -295,6 +295,7 @@ function SettingsContent() {
       connected: boolean;
       hasToken: boolean;
       disconnected?: boolean;
+      purged?: boolean;
       canReconnect?: boolean;
     };
     setSocialStatus(data);
@@ -305,7 +306,7 @@ function SettingsContent() {
     try {
       await fetch("/api/social/instagram/disconnect", { method: "POST" });
       await refreshSocialStatus();
-      setSocialNotice("Instagram disconnected.");
+      setSocialNotice("Instagram disconnected. Previous account credentials were removed.");
     } finally {
       setSocialDisconnecting(false);
     }
@@ -795,7 +796,9 @@ function SettingsContent() {
                     </div>
                   ) : (
                     <p className="text-xs text-ink-muted">
-                      Not connected — add Meta env keys on the server, then refresh.
+                      {socialStatus?.purged
+                        ? "Credentials removed — add Valliani META_PAGE_ID, META_IG_BUSINESS_ID, and META_TEST_ACCESS_TOKEN, then restart the server."
+                        : "Not connected — add Meta env keys on the server, then refresh."}
                     </p>
                   )}
                 </div>

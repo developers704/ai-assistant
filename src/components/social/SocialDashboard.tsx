@@ -90,11 +90,13 @@ export function SocialDashboard() {
       setSelected(null);
       setLoading(false);
       setLoadError(
-        st.data?.disconnected
-          ? "Instagram is disconnected. Use Reconnect to restore the Meta link."
-          : st.data?.hasToken
-            ? "Instagram token expired or the business account is not set. Generate a new test token or use OAuth."
-            : "Instagram is not connected. Add Meta env keys or connect via OAuth."
+        st.data?.purged
+          ? "Instagram credentials were removed. Add Valliani Meta keys to .env.local and restart the server."
+          : st.data?.disconnected
+            ? "Instagram is disconnected. Use Reconnect only after Valliani Meta keys are configured."
+            : st.data?.hasToken
+              ? "Instagram token expired or the business account is not set. Generate a new test token or use OAuth."
+              : "Instagram is not connected. Add Meta env keys or connect via OAuth."
       );
       return;
     }
@@ -162,6 +164,19 @@ export function SocialDashboard() {
       setAccount(null);
       setPosts([]);
       setSelected(null);
+      setStatus({
+        connected: false,
+        pageId: null,
+        instagramBusinessId: null,
+        graphVersion: status?.graphVersion ?? "v25.0",
+        hasToken: false,
+        disconnected: true,
+        purged: true,
+        canReconnect: false,
+      });
+      setLoadError(
+        "Instagram disconnected. Previous account credentials were removed and will not restore on Reconnect."
+      );
       await loadAll();
     } finally {
       setDisconnecting(false);

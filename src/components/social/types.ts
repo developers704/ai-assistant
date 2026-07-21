@@ -5,6 +5,7 @@ export interface IgStatus {
   graphVersion: string;
   hasToken: boolean;
   disconnected?: boolean;
+  purged?: boolean;
   canReconnect?: boolean;
 }
 

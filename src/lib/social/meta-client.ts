@@ -9,8 +9,12 @@
 
 import {
   isMetaDisconnected,
+  isMetaPurged,
   disconnectMeta,
+  purgeMetaConnection,
   reconnectMeta,
+  clearMetaPurgeFlag,
+  clearProcessMetaCredentials,
 } from "@/lib/social/meta-connection-store";
 
 const DEFAULT_TIMEOUT_MS = 12000;
@@ -30,6 +34,8 @@ export interface MetaStatus {
   hasToken: boolean;
   /** User turned Instagram off in the app (env keys may still exist). */
   disconnected: boolean;
+  /** Credentials were purged — Reconnect will not restore the old account. */
+  purged: boolean;
   /** Env still has token + business id — Reconnect will work. */
   canReconnect: boolean;
 }
@@ -39,19 +45,28 @@ export type MetaResult<T> =
   | { ok: false; error: string; code?: string; status?: number };
 
 function readEnvMeta(): MetaConfig {
+  const empty = (v: string | undefined) => {
+    const t = (v ?? "").trim();
+    return t ? t : null;
+  };
   return {
     graphVersion: process.env.META_GRAPH_VERSION || "v25.0",
-    pageId: process.env.META_PAGE_ID || null,
-    igBusinessId: process.env.META_IG_BUSINESS_ID || null,
-    token: process.env.META_TEST_ACCESS_TOKEN || null,
+    pageId: empty(process.env.META_PAGE_ID),
+    igBusinessId: empty(process.env.META_IG_BUSINESS_ID),
+    token: empty(process.env.META_TEST_ACCESS_TOKEN),
   };
 }
 
 /** Read Meta env config. Never expose the token beyond this module. */
 export function getMetaConfig(): MetaConfig {
   const env = readEnvMeta();
-  if (isMetaDisconnected()) {
-    return { ...env, token: null };
+  if (isMetaDisconnected() || isMetaPurged()) {
+    return {
+      graphVersion: env.graphVersion,
+      pageId: null,
+      igBusinessId: null,
+      token: null,
+    };
   }
   return env;
 }
@@ -60,24 +75,41 @@ export function getMetaConfig(): MetaConfig {
 export function getMetaStatus(): MetaStatus {
   const env = readEnvMeta();
   const disconnected = isMetaDisconnected();
-  const cfg = disconnected ? { ...env, token: null } : env;
-  const canReconnect = Boolean(env.token && env.igBusinessId && env.pageId);
+  const purged = isMetaPurged();
+  const cfg = getMetaConfig();
+  const canReconnect =
+    !purged && Boolean(env.token && env.igBusinessId && env.pageId);
   return {
     connected: Boolean(cfg.token && cfg.igBusinessId),
     pageId: cfg.pageId,
-    instagramBusinessId: disconnected ? null : cfg.igBusinessId,
+    instagramBusinessId: cfg.igBusinessId,
     graphVersion: cfg.graphVersion,
     hasToken: Boolean(cfg.token),
-    disconnected,
+    disconnected: disconnected || purged,
+    purged,
     canReconnect,
   };
 }
 
+/** Soft disconnect (keeps env; can reconnect). */
 export function disconnectInstagram(): void {
   disconnectMeta();
+  clearProcessMetaCredentials();
+}
+
+/** Hard remove — E-Tutors / wrong account cannot come back via Reconnect. */
+export function purgeInstagramConnection(): void {
+  purgeMetaConnection();
 }
 
 export function reconnectInstagram(): { ok: true } | { ok: false; error: string } {
+  if (isMetaPurged()) {
+    return {
+      ok: false,
+      error:
+        "Instagram credentials were removed. Add Valliani META_PAGE_ID, META_IG_BUSINESS_ID, and META_TEST_ACCESS_TOKEN to .env.local, restart the server, then connect again.",
+    };
+  }
   const env = readEnvMeta();
   if (!env.token || !env.igBusinessId || !env.pageId) {
     return {
@@ -88,6 +120,11 @@ export function reconnectInstagram(): { ok: true } | { ok: false; error: string 
   }
   reconnectMeta();
   return { ok: true };
+}
+
+/** After new Valliani keys are installed and verified, allow connection again. */
+export function allowInstagramReconnectAfterPurge(): void {
+  clearMetaPurgeFlag();
 }
 
 /** Build a Graph API URL. Token is appended server-side only. */
