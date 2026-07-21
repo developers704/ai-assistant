@@ -301,7 +301,18 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
     display.navigateToSales = false;
   }
 
-  const preferSpokenEntities = Boolean(display.navigateToSales);
+  const spokenHasEntity = Boolean(
+    extracted.stores?.length ||
+      extracted.departments?.length ||
+      extracted.designs?.length ||
+      extracted.vendors?.length ||
+      extracted.classes?.length
+  );
+
+  // Utterance-named entities only — never AND extra LLM args on other dimensions
+  // (e.g. "lady's ring" must not also filter class SOL RING).
+  const preferSpokenEntities =
+    Boolean(display.navigateToSales) || spokenHasEntity;
 
   return {
     ...input,
@@ -337,14 +348,7 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
     // Show/open filtered sales: only the entities named in this turn (no stale design/store mix).
     resetContext:
       input.resetContext ||
-      (preferSpokenEntities &&
-        Boolean(
-          extracted.stores?.length ||
-            extracted.departments?.length ||
-            extracted.designs?.length ||
-            extracted.vendors?.length ||
-            extracted.classes?.length
-        )),
+      (preferSpokenEntities && spokenHasEntity),
   };
 }
 

@@ -403,12 +403,15 @@ export function extractEntitiesFromMessage(
     classes: string[];
   }> = {};
 
+  type HitSource = "labeled" | "phrase" | "alias" | "fuzzy";
   type Hit = {
     key: "stores" | "departments" | "designs" | "vendors" | "classes";
     value: string;
     score: number;
+    source: HitSource;
   };
   const hits: Hit[] = [];
+  const isStrong = (s: HitSource) => s === "labeled" || s === "phrase" || s === "alias";
 
   // Explicit "X department / design / class / store / vendor"
   const labeled: Array<{
@@ -479,10 +482,15 @@ export function extractEntitiesFromMessage(
       (matched.status === "exact" || matched.status === "fuzzy") &&
       matched.score >= rule.minScore
     ) {
-      hits.push({ key: rule.key, value: matched.value, score: matched.score + 40 });
+      hits.push({
+        key: rule.key,
+        value: matched.value,
+        score: matched.score + 40,
+        source: "labeled",
+      });
     } else if (rule.key === "designs" || rule.key === "departments" || rule.key === "classes") {
       // Keep explicit spoken name even if not in index yet (normalizeFilterInputs will clarify)
-      hits.push({ key: rule.key, value: raw, score: 60 });
+      hits.push({ key: rule.key, value: raw, score: 60, source: "labeled" });
     }
   }
 
@@ -491,7 +499,12 @@ export function extractEntitiesFromMessage(
     const sorted = [...known].sort((a, b) => b.length - a.length);
     for (const name of sorted) {
       if (!containsPhrase(message, name)) continue;
-      hits.push({ key, value: name, score: normalizeKey(name).length });
+      hits.push({
+        key,
+        value: name,
+        score: normalizeKey(name).length + 20,
+        source: "phrase",
+      });
       break; // longest match only per field
     }
     if (!hits.some((h) => h.key === key)) {
@@ -505,7 +518,12 @@ export function extractEntitiesFromMessage(
           .map((h) => ({ h, s: scoreMatch(hint.preferIncludes[0], h) }))
           .sort((a, b) => b.s - a.s)[0];
         if (best) {
-          hits.push({ key, value: best.h, score: normalizeKey(best.h).length + 50 });
+          hits.push({
+            key,
+            value: best.h,
+            score: normalizeKey(best.h).length + 50,
+            source: "alias",
+          });
         }
         break;
       }
@@ -536,16 +554,25 @@ export function extractEntitiesFromMessage(
           const phrase = tokens.slice(i, i + n).join(" ");
           const m = matchEntity(phrase, known, label);
           if ((m.status === "exact" || m.status === "fuzzy") && m.score >= minScore) {
-            hits.push({ key, value: m.value, score: m.score });
+            hits.push({
+              key,
+              value: m.value,
+              score: m.score,
+              source: m.status === "exact" ? "phrase" : "fuzzy",
+            });
             return;
           }
         }
       }
     }
     for (const token of tokens) {
+      // Single short tokens like "ring" must not latch onto "SOL RING" / "GENTS RING"
+      // when the user already named another dimension (handled later) — and alone they
+      // need a near-exact score so generic words don't invent class/dept filters.
+      const tokenFloor = token.length <= 4 ? Math.max(minScore, 92) : minScore;
       const m = matchEntity(token, known, label);
-      if ((m.status === "exact" || m.status === "fuzzy") && m.score >= minScore) {
-        hits.push({ key, value: m.value, score: m.score });
+      if ((m.status === "exact" || m.status === "fuzzy") && m.score >= tokenFloor) {
+        hits.push({ key, value: m.value, score: m.score, source: "fuzzy" });
         break;
       }
     }
@@ -563,14 +590,19 @@ export function extractEntitiesFromMessage(
     if (ringPhrase) {
       const m = matchEntity(ringPhrase[1], index.departments, "department");
       if ((m.status === "exact" || m.status === "fuzzy") && m.score >= 75) {
-        hits.push({ key: "departments", value: m.value, score: m.score });
+        hits.push({
+          key: "departments",
+          value: m.value,
+          score: m.score,
+          source: m.status === "exact" ? "alias" : "fuzzy",
+        });
       }
     }
   }
 
   // Drop weaker/substring collisions (e.g. class "LADYS" when department "LADYS RING" matched)
   hits.sort((a, b) => b.score - a.score);
-  const accepted: Hit[] = [];
+  let accepted: Hit[] = [];
   for (const hit of hits) {
     const nk = normalizeKey(hit.value);
     const dominated = accepted.some((a) => {
@@ -580,6 +612,17 @@ export function extractEntitiesFromMessage(
     if (dominated) continue;
     if (accepted.some((a) => a.key === hit.key)) continue;
     accepted.push(hit);
+  }
+
+  // Only filter dimensions the user actually named. Strong hits (full phrase, alias,
+  // or "X department/class/…") win; fuzzy leftovers on other dimensions are dropped.
+  // e.g. "lady's ring sales" → department LADYS RING, NOT class SOL RING.
+  const hasStrong = accepted.some((h) => isStrong(h.source));
+  if (hasStrong) {
+    accepted = accepted.filter((h) => isStrong(h.source));
+  } else if (accepted.length > 1) {
+    // Ambiguous fuzzy-only utterance → keep the single best dimension, leave others "all"
+    accepted = [accepted[0]];
   }
 
   for (const hit of accepted) {
