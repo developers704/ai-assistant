@@ -13,8 +13,18 @@ export function isBroadCompanyOverviewQuery(query: string): boolean {
     /\beverything you know\b/i.test(lower) ||
     /\b(company overview|full overview|overview of valliani)\b/i.test(lower) ||
     /\bwhat is valliani\b/i.test(lower) ||
-    /\babout valliani jewelers?\b/i.test(lower) ||
-    /\bwho is valliani\b/i.test(lower)
+    /\babout (?:valliani|villiani|valiani) jewelers?\b/i.test(lower) ||
+    /\bwho is (?:valliani|villiani)\b/i.test(lower)
+  );
+}
+
+/** True when the utterance is about Valliani company knowledge (not world trivia). */
+export function looksLikeCompanyKnowledgeQuery(query: string): boolean {
+  const q = query.toLowerCase();
+  if (isBroadCompanyOverviewQuery(query)) return true;
+  if (detectPolicyFocus(query) !== null) return true;
+  return /\b(valliani|villiani|valiani|vallani|jewelers?|polic(?:y|ies)|privacy|return|shipping|founder|brand|ovani|novello|warranty|layaway|financing|affirm|acima|progressive)\b/i.test(
+    q
   );
 }
 
@@ -52,6 +62,15 @@ const OVERVIEW_SECTION_IDS = [
   "vj_returns",
 ] as const;
 
+const POLICY_OVERVIEW_IDS = [
+  "vj_promises",
+  "vj_returns",
+  "vj_shipping",
+  "vj_return_address",
+  "vj_privacy_policy",
+  "vj_payment_methods",
+] as const;
+
 export function cleanChunkText(chunk: Pick<RetrievedChunk, "text">): string {
   const faqMatch = chunk.text.match(/^Q:\s*.+\nA:\s*([\s\S]+)$/i);
   if (faqMatch) return faqMatch[1].trim();
@@ -73,6 +92,28 @@ export function buildFullCompanyOverviewMarkdown(): string {
 ${sections.join("\n\n")}
 
 _Ask about stores in a specific state, return policy, house brands, or contact details for more._`;
+}
+
+export function buildPoliciesOverviewMarkdown(): string {
+  const byId = new Map(loadAllRagChunks().map((c) => [c.id, c]));
+  const sections: string[] = [];
+
+  for (const id of POLICY_OVERVIEW_IDS) {
+    const chunk = byId.get(id);
+    if (!chunk) continue;
+    const body = cleanChunkText(chunk);
+    const trimmed =
+      id === "vj_privacy_policy" && body.length > 900
+        ? `${body.slice(0, 850).trim()}…\n\n_Ask “privacy policy” for the full summary._`
+        : body;
+    sections.push(`**${chunk.title}**\n${trimmed}`);
+  }
+
+  return `**Valliani Jewelers — policies**
+
+${sections.join("\n\n")}
+
+_Ask about a specific one (return, shipping, privacy, financing) for more detail._`;
 }
 
 export function formatKnowledgeChunksForChat(
@@ -108,6 +149,14 @@ export function buildCompanyKnowledgeAnswer(query: string): {
     };
   }
 
+  if (detectPolicyFocus(query) === "policies_overview") {
+    return {
+      markdown: buildPoliciesOverviewMarkdown(),
+      chunkCount: POLICY_OVERVIEW_IDS.length,
+      mode: "overview",
+    };
+  }
+
   if (isFullPrivacyPolicyQuery(query)) {
     const main = loadAllRagChunks().find((c) => c.id === PRIVACY_POLICY_CHUNK_ID);
     if (main) {
@@ -119,7 +168,6 @@ export function buildCompanyKnowledgeAnswer(query: string): {
     }
   }
 
-  // Let retrieveKnowledge pick a focused topK (1–2 for specific policies).
   const chunks = retrieveKnowledge(query);
   return {
     markdown: formatKnowledgeChunksForChat(chunks, query),

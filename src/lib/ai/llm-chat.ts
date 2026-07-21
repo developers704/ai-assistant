@@ -25,6 +25,7 @@ import { OPENAI_CHAT_MODEL, chatCompletionLimits } from "@/lib/openai/config";
 import { synthesizeToolResponse } from "@/lib/ai/response-synthesizer";
 import { savePendingAction } from "@/lib/actions/confirmation";
 import { buildAppMapPromptBlock } from "@/lib/ai/app-intelligence";
+import { looksLikeCompanyKnowledgeQuery } from "@/lib/voice/company-knowledge-format";
 
 export function isLLMChatConfigured(): boolean {
   const key = process.env.OPENAI_API_KEY;
@@ -235,11 +236,12 @@ export async function processMessageWithLLM(
 
   const context = buildAssistantContext(state);
   const dynamic = await buildDynamicContext(state, message);
-  const ragSection = isRagAvailable()
-    ? (() => {
-        const retrieved = retrieveKnowledge(message);
-        const guardrails = getRagGuardrails();
-        return `
+  const ragSection =
+    isRagAvailable() && looksLikeCompanyKnowledgeQuery(message)
+      ? (() => {
+          const retrieved = retrieveKnowledge(message);
+          const guardrails = getRagGuardrails();
+          return `
 ## COMPANY KNOWLEDGE (retrieved for this question — authoritative for Valliani facts)
 Answer style: ${getRagAnswerStyle()}
 
@@ -247,8 +249,11 @@ Accuracy guardrails:
 ${guardrails.map((g) => `- ${g}`).join("\n")}
 
 ${formatRetrievedContext(retrieved)}`;
-      })()
-    : "";
+        })()
+      : `
+
+## GENERAL KNOWLEDGE
+This question is not a Valliani company-knowledge lookup. Answer normally from world knowledge when appropriate. Do NOT call search_company_knowledge unless the user clearly asks about Valliani policies, brands, founder, or company facts. Do NOT say you couldn't find it in company knowledge for non-company topics.`;
 
   const history = state.chatHistory.slice(-10).map((m) => ({
     role: m.role as "user" | "assistant" | "system",

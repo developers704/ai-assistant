@@ -339,15 +339,21 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "social.open";
   }
 
-  if (/\b(policy|return|brand|founder)\b/i.test(lower)) return "knowledge.search";
+  if (/\b(polic(?:y|ies)|privacy|return|shipping|brand|brands|founder|financing|warranty|layaway)\b/i.test(lower)) {
+    return "knowledge.search";
+  }
   if (/\bstore count\b/i.test(lower)) return "store.list";
-  if (/\bvalliani\b/i.test(lower) && !/\b(store|stores|mall|location|branch|nearest|closest)\b/i.test(lower)) {
+  // Valliani + common misspellings (villiani / valiani / etc.)
+  if (
+    /\b(valliani|villiani|valiani|vallani|valliani'?s?)\b/i.test(lower) &&
+    !/\b(store|stores|mall|location|branch|nearest|closest)\b/i.test(lower)
+  ) {
     return "knowledge.search";
   }
   if (
     /\b(tell me\s+)?(everything|all)\b[\s\S]{0,50}\b(you know|about|on)\b/i.test(lower) ||
     /\beverything you know\b/i.test(lower) ||
-    /\b(company overview|about valliani)\b/i.test(lower)
+    /\b(company overview|about valliani|about villiani)\b/i.test(lower)
   ) {
     return "knowledge.search";
   }

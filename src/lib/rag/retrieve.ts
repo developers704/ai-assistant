@@ -6,14 +6,31 @@ const STOPWORDS = new Set([
   "where", "does", "do", "can", "i", "we", "you", "my", "our", "about", "for",
   "and", "or", "to", "of", "in", "on", "at", "it", "this", "that", "any",
   "show", "tell", "me", "please", "only", "just", "specifically",
-  "valliani", "jewelers", "jewelry",
+  "which", "offers", "offer", "offered",
+  "valliani", "villiani", "valiani", "vallani", "jewelers", "jewelry",
 ]);
+
+/** Light plural / alias folding so "policies" matches tag "policy". */
+const TOKEN_STEM: Record<string, string> = {
+  policies: "policy",
+  returns: "return",
+  refunds: "refund",
+  exchanges: "exchange",
+  brands: "brand",
+  stores: "store",
+  locations: "location",
+};
+
+function stemToken(t: string): string {
+  return TOKEN_STEM[t] ?? t;
+}
 
 export type PolicyFocus =
   | "privacy"
   | "return"
   | "shipping"
   | "return_address"
+  | "policies_overview"
   | null;
 
 function tokenize(text: string): string[] {
@@ -21,7 +38,8 @@ function tokenize(text: string): string[] {
     .toLowerCase()
     .replace(/[^\w\s@.-]/g, " ")
     .split(/\s+/)
-    .filter((t) => t.length > 1 && !STOPWORDS.has(t));
+    .filter((t) => t.length > 1 && !STOPWORDS.has(t))
+    .map(stemToken);
 }
 
 function chunkBlob(chunk: {
@@ -46,14 +64,22 @@ export function detectPolicyFocus(query: string): PolicyFocus {
   }
   if (/\b(return|refund|exchange)s?\b/.test(q) && !/\bship/.test(q)) return "return";
   if (/\bship(ping)?\b/.test(q) && !/\breturn|refund|exchange\b/.test(q)) return "shipping";
+  // Broad "what policies" / "which policies" — not a single policy type
+  if (
+    /\bpolic(?:y|ies)\b/.test(q) &&
+    !/\b(privacy|return|refund|exchange|ship)/.test(q)
+  ) {
+    return "policies_overview";
+  }
   return null;
 }
 
 export function isNarrowKnowledgeQuery(query: string): boolean {
   const q = query.toLowerCase();
+  const focus = detectPolicyFocus(query);
   return (
     /\b(only|just|specifically)\b/.test(q) ||
-    detectPolicyFocus(query) !== null
+    (focus !== null && focus !== "policies_overview")
   );
 }
 
@@ -107,6 +133,17 @@ function chunkMatchesFocus(
       return true;
     case "shipping":
       return /\bship/.test(blob) && !isPrimarilyReturnAddressChunk(chunk);
+    case "policies_overview": {
+      const tags = (chunk.metadata.tags ?? []).join(" ").toLowerCase();
+      if (/\b(policy|policies|returns?|shipping|privacy|payment|financing)\b/.test(tags)) {
+        return true;
+      }
+      return (
+        /vj_(returns|shipping|privacy|payment|promises|return_address|faq_04|faq_05|faq_08)/.test(
+          chunk.id
+        ) || /\b(return|shipping|privacy|financ|surcharge|payment method)\b/.test(blob)
+      );
+    }
     default:
       return true;
   }
@@ -118,7 +155,11 @@ function exactMatchBoost(query: string, chunkText: string, preferExact: string[]
   let boost = 0;
 
   for (const field of preferExact) {
-    if (!q.includes(field)) continue;
+    const fieldHit =
+      field === "policy"
+        ? /\bpolic(?:y|ies)\b/.test(q)
+        : q.includes(field);
+    if (!fieldHit) continue;
     if (field === "phone" && /1-844|ovani-104|\d{3}[-.]?\d{3}/.test(t)) boost += 4;
     if (field === "email" && /@vallianijewelers\.com/.test(t)) boost += 4;
     if (field === "return address" && /great mall|milpitas|95035/.test(t)) boost += 4;
@@ -131,11 +172,16 @@ function exactMatchBoost(query: string, chunkText: string, preferExact: string[]
         if (/\breturn|refund|exchange\b/.test(t)) boost += 4;
       } else if (/\bship/.test(q)) {
         if (/\bship/.test(t)) boost += 4;
+      } else if (/\bpolic(?:y|ies)\b/.test(q)) {
+        // Broad policies ask — boost any real policy section
+        if (/\b(privacy|return|ship|payment|financ|surcharge|policy)\b/.test(t)) boost += 4;
       }
     }
   }
 
-  if (q.includes("return") && /return/.test(t)) boost += 3;
+  if (/\bpolic(?:y|ies)\b/.test(q) && /\b(privacy|return|ship|payment|financ|policy)\b/.test(t)) {
+    boost += 2;
+  }
   if (q.includes("ship") && /ship/.test(t)) boost += 3;
   if (q.includes("privacy") && /privacy/.test(t)) boost += 5;
   if (q.includes("brand") && /ovani|novello|diani|aanika|link n lock/.test(t)) boost += 3;
@@ -204,6 +250,7 @@ function resolveTopK(query: string, topK?: number): number {
   if (focus === "privacy" || focus === "return" || focus === "shipping" || focus === "return_address") {
     return 2;
   }
+  if (focus === "policies_overview") return Math.max(defaultK, 5);
   return defaultK;
 }
 
