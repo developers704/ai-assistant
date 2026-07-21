@@ -57,8 +57,22 @@ function readEnvMeta(): MetaConfig {
   };
 }
 
+/** Instagram accounts that must never appear in this Valliani app. */
+const BLOCKED_IG_USERNAMES = new Set([
+  "cambridge_edexcel_tutors",
+]);
+
+function isBlockedInstagramUsername(username: string | null | undefined): boolean {
+  const u = (username ?? "").trim().toLowerCase().replace(/^@/, "");
+  return Boolean(u) && BLOCKED_IG_USERNAMES.has(u);
+}
+
 /** Read Meta env config. Never expose the token beyond this module. */
 export function getMetaConfig(): MetaConfig {
+  // Enforce purge on every read — clears stale process.env from a long-lived dev server.
+  if (isMetaPurged()) {
+    clearProcessMetaCredentials();
+  }
   const env = readEnvMeta();
   if (isMetaDisconnected() || isMetaPurged()) {
     return {
@@ -321,6 +335,16 @@ export async function fetchInstagramAccount(): Promise<MetaResult<InstagramAccou
   if (!res.ok) return res;
 
   const d = res.data;
+  if (isBlockedInstagramUsername(d.username)) {
+    purgeMetaConnection();
+    return {
+      ok: false,
+      error:
+        `Blocked Instagram account @${d.username}. This app is for Valliani Jewelers only. Credentials were purged.`,
+      code: "BLOCKED_ACCOUNT",
+    };
+  }
+
   return {
     ok: true,
     data: {

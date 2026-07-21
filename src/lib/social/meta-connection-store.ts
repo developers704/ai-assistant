@@ -2,10 +2,9 @@ import fs from "fs";
 import path from "path";
 
 /**
- * Runtime Meta/Instagram connection state.
- * - disabled: soft off (Reconnect can restore if env still has keys)
- * - purged: hard remove — credentials must be re-entered; Reconnect will not revive
- *   a previous account from leftover process.env
+ * Runtime Meta/Instagram connection state (always synced from disk).
+ * - disabled: soft off
+ * - purged: hard remove — Reconnect must not revive leftover process.env credentials
  */
 
 type MetaConnectionState = {
@@ -22,8 +21,6 @@ const META_CREDENTIAL_ENV_KEYS = [
   "META_IG_BUSINESS_ID",
   "META_PAGE_ID",
 ] as const;
-
-let memoryState: MetaConnectionState | null = null;
 
 function readFromDisk(): MetaConnectionState {
   try {
@@ -48,10 +45,9 @@ function writeToDisk(state: MetaConnectionState) {
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
 }
 
+/** Always read disk — never keep a stale in-memory "still connected" flag. */
 function getState(): MetaConnectionState {
-  if (memoryState) return memoryState;
-  memoryState = readFromDisk();
-  return memoryState;
+  return readFromDisk();
 }
 
 /** Drop in-process Meta credentials so a running Next server cannot keep serving them. */
@@ -72,30 +68,24 @@ export function isMetaPurged(): boolean {
 
 /** Soft disconnect — Reconnect may restore if env keys still exist. */
 export function disconnectMeta(): void {
-  memoryState = { disabled: true, purged: getState().purged };
-  writeToDisk(memoryState);
+  writeToDisk({ disabled: true, purged: getState().purged });
 }
 
 /**
  * Hard remove — wipe in-process credentials and block reconnect until new
- * META_PAGE_ID / META_IG_BUSINESS_ID / META_TEST_ACCESS_TOKEN are set (and server restarted).
+ * META_* keys are set for Valliani (and server restarted if env was stale).
  */
 export function purgeMetaConnection(): void {
   clearProcessMetaCredentials();
-  memoryState = { disabled: true, purged: true };
-  writeToDisk(memoryState);
+  writeToDisk({ disabled: true, purged: true });
 }
 
 export function reconnectMeta(): void {
-  if (getState().purged) {
-    return;
-  }
-  memoryState = { disabled: false, purged: false };
-  writeToDisk(memoryState);
+  if (getState().purged) return;
+  writeToDisk({ disabled: false, purged: false });
 }
 
 /** Clear purged flag after operator installs new Valliani credentials. */
 export function clearMetaPurgeFlag(): void {
-  memoryState = { disabled: false, purged: false };
-  writeToDisk(memoryState);
+  writeToDisk({ disabled: false, purged: false });
 }
