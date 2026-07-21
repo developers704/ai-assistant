@@ -17,7 +17,7 @@ export interface PlannerOutput {
 
 /**
  * Planner — gated to complex_planner only (cost control).
- * Uses gpt-4.1-mini, NOT analyst model, unless sales.analysis step.
+ * Uses OPENAI_CHAT_MODEL (default gpt-5.6-terra), NOT analyst model, unless sales.analysis step.
  */
 export async function runPlanner(
   userRequest: string,
