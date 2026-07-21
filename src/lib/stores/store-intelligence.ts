@@ -27,6 +27,11 @@ const NEAREST_PATTERNS = [
   /\b(?:branch|store|location)\b[\s\S]{0,30}\b(?:closest|nearest)\b[\s\S]{0,30}\bto\b/i,
 ];
 
+const DISTANCE_PATTERNS = [
+  /\b(?:how far|distance|miles?|kilometers?|km)\b[\s\S]{0,80}\b(?:between|from|to)\b/i,
+  /\bfrom\b[\s\S]{0,40}\bto\b[\s\S]{0,40}\b(?:store|mall|miles?|km|far)\b/i,
+];
+
 const STATE_LIST_PATTERNS = [
   /\b(?:show|list|which|all)\b[\s\S]{0,40}\bstores?\b[\s\S]{0,40}\b(?:in|across)\b[\s\S]{0,30}\b(california|nevada|arizona|texas|ca|nv|az|tx)\b/i,
   /\bstores?\s+in\s+(california|nevada|arizona|texas|ca|nv|az|tx)\b/i,
@@ -57,6 +62,7 @@ export function isStoreIntelligenceQuery(message: string): boolean {
   const lower = message.toLowerCase();
 
   if (NEAREST_PATTERNS.some((p) => p.test(lower))) return true;
+  if (DISTANCE_PATTERNS.some((p) => p.test(lower))) return true;
   if (STATE_LIST_PATTERNS.some((p) => p.test(lower))) return true;
   if (CITY_LIST_PATTERNS.some((p) => p.test(lower))) return true;
   if (LOOKUP_PATTERNS.some((p) => p.test(lower))) return true;

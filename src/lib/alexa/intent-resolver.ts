@@ -29,6 +29,8 @@ function actionFromRouted(intent: string): string {
     return "delete";
   if (intent.includes("draft") || intent.includes("compose")) return "draft";
   if (intent.includes("compare")) return "compare";
+  if (intent.includes("nearest")) return "nearest";
+  if (intent.includes("distance")) return "distance";
   if (intent.includes("query") || intent.includes("summary") || intent.includes("list"))
     return "query";
   if (intent.includes("open") || intent === "navigation") return "navigate";

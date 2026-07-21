@@ -25,6 +25,7 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
   stores: [
     "get_store_directory",
     "find_nearest_store",
+    "get_store_distance",
     "list_valliani_stores",
     "get_valliani_store_details",
   ],
@@ -94,9 +95,9 @@ export function pickPrimaryTool(intent: AlexaIntent): string | null {
     case "knowledge":
       return "search_company_knowledge";
     case "stores":
-      return intent.action === "nearest" || intent.entities.nearest
-        ? "find_nearest_store"
-        : "get_store_directory";
+      if (intent.action === "nearest" || intent.entities.nearest) return "find_nearest_store";
+      if (intent.action === "distance") return "get_store_distance";
+      return "get_store_directory";
     case "news":
       return "get_industry_news";
     case "calculator":

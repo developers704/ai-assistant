@@ -18,6 +18,7 @@ export type RoutedIntent =
   | "image.generate"
   | "knowledge.search"
   | "store.nearest"
+  | "store.distance"
   | "store.list"
   | "store.lookup"
   | "store.call"
@@ -311,6 +312,12 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
 
   if (isStoreIntelligenceQuery(input.message)) {
     if (/\b(?:closest|nearest)\b/i.test(lower)) return "store.nearest";
+    if (
+      /\b(?:how far|distance|miles?|kilometers?|km)\b/i.test(lower) ||
+      /\bfrom\b[\s\S]{0,40}\bto\b/i.test(lower)
+    ) {
+      return "store.distance";
+    }
     if (/\bcall\b/i.test(lower) && MALL_HINT.test(lower)) return "store.call";
     if (/\b(?:address|phone|hours)\b/i.test(lower)) return "store.lookup";
     if (/\bstores?\s+(?:are\s+)?(?:in|across)\b/i.test(lower) && /\b(california|nevada|arizona|texas|ca|nv|az|tx)\b/i.test(lower)) {
@@ -385,6 +392,7 @@ export function intentToTool(intent: RoutedIntent): string | null {
     "image.generate": "generate_jewellery_image",
     "knowledge.search": "search_company_knowledge",
     "store.nearest": "find_nearest_store",
+    "store.distance": "get_store_distance",
     "store.list": "list_valliani_stores",
     "store.lookup": "get_valliani_store_details",
     "store.call": "get_valliani_store_details",

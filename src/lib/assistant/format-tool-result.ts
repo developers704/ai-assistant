@@ -34,6 +34,7 @@ export function intentForTool(name: string): IntentType {
     search_company_knowledge: "general",
     get_store_directory: "store_list",
     find_nearest_store: "store_list",
+    get_store_distance: "store_list",
     list_valliani_stores: "store_list",
     get_valliani_store_details: "store_list",
     get_instagram_account: "general",
@@ -124,6 +125,7 @@ export function formatToolResultForChat(toolName: string, result: VoiceToolResul
 
     case "get_store_directory":
     case "find_nearest_store":
+    case "get_store_distance":
     case "list_valliani_stores":
     case "get_valliani_store_details": {
       return typeof data.markdown === "string"

@@ -405,7 +405,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     allowedInVoice: true,
     allowedInChat: true,
     whenToUse: "Nearest or closest store to a mall, city, or location.",
-    whenNotToUse: "If coordinates missing, explain needsGeocoding — do not guess distance.",
+    whenNotToUse: "For exact A→B distance use get_store_distance. If coordinates missing, explain needsGeocoding — do not guess.",
     examplePhrases: ["nearest store to Great Mall", "closest branch to Valley Fair"],
     parameters: {
       type: "object",
@@ -414,6 +414,33 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         city: { type: "string" },
         state: { type: "string" },
         limit: { type: "number", description: "1-3 nearest stores", minimum: 1, maximum: 3 },
+        user_message: { type: "string", description: "Original user question" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_store_distance",
+    description:
+      "REQUIRED for distance between two Valliani stores, or all distances from one store. Straight-line km from synced coordinates — never invent.",
+    category: "stores",
+    riskLevel: "safe",
+    requiresConfirmation: false,
+    allowedInVoice: true,
+    allowedInChat: true,
+    whenToUse:
+      "How far from Great Mall to Valley Fair; distance between Ontario Mills and Serramonte; distances from Great Mall to all stores.",
+    whenNotToUse: "For nearest-only (closest store) use find_nearest_store.",
+    examplePhrases: [
+      "how far from Great Mall to Valley Fair",
+      "distance between Serramonte and Oakridge",
+      "distances from Great Mall to every store",
+    ],
+    parameters: {
+      type: "object",
+      properties: {
+        from_store: { type: "string", description: "Origin mall/store name" },
+        to_store: { type: "string", description: "Destination mall/store name (omit to list all from origin)" },
         user_message: { type: "string", description: "Original user question" },
       },
       additionalProperties: false,

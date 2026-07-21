@@ -1,5 +1,6 @@
 import { getStoreStats, mockStores } from "@/lib/mock-data";
 import { getAllStores, isStoreDirectoryAvailable } from "@/lib/stores/store-directory";
+import { buildStoreDistanceMatrixContext } from "@/lib/stores/store-distances";
 import type { StoreLocation } from "@/types";
 
 export type StoreRegion = "California" | "Nevada" | "Arizona" | "Texas";
@@ -86,7 +87,7 @@ ${stores.map(formatStoreLine).join("\n")}`;
 ${sections.join("\n\n")}`;
 }
 
-/** Full store directory for LLM live context (compact). */
+/** Full store directory for LLM live context (compact) + pairwise distances. */
 export function buildStoreDirectoryContext(): string {
   if (isStoreDirectoryAvailable()) {
     const stores = getAllStores();
@@ -102,7 +103,10 @@ export function buildStoreDirectoryContext(): string {
     return `Store directory summary: ${stores.length} total locations from official store JSON.
 States: CA=${byState.CA ?? 0}, NV=${byState.NV ?? 0}, AZ=${byState.AZ ?? 0}, TX=${byState.TX ?? 0}.
 Status: ${open} open, ${soon} opening soon.
-For specific store address/phone/hours use Store Intelligence tools: get_valliani_store_details, list_valliani_stores, find_nearest_store.`;
+For address/phone/hours use get_valliani_store_details / list_valliani_stores / get_store_directory.
+For nearest or any pair distance use find_nearest_store / get_store_distance — never invent km.
+
+${buildStoreDistanceMatrixContext()}`;
   }
 
   const stats = getStoreStats();

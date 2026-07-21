@@ -51,6 +51,7 @@ const FAST_READ_TOOLS = new Set([
   "search_company_knowledge",
   "get_store_directory",
   "find_nearest_store",
+  "get_store_distance",
   "list_valliani_stores",
   "get_valliani_store_details",
   "get_instagram_account",
@@ -237,6 +238,8 @@ export async function tryRoutedResponse(
         ? { query: message }
         : toolName === "find_nearest_store"
           ? { user_message: message, storeName: extractStoreQueryPhrase(message), limit: 3 }
+          : toolName === "get_store_distance"
+            ? { user_message: message }
           : toolName === "list_valliani_stores"
             ? {
                 state: /\b(california|ca|nevada|nv|arizona|az|texas|tx)\b/i.exec(message)?.[1],

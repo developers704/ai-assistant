@@ -103,6 +103,7 @@ export const READ_TOOL_NAMES = new Set([
   "search_company_knowledge",
   "get_store_directory",
   "find_nearest_store",
+  "get_store_distance",
   "list_valliani_stores",
   "get_valliani_store_details",
   "draft_email_reply",

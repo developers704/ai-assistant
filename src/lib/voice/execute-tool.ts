@@ -1106,6 +1106,23 @@ export async function executeVoiceTool(
       };
     }
 
+    case "get_store_distance": {
+      const { buildStoreDistanceToolResult } = await import("@/lib/stores/store-distances");
+      const result = buildStoreDistanceToolResult({
+        fromStore: args.from_store ? String(args.from_store) : undefined,
+        toStore: args.to_store ? String(args.to_store) : undefined,
+        userMessage: args.user_message ? String(args.user_message) : undefined,
+      });
+      return {
+        output: JSON.stringify({
+          spokenAnswer: result.spokenAnswer,
+          markdown: result.message,
+          ok: result.ok,
+        }),
+        uiAction: { type: "navigate", path: "/stores" },
+      };
+    }
+
     case "draft_email_reply": {
       const userMessage = args.user_message ? String(args.user_message) : undefined;
       const draft = await buildVoiceEmailDraft({ userMessage });

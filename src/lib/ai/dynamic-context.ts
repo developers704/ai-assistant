@@ -10,6 +10,8 @@ import { getUiContext } from "@/lib/store/ui-context";
 import { userTimezone } from "@/lib/calendar-dates";
 import { buildSectionContextBlock, buildSectionRuntimeContext } from "@/lib/ai/section-context";
 import { getLatestReportWithSummary } from "@/lib/reports/store";
+import { buildStoreDistanceMatrixContext } from "@/lib/stores/store-distances";
+import { isStoreDirectoryAvailable } from "@/lib/stores/store-directory";
 
 /** Compact catalog so voice can pass real filter names into sales tools. */
 function buildSalesFilterCatalogLine(): string {
@@ -136,6 +138,7 @@ export async function buildDynamicContext(
     ctx.pendingAction ? `PENDING: ${ctx.pendingAction}` : "",
     `SALES: ${ctx.latestSalesSummary}`,
     buildSalesFilterCatalogLine(),
+    isStoreDirectoryAvailable() ? buildStoreDistanceMatrixContext() : "",
     `CALENDAR (top): ${ctx.todayCalendarSummary}`,
     `INBOX (top): ${ctx.inboxSummary}`,
     `TASKS: ${ctx.pendingTasksSummary}`,
