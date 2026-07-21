@@ -125,11 +125,14 @@ export default function AnalystPage() {
   const [saveToServer, setSaveToServer] = useState(true);
   const [reportPeriod, setReportPeriod] = useState<ReportPeriod>("daily");
   const [reportCategory, setReportCategory] = useState<ReportCategory>("sales");
+  /** append = merge daily into current sales report; replace = overwrite live dataset */
+  const [uploadMode, setUploadMode] = useState<"append" | "replace">("append");
   const [savedReports, setSavedReports] = useState<StoredReportMeta[]>([]);
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [metaExpanded, setMetaExpanded] = useState(true);
+  const [lastUploadNote, setLastUploadNote] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -151,21 +154,42 @@ export default function AnalystPage() {
     }
   }, [hasResults]);
 
-  const welcomeMessage = (fileName: string, rowCount: number, colCount: number, saved?: boolean) =>
+  const welcomeMessage = (
+    fileName: string,
+    rowCount: number,
+    colCount: number,
+    saved?: boolean,
+    appended?: boolean,
+    serverMessage?: string
+  ) =>
     `Loaded "${fileName}" — ${rowCount.toLocaleString()} rows and ${colCount} columns.${
       saved
-        ? " Saved as the latest report — Sales Dashboard, chat, and voice will use this data."
+        ? appended
+          ? ` ${serverMessage || "Appended into the live sales report — previous days kept, this day merged in."}`
+          : " Saved as the latest report — Sales Dashboard, chat, and voice will use this data."
         : ""
     } Ask me anything: totals, top/low sellers, trends, breakdowns, or forecasts.`;
 
-  const applySchema = (s: TableSchema, saved?: boolean, reportId?: string | null) => {
+  const applySchema = (
+    s: TableSchema,
+    saved?: boolean,
+    reportId?: string | null,
+    opts?: { appended?: boolean; serverMessage?: string }
+  ) => {
     setSchema(s);
     if (reportId !== undefined) setActiveReportId(reportId);
     setMessages([
       {
         id: uuidv4(),
         role: "assistant",
-        content: welcomeMessage(s.fileName, s.rowCount, s.columns.length, saved),
+        content: welcomeMessage(
+          s.fileName,
+          s.rowCount,
+          s.columns.length,
+          saved,
+          opts?.appended,
+          opts?.serverMessage
+        ),
       },
     ]);
   };
@@ -222,6 +246,7 @@ export default function AnalystPage() {
     form.append("label", file.name.replace(/\.csv$/i, ""));
     form.append("reportPeriod", reportPeriod);
     form.append("reportCategory", reportCategory);
+    form.append("uploadMode", uploadMode);
     const res = await fetch("/api/reports", { method: "POST", body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to save report");
@@ -236,7 +261,14 @@ export default function AnalystPage() {
         dataVersion: data.dataVersion ?? null,
       });
     }
-    return data.report?.id as string | undefined;
+    setLastUploadNote(typeof data.message === "string" ? data.message : null);
+    return {
+      reportId: data.report?.id as string | undefined,
+      appended: Boolean(data.appended),
+      message: typeof data.message === "string" ? data.message : undefined,
+      // When appended, server saved the merged CSV — reload that for analysis
+      mergedCsv: data.appended ? true : false,
+    };
   };
 
   const removeReport = async (id: string) => {
@@ -284,14 +316,33 @@ export default function AnalystPage() {
   const handleFile = async (file: File, options?: { save?: boolean }) => {
     setLoadingFile(true);
     setFileError(null);
+    setLastUploadNote(null);
     const shouldSave = options?.save ?? saveToServer;
     try {
       let reportId: string | null = null;
+      let appended = false;
+      let serverMessage: string | undefined;
       if (shouldSave) {
-        reportId = (await saveReportToServer(file)) ?? null;
+        const saved = await saveReportToServer(file);
+        reportId = saved.reportId ?? null;
+        appended = saved.appended;
+        serverMessage = saved.message;
+        // After append, load the merged latest report so Analyst sees full Jul 1–20 etc.
+        if (appended && reportId) {
+          const latestRes = await fetch("/api/reports/latest");
+          const latestData = await latestRes.json();
+          if (latestData.csv && latestData.report) {
+            const s = await loadCSVFromText(latestData.report.fileName, latestData.csv);
+            applySchema(s, true, latestData.report.id, {
+              appended: true,
+              serverMessage,
+            });
+            return;
+          }
+        }
       }
       const s = await loadCSV(file);
-      applySchema(s, shouldSave, reportId);
+      applySchema(s, shouldSave, reportId, { appended, serverMessage });
     } catch (err) {
       setFileError(err instanceof Error ? err.message : "Failed to load the CSV file.");
     } finally {
@@ -534,7 +585,11 @@ export default function AnalystPage() {
                     </select>
                     <select
                       value={reportPeriod}
-                      onChange={(e) => setReportPeriod(e.target.value as ReportPeriod)}
+                      onChange={(e) => {
+                        const p = e.target.value as ReportPeriod;
+                        setReportPeriod(p);
+                        if (p === "daily") setUploadMode("append");
+                      }}
                       className="select-dark"
                     >
                       <option value="daily">Daily</option>
@@ -544,7 +599,37 @@ export default function AnalystPage() {
                       <option value="yearly">Yearly</option>
                       <option value="custom">Custom period</option>
                     </select>
+                    {reportCategory === "sales" && (
+                      <select
+                        value={uploadMode}
+                        onChange={(e) =>
+                          setUploadMode(e.target.value as "append" | "replace")
+                        }
+                        className="select-dark"
+                        title="Append merges this day into the current sales report"
+                      >
+                        <option value="append">Append to current</option>
+                        <option value="replace">Replace all</option>
+                      </select>
+                    )}
                   </div>
+                  {reportCategory === "sales" && uploadMode === "append" && (
+                    <p className="text-[11px] text-cyan-200/80 max-w-md mx-auto leading-relaxed">
+                      Append keeps Jul 1–19 (etc.) and adds only the new day(s). Re-uploading the
+                      same day replaces that day only — no double-count.
+                    </p>
+                  )}
+                  {reportCategory === "sales" && uploadMode === "replace" && (
+                    <p className="text-[11px] text-amber-200/75 max-w-md mx-auto leading-relaxed">
+                      Replace overwrites the live Dashboard with this file only (previous days are
+                      dropped from the live report).
+                    </p>
+                  )}
+                  {lastUploadNote && (
+                    <p className="text-[11px] text-emerald-300/90 max-w-md mx-auto leading-relaxed px-3 py-2 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-400/20">
+                      {lastUploadNote}
+                    </p>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-ink-muted mt-1 px-4 py-2 rounded-full glass-panel">
                     <BarChart3 size={13} className="text-cyan-300" />
                     Top sellers · trends · breakdowns · forecasts · exact numbers

@@ -3,6 +3,7 @@ import {
   deleteReport,
   getLatestReportMeta,
   listReports,
+  readReportCsv,
   saveReport,
 } from "@/lib/reports/store";
 import { clearSalesWorkingMemory } from "@/lib/sales/sales-working-memory";
@@ -40,17 +41,56 @@ export async function POST(req: NextRequest) {
   const label = String(formData.get("label") ?? "").trim();
   const reportPeriod = String(formData.get("reportPeriod") ?? "").trim() || undefined;
   const reportCategory = String(formData.get("reportCategory") ?? "").trim() || undefined;
-  const csvText = await file.text();
+  const uploadMode = String(formData.get("uploadMode") ?? "").trim() || undefined;
+  let csvText = await file.text();
 
   if (!csvText.trim()) {
     return NextResponse.json({ error: "The file is empty" }, { status: 400 });
   }
 
   try {
+    const {
+      shouldAppendSalesUpload,
+      mergeSalesCsvAppend,
+    } = await import("@/lib/reports/merge-sales-csv");
+
+    const wantsSales =
+      !reportCategory || reportCategory === "sales";
+    const append =
+      wantsSales &&
+      shouldAppendSalesUpload({
+        uploadMode,
+        reportPeriod,
+        reportCategory,
+      });
+
+    let mergeInfo: ReturnType<typeof mergeSalesCsvAppend> | null = null;
+    let saveLabel = label || undefined;
+    let savePeriod = reportPeriod as import("@/lib/reports/types").ReportPeriod | undefined;
+    let saveDateRange: { from: string; to: string } | undefined;
+
+    if (append) {
+      const latest = getLatestReportMeta();
+      const isLatestSales =
+        latest &&
+        (latest.schema === "store_sales" || latest.reportCategory === "sales");
+      if (isLatestSales) {
+        const prevCsv = readReportCsv(latest.id);
+        if (prevCsv?.trim()) {
+          mergeInfo = mergeSalesCsvAppend(prevCsv, csvText);
+          csvText = mergeInfo.csvText;
+          saveLabel = label || mergeInfo.suggestedLabel;
+          savePeriod = "custom";
+          saveDateRange = mergeInfo.dateRange ?? undefined;
+        }
+      }
+    }
+
     const { meta, summary } = saveReport(file.name, csvText, {
-      label: label || undefined,
-      reportPeriod: reportPeriod as import("@/lib/reports/types").ReportPeriod | undefined,
+      label: saveLabel,
+      reportPeriod: savePeriod,
       reportCategory: reportCategory as import("@/lib/reports/types").ReportCategory | undefined,
+      dateRange: saveDateRange,
     });
 
     // New store-sales upload becomes the live source for dashboard / chat / voice
@@ -69,15 +109,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const mergedDays = mergeInfo?.newDates?.join(", ") ?? null;
     return NextResponse.json({
       report: meta,
       summary,
       liveForSales: isLiveSales,
+      appended: Boolean(mergeInfo),
+      merge: mergeInfo
+        ? {
+            newDates: mergeInfo.newDates,
+            replacedDates: mergeInfo.replacedDates,
+            keptOldRows: mergeInfo.keptOldRows,
+            appendedRows: mergeInfo.appendedRows,
+            totalRows: mergeInfo.totalRows,
+            dateRange: mergeInfo.dateRange,
+          }
+        : null,
       dataVersion: dataVersion ?? readActivePointer().activeVersion,
       dateRange: meta.dateRange ?? summary.dateRange ?? null,
-      message: isLiveSales
-        ? "Saved as the latest sales report. Sales Dashboard, chat, and voice will use this file."
-        : "Report saved.",
+      message: mergeInfo
+        ? `Appended ${mergeInfo.newDates.length} day(s) (${mergedDays}) into the live sales report (${mergeInfo.totalRows.toLocaleString()} rows total). Dashboard, chat, and voice now use the combined file.`
+        : isLiveSales
+          ? "Saved as the latest sales report. Sales Dashboard, chat, and voice will use this file."
+          : "Report saved.",
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to save report";
