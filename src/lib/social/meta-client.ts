@@ -61,7 +61,7 @@ export function getMetaStatus(): MetaStatus {
   const env = readEnvMeta();
   const disconnected = isMetaDisconnected();
   const cfg = disconnected ? { ...env, token: null } : env;
-  const canReconnect = Boolean(env.token && env.igBusinessId);
+  const canReconnect = Boolean(env.token && env.igBusinessId && env.pageId);
   return {
     connected: Boolean(cfg.token && cfg.igBusinessId),
     pageId: cfg.pageId,
@@ -79,10 +79,11 @@ export function disconnectInstagram(): void {
 
 export function reconnectInstagram(): { ok: true } | { ok: false; error: string } {
   const env = readEnvMeta();
-  if (!env.token || !env.igBusinessId) {
+  if (!env.token || !env.igBusinessId || !env.pageId) {
     return {
       ok: false,
-      error: "Cannot reconnect — Meta env keys are missing on the server.",
+      error:
+        "Cannot reconnect — set META_PAGE_ID, META_IG_BUSINESS_ID, and META_TEST_ACCESS_TOKEN for the Valliani Instagram Business account.",
     };
   }
   reconnectMeta();
