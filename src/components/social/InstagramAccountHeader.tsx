@@ -12,9 +12,7 @@ export function InstagramAccountHeader({
   account: IgAccount | null;
   status: IgStatus | null;
 }) {
-  const connected = Boolean(status?.connected && account);
-
-  if (!connected) {
+  if (!account || !status?.connected) {
     return (
       <div className="rounded-2xl ring-1 ring-white/[0.08] bg-gradient-to-br from-fuchsia-500/[0.08] via-white/[0.02] to-amber-500/[0.05] p-5 sm:p-6">
         <div className="flex items-center gap-4 sm:gap-5">
@@ -40,7 +38,7 @@ export function InstagramAccountHeader({
       <div className="flex items-center gap-4 sm:gap-5">
         <div className="relative shrink-0">
           <span className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full ring-2 ring-fuchsia-400/40 bg-black/30 overflow-hidden">
-            {account?.profilePictureUrl ? (
+            {account.profilePictureUrl ? (
               <Image
                 src={account.profilePictureUrl}
                 alt={account.username}

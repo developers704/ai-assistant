@@ -112,6 +112,7 @@ function SettingsContent() {
     connected: boolean;
     hasToken: boolean;
     disconnected?: boolean;
+    purged?: boolean;
     canReconnect?: boolean;
   } | null>(null);
 
@@ -233,6 +234,7 @@ function SettingsContent() {
           connected: boolean;
           hasToken: boolean;
           disconnected?: boolean;
+          purged?: boolean;
           canReconnect?: boolean;
         };
 
