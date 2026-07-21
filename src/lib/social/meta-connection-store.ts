@@ -57,6 +57,31 @@ export function clearProcessMetaCredentials(): void {
   }
 }
 
+/** Blank Meta credential lines in .env / .env.local so a restart cannot revive them. */
+export function clearMetaCredentialsFromEnvFiles(): void {
+  const files = [".env.local", ".env"];
+  for (const name of files) {
+    const filePath = path.join(process.cwd(), name);
+    try {
+      if (!fs.existsSync(filePath)) continue;
+      const lines = fs.readFileSync(filePath, "utf-8").split(/\r?\n/);
+      let changed = false;
+      const out = lines.map((line) => {
+        const eq = line.indexOf("=");
+        if (eq < 0) return line;
+        const key = line.slice(0, eq).trim();
+        if (!(META_CREDENTIAL_ENV_KEYS as readonly string[]).includes(key)) return line;
+        if (!line.slice(eq + 1)) return line;
+        changed = true;
+        return `${key}=`;
+      });
+      if (changed) fs.writeFileSync(filePath, out.join("\n"), "utf-8");
+    } catch {
+      // ignore unreadable env files
+    }
+  }
+}
+
 export function isMetaDisconnected(): boolean {
   const s = getState();
   return s.disabled || s.purged;
@@ -77,6 +102,7 @@ export function disconnectMeta(): void {
  */
 export function purgeMetaConnection(): void {
   clearProcessMetaCredentials();
+  clearMetaCredentialsFromEnvFiles();
   writeToDisk({ disabled: true, purged: true });
 }
 

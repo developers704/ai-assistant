@@ -91,12 +91,12 @@ export function SocialDashboard() {
       setLoading(false);
       setLoadError(
         st.data?.purged
-          ? "Instagram credentials were removed. Add Valliani Meta keys to .env.local and restart the server."
+          ? "Instagram disconnected. Link @vallianijewelers when Meta credentials are ready."
           : st.data?.disconnected
-            ? "Instagram is disconnected. Use Reconnect only after Valliani Meta keys are configured."
+            ? "Instagram is disconnected."
             : st.data?.hasToken
-              ? "Instagram token expired or the business account is not set. Generate a new test token or use OAuth."
-              : "Instagram is not connected. Add Meta env keys or connect via OAuth."
+              ? "Instagram token expired or the business account is not set."
+              : "Instagram is not connected."
       );
       return;
     }
@@ -105,7 +105,26 @@ export function SocialDashboard() {
     if (acc.ok && acc.data) {
       setAccount(acc.data.account);
     } else if (acc.error) {
-      setLoadError(acc.error.error);
+      if (acc.error.code === "BLOCKED_ACCOUNT") {
+        setAccount(null);
+        setPosts([]);
+        setSelected(null);
+        setStatus({
+          connected: false,
+          pageId: null,
+          instagramBusinessId: null,
+          graphVersion: st.data?.graphVersion ?? "v25.0",
+          hasToken: false,
+          disconnected: true,
+          purged: true,
+          canReconnect: false,
+        });
+        setLoadError(
+          "Instagram disconnected. Link the Valliani Jewelers Business account when ready."
+        );
+      } else {
+        setLoadError(acc.error.error);
+      }
     }
 
     const pd = await getJson<{ posts: IgPost[] }>("/api/social/instagram/posts");

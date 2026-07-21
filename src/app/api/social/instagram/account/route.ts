@@ -7,10 +7,13 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const result = await fetchInstagramAccount();
   if (!result.ok) {
-    return NextResponse.json(
-      { error: result.error, code: result.code },
-      { status: result.code === "NO_TOKEN" || result.code === "TOKEN_EXPIRED" ? 401 : 502 }
-    );
+    const status =
+      result.code === "NO_TOKEN" || result.code === "TOKEN_EXPIRED"
+        ? 401
+        : result.code === "BLOCKED_ACCOUNT"
+          ? 403
+          : 502;
+    return NextResponse.json({ error: result.error, code: result.code }, { status });
   }
   return NextResponse.json({ account: result.data });
 }
