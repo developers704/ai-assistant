@@ -7,11 +7,18 @@ import {
 } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { filterExcludedSalesRows } from "@/lib/utils";
-import type { RankDimension } from "@/lib/reports/types";
+import { filterExcludedSalesRows, isExcludedSalesSku } from "@/lib/utils";
+import type { RankDimension, VendorPosRow } from "@/lib/reports/types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 import { dimensionValue } from "@/lib/reports/rank-dimension";
-import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
+import {
+  rowIncludesSalesperson,
+  salespersonShare,
+} from "@/lib/sales/salesperson-credit";
+import {
+  loadSalespersonDirectory,
+  resolveSalespersonLabelWithCode,
+} from "@/lib/sales/salesperson-directory";
 import type { VendorModelSkuLine } from "@/lib/sales/sales-types";
 
 export const runtime = "nodejs";
@@ -30,6 +37,56 @@ function normalizeFilterKey(value: string): string {
 function multiSet(values: string[]): Set<string> | null {
   if (!values.length) return null;
   return new Set(values.map(normalizeFilterKey));
+}
+
+/** Resolve rank-detail value to a salesperson code (accepts code or "Name (CODE)"). */
+function resolveSalespersonCode(value: string): string {
+  const raw = value.trim();
+  const paren = raw.match(/\(([A-Za-z0-9_.-]+)\)\s*$/);
+  if (paren) return paren[1].toUpperCase();
+  return raw.toUpperCase();
+}
+
+function skuLinesCredited(
+  rows: VendorPosRow[],
+  creditOf: (r: VendorPosRow) => number
+): VendorModelSkuLine[] {
+  const map = new Map<
+    string,
+    VendorModelSkuLine & { storeSet: Set<string> }
+  >();
+  for (const r of rows) {
+    const sku = (r.sku || r.itemNumber || "").trim();
+    if (!sku || isExcludedSalesSku(sku)) continue;
+    const share = creditOf(r);
+    if (share <= 0) continue;
+    const key = sku.toUpperCase();
+    const cur = map.get(key) ?? {
+      sku,
+      units: 0,
+      revenue: 0,
+      margin: 0,
+      storeSet: new Set<string>(),
+    };
+    cur.units += r.quantity * share;
+    cur.revenue += r.netRevenue * share;
+    cur.margin = (cur.margin ?? 0) + r.margin * share;
+    const store = r.storeName?.trim();
+    if (store) cur.storeSet.add(store);
+    map.set(key, cur);
+  }
+  return [...map.values()]
+    .map(({ storeSet, ...line }) => {
+      const margin = line.margin ?? 0;
+      const stores = [...storeSet].sort((a, b) => a.localeCompare(b));
+      return {
+        ...line,
+        margin,
+        marginRate: line.revenue > 0 ? margin / line.revenue : 0,
+        stores: stores.length ? stores : undefined,
+      };
+    })
+    .sort((a, b) => b.units - a.units || b.revenue - a.revenue);
 }
 
 export async function GET(req: Request) {
@@ -53,6 +110,7 @@ export async function GET(req: Request) {
     "design",
     "class",
     "vendorModel",
+    "salesperson",
   ];
   if (!dimension || !allowed.includes(dimension) || !value) {
     return NextResponse.json(
@@ -119,17 +177,30 @@ export async function GET(req: Request) {
     );
   }
 
+  const isSalesperson = dimension === "salesperson";
+  const salespersonCode = isSalesperson ? resolveSalespersonCode(value) : "";
   const needle = normalizeFilterKey(value);
-  const matched = rows.filter(
-    (r) => normalizeFilterKey(dimensionValue(r, dimension)) === needle
-  );
+  const matched = isSalesperson
+    ? rows.filter((r) => rowIncludesSalesperson(r, salespersonCode))
+    : rows.filter(
+        (r) => normalizeFilterKey(dimensionValue(r, dimension)) === needle
+      );
 
-  const revenue = matched.reduce((s, r) => s + r.netRevenue, 0);
-  const units = matched.reduce((s, r) => s + r.quantity, 0);
-  const margin = matched.reduce((s, r) => s + r.margin, 0);
-  const grossSales = matched.reduce((s, r) => s + r.grossSales, 0);
-  const discountTotal = matched.reduce((s, r) => s + r.discountAmount, 0);
-  const inventoryCost = matched.reduce((s, r) => s + r.inventoryCost, 0);
+  const creditOf = (r: VendorPosRow) =>
+    isSalesperson ? salespersonShare(r, salespersonCode) : 1;
+
+  const revenue = matched.reduce((s, r) => s + r.netRevenue * creditOf(r), 0);
+  const units = matched.reduce((s, r) => s + r.quantity * creditOf(r), 0);
+  const margin = matched.reduce((s, r) => s + r.margin * creditOf(r), 0);
+  const grossSales = matched.reduce((s, r) => s + r.grossSales * creditOf(r), 0);
+  const discountTotal = matched.reduce(
+    (s, r) => s + r.discountAmount * creditOf(r),
+    0
+  );
+  const inventoryCost = matched.reduce(
+    (s, r) => s + r.inventoryCost * creditOf(r),
+    0
+  );
   const uniqueTransactions = new Set(
     matched.map((r) => r.transactionId).filter(Boolean)
   ).size;
@@ -154,6 +225,7 @@ export async function GET(req: Request) {
   >();
 
   for (const r of matched) {
+    const share = creditOf(r);
     const bump = (
       map: Map<string, { revenue: number; units: number }>,
       key: string
@@ -161,8 +233,8 @@ export async function GET(req: Request) {
       if (!key || key === "—") return;
       const ex = map.get(key) || { revenue: 0, units: 0 };
       map.set(key, {
-        revenue: ex.revenue + r.netRevenue,
-        units: ex.units + r.quantity,
+        revenue: ex.revenue + r.netRevenue * share,
+        units: ex.units + r.quantity * share,
       });
     };
     bump(byStore, r.storeName);
@@ -187,9 +259,9 @@ export async function GET(req: Request) {
       byModel.set(model, {
         name: r.description || ex.name,
         vendorModel: model,
-        revenue: ex.revenue + r.netRevenue,
-        units: ex.units + r.quantity,
-        margin: ex.margin + r.margin,
+        revenue: ex.revenue + r.netRevenue * share,
+        units: ex.units + r.quantity * share,
+        margin: ex.margin + r.margin * share,
         imageDir: ex.imageDir || r.imageDir || undefined,
         sku: ex.sku || r.sku || r.itemNumber || undefined,
         rows: ex.rows,
@@ -209,7 +281,9 @@ export async function GET(req: Request) {
   const topModels = [...byModel.values()]
     .sort((a, b) => b.units - a.units || b.revenue - a.revenue)
     .map(({ rows: modelRows, ...m }) => {
-      const skus: VendorModelSkuLine[] = skuLinesForModel(modelRows);
+      const skus: VendorModelSkuLine[] = isSalesperson
+        ? skuLinesCredited(modelRows, creditOf)
+        : skuLinesCredited(modelRows, () => 1);
       return {
         ...m,
         skus: skus.length ? skus : undefined,
@@ -218,9 +292,14 @@ export async function GET(req: Request) {
       };
     });
 
+  const displayValue = isSalesperson
+    ? resolveSalespersonLabelWithCode(salespersonCode, loadSalespersonDirectory())
+    : value;
+
   return NextResponse.json({
     dimension,
-    value,
+    value: displayValue,
+    code: isSalesperson ? salespersonCode : undefined,
     date: date ?? null,
     totals: {
       revenue,

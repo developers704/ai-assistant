@@ -200,7 +200,7 @@ export default function SalesPage() {
     if (
       detailTypeFromUrl &&
       detailValueFromUrl &&
-      ["store", "department", "vendor", "design", "class", "vendorModel"].includes(detailTypeFromUrl)
+      ["store", "department", "vendor", "design", "class", "vendorModel", "salesperson"].includes(detailTypeFromUrl)
     ) {
       setRankDetail({
         dimension: detailTypeFromUrl as RankDimension,

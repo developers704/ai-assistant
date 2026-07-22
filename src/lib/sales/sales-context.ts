@@ -164,6 +164,13 @@ export function detectGroupByFromMessage(message: string): SalesGroupBy[] {
   if (/\b(vendor models?|top models?|top products?)\b/i.test(lower)) {
     out.push("vendor_model");
   }
+  if (
+    /\b(by|according to)\s+(salesperson|salespersons|associates?|sales people)\b/i.test(lower) ||
+    /\b(salesperson|associate)\s+(sales|breakdown|ranking)\b/i.test(lower) ||
+    /\btop\s+\d*\s*(salespersons?|associates?)\b/i.test(lower)
+  ) {
+    out.push("salesperson");
+  }
   return out;
 }
 

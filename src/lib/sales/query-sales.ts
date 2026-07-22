@@ -685,6 +685,9 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
       case "date":
         breakdowns.byDate = rows;
         break;
+      case "salesperson":
+        breakdowns.bySalesperson = rows;
+        break;
     }
   };
 
@@ -699,6 +702,7 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   if (include.topDesigns) rankings.topDesigns = groupRows(filtered, "design", limit);
   if (include.topVendors) rankings.topVendors = groupRows(filtered, "vendor", limit);
   if (include.topClasses) rankings.topClasses = groupRows(filtered, "class", limit);
+  if (include.topSalesPeople) rankings.topSalesPeople = groupRows(filtered, "salesperson", limit);
   const productSort =
     input.sortBy === "revenue" || input.sortBy === "netSales"
       ? "revenue"

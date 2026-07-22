@@ -3,6 +3,7 @@ import { filterExcludedSalesRows, isExcludedSalesRow } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
+import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
 
 function shiftIso(iso: string, days: number): string {
@@ -97,6 +98,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
     /^vendor\s*model$/,
   ]);
   const imageDirCol = findCol(columns, [/^image\s*dir\.?$/, /^image\s*directory$/, /^image$/]);
+  const salespersonsCol = findCol(columns, [/^sales\s*persons?$/]);
   const typeCol = findCol(columns, [/^type$/]);
 
   const rows: VendorPosRow[] = [];
@@ -145,6 +147,9 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       margin,
       discountRate: discRateCol ? parseNumber(rec[discRateCol]) : 0,
       imageDir: imageDirCol ? String(rec[imageDirCol] ?? "").trim() : "",
+      salespersons: salespersonsCol
+        ? String(rec[salespersonsCol] ?? "").trim()
+        : undefined,
     });
   }
 
@@ -482,6 +487,15 @@ export function summarizeVendorPos(
 
   const topProducts = rankProducts(periodRows);
 
+  const topSalesPeople = creditSalespersonRows(periodRows)
+    .slice(0, 10)
+    .map((p) => ({
+      name: p.name,
+      code: p.code,
+      revenue: p.netSales,
+      units: p.units,
+    }));
+
   const underperformingStores = topStores.filter((s) => s.change < 0);
   const avgDiscountRate =
     periodRows.length > 0
@@ -513,6 +527,11 @@ export function summarizeVendorPos(
   }
   if (topVendors[0] && isStoreSales) {
     recommendations.push(`Top vendor: ${topVendors[0].name} (${formatMoney(topVendors[0].revenue)}).`);
+  }
+  if (topSalesPeople[0] && isStoreSales) {
+    recommendations.push(
+      `Top salesperson: ${topSalesPeople[0].name} (${formatMoney(topSalesPeople[0].revenue)} credited).`
+    );
   }
   if (discountTotal > 0) {
     recommendations.push(
@@ -568,6 +587,7 @@ export function summarizeVendorPos(
       topVendors,
       topClasses,
       topSubClasses,
+      topSalesPeople,
       transactionCount: periodRows.length,
     },
     reportDate,

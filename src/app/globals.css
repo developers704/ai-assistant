@@ -226,6 +226,8 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
+
+  
   /* Assistant avatar orb */
   .chat-ai-orb {
     background: conic-gradient(from 210deg, #7c3aed, #6366f1 35%, #d946ef 70%, #7c3aed);

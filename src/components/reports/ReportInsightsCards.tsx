@@ -14,6 +14,7 @@ import {
   Layers,
   TrendingUp,
   ChevronRight,
+  UserRound,
 } from "lucide-react";
 
 interface ReportInsightsProps {
@@ -115,6 +116,26 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
             onItemClick={onRankClick ? (name) => onRankClick("vendor", name) : undefined}
           />
         )}
+        {isStoreSales &&
+          (summary.topSalesPeople && summary.topSalesPeople.length > 0 ? (
+            <ListCard
+              title="Salesperson sales"
+              icon={UserRound}
+              iconColor="text-sky-300/75"
+              items={summary.topSalesPeople.map((p) => ({
+                name: p.name,
+                revenue: p.revenue,
+                id: p.code ?? p.name,
+              }))}
+              onItemClick={
+                onRankClick
+                  ? (id) => onRankClick("salesperson", id)
+                  : undefined
+              }
+            />
+          ) : (
+            <EmptySalespersonCard />
+          ))}
         {summary.topDesigns && summary.topDesigns.length > 0 && (
           <ListCard
             title="Top design lines"
@@ -213,6 +234,21 @@ function SmallMetric({
   );
 }
 
+function EmptySalespersonCard() {
+  return (
+    <div className="rounded-3xl p-4 glass-panel">
+      <div className="flex items-center gap-2 mb-3">
+        <UserRound size={14} className="text-sky-300/75" strokeWidth={1.85} />
+        <p className="text-sm font-semibold text-ink">Salesperson sales</p>
+      </div>
+      <p className="text-sm text-ink-muted leading-relaxed">
+        Upload a sales CSV that includes the Salespersons column to see associate
+        credit.
+      </p>
+    </div>
+  );
+}
+
 function ListCard({
   title,
   icon: Icon,
@@ -223,7 +259,7 @@ function ListCard({
   title: string;
   icon: typeof Store;
   iconColor: string;
-  items: { name: string; revenue: number; share?: number }[];
+  items: { name: string; revenue: number; share?: number; id?: string }[];
   onItemClick?: (name: string) => void;
 }) {
   return (
@@ -239,6 +275,7 @@ function ListCard({
       </div>
       <div className="space-y-1">
         {items.slice(0, 6).map((item) => {
+          const clickKey = item.id ?? item.name;
           const content = (
             <>
               <span className="text-ink-secondary truncate min-w-0">
@@ -256,9 +293,9 @@ function ListCard({
           if (onItemClick) {
             return (
               <button
-                key={item.name}
+                key={clickKey}
                 type="button"
-                onClick={() => onItemClick(item.name)}
+                onClick={() => onItemClick(clickKey)}
                 className="w-full flex justify-between text-sm gap-2 rounded-lg px-1.5 py-1.5 -mx-1.5 hover:bg-white/[0.06] transition-colors text-left"
               >
                 {content}
@@ -266,7 +303,7 @@ function ListCard({
             );
           }
           return (
-            <div key={item.name} className="flex justify-between text-sm gap-2 px-1.5 py-1.5">
+            <div key={clickKey} className="flex justify-between text-sm gap-2 px-1.5 py-1.5">
               {content}
             </div>
           );

@@ -75,6 +75,7 @@ export function formatSalesTextAnswer(result: Omit<SalesQueryResult, "spokenAnsw
     topLines(b?.byVendor ?? r?.topVendors, "By vendor"),
     topLines(b?.byClass ?? r?.topClasses, "By class"),
     topLines(b?.byVendorModel ?? r?.topVendorModels, "Top vendor models"),
+    topLines(b?.bySalesperson ?? r?.topSalesPeople, "By salesperson"),
   ].filter(Boolean);
 
   // Only show breakdowns that were requested via groupBy or default compact tops
@@ -90,6 +91,7 @@ export function formatSalesTextAnswer(result: Omit<SalesQueryResult, "spokenAnsw
         sku: b?.bySku,
         vendor_model: b?.byVendorModel,
         date: b?.byDate,
+        salesperson: b?.bySalesperson,
       };
       const rows = map[g];
       if (rows?.length) {

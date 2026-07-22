@@ -1,4 +1,5 @@
 import type { RankDimension, VendorPosRow } from "@/lib/reports/types";
+import { parseSalespersonSplits } from "@/lib/sales/salesperson-credit";
 
 /** Labels used when a dimension field is blank (must match sales-aggregate groupKey). */
 export const UNKNOWN_BY_DIMENSION: Record<RankDimension, string> = {
@@ -8,6 +9,7 @@ export const UNKNOWN_BY_DIMENSION: Record<RankDimension, string> = {
   design: "Unknown design",
   class: "Unknown class",
   vendorModel: "Unknown model",
+  salesperson: "Unknown salesperson",
 };
 
 export function isBlankDimension(raw: string): boolean {
@@ -37,6 +39,11 @@ export function dimensionValue(row: VendorPosRow, dimension: RankDimension): str
     case "vendorModel":
       raw = row.vendorModel;
       break;
+    case "salesperson": {
+      const first = parseSalespersonSplits(row.salespersons)[0];
+      raw = first?.code ?? "";
+      break;
+    }
   }
   if (isBlankDimension(raw)) return UNKNOWN_BY_DIMENSION[dimension];
   return raw.trim();

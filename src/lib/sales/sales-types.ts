@@ -40,7 +40,8 @@ export type SalesGroupBy =
   | "class"
   | "product"
   | "sku"
-  | "vendor_model";
+  | "vendor_model"
+  | "salesperson";
 
 export type SalesEntityType =
   | "store"
@@ -120,6 +121,7 @@ export interface SalesQueryInput {
     topClasses?: boolean;
     topProducts?: boolean;
     topVendorModels?: boolean;
+    topSalesPeople?: boolean;
     trends?: boolean;
   };
   display?: {
@@ -167,6 +169,8 @@ export interface VendorModelSkuLine {
 
 export interface SalesBreakdownRow {
   name: string;
+  /** POS code when grouping by salesperson. */
+  code?: string;
   netSales: number;
   grossSales: number;
   discounts: number;
@@ -239,6 +243,7 @@ export interface SalesQueryResult {
     bySku?: SalesBreakdownRow[];
     byVendorModel?: SalesBreakdownRow[];
     byDate?: SalesBreakdownRow[];
+    bySalesperson?: SalesBreakdownRow[];
   };
   rankings?: {
     topStores?: SalesBreakdownRow[];
@@ -249,6 +254,7 @@ export interface SalesQueryResult {
     topClasses?: SalesBreakdownRow[];
     topProducts?: SalesBreakdownRow[];
     topVendorModels?: SalesBreakdownRow[];
+    topSalesPeople?: SalesBreakdownRow[];
   };
   comparison?: SalesComparisonResult;
   dashboardState?: SalesDashboardState;

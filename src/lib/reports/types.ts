@@ -10,7 +10,8 @@ export type RankDimension =
   | "vendor"
   | "design"
   | "class"
-  | "vendorModel";
+  | "vendorModel"
+  | "salesperson";
 
 export interface VendorPosRow {
   date: string;
@@ -35,6 +36,8 @@ export interface VendorPosRow {
   discountRate: number;
   /** Raw Image Dir. value from CSV (e.g. `\229149.jpg`). */
   imageDir: string;
+  /** Raw Salespersons cell (e.g. `SN/65% - SP/35% -`). */
+  salespersons?: string;
 }
 
 export interface StoredReportMeta {
@@ -80,7 +83,13 @@ export interface ReportSummary extends SalesSummary {
   totalProfit?: number;
   paymentMethods?: { name: string; revenue: number; units: number; share: number }[];
   financingProviders?: { name: string; revenue: number; units: number; share: number }[];
-  topSalesPeople?: { name: string; revenue: number; units: number }[];
+  topSalesPeople?: {
+    name: string;
+    /** POS salesperson code used for rank-detail matching. */
+    code?: string;
+    revenue: number;
+    units: number;
+  }[];
   cashRate?: number;
   creditCardRate?: number;
   financingRate?: number;

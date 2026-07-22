@@ -1,6 +1,7 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isExcludedSalesSku } from "@/lib/utils";
+import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type {
   SalesBreakdownRow,
   SalesGroupBy,
@@ -112,6 +113,8 @@ function groupKey(row: VendorPosRow, by: SalesGroupBy): string {
       return row.sku || row.itemNumber || "Unknown SKU";
     case "vendor_model":
       return row.vendorModel || row.sku || row.itemNumber || "Unknown model";
+    case "salesperson":
+      return "Unknown salesperson";
     default:
       return "Unknown";
   }
@@ -125,6 +128,32 @@ export function groupRows(
   sortBy: "netSales" | "unitsSold" | "estimatedMargin" = "netSales",
   sortDirection: "asc" | "desc" = "desc"
 ): SalesBreakdownRow[] {
+  if (by === "salesperson") {
+    const credits = creditSalespersonRows(rows);
+    const totalNet = credits.reduce((s, p) => s + p.netSales, 0) || 1;
+    const list: SalesBreakdownRow[] = credits.map((p) => ({
+      name: p.name,
+      code: p.code,
+      netSales: p.netSales,
+      grossSales: 0,
+      discounts: 0,
+      unitsSold: p.units,
+      transactions: p.transactions,
+      estimatedMargin: p.margin,
+      share: (p.netSales / totalNet) * 100,
+    }));
+    list.sort((a, b) => {
+      const av = a[sortBy] ?? 0;
+      const bv = b[sortBy] ?? 0;
+      if (av !== bv) return sortDirection === "asc" ? av - bv : bv - av;
+      return sortDirection === "asc"
+        ? (a.unitsSold ?? 0) - (b.unitsSold ?? 0)
+        : (b.unitsSold ?? 0) - (a.unitsSold ?? 0);
+    });
+    if (limit == null || limit <= 0) return list;
+    return list.slice(0, limit);
+  }
+
   const map = new Map<
     string,
     {

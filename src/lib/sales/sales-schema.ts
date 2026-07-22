@@ -21,6 +21,7 @@ export const DEFAULT_INCLUDE: NonNullable<SalesQueryInput["include"]> = {
   topClasses: true,
   topProducts: true,
   topVendorModels: true,
+  topSalesPeople: true,
 };
 
 export function emptyFilters() {

@@ -75,6 +75,7 @@ async function queryDashboardSlice(opts: {
           topClasses: true,
           topProducts: true,
           topVendorModels: true,
+          topSalesPeople: true,
         },
   });
 }

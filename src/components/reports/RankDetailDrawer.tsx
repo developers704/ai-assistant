@@ -60,6 +60,7 @@ const DIMENSION_LABEL: Record<RankDimension, string> = {
   design: "Design line",
   class: "Metal / class",
   vendorModel: "Vendor model",
+  salesperson: "Salesperson",
 };
 
 export type RankDetailSelection = {
@@ -242,7 +243,7 @@ export function RankDetailDrawer({
               {DIMENSION_LABEL[selection.dimension]} detail
             </p>
             <h2 className="text-lg font-semibold text-ink truncate mt-0.5">
-              {selection.value}
+              {data?.value || selection.value}
             </h2>
             {(filterDate ||
               filterDateFrom ||
@@ -429,6 +430,14 @@ export function RankDetailDrawer({
                                   <span className="tabular-nums text-emerald-300/70">
                                     {formatPieceCount(line.units)}
                                   </span>
+                                  {line.margin != null && (
+                                    <>
+                                      <span className="text-ink-muted/55">·</span>
+                                      <span className="tabular-nums text-amber-200/80 font-sans">
+                                        {formatCurrency(line.margin)} margin
+                                      </span>
+                                    </>
+                                  )}
                                 </div>
                                 {line.stores && line.stores.length > 0 && (
                                   <p className="mt-0.5 text-[10px] text-white/40 font-sans tracking-normal">

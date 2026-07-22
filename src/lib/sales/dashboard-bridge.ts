@@ -59,6 +59,7 @@ export function reportSummaryFromQueryResult(
   const mapRank = (rows?: NonNullable<SalesQueryResult["rankings"]>["topStores"]) =>
     (rows ?? []).map((r) => ({
       name: r.name,
+      code: r.code,
       revenue: r.netSales,
       change: pctChange(r.netSales, prevStoreMap.get(r.name) ?? 0),
       imageDir: undefined as string | undefined,
@@ -137,5 +138,8 @@ export function reportSummaryFromQueryResult(
     topDesigns: mapRank(result.rankings?.topDesigns ?? result.breakdowns?.byDesign),
     topVendors: mapRank(result.rankings?.topVendors ?? result.breakdowns?.byVendor),
     topClasses: mapRank(result.rankings?.topClasses ?? result.breakdowns?.byClass),
+    topSalesPeople: mapRank(
+      result.rankings?.topSalesPeople ?? result.breakdowns?.bySalesperson
+    ),
   };
 }
