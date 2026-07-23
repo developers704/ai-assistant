@@ -283,7 +283,7 @@ export function summarizeFinancing(
   }
 
   if (totalProfit > 0) {
-    recommendations.push(`Total profit: ${formatMoney(totalProfit)} (${sharePct(totalProfit, totalRevenue).toFixed(1)}% margin on net sales).`);
+    recommendations.push(`Total profit: ${formatMoney(totalProfit)}.`);
   }
 
   const base: SalesSummary = {

@@ -359,17 +359,6 @@ export function SalesComparePanel({
               leftVal={a.averageOrderValue}
               rightVal={b.averageOrderValue}
             />
-            {a.marginRate != null && b.marginRate != null && (
-              <MetricRow
-                label="Margin"
-                leftVal={a.marginRate}
-                rightVal={b.marginRate}
-                format="pct"
-              />
-            )}
-            {a.totalMargin != null && b.totalMargin != null && (
-              <MetricRow label="Profit" leftVal={a.totalMargin} rightVal={b.totalMargin} />
-            )}
           </div>
         )}
       </div>

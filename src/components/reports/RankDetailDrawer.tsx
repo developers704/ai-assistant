@@ -296,17 +296,6 @@ export function RankDetailDrawer({
                 { label: "Gross", value: formatCurrency(t.grossSales) },
                 { label: "Discounts", value: formatCurrency(t.discountTotal) },
                 {
-                  label: "Profit",
-                  value: formatCurrency(t.margin),
-                },
-                {
-                  label: "Profit margin",
-                  value:
-                    t.revenue > 0
-                      ? `${((t.margin / t.revenue) * 100).toFixed(1)}%`
-                      : "—",
-                },
-                {
                   label: "Transactions",
                   value: t.uniqueTransactions.toLocaleString(),
                 },
@@ -374,9 +363,6 @@ export function RankDetailDrawer({
               <ul className="min-h-0 flex-1 overflow-y-auto divide-y divide-white/5 px-3">
                 {filteredModels.map((m, i) => {
                   const label = formatProductDisplayName(m.name);
-                  const modelRate =
-                    m.marginRate ??
-                    (m.revenue > 0 ? (m.margin ?? 0) / m.revenue : 0);
                   const skuLines =
                     m.skus?.length
                       ? m.skus
@@ -386,8 +372,6 @@ export function RankDetailDrawer({
                               sku: m.sku,
                               units: m.units,
                               revenue: m.revenue,
-                              margin: m.margin,
-                              marginRate: modelRate,
                             },
                           ]
                         : [];
@@ -430,14 +414,6 @@ export function RankDetailDrawer({
                                   <span className="tabular-nums text-emerald-300/70">
                                     {formatPieceCount(line.units)}
                                   </span>
-                                  {line.margin != null && (
-                                    <>
-                                      <span className="text-ink-muted/55">·</span>
-                                      <span className="tabular-nums text-amber-200/80 font-sans">
-                                        {formatCurrency(line.margin)} margin
-                                      </span>
-                                    </>
-                                  )}
                                 </div>
                                 {line.stores && line.stores.length > 0 && (
                                   <p className="mt-0.5 text-[10px] text-white/40 font-sans tracking-normal">
@@ -455,18 +431,6 @@ export function RankDetailDrawer({
                         </p>
                         <p className="text-[11px] text-white/40 tabular-nums">
                           {formatPieceCount(m.units)}
-                        </p>
-                        <p
-                          className={cn(
-                            "text-[11px] font-semibold tabular-nums mt-0.5",
-                            modelRate >= 0.4
-                              ? "text-emerald-300"
-                              : modelRate >= 0.25
-                                ? "text-amber-200"
-                                : "text-rose-300"
-                          )}
-                        >
-                          {(modelRate * 100).toFixed(1)}% margin
                         </p>
                       </div>
                     </li>

@@ -612,12 +612,7 @@ export async function executeVoiceTool(
       }
       const top = snapshot.insights.topPerformers[0];
       const weak = snapshot.insights.weakPerformers[0];
-      const lowMargin = snapshot.insights.highSalesLowMarginEntities[0];
-      const spoken = [
-        top?.description,
-        weak?.description,
-        lowMargin?.description,
-      ]
+      const spoken = [top?.description, weak?.description]
         .filter(Boolean)
         .slice(0, 2)
         .join(" ");
