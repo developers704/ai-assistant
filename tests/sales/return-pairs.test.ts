@@ -197,6 +197,45 @@ describe("dropMatchedSalesReturnPairs", () => {
     expect(exchange.reduce((s, r) => s + salesUnitsSold(r.quantity), 0)).toBe(1);
   });
 
+  it("does not void-pair a return with a sale on a different calendar day", () => {
+    const rows = [
+      {
+        transactionId: "T-NEG",
+        date: "2026-07-22",
+        storeName: "VJ-ROSE",
+        vendorModel: "X1",
+        sku: "SKU1",
+        quantity: -1,
+        netRevenue: -192.96,
+        department: "B",
+      },
+      {
+        transactionId: "T-POS",
+        date: "2026-07-21",
+        storeName: "VJ-ROSE",
+        vendorModel: "X1",
+        sku: "SKU1",
+        quantity: 1,
+        netRevenue: 192.96,
+        department: "B",
+      },
+      {
+        transactionId: "T-OK",
+        date: "2026-07-22",
+        storeName: "VJ-ROSE",
+        vendorModel: "Y1",
+        sku: "SKU2",
+        quantity: 1,
+        netRevenue: 100,
+        department: "B",
+      },
+    ];
+    // Cross-day void blocked → stand-alone return dropped; Jul21 sale + Jul22 sale kept
+    const out = filterExcludedSalesRows(rows);
+    expect(out.map((r) => r.transactionId).sort()).toEqual(["T-OK", "T-POS"]);
+    expect(out.reduce((s, r) => s + r.netRevenue, 0)).toBeCloseTo(292.96);
+  });
+
   it("drops complimentary Watch Winder lines (SKU, style, or vendor model)", () => {
     const rows = [
       {

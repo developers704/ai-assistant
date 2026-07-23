@@ -101,7 +101,7 @@ export function isExcludedSalesRow(row: {
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 8;
+export const SALES_EXCLUSION_RULES_VERSION = 9;
 
 type SalesReturnPairRow = {
   sku?: string | null;
@@ -113,6 +113,8 @@ type SalesReturnPairRow = {
   grossSales?: number | null;
   transactionId?: string | null;
   vendorModel?: string | null;
+  /** ISO date — void pairs must stay on the same calendar day for accurate daily nets. */
+  date?: string | null;
 };
 
 function roundMoneyCents(n: number): number {
@@ -169,6 +171,7 @@ function findReturnPairMatch(
   const item = salesItemKey(neg);
   const sku = salesSkuKey(neg);
   const txn = (neg.transactionId ?? "").trim().toUpperCase();
+  const negDate = (neg.date ?? "").trim().slice(0, 10);
   const absNegQty = Math.abs(Number(neg.quantity ?? 0));
 
   // Cross-txn pairing must not steal exchange returns: if this receipt still has
@@ -183,6 +186,11 @@ function findReturnPairMatch(
     if (!isSaleLeg(pos)) continue;
     if ((pos.storeName ?? "").trim().toLowerCase() !== store) continue;
     if (pairAmountCents(pos) !== amountCents) continue;
+    // Keep daily nets accurate — never void-pair across calendar days.
+    const posDate = (pos.date ?? "").trim().slice(0, 10);
+    if (negDate && posDate && negDate !== posDate) continue;
+    if (negDate && !posDate) continue;
+    if (!negDate && posDate) continue;
 
     const posItem = salesItemKey(pos);
     const posSku = salesSkuKey(pos);
@@ -322,6 +330,7 @@ export function filterExcludedSalesRows<
     vendorModel?: string | null;
     style?: string | null;
     description?: string | null;
+    date?: string | null;
   }
 >(rows: T[]): T[] {
   const withoutSkuDept = rows.filter((r) => !isExcludedSalesRow(r));
