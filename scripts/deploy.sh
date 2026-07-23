@@ -30,4 +30,14 @@ npm ci
 npm run build
 pm2 restart all
 
+# Rebuild sales cache so exclusion-rule bumps apply on VPS (stale .data versions otherwise stick).
+echo "Refreshing sales intelligence cache..."
+curl -sS -X POST http://127.0.0.1:3000/api/sales/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"force":true,"clearMemory":true}' \
+  || curl -sS -X POST http://127.0.0.1:3001/api/sales/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"force":true,"clearMemory":true}' \
+  || echo "WARN: sales refresh curl failed (app may still lazy-rebuild on next /api/sales)."
+
 echo "Deploy finished at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"

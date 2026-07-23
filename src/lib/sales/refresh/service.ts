@@ -216,12 +216,22 @@ export async function refreshSalesData(options?: {
   return refreshLock;
 }
 
-/** Ensure an active version exists (lazy refresh on first unified read). */
+/** Ensure an active version exists and matches latest report + exclusion rules. */
 export async function ensureActiveSalesVersion(): Promise<string | null> {
   const pointer = readActivePointer();
-  if (pointer.activeVersion) return pointer.activeVersion;
-  const result = await refreshSalesData({ force: true });
-  return result.success ? result.dataVersion : null;
+  if (pointer.activeVersion) {
+    const existing = readVersionMetadata(pointer.activeVersion);
+    const latestHash = peekLatestReportHash();
+    const rulesMatch =
+      existing?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION;
+    const hashMatch =
+      !latestHash || !existing?.fileHash || existing.fileHash === latestHash;
+    if (rulesMatch && hashMatch) {
+      return pointer.activeVersion;
+    }
+  }
+  const result = await refreshSalesData({ force: true, clearMemory: true });
+  return result.success ? result.dataVersion : pointer.activeVersion;
 }
 
 export function peekLatestReportHash(): string | null {
