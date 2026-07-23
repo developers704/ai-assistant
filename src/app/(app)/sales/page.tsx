@@ -119,9 +119,12 @@ export default function SalesPage() {
   const lastUrlKeyRef = useRef<string | null>(null);
   const filtersHydratedRef = useRef(false);
   const salesFetchGenRef = useRef(0);
+  /** When true and no date is selected, pick the newest available report day after fetch. */
+  const autoSelectLatestRef = useRef(!rangeFromSearchParams(searchParams));
 
   const resetFiltersForNewReport = () => {
     skipUrlSyncRef.current = true;
+    autoSelectLatestRef.current = true;
     setDateRange(null);
     setDateWarning(null);
     setFilterStores([]);
@@ -282,13 +285,22 @@ export default function SalesPage() {
           setAvailableVendors(vendors);
           setReportId(nextReportId ?? dateRange?.to ?? d.reportDate ?? "latest");
 
-          // Only clear if selection is outside the report's min–max window.
-          if (dateRange && dates.length > 0) {
-            const min = dates[0]!;
-            const max = dates[dates.length - 1]!;
-            const inBounds = dateRange.from >= min && dateRange.to <= max;
-            if (!inBounds) {
-              setDateRange(null);
+          if (dates.length > 0) {
+            const sortedDates = [...dates].sort();
+            const latestDay = sortedDates[sortedDates.length - 1]!;
+            const min = sortedDates[0]!;
+            const max = latestDay;
+
+            if (dateRange) {
+              const inBounds = dateRange.from >= min && dateRange.to <= max;
+              if (!inBounds) {
+                autoSelectLatestRef.current = false;
+                setDateRange({ from: latestDay, to: latestDay });
+              }
+            } else if (autoSelectLatestRef.current) {
+              // Default open (and new-report reset): show the newest day in the report.
+              autoSelectLatestRef.current = false;
+              setDateRange({ from: latestDay, to: latestDay });
             }
           }
           setFilterStores((prev) => pruneUnavailable(prev, stores));
@@ -530,10 +542,13 @@ export default function SalesPage() {
               </span>
               <button
                 type="button"
-                onClick={() => setDateRange(null)}
+                onClick={() => {
+                  autoSelectLatestRef.current = false;
+                  setDateRange(null);
+                }}
                 className="ml-auto text-xs font-medium text-amber-200/80 hover:text-amber-50"
               >
-                Clear date
+                Show all dates
               </button>
             </div>
           )}
