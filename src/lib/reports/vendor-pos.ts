@@ -1,5 +1,5 @@
 import type { SalesSummary } from "@/types";
-import { filterExcludedSalesRows, isExcludedSalesRow } from "@/lib/utils";
+import { filterExcludedSalesRows, isExcludedSalesRow, salesUnitsSold } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
@@ -245,7 +245,7 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       vendorModel: vendorModel || existing.vendorModel,
       imageDir: existing.imageDir || r.imageDir?.trim() || undefined,
       revenue: existing.revenue + r.netRevenue,
-      units: existing.units + r.quantity,
+      units: existing.units + salesUnitsSold(r.quantity),
       margin: existing.margin + r.margin,
       rows: existing.rows,
     });
@@ -402,7 +402,7 @@ export function summarizeVendorPos(
   const totalRevenue = periodRows.reduce((s, r) => s + r.netRevenue, 0);
   const grossSales = periodRows.reduce((s, r) => s + r.grossSales, 0);
   const discountTotal = periodRows.reduce((s, r) => s + r.discountAmount, 0);
-  const totalUnits = periodRows.reduce((s, r) => s + r.quantity, 0);
+  const totalUnits = periodRows.reduce((s, r) => s + salesUnitsSold(r.quantity), 0);
   const totalInventoryCost = periodRows.reduce((s, r) => s + r.inventoryCost, 0);
   const totalMargin = periodRows.reduce((s, r) => s + r.margin, 0);
   const marginRate = totalRevenue > 0 ? totalMargin / totalRevenue : 0;
@@ -426,7 +426,7 @@ export function summarizeVendorPos(
     periodRows,
     (r) => r.storeName,
     (r) => r.netRevenue,
-    (r) => r.quantity,
+    (r) => salesUnitsSold(r.quantity),
     500
   );
 
@@ -454,35 +454,35 @@ export function summarizeVendorPos(
     periodRows,
     (r) => r.department,
     (r) => r.netRevenue,
-    (r) => r.quantity
+    (r) => salesUnitsSold(r.quantity)
   );
 
   const topDesigns = rankMap(
     periodRows,
     (r) => r.design,
     (r) => r.netRevenue,
-    (r) => r.quantity
+    (r) => salesUnitsSold(r.quantity)
   );
 
   const topVendors = rankMap(
     periodRows,
     (r) => r.vendor,
     (r) => r.netRevenue,
-    (r) => r.quantity
+    (r) => salesUnitsSold(r.quantity)
   );
 
   const topClasses = rankMap(
     periodRows,
     (r) => r.productClass,
     (r) => r.netRevenue,
-    (r) => r.quantity
+    (r) => salesUnitsSold(r.quantity)
   );
 
   const topSubClasses = rankMap(
     periodRows,
     (r) => r.subClass,
     (r) => r.netRevenue,
-    (r) => r.quantity
+    (r) => salesUnitsSold(r.quantity)
   );
 
   const topProducts = rankProducts(periodRows);

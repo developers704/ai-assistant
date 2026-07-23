@@ -7,7 +7,7 @@ import {
 } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { filterExcludedSalesRows, isExcludedSalesSku } from "@/lib/utils";
+import { filterExcludedSalesRows, isExcludedSalesSku, salesUnitsSold } from "@/lib/utils";
 import type { RankDimension, VendorPosRow } from "@/lib/reports/types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 import { dimensionValue } from "@/lib/reports/rank-dimension";
@@ -68,7 +68,7 @@ function skuLinesCredited(
       margin: 0,
       storeSet: new Set<string>(),
     };
-    cur.units += r.quantity * share;
+    cur.units += salesUnitsSold(r.quantity) * share;
     cur.revenue += r.netRevenue * share;
     cur.margin = (cur.margin ?? 0) + r.margin * share;
     const store = r.storeName?.trim();
@@ -190,7 +190,10 @@ export async function GET(req: Request) {
     isSalesperson ? salespersonShare(r, salespersonCode) : 1;
 
   const revenue = matched.reduce((s, r) => s + r.netRevenue * creditOf(r), 0);
-  const units = matched.reduce((s, r) => s + r.quantity * creditOf(r), 0);
+  const units = matched.reduce(
+    (s, r) => s + salesUnitsSold(r.quantity) * creditOf(r),
+    0
+  );
   const margin = matched.reduce((s, r) => s + r.margin * creditOf(r), 0);
   const grossSales = matched.reduce((s, r) => s + r.grossSales * creditOf(r), 0);
   const discountTotal = matched.reduce(
@@ -234,7 +237,7 @@ export async function GET(req: Request) {
       const ex = map.get(key) || { revenue: 0, units: 0 };
       map.set(key, {
         revenue: ex.revenue + r.netRevenue * share,
-        units: ex.units + r.quantity * share,
+        units: ex.units + salesUnitsSold(r.quantity) * share,
       });
     };
     bump(byStore, r.storeName);
@@ -260,7 +263,7 @@ export async function GET(req: Request) {
         name: r.description || ex.name,
         vendorModel: model,
         revenue: ex.revenue + r.netRevenue * share,
-        units: ex.units + r.quantity * share,
+        units: ex.units + salesUnitsSold(r.quantity) * share,
         margin: ex.margin + r.margin * share,
         imageDir: ex.imageDir || r.imageDir || undefined,
         sku: ex.sku || r.sku || r.itemNumber || undefined,

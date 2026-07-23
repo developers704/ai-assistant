@@ -25,8 +25,8 @@ These rows are treated as **deleted** from the sales report. They must **not** a
 | Description / style / vendor model contains `Pad [s]` (case-insensitive) | Earring pad / screwback pad accessory lines — not jewelry product revenue |
 | Blank / empty **Department** | Incomplete line — drop the row |
 | **Matched return / void pair** | Negative qty **or** negative amount + matching sale with **same store**, **same absolute Total/net**, same SKU/vendor model — drop **both** legs (prefer same Transaction #). |
-| **Stand-alone returns (negative qty)** | After void-pair removal, drop any remaining negative-qty lines (sales dashboard is sales-only). Different store / SKU returns no longer pull down net or units. |
-| Blank / empty **Department** | Incomplete line — drop the row |
+| **Exchange (same Transaction #, different SKU)** | After void-pair removal, keep negative-qty lines when that Transaction # still has a sale leg — Net Sales includes both (e.g. net 650 + (−324.83) = 325.17). **Units sold** count positive qty only. Cross-txn void pairing must not remove these exchange returns. |
+| **Stand-alone returns (negative qty)** | After void-pair removal, drop negative-qty lines whose Transaction # has **no** remaining sale leg (sales dashboard is sales-only). |
 
 ### Implementation (do not bypass on upload)
 

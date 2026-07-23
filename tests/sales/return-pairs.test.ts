@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { dropMatchedSalesReturnPairs, filterExcludedSalesRows } from "@/lib/utils";
+import {
+  dropMatchedSalesReturnPairs,
+  filterExcludedSalesRows,
+  salesUnitsSold,
+} from "@/lib/utils";
 
 describe("dropMatchedSalesReturnPairs", () => {
   it("drops AR return/void pair and keeps stand-alone VR sale (D67)", () => {
@@ -131,6 +135,66 @@ describe("dropMatchedSalesReturnPairs", () => {
     expect(out[0].transactionId).toBe("GM-10293035");
     expect(out[0].netRevenue).toBeCloseTo(727.27);
     expect(out.reduce((s, r) => s + r.quantity, 0)).toBe(1);
+  });
+
+  it("keeps same-txn exchange return (different SKU) so net revenue is correct", () => {
+    const rows = [
+      {
+        transactionId: "ST-10292388",
+        storeName: "VJ-STA",
+        vendorModel: "YA101203",
+        sku: "YA101203",
+        quantity: -1,
+        netRevenue: -2150,
+        department: "WATCH",
+      },
+      {
+        transactionId: "ST-10292388",
+        storeName: "VJ-STA",
+        vendorModel: "YA101203",
+        sku: "YA101203",
+        quantity: 1,
+        netRevenue: 2150,
+        department: "WATCH",
+      },
+      {
+        transactionId: "VR-102291158",
+        storeName: "VJ-ROSE",
+        vendorModel: "ANAF0041",
+        sku: "238837Y",
+        quantity: -1,
+        netRevenue: -324.83,
+        department: "LADYS RING",
+      },
+      {
+        transactionId: "VR-102291158",
+        storeName: "VJ-ROSE",
+        vendorModel: "R099579A",
+        sku: "163099Y",
+        quantity: 1,
+        netRevenue: 650,
+        department: "LADYS RING",
+      },
+      // Same returned SKU sold elsewhere at same abs net — must NOT void-pair the exchange return
+      {
+        transactionId: "VR-OTHER",
+        storeName: "VJ-ROSE",
+        vendorModel: "ANAF0041",
+        sku: "238837Y",
+        quantity: 1,
+        netRevenue: 324.83,
+        department: "LADYS RING",
+      },
+    ];
+    const out = filterExcludedSalesRows(rows);
+    expect(out.map((r) => r.transactionId).sort()).toEqual([
+      "VR-102291158",
+      "VR-102291158",
+      "VR-OTHER",
+    ]);
+    const exchange = out.filter((r) => r.transactionId === "VR-102291158");
+    expect(exchange.reduce((s, r) => s + r.netRevenue, 0)).toBeCloseTo(325.17);
+    expect(exchange.reduce((s, r) => s + salesUnitsSold(r.quantity), 0)).toBe(1);
   });
 
   it("drops complimentary Watch Winder lines (SKU, style, or vendor model)", () => {

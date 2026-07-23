@@ -1,6 +1,6 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { isExcludedSalesSku } from "@/lib/utils";
+import { isExcludedSalesSku, salesUnitsSold } from "@/lib/utils";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type {
   SalesBreakdownRow,
@@ -25,7 +25,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       margin: 0,
       storeSet: new Set<string>(),
     };
-    cur.units += r.quantity;
+    cur.units += salesUnitsSold(r.quantity);
     cur.revenue += r.netRevenue;
     cur.margin = (cur.margin ?? 0) + r.margin;
     const store = r.storeName?.trim();
@@ -73,7 +73,7 @@ export function summarizeRows(rows: VendorPosRow[]): SalesMetricSummary {
     net += r.netRevenue;
     gross += r.grossSales;
     discounts += r.discountAmount;
-    units += r.quantity;
+    units += salesUnitsSold(r.quantity);
     margin += r.margin;
     if (r.transactionId) txns.add(r.transactionId);
   }

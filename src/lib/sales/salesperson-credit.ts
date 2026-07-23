@@ -4,6 +4,7 @@ import {
   resolveSalespersonLabelWithCode,
   type SalespersonDirectoryEntry,
 } from "@/lib/sales/salesperson-directory";
+import { salesUnitsSold } from "@/lib/utils";
 
 export type SalespersonSplit = { code: string; percent: number };
 
@@ -76,7 +77,7 @@ export function creditSalespersonRows(
         txns: new Set<string>(),
       };
       cur.netSales += r.netRevenue * share;
-      cur.units += r.quantity * share;
+      cur.units += salesUnitsSold(r.quantity) * share;
       cur.margin += r.margin * share;
       if (r.transactionId) cur.txns.add(r.transactionId);
       map.set(s.code, cur);

@@ -101,7 +101,7 @@ export function isExcludedSalesRow(row: {
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 7;
+export const SALES_EXCLUSION_RULES_VERSION = 8;
 
 type SalesReturnPairRow = {
   sku?: string | null;
@@ -171,6 +171,12 @@ function findReturnPairMatch(
   const txn = (neg.transactionId ?? "").trim().toUpperCase();
   const absNegQty = Math.abs(Number(neg.quantity ?? 0));
 
+  // Cross-txn pairing must not steal exchange returns: if this receipt still has
+  // a different sale line, keep the negative for net revenue.
+  if (!requireSameTxn && txn && txnHasOtherSaleContext(rows, negIdx, drop)) {
+    return -1;
+  }
+
   for (let j = 0; j < rows.length; j++) {
     if (negIdx === j || drop.has(j) || usedPositive.has(j)) continue;
     const pos = rows[j];
@@ -203,6 +209,33 @@ function findReturnPairMatch(
     return j;
   }
   return -1;
+}
+
+/** Same receipt has another sale line (different SKU/amount) → exchange / multi-line. */
+function txnHasOtherSaleContext(
+  rows: SalesReturnPairRow[],
+  negIdx: number,
+  drop: Set<number>
+): boolean {
+  const neg = rows[negIdx];
+  const txn = (neg.transactionId ?? "").trim().toUpperCase();
+  if (!txn) return false;
+  const negSku = salesSkuKey(neg);
+  const negItem = salesItemKey(neg);
+  const negAmt = pairAmountCents(neg);
+
+  for (let j = 0; j < rows.length; j++) {
+    if (j === negIdx || drop.has(j)) continue;
+    const r = rows[j];
+    if ((r.transactionId ?? "").trim().toUpperCase() !== txn) continue;
+    if (!isSaleLeg(r)) continue;
+    const posSku = salesSkuKey(r);
+    const posItem = salesItemKey(r);
+    if (negSku && posSku && negSku !== posSku) return true;
+    if (negItem && posItem && negItem !== posItem) return true;
+    if (pairAmountCents(r) !== negAmt) return true;
+  }
+  return false;
 }
 
 /**
@@ -239,13 +272,41 @@ export function dropMatchedSalesReturnPairs<T extends SalesReturnPairRow>(rows: 
 }
 
 /**
- * Sales dashboard is sales-only: drop any remaining negative-qty return lines
- * (stand-alone returns that did not form a void/exchange pair).
+ * Units sold for dashboard / rankings: count only positive qty.
+ * Exchange returns stay in the row set for net revenue but do not reduce unit totals.
  */
-export function dropStandaloneNegativeQtyReturns<T extends { quantity?: number | null }>(
-  rows: T[]
-): T[] {
-  return rows.filter((r) => !(Number(r.quantity ?? 0) < 0));
+export function salesUnitsSold(quantity: number | null | undefined): number {
+  const q = Number(quantity ?? 0);
+  return q > 0 ? q : 0;
+}
+
+/**
+ * After void pairs are removed, drop stand-alone negative-qty returns.
+ * Keep a negative-qty line when the same Transaction # still has a sale leg
+ * (exchange / trade-in under one receipt — net revenue stays accurate).
+ */
+export function dropStandaloneNegativeQtyReturns<
+  T extends {
+    quantity?: number | null;
+    transactionId?: string | null;
+    netRevenue?: number | null;
+    grossSales?: number | null;
+  }
+>(rows: T[]): T[] {
+  const txnsWithSale = new Set<string>();
+  for (const r of rows) {
+    if (!isSaleLeg(r)) continue;
+    const txn = (r.transactionId ?? "").trim().toUpperCase();
+    if (txn) txnsWithSale.add(txn);
+  }
+
+  return rows.filter((r) => {
+    const qty = Number(r.quantity ?? 0);
+    if (!(qty < 0)) return true;
+    const txn = (r.transactionId ?? "").trim().toUpperCase();
+    if (!txn) return false;
+    return txnsWithSale.has(txn);
+  });
 }
 
 export function filterExcludedSalesRows<
