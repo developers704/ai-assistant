@@ -571,16 +571,20 @@ export default function SalesPage() {
                 isFinancingReport
                   ? "Transactions"
                   : isStoreSalesReport
-                    ? "Units Sold"
+                    ? "Unique Transactions"
                     : "Pieces Sold"
               }
-              value={summary.totalTransactions.toLocaleString()}
+              value={
+                isStoreSalesReport && reportSummary?.uniqueTransactions != null
+                  ? reportSummary.uniqueTransactions.toLocaleString()
+                  : summary.totalTransactions.toLocaleString()
+              }
               footer={
                 <p className="text-sm text-white/35">
                   {isFinancingReport
                     ? "Sales rows in report period"
-                    : isStoreSalesReport && reportSummary?.uniqueTransactions
-                      ? `${reportSummary.uniqueTransactions.toLocaleString()} unique transactions`
+                    : isStoreSalesReport
+                      ? "Distinct transaction numbers"
                       : "Across reporting stores today"}
                 </p>
               }
