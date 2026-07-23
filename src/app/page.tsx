@@ -10,7 +10,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!loading) {
-      router.replace("/chat");
+      router.replace("/sales");
     }
   }, [loading, router]);
 

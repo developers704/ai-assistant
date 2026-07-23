@@ -36,11 +36,11 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
   { href: "/chat", label: "AI Chat", icon: MessageSquare, palette: "violet" },
   { href: "/news", label: "News & Markets", icon: Newspaper, palette: "sky" },
   { href: "/email", label: "Email", icon: Mail, palette: "indigo" },
   { href: "/calendar", label: "Calendar & Tasks", icon: Calendar, palette: "rose" },
-  { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
   { href: "/stores", label: "Stores Map & Info", icon: MapPinned, palette: "violet" },
   { href: "/calculator", label: "Price Calculator", icon: Calculator, palette: "amber" },
   { href: "/analyst", label: "Data Analyst", icon: Database, palette: "cyan" },
