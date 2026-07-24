@@ -7,32 +7,42 @@ alwaysApply: true
 
 **Every uploaded or replaced sales CSV must follow these rules** — bundled seed (`data/reports/Sales-Report.csv`), Data Analyst upload, and API `POST /api/reports`.
 
-## Excluded rows — remove from the report entirely
+## Hard-excluded rows — remove from the report entirely
 
 These rows are treated as **deleted** from the sales report. They must **not** appear in Top 20, Top vendors, stores, departments, designs, metal/class, margins, revenue totals, rank-detail, voice, or chat.
 
-### Exclusion rules (match on SKU # or Item #)
+### Hard exclusion rules (match on SKU # or Item # / vendor model)
 
 | Rule | Reason |
 |------|--------|
-| `ITEM` | Placeholder / custom order / special order lines |
 | `250000` | CBE recycling fee |
-| Starts with `MLB-` | Mulberry lifetime / care plans |
 | `JVS-200940` | Watch battery service (repair, not product) |
-| `217365`, `217286`, `159004` | Legacy excluded SKUs |
 | `WATCH WINDER`, `WATCH WINDER-1`, vendor model starts with `WATCH WINDER` | Complimentary / no-warranty watch winder (not product revenue) |
 | `229080` | White bag with blue ribbon — packaging / $0 sale lines |
-| Description / style / vendor model contains `Pad [s]` (case-insensitive) | Earring pad / screwback pad accessory lines — not jewelry product revenue |
-| Blank / empty **Department** | Incomplete line — drop the row |
+| **Total / net = $0** | Complimentary or zero-dollar lines — delete the record entirely |
 | **Matched return / void pair** | Negative qty **or** negative amount + matching sale with **same store**, **same calendar date**, **same absolute Total/net**, same SKU/vendor model — drop **both** legs (prefer same Transaction #). Never void-pair across days (keeps daily nets aligned with Excel). |
 | **Exchange (same Transaction #, different SKU)** | After void-pair removal, keep negative-qty lines when that Transaction # still has a sale leg — Net Sales includes both (e.g. net 650 + (−324.83) = 325.17). **Units sold** count positive qty only. Cross-txn void pairing must not remove these exchange returns. |
 | **Stand-alone returns (negative qty)** | After void-pair removal, drop negative-qty lines whose Transaction # has **no** remaining sale leg (sales dashboard is sales-only). |
 
+## Soft-hidden rows — count in totals, hide from top vendor models
+
+These rows **do** count in Net Sales, Unique Transactions, store / vendor / design / department / class rankings **when that dimension exists** on the row. They must **not** appear in top vendor-model / top-product lists (dashboard Top Products, visualizations, voice top models, rank-detail model lists).
+
+| Rule | Reason |
+|------|--------|
+| `ITEM` | Placeholder / custom order / special order lines |
+| Starts with `MLB-` | Mulberry lifetime / care plans |
+| `217365`, `217286`, `159004` | Legacy SKUs |
+| Description / style / vendor model contains `Pad [s]` (case-insensitive) | Earring pad / screwback pad accessory lines |
+| Blank / empty **Department** | Incomplete line — still counts in net / store (and vendor/design/class if present); omitted from top models and from department ranking |
+| Vendor models: `TABLET`, `RLX-BOX-DISPLAY`, `GIFT`, `SMART WATCH`, `2200-2218`, `HAND PU BAG`, `CLOTH BAG (RED)`, `9G1206`, `WG2874`, `YG670`, `SS2869`, `GIFT BEAR TOY`, `JEWLWERY STORAGE`, `2300-2312`, `9G1007`, `0D032` | Promo / packaging / accessory models — still count in net when Total ≠ 0; omitted from top vendor models (match vendor model or SKU) |
+
 ### Implementation (do not bypass on upload)
 
-- **Single source of truth:** `isExcludedSalesSku()` + `isExcludedSalesRow()` + `dropMatchedSalesReturnPairs()` + `dropStandaloneNegativeQtyReturns()` + `filterExcludedSalesRows()` in `src/lib/utils.ts`
-- **On every summarize/upload:** filter `periodRows` (and `compareRows`) in `summarizeVendorPos()` via `filterExcludedSalesRows()`
-- **On rank-detail / visualizations / sales version refresh:** filter rows the same way
+- **Single source of truth:** `isExcludedSalesSku()` / `isExcludedSalesRow()` / `isZeroTotalSalesRow()` (hard) + `isHiddenFromTopVendorModelsSku()` / `isHiddenFromTopVendorModelsVendorModel()` / `isHiddenFromTopVendorModelsRow()` (soft) + `dropMatchedSalesReturnPairs()` + `dropStandaloneNegativeQtyReturns()` + `filterExcludedSalesRows()` + `filterTopProductSkus()` in `src/lib/utils.ts`
+- **On every summarize/upload:** filter `periodRows` (and `compareRows`) in `summarizeVendorPos()` via `filterExcludedSalesRows()` (hard + voids/returns only)
+- **Top vendor models / top products:** also apply soft-hide via `isHiddenFromTopVendorModelsRow()` / `filterTopProductSkus()` / `getTopVendorModels()`
+- **On rank-detail / visualizations / sales version refresh:** hard-filter rows the same way; soft-hide only model/product lists
 - Cached sales versions rebuild when `SALES_EXCLUSION_RULES_VERSION` bumps
 
 When adding exclusions, update `src/lib/utils.ts` only.

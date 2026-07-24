@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import type { RankDimension } from "@/lib/reports/types";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import { VendorModelTextFilter } from "@/components/reports/VendorModelTextFilter";
+import { SkuStoreBreakdownList } from "@/components/reports/SkuStoreBreakdownList";
 import {
   applyVendorModelTextFilter,
   buildVendorModelSearchText,
@@ -47,7 +48,7 @@ type RankDetailResponse = {
         revenue: number;
         margin?: number;
         marginRate?: number;
-        stores?: string[];
+        stores?: { name: string; units: number; onhand?: number | null }[];
       }[];
     }[];
   };
@@ -402,27 +403,7 @@ export function RankDetailDrawer({
                           {m.vendorModel}
                         </p>
                         {skuLines.length > 0 && (
-                          <ul className="mt-1.5 space-y-1.5">
-                            {skuLines.map((line) => (
-                              <li
-                                key={line.sku}
-                                className="text-[11px] font-mono text-ink-muted/85"
-                              >
-                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                                  <span className="text-cyan-300/75">SKU #{line.sku}</span>
-                                  <span className="text-ink-muted/55">·</span>
-                                  <span className="tabular-nums text-emerald-300/70">
-                                    {formatPieceCount(line.units)}
-                                  </span>
-                                </div>
-                                {line.stores && line.stores.length > 0 && (
-                                  <p className="mt-0.5 text-[10px] text-white/40 font-sans tracking-normal">
-                                    Stores: {line.stores.join(", ")}
-                                  </p>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
+                          <SkuStoreBreakdownList lines={skuLines} />
                         )}
                       </div>
                       <div className="text-right shrink-0 min-w-[4.75rem]">

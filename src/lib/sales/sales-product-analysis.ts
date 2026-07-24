@@ -1,6 +1,11 @@
 import type { VendorPosRow } from "@/lib/reports/types";
+import { isHiddenFromTopVendorModelsRow } from "@/lib/utils";
 import { groupRows } from "./sales-aggregate";
 import type { SalesBreakdownRow } from "./sales-types";
+
+function rowsForTopModels(rows: VendorPosRow[]): VendorPosRow[] {
+  return rows.filter((r) => !isHiddenFromTopVendorModelsRow(r));
+}
 
 export function getTopVendorModels(
   rows: VendorPosRow[],
@@ -17,7 +22,7 @@ export function getTopVendorModels(
       : opts?.sortBy === "margin"
         ? "estimatedMargin"
         : "unitsSold";
-  return groupRows(rows, "vendor_model", opts?.limit ?? null, sortBy, "desc");
+  return groupRows(rowsForTopModels(rows), "vendor_model", opts?.limit ?? null, sortBy, "desc");
 }
 
 export function getTopProducts(
@@ -30,5 +35,5 @@ export function getTopProducts(
       : opts?.sortBy === "margin"
         ? "estimatedMargin"
         : "unitsSold";
-  return groupRows(rows, "product", opts?.limit ?? 20, sortBy, "desc");
+  return groupRows(rowsForTopModels(rows), "product", opts?.limit ?? 20, sortBy, "desc");
 }

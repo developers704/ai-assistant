@@ -1,5 +1,9 @@
 import type { SalesSummary } from "@/types";
-import { filterExcludedSalesRows, isExcludedSalesRow, salesUnitsSold } from "@/lib/utils";
+import {
+  filterExcludedSalesRows,
+  isHiddenFromTopVendorModelsRow,
+  salesUnitsSold,
+} from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
@@ -128,7 +132,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       date: date ?? "",
       transactionId: txnId,
       storeName: store || "Unknown store",
-      // Keep blank — excluded later by filterExcludedSalesRows (do not invent "Uncategorized")
+      // Keep blank — counted in net/store; soft-hidden from top vendor models (do not invent "Uncategorized")
       department,
       design: designCol ? String(rec[designCol] ?? "").trim() : "",
       itemNumber,
@@ -214,7 +218,8 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
   >();
 
   for (const r of rows) {
-    if (isExcludedSalesRow(r)) continue;
+    // Soft-hidden lines stay in net / store / vendor totals — not in top models.
+    if (isHiddenFromTopVendorModelsRow(r)) continue;
 
     const sku = r.sku?.trim() ?? "";
     const itemNumber = sku || r.itemNumber?.trim() || "";

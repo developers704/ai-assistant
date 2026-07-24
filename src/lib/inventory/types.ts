@@ -41,6 +41,8 @@ export interface InventoryItem {
   subClass: string;
   avgWeight: number;
   brand: string;
+  /** Units currently on hand at this store when CSV includes Onhand Qty. */
+  onhandQty?: number;
 }
 
 export type ProductCategory =

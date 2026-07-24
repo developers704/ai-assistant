@@ -7,7 +7,14 @@ import {
 } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { filterExcludedSalesRows, isExcludedSalesSku, salesUnitsSold } from "@/lib/utils";
+import {
+  filterExcludedSalesRows,
+  isExcludedSalesSku,
+  isHiddenFromTopVendorModelsRow,
+  isHiddenFromTopVendorModelsSku,
+  salesUnitsSold,
+} from "@/lib/utils";
+import { lookupOnhandQty } from "@/lib/inventory/store";
 import type { RankDimension, VendorPosRow } from "@/lib/reports/types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 import { dimensionValue } from "@/lib/reports/rank-dimension";
@@ -53,11 +60,12 @@ function skuLinesCredited(
 ): VendorModelSkuLine[] {
   const map = new Map<
     string,
-    VendorModelSkuLine & { storeSet: Set<string> }
+    VendorModelSkuLine & { storeUnits: Map<string, number> }
   >();
   for (const r of rows) {
     const sku = (r.sku || r.itemNumber || "").trim();
-    if (!sku || isExcludedSalesSku(sku)) continue;
+    if (!sku || isExcludedSalesSku(sku) || isHiddenFromTopVendorModelsSku(sku)) continue;
+    if (isHiddenFromTopVendorModelsRow(r)) continue;
     const share = creditOf(r);
     if (share <= 0) continue;
     const key = sku.toUpperCase();
@@ -66,19 +74,31 @@ function skuLinesCredited(
       units: 0,
       revenue: 0,
       margin: 0,
-      storeSet: new Set<string>(),
+      storeUnits: new Map<string, number>(),
     };
-    cur.units += salesUnitsSold(r.quantity) * share;
+    const units = salesUnitsSold(r.quantity) * share;
+    cur.units += units;
     cur.revenue += r.netRevenue * share;
     cur.margin = (cur.margin ?? 0) + r.margin * share;
     const store = r.storeName?.trim();
-    if (store) cur.storeSet.add(store);
+    if (store && units > 0) {
+      cur.storeUnits.set(store, (cur.storeUnits.get(store) ?? 0) + units);
+    }
     map.set(key, cur);
   }
   return [...map.values()]
-    .map(({ storeSet, ...line }) => {
+    .map(({ storeUnits, ...line }) => {
       const margin = line.margin ?? 0;
-      const stores = [...storeSet].sort((a, b) => a.localeCompare(b));
+      const stores = [...storeUnits.entries()]
+        .map(([name, units]) => {
+          const onhand = lookupOnhandQty(line.sku, name);
+          return {
+            name,
+            units,
+            ...(onhand !== null ? { onhand } : {}),
+          };
+        })
+        .sort((a, b) => b.units - a.units || a.name.localeCompare(b.name));
       return {
         ...line,
         margin,
@@ -247,7 +267,7 @@ export async function GET(req: Request) {
     bump(byVendor, r.vendor);
 
     const model = r.vendorModel?.trim() || r.sku || r.itemNumber;
-    if (model) {
+    if (model && !isHiddenFromTopVendorModelsRow(r)) {
       const ex = byModel.get(model) || {
         name: r.description || model,
         vendorModel: model,
