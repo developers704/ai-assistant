@@ -12,7 +12,7 @@ import type {
 export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
   const map = new Map<
     string,
-    VendorModelSkuLine & { storeSet: Set<string> }
+    VendorModelSkuLine & { storeUnits: Map<string, number> }
   >();
   for (const r of rows) {
     const sku = (r.sku || r.itemNumber || "").trim();
@@ -23,19 +23,24 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       units: 0,
       revenue: 0,
       margin: 0,
-      storeSet: new Set<string>(),
+      storeUnits: new Map<string, number>(),
     };
-    cur.units += salesUnitsSold(r.quantity);
+    const units = salesUnitsSold(r.quantity);
+    cur.units += units;
     cur.revenue += r.netRevenue;
     cur.margin = (cur.margin ?? 0) + r.margin;
     const store = r.storeName?.trim();
-    if (store) cur.storeSet.add(store);
+    if (store && units > 0) {
+      cur.storeUnits.set(store, (cur.storeUnits.get(store) ?? 0) + units);
+    }
     map.set(key, cur);
   }
   return [...map.values()]
-    .map(({ storeSet, ...line }) => {
+    .map(({ storeUnits, ...line }) => {
       const margin = line.margin ?? 0;
-      const stores = [...storeSet].sort((a, b) => a.localeCompare(b));
+      const stores = [...storeUnits.entries()]
+        .map(([name, units]) => ({ name, units }))
+        .sort((a, b) => b.units - a.units || a.name.localeCompare(b.name));
       return {
         ...line,
         margin,
