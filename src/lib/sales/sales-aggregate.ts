@@ -1,12 +1,6 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import {
-  isExcludedSalesSku,
-  isHiddenFromTopVendorModelsRow,
-  isHiddenFromTopVendorModelsSku,
-  salesUnitsSold,
-} from "@/lib/utils";
-import { lookupOnhandQty } from "@/lib/inventory/store";
+import { isExcludedSalesSku, salesUnitsSold } from "@/lib/utils";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type {
   SalesBreakdownRow,
@@ -18,43 +12,30 @@ import type {
 export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
   const map = new Map<
     string,
-    VendorModelSkuLine & { storeUnits: Map<string, number> }
+    VendorModelSkuLine & { storeSet: Set<string> }
   >();
   for (const r of rows) {
     const sku = (r.sku || r.itemNumber || "").trim();
-    if (!sku || isExcludedSalesSku(sku) || isHiddenFromTopVendorModelsSku(sku)) continue;
-    if (isHiddenFromTopVendorModelsRow(r)) continue;
+    if (!sku || isExcludedSalesSku(sku)) continue;
     const key = sku.toUpperCase();
     const cur = map.get(key) ?? {
       sku,
       units: 0,
       revenue: 0,
       margin: 0,
-      storeUnits: new Map<string, number>(),
+      storeSet: new Set<string>(),
     };
-    const units = salesUnitsSold(r.quantity);
-    cur.units += units;
+    cur.units += salesUnitsSold(r.quantity);
     cur.revenue += r.netRevenue;
     cur.margin = (cur.margin ?? 0) + r.margin;
     const store = r.storeName?.trim();
-    if (store && units > 0) {
-      cur.storeUnits.set(store, (cur.storeUnits.get(store) ?? 0) + units);
-    }
+    if (store) cur.storeSet.add(store);
     map.set(key, cur);
   }
   return [...map.values()]
-    .map(({ storeUnits, ...line }) => {
+    .map(({ storeSet, ...line }) => {
       const margin = line.margin ?? 0;
-      const stores = [...storeUnits.entries()]
-        .map(([name, units]) => {
-          const onhand = lookupOnhandQty(line.sku, name);
-          return {
-            name,
-            units,
-            ...(onhand !== null ? { onhand } : {}),
-          };
-        })
-        .sort((a, b) => b.units - a.units || a.name.localeCompare(b.name));
+      const stores = [...storeSet].sort((a, b) => a.localeCompare(b));
       return {
         ...line,
         margin,
@@ -119,13 +100,13 @@ function groupKey(row: VendorPosRow, by: SalesGroupBy): string {
     case "store":
       return row.storeName || "Unknown store";
     case "department":
-      return row.department?.trim() || "";
+      return row.department || "Unknown department";
     case "design":
-      return row.design?.trim() || "";
+      return row.design || "Unknown design";
     case "vendor":
-      return row.vendor?.trim() || "";
+      return row.vendor || "Unknown vendor";
     case "class":
-      return row.productClass?.trim() || "";
+      return row.productClass || "Unknown class";
     case "product":
       return row.description || row.vendorModel || row.sku || "Unknown product";
     case "sku":
@@ -137,17 +118,6 @@ function groupKey(row: VendorPosRow, by: SalesGroupBy): string {
     default:
       return "Unknown";
   }
-}
-
-function isEmptyDimensionKey(key: string, by: SalesGroupBy): boolean {
-  if (!key || key === "—") return true;
-  if (
-    (by === "department" || by === "design" || by === "vendor" || by === "class") &&
-    /^uncategorized$/i.test(key)
-  ) {
-    return true;
-  }
-  return false;
 }
 
 export function groupRows(
@@ -196,16 +166,7 @@ export function groupRows(
   >();
 
   for (const r of rows) {
-    // Soft-hidden lines count in net / store / vendor / design / dept / class —
-    // omit from product / SKU / vendor-model rankings only.
-    if (
-      (by === "vendor_model" || by === "product" || by === "sku") &&
-      isHiddenFromTopVendorModelsRow(r)
-    ) {
-      continue;
-    }
     const key = groupKey(r, by);
-    if (isEmptyDimensionKey(key, by)) continue;
     const cur = map.get(key) ?? { rows: [] };
     cur.rows.push(r);
     if (!cur.imageDir && r.imageDir) cur.imageDir = r.imageDir;

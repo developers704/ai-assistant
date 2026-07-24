@@ -185,7 +185,7 @@ export interface SalesSummary {
       revenue: number;
       margin?: number;
       marginRate?: number;
-      stores?: { name: string; units: number; onhand?: number | null }[];
+      stores?: string[];
     }[];
   }[];
   underperformingStores: { name: string; revenue: number; change: number }[];

@@ -11,11 +11,6 @@ function parseWeight(raw: string): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
-function parseQty(raw: string): number {
-  const n = parseFloat(raw.trim().replace(/,/g, ""));
-  return Number.isFinite(n) ? n : 0;
-}
-
 /** Parse a single CSV line respecting quoted fields. */
 function parseCsvLine(line: string): string[] {
   const fields: string[] = [];
@@ -57,32 +52,24 @@ type ColumnKey =
   | "design"
   | "class"
   | "subClass"
-  | "avgWeight"
-  | "onhandQty";
+  | "avgWeight";
 
 const HEADER_ALIASES: Record<string, ColumnKey> = {
   "sku #": "sku",
-  sku: "sku",
-  "item #": "sku",
+  "sku": "sku",
   "item desc": "description",
-  description: "description",
+  "description": "description",
   "vendor model": "vendorModel",
   "tag price": "tagPrice",
-  "individual selling value": "tagPrice",
   "cost price": "costPrice",
-  "individual cost value": "costPrice",
-  store: "store",
-  department: "department",
-  design: "design",
-  class: "class",
+  "store": "store",
+  "department": "department",
+  "design": "design",
+  "class": "class",
   "sub-class": "subClass",
   "sub class": "subClass",
-  avgweight: "avgWeight",
+  "avgweight": "avgWeight",
   "avg weight": "avgWeight",
-  "onhand qty": "onhandQty",
-  "on hand qty": "onhandQty",
-  "on-hand qty": "onhandQty",
-  "qty on hand": "onhandQty",
 };
 
 function buildColumnMap(headers: string[]): Partial<Record<ColumnKey, number>> {
@@ -163,13 +150,7 @@ function rowToItem(cols: string[], map: Partial<Record<ColumnKey, number>>): Inv
 
   const tagPrice = parsePrice(getField(cols, map, "tagPrice"));
   const costPrice = parsePrice(getField(cols, map, "costPrice"));
-  const hasOnhandCol = map.onhandQty !== undefined;
-  const onhandQty = hasOnhandCol ? parseQty(getField(cols, map, "onhandQty")) : undefined;
-  const store = getField(cols, map, "store");
-
-  // Pricing CSVs need a price; on-hand CSVs need store + onhand column.
-  if (!hasOnhandCol && tagPrice <= 0 && costPrice <= 0) return null;
-  if (hasOnhandCol && !store) return null;
+  if (tagPrice <= 0 && costPrice <= 0) return null;
 
   const department = getField(cols, map, "department");
   const design = getField(cols, map, "design");
@@ -182,23 +163,19 @@ function rowToItem(cols: string[], map: Partial<Record<ColumnKey, number>>): Inv
     vendorModel,
     tagPrice,
     costPrice,
-    store,
+    store: getField(cols, map, "store"),
     department,
     design,
     class: getField(cols, map, "class"),
     subClass: getField(cols, map, "subClass"),
     avgWeight: parseWeight(getField(cols, map, "avgWeight")),
     brand: deriveBrand(department, design, description, vendorModel),
-    ...(onhandQty !== undefined ? { onhandQty } : {}),
   };
 }
 
-export function parseInventoryCsv(csvText: string): {
-  items: InventoryItem[];
-  hasOnhandColumn: boolean;
-} {
+export function parseInventoryCsv(csvText: string): InventoryItem[] {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) return { items: [], hasOnhandColumn: false };
+  if (lines.length < 2) return [];
 
   const headers = parseCsvLine(lines[0]);
   const columnMap = buildColumnMap(headers);
@@ -206,28 +183,24 @@ export function parseInventoryCsv(csvText: string): {
   if (columnMap.sku === undefined) {
     throw new Error('Inventory CSV must include a "SKU #" column.');
   }
-  if (columnMap.tagPrice === undefined && columnMap.onhandQty === undefined) {
-    throw new Error(
-      'Inventory CSV must include a "Tag Price" / "Individual Selling Value" or "Onhand Qty" column.'
-    );
+  if (columnMap.tagPrice === undefined) {
+    throw new Error('Inventory CSV must include a "Tag Price" column.');
   }
 
-  const hasOnhandColumn = columnMap.onhandQty !== undefined;
   const items: InventoryItem[] = [];
-  const seenStoreSku = new Set<string>();
+  const seenSku = new Set<string>();
 
   for (let i = 1; i < lines.length; i++) {
     const cols = parseCsvLine(lines[i]);
     const item = rowToItem(cols, columnMap);
     if (!item) continue;
 
-    // Keep one row per store + SKU (on-hand files have many stores per SKU).
-    const dedupeKey = `${item.store.trim().toUpperCase()}|${item.sku.trim().toUpperCase()}`;
-    if (seenStoreSku.has(dedupeKey)) continue;
-    seenStoreSku.add(dedupeKey);
+    const skuKey = item.sku.trim().toUpperCase();
+    if (seenSku.has(skuKey)) continue;
+    seenSku.add(skuKey);
 
     items.push(item);
   }
 
-  return { items, hasOnhandColumn };
+  return items;
 }

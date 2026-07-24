@@ -19,133 +19,62 @@ export function formatPieceCount(units: number): string {
 }
 
 /**
- * Hard-excluded SKUs — removed from net sales and every aggregate.
- * Soft-hidden lines (ITEM / MLB / pads / legacy / blank dept / promo models)
- * stay in totals but are omitted from top vendor-model lists —
- * see isHiddenFromTopVendorModels*.
+ * Rows removed from the sales report entirely (all aggregates + Top 20).
  * See .cursor/rules/sales-report.mdc
  */
-const HARD_EXCLUDED_SALES_SKUS = new Set([
-  "250000", // CBE recycling fee
-  "JVS-200940", // Watch battery service
+const EXCLUDED_SALES_SKUS = new Set([
+  "ITEM",
+  "250000",
+  "217365",
+  "217286",
+  "159004",
+  "JVS-200940",
   "229080", // White bag with blue ribbon — packaging / $0 sale line
   "WATCH WINDER-1",
   "WATCH WINDER",
 ]);
 
-/** Counted in net / store / vendor / design / dept / class — hidden from top vendor models only. */
-const TOP_MODEL_HIDDEN_SKUS = new Set(["ITEM", "217365", "217286", "159004"]);
-
-/**
- * Vendor models hidden from top vendor-model lists only (still count in net sales).
- * Match normalized vendor model or SKU / Item #.
- */
-const TOP_MODEL_HIDDEN_VENDOR_MODELS = new Set([
-  "TABLET",
-  "RLX-BOX-DISPLAY",
-  "GIFT",
-  "SMART WATCH",
-  "2200-2218",
-  "HAND PU BAG",
-  "CLOTH BAG (RED)",
-  "9G1206",
-  "WG2874",
-  "YG670",
-  "SS2869",
-  "GIFT BEAR TOY",
-  "JEWLWERY STORAGE",
-  "2300-2312",
-  "9G1007",
-  "0D032",
-]);
-
-function normalizeSalesModelKey(value?: string | null): string {
-  return (value ?? "")
-    .toUpperCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/** True when vendor model matches a hard-excluded product (e.g. complimentary watch winder). */
+/** True when vendor model matches an excluded product (e.g. complimentary watch winder). */
 export function isExcludedSalesVendorModel(vendorModel?: string | null): boolean {
-  const normalized = normalizeSalesModelKey(vendorModel);
+  const normalized = (vendorModel ?? "").trim().toUpperCase();
   if (!normalized) return false;
   if (normalized === "WATCH WINDER" || normalized.startsWith("WATCH WINDER")) return true;
   return false;
 }
 
 /**
- * Earring pad / screwback pad accessory lines (e.g. "… Pad [s]").
+ * Earring pad / screwback pad accessory lines (e.g. "… Pad [s]") — not jewelry product revenue.
  * Match description / style / vendor model text.
  */
 export function isExcludedSalesPadLine(text?: string | null): boolean {
-  const normalized = normalizeSalesModelKey(text);
+  const normalized = (text ?? "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
   if (!normalized) return false;
   return /\bPAD\s*\[S\]/.test(normalized);
 }
 
-function salesRowSkuKey(row: {
-  sku?: string | null;
-  itemNumber?: string | null;
-  style?: string | null;
-}): string {
-  return (
-    (row.sku ?? "").trim() ||
-    (row.itemNumber ?? "").trim() ||
-    (row.style ?? "").trim()
-  );
-}
-
-function isBlankSalesDepartment(department?: string | null): boolean {
-  const dept = (department ?? "").trim();
-  return !dept || dept === "—" || /^uncategorized$/i.test(dept);
-}
-
-/** True when SKU / Item # is hard-excluded (dropped from all report totals). */
+/** True when SKU / Item # matches an excluded product rule. */
 export function isExcludedSalesSku(sku?: string | null): boolean {
-  const normalized = normalizeSalesModelKey(sku);
+  const normalized = (sku ?? "").trim().toUpperCase();
   if (!normalized) return false;
-  if (HARD_EXCLUDED_SALES_SKUS.has(normalized)) return true;
+  if (EXCLUDED_SALES_SKUS.has(normalized)) return true;
+  if (normalized.startsWith("MLB-")) return true;
   if (normalized.startsWith("WATCH WINDER")) return true;
   return false;
 }
 
-/** SKU / Item # hidden from top vendor-model lists only (still in net sales). */
-export function isHiddenFromTopVendorModelsSku(sku?: string | null): boolean {
-  const normalized = normalizeSalesModelKey(sku);
-  if (!normalized) return false;
-  if (TOP_MODEL_HIDDEN_SKUS.has(normalized)) return true;
-  if (TOP_MODEL_HIDDEN_VENDOR_MODELS.has(normalized)) return true;
-  if (normalized.startsWith("MLB-")) return true;
-  return false;
-}
-
-/** Vendor model hidden from top vendor-model lists only (still in net sales). */
-export function isHiddenFromTopVendorModelsVendorModel(
-  vendorModel?: string | null
-): boolean {
-  const normalized = normalizeSalesModelKey(vendorModel);
-  if (!normalized) return false;
-  return TOP_MODEL_HIDDEN_VENDOR_MODELS.has(normalized);
-}
-
-/** @deprecated Prefer isHiddenFromTopVendorModelsSku for list filtering. */
+/** @deprecated Use isExcludedSalesSku — kept for older call sites. */
 export function isExcludedTopProductSku(sku?: string | null): boolean {
-  return isExcludedSalesSku(sku) || isHiddenFromTopVendorModelsSku(sku);
+  return isExcludedSalesSku(sku);
 }
 
 export function isItemPlaceholderSku(sku?: string | null): boolean {
-  return isHiddenFromTopVendorModelsSku(sku) || isExcludedSalesSku(sku);
+  return isExcludedSalesSku(sku);
 }
 
-/** Total (net) is exactly $0 — drop the line from all aggregates. */
-export function isZeroTotalSalesRow(row: {
-  netRevenue?: number | null;
-}): boolean {
-  return Math.round(Number(row.netRevenue ?? 0) * 100) === 0;
-}
-
-/** True when a parsed sales row should be dropped from all report totals. */
+/** True when a parsed sales row should be dropped from the report. */
 export function isExcludedSalesRow(row: {
   sku?: string | null;
   itemNumber?: string | null;
@@ -153,26 +82,10 @@ export function isExcludedSalesRow(row: {
   vendorModel?: string | null;
   style?: string | null;
   description?: string | null;
-  netRevenue?: number | null;
 }): boolean {
-  if (isZeroTotalSalesRow(row)) return true;
+  const dept = (row.department ?? "").trim();
+  if (!dept || dept === "—" || /^uncategorized$/i.test(dept)) return true;
   if (isExcludedSalesVendorModel(row.vendorModel)) return true;
-  return isExcludedSalesSku(salesRowSkuKey(row));
-}
-
-/**
- * Counted in net sales / stores / vendors / designs / departments / class when
- * those dimensions exist — omitted from top vendor-model / top-product lists.
- */
-export function isHiddenFromTopVendorModelsRow(row: {
-  sku?: string | null;
-  itemNumber?: string | null;
-  department?: string | null;
-  vendorModel?: string | null;
-  style?: string | null;
-  description?: string | null;
-}): boolean {
-  if (isBlankSalesDepartment(row.department)) return true;
   if (
     isExcludedSalesPadLine(row.description) ||
     isExcludedSalesPadLine(row.style) ||
@@ -180,12 +93,15 @@ export function isHiddenFromTopVendorModelsRow(row: {
   ) {
     return true;
   }
-  if (isHiddenFromTopVendorModelsVendorModel(row.vendorModel)) return true;
-  return isHiddenFromTopVendorModelsSku(salesRowSkuKey(row));
+  const sku =
+    (row.sku ?? "").trim() ||
+    (row.itemNumber ?? "").trim() ||
+    (row.style ?? "").trim();
+  return isExcludedSalesSku(sku);
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 11;
+export const SALES_EXCLUSION_RULES_VERSION = 9;
 
 type SalesReturnPairRow = {
   sku?: string | null;
@@ -423,19 +339,10 @@ export function filterExcludedSalesRows<
 }
 
 export function filterTopProductSkus<
-  T extends {
-    itemNumber?: string;
-    vendorModel?: string;
-    sku?: string;
-    name?: string;
-    description?: string;
-    department?: string;
-  }
+  T extends { itemNumber?: string; vendorModel?: string; sku?: string; name?: string; description?: string }
 >(products: T[]): T[] {
   return products.filter((p) => {
-    // Aggregated top-product rows often omit department — blank-dept soft-hide
-    // is applied on raw rows before ranking. Only honor department when present.
-    if (p.department !== undefined && isBlankSalesDepartment(p.department)) return false;
+    if (isExcludedSalesVendorModel(p.vendorModel)) return false;
     if (
       isExcludedSalesPadLine(p.name) ||
       isExcludedSalesPadLine(p.description) ||
@@ -444,10 +351,7 @@ export function filterTopProductSkus<
       return false;
     }
     const sku = p.itemNumber || p.sku || p.vendorModel;
-    if (isExcludedSalesSku(sku) || isHiddenFromTopVendorModelsSku(sku)) return false;
-    if (isExcludedSalesVendorModel(p.vendorModel)) return false;
-    if (isHiddenFromTopVendorModelsVendorModel(p.vendorModel)) return false;
-    return true;
+    return !isExcludedSalesSku(sku);
   });
 }
 

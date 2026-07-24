@@ -5,7 +5,7 @@ export function buildVendorModelSearchText(parts: {
   vendorModel?: string;
   itemNumber?: string;
   sku?: string;
-  skus?: { sku: string; stores?: { name: string }[] }[];
+  skus?: { sku: string }[];
 }): string {
   return [
     parts.name,
@@ -13,7 +13,6 @@ export function buildVendorModelSearchText(parts: {
     parts.itemNumber,
     parts.sku,
     ...(parts.skus?.map((s) => s.sku) ?? []),
-    ...(parts.skus?.flatMap((s) => s.stores?.map((st) => st.name) ?? []) ?? []),
   ]
     .filter(Boolean)
     .join(" ");

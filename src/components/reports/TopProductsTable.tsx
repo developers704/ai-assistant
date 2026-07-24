@@ -10,7 +10,6 @@ import {
 } from "@/lib/utils";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import { VendorModelTextFilter } from "@/components/reports/VendorModelTextFilter";
-import { SkuStoreBreakdownList } from "@/components/reports/SkuStoreBreakdownList";
 import {
   applyVendorModelTextFilter,
   buildVendorModelSearchText,
@@ -23,7 +22,7 @@ export interface TopProductSkuLine {
   revenue: number;
   margin?: number;
   marginRate?: number;
-  stores?: { name: string; units: number; onhand?: number | null }[];
+  stores?: string[];
 }
 
 export interface TopProductRow {
@@ -164,7 +163,27 @@ export function TopProductsTable({
                       {displayName}
                     </p>
                     {skuLines.length > 0 && (
-                      <SkuStoreBreakdownList lines={skuLines} />
+                      <ul className="mt-1.5 space-y-1.5">
+                        {skuLines.map((line) => (
+                          <li
+                            key={line.sku}
+                            className="text-[11px] font-mono font-normal tracking-normal text-ink-muted/85"
+                          >
+                            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                              <span className="text-cyan-300/75">SKU #{line.sku}</span>
+                              <span className="text-ink-muted/55">·</span>
+                              <span className="tabular-nums text-emerald-300/70">
+                                {formatPieceCount(line.units)}
+                              </span>
+                            </div>
+                            {line.stores && line.stores.length > 0 && (
+                              <p className="mt-0.5 text-[10px] text-white/40 font-sans tracking-normal">
+                                Stores: {line.stores.join(", ")}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
 

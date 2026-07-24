@@ -155,14 +155,7 @@ export interface SalesMetricSummary {
   averageUnitPrice: number | null;
 }
 
-/** Per-store units for a SKU under a vendor model. */
-export interface VendorModelSkuStoreLine {
-  name: string;
-  units: number;
-  /** Current on-hand qty at this store (null/omit when inventory not loaded). */
-  onhand?: number | null;
-}
-
+/** SKUs that contributed to a vendor-model ranking row. */
 export interface VendorModelSkuLine {
   sku: string;
   units: number;
@@ -170,8 +163,8 @@ export interface VendorModelSkuLine {
   margin?: number;
   /** Profit margin = margin / revenue (0–1) */
   marginRate?: number;
-  /** Per-store units sold (+ on-hand when inventory loaded) */
-  stores?: VendorModelSkuStoreLine[];
+  /** Stores that sold this SKU (under the parent model / filter slice) */
+  stores?: string[];
 }
 
 export interface SalesBreakdownRow {
