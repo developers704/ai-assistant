@@ -11,12 +11,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  alexa-chat-tests:
-    uses: ./.github/workflows/alexa-chat-tests.yml
-
+  # Alexa hard chat suite is slow / can hit the 10m job timeout and was
+  # blocking production deploys. Keep those tests on CI (PRs), not here.
   deploy:
     name: Deploy to Hetzner VPS
-    needs: alexa-chat-tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
