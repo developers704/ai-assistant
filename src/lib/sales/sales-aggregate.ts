@@ -1,6 +1,7 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isExcludedSalesSku, salesUnitsSold } from "@/lib/utils";
+import { lookupOnhandQty } from "@/lib/inventory/onhand";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type {
   SalesBreakdownRow,
@@ -39,7 +40,14 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     .map(({ storeUnits, ...line }) => {
       const margin = line.margin ?? 0;
       const stores = [...storeUnits.entries()]
-        .map(([name, units]) => ({ name, units }))
+        .map(([name, units]) => {
+          const onhand = lookupOnhandQty(line.sku, name);
+          return {
+            name,
+            units,
+            ...(onhand !== null ? { onhand } : {}),
+          };
+        })
         .sort((a, b) => b.units - a.units || a.name.localeCompare(b.name));
       return {
         ...line,

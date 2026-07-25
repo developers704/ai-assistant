@@ -23,7 +23,7 @@ export interface TopProductSkuLine {
   revenue: number;
   margin?: number;
   marginRate?: number;
-  stores?: { name: string; units: number }[];
+  stores?: { name: string; units: number; onhand?: number | null }[];
 }
 
 export interface TopProductRow {

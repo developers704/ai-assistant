@@ -8,6 +8,7 @@ import {
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { filterExcludedSalesRows, isExcludedSalesSku, salesUnitsSold } from "@/lib/utils";
+import { lookupOnhandQty } from "@/lib/inventory/onhand";
 import type { RankDimension, VendorPosRow } from "@/lib/reports/types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 import { dimensionValue } from "@/lib/reports/rank-dimension";
@@ -82,7 +83,14 @@ function skuLinesCredited(
     .map(({ storeUnits, ...line }) => {
       const margin = line.margin ?? 0;
       const stores = [...storeUnits.entries()]
-        .map(([name, units]) => ({ name, units }))
+        .map(([name, units]) => {
+          const onhand = lookupOnhandQty(line.sku, name);
+          return {
+            name,
+            units,
+            ...(onhand !== null ? { onhand } : {}),
+          };
+        })
         .sort((a, b) => b.units - a.units || a.name.localeCompare(b.name));
       return {
         ...line,

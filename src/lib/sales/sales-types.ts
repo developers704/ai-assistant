@@ -159,6 +159,8 @@ export interface SalesMetricSummary {
 export interface VendorModelSkuStoreLine {
   name: string;
   units: number;
+  /** Current on-hand qty at this store (omit when onhand file not loaded). */
+  onhand?: number | null;
 }
 
 /** SKUs that contributed to a vendor-model ranking row. */
