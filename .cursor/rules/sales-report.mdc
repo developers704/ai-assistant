@@ -28,9 +28,17 @@ These rows are treated as **deleted** from the sales report. They must **not** a
 | **Exchange (same Transaction #, different SKU)** | After void-pair removal, keep negative-qty lines when that Transaction # still has a sale leg — Net Sales includes both (e.g. net 650 + (−324.83) = 325.17). **Units sold** count positive qty only. Cross-txn void pairing must not remove these exchange returns. |
 | **Stand-alone returns (negative qty)** | After void-pair removal, drop negative-qty lines whose Transaction # has **no** remaining sale leg (sales dashboard is sales-only). |
 
+## Soft-hidden from Top Vendor Models only
+
+These still count in Net Sales / store / vendor / department totals, but must **not** appear in Top Vendor Models / top-product lists:
+
+| Rule | Reason |
+|------|--------|
+| Vendor model `WG2787` | Hidden from top vendor models (still in net sales) |
+
 ### Implementation (do not bypass on upload)
 
-- **Single source of truth:** `isExcludedSalesSku()` + `isExcludedSalesRow()` + `dropMatchedSalesReturnPairs()` + `dropStandaloneNegativeQtyReturns()` + `filterExcludedSalesRows()` in `src/lib/utils.ts`
+- **Single source of truth:** `isExcludedSalesSku()` + `isExcludedSalesRow()` + `isHiddenFromTopVendorModelsRow()` / `filterTopProductSkus()` + `dropMatchedSalesReturnPairs()` + `dropStandaloneNegativeQtyReturns()` + `filterExcludedSalesRows()` in `src/lib/utils.ts`
 - **On every summarize/upload:** filter `periodRows` (and `compareRows`) in `summarizeVendorPos()` via `filterExcludedSalesRows()`
 - **On rank-detail / visualizations / sales version refresh:** filter rows the same way
 - Cached sales versions rebuild when `SALES_EXCLUSION_RULES_VERSION` bumps

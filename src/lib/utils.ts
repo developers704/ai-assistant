@@ -34,9 +34,19 @@ const EXCLUDED_SALES_SKUS = new Set([
   "WATCH WINDER",
 ]);
 
+/** Vendor models hidden from Top Vendor Models / top-product lists only (still in net sales). */
+const TOP_MODEL_HIDDEN_VENDOR_MODELS = new Set(["WG2787"]);
+
+function normalizeSalesModelKey(value?: string | null): string {
+  return (value ?? "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** True when vendor model matches an excluded product (e.g. complimentary watch winder). */
 export function isExcludedSalesVendorModel(vendorModel?: string | null): boolean {
-  const normalized = (vendorModel ?? "").trim().toUpperCase();
+  const normalized = normalizeSalesModelKey(vendorModel);
   if (!normalized) return false;
   if (normalized === "WATCH WINDER" || normalized.startsWith("WATCH WINDER")) return true;
   return false;
@@ -47,22 +57,42 @@ export function isExcludedSalesVendorModel(vendorModel?: string | null): boolean
  * Match description / style / vendor model text.
  */
 export function isExcludedSalesPadLine(text?: string | null): boolean {
-  const normalized = (text ?? "")
-    .toUpperCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  const normalized = normalizeSalesModelKey(text);
   if (!normalized) return false;
   return /\bPAD\s*\[S\]/.test(normalized);
 }
 
 /** True when SKU / Item # matches an excluded product rule. */
 export function isExcludedSalesSku(sku?: string | null): boolean {
-  const normalized = (sku ?? "").trim().toUpperCase();
+  const normalized = normalizeSalesModelKey(sku);
   if (!normalized) return false;
   if (EXCLUDED_SALES_SKUS.has(normalized)) return true;
   if (normalized.startsWith("MLB-")) return true;
   if (normalized.startsWith("WATCH WINDER")) return true;
   return false;
+}
+
+/** Vendor model (or matching SKU) hidden from top vendor-model lists only. */
+export function isHiddenFromTopVendorModelsVendorModel(
+  vendorModel?: string | null
+): boolean {
+  const normalized = normalizeSalesModelKey(vendorModel);
+  if (!normalized) return false;
+  return TOP_MODEL_HIDDEN_VENDOR_MODELS.has(normalized);
+}
+
+export function isHiddenFromTopVendorModelsRow(row: {
+  sku?: string | null;
+  itemNumber?: string | null;
+  vendorModel?: string | null;
+  style?: string | null;
+}): boolean {
+  if (isHiddenFromTopVendorModelsVendorModel(row.vendorModel)) return true;
+  const sku =
+    (row.sku ?? "").trim() ||
+    (row.itemNumber ?? "").trim() ||
+    (row.style ?? "").trim();
+  return isHiddenFromTopVendorModelsVendorModel(sku);
 }
 
 /** @deprecated Use isExcludedSalesSku — kept for older call sites. */
@@ -343,6 +373,8 @@ export function filterTopProductSkus<
 >(products: T[]): T[] {
   return products.filter((p) => {
     if (isExcludedSalesVendorModel(p.vendorModel)) return false;
+    if (isHiddenFromTopVendorModelsVendorModel(p.vendorModel)) return false;
+    if (isHiddenFromTopVendorModelsVendorModel(p.itemNumber || p.sku)) return false;
     if (
       isExcludedSalesPadLine(p.name) ||
       isExcludedSalesPadLine(p.description) ||

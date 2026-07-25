@@ -1,5 +1,5 @@
 import type { SalesSummary } from "@/types";
-import { filterExcludedSalesRows, isExcludedSalesRow, salesUnitsSold } from "@/lib/utils";
+import { filterExcludedSalesRows, isExcludedSalesRow, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
@@ -215,6 +215,7 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
 
   for (const r of rows) {
     if (isExcludedSalesRow(r)) continue;
+    if (isHiddenFromTopVendorModelsRow(r)) continue;
 
     const sku = r.sku?.trim() ?? "";
     const itemNumber = sku || r.itemNumber?.trim() || "";

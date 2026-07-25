@@ -1,6 +1,6 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { isExcludedSalesSku, salesUnitsSold } from "@/lib/utils";
+import { isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import { lookupOnhandQty } from "@/lib/inventory/onhand";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type {
@@ -179,6 +179,12 @@ export function groupRows(
   >();
 
   for (const r of rows) {
+    if (
+      (by === "vendor_model" || by === "product" || by === "sku") &&
+      isHiddenFromTopVendorModelsRow(r)
+    ) {
+      continue;
+    }
     const key = groupKey(r, by);
     const cur = map.get(key) ?? { rows: [] };
     cur.rows.push(r);

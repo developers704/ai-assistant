@@ -7,7 +7,7 @@ import {
 } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { filterExcludedSalesRows, isExcludedSalesSku, salesUnitsSold } from "@/lib/utils";
+import { filterExcludedSalesRows, isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import { lookupOnhandQty } from "@/lib/inventory/onhand";
 import type { RankDimension, VendorPosRow } from "@/lib/reports/types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
@@ -260,7 +260,7 @@ export async function GET(req: Request) {
     bump(byVendor, r.vendor);
 
     const model = r.vendorModel?.trim() || r.sku || r.itemNumber;
-    if (model) {
+    if (model && !isHiddenFromTopVendorModelsRow(r)) {
       const ex = byModel.get(model) || {
         name: r.description || model,
         vendorModel: model,
