@@ -702,7 +702,7 @@ export default function SalesPage() {
                 <span className="text-xs text-ink-muted">
                   {isFinancingReport
                     ? "By net sales amount"
-                    : `${topProducts.length} models by qty · SKUs with qty & stores · scroll for all`}
+                    : `${topProducts.length} models by qty · margin = profit ÷ net sales · scroll for all`}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">

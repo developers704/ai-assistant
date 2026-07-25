@@ -34,9 +34,9 @@ export interface TopProductRow {
   imageUrl?: string | null;
   revenue: number;
   units: number;
-  /** Profit = net sales − inventory cost (hidden in UI for now) */
+  /** Profit = net sales (Total) − inventory cost */
   margin?: number;
-  /** Profit margin = profit / net sales (0–1) (hidden in UI for now) */
+  /** Profit margin = profit / net sales (0–1) — same as CSV Profit/Sales */
   marginRate?: number;
   /** Distinct SKUs sold under this vendor model */
   skus?: TopProductSkuLine[];
@@ -48,7 +48,12 @@ interface TopProductsTableProps {
 }
 
 const ROW_GRID =
-  "grid grid-cols-1 sm:grid-cols-[2rem_3.25rem_5rem_minmax(0,1fr)_3.75rem_5.5rem] lg:grid-cols-[2rem_3.5rem_6rem_minmax(0,2fr)_4rem_6rem] gap-x-3 gap-y-1";
+  "grid grid-cols-1 sm:grid-cols-[2rem_3.25rem_5rem_minmax(0,1fr)_3.75rem_5.5rem_3.75rem] lg:grid-cols-[2rem_3.5rem_6rem_minmax(0,2fr)_4rem_6rem_4rem] gap-x-3 gap-y-1";
+
+function formatMarginPct(rate: number | undefined | null): string {
+  if (rate == null || !Number.isFinite(rate)) return "—";
+  return `${(rate * 100).toFixed(0)}%`;
+}
 
 export function TopProductsTable({
   products,
@@ -103,7 +108,7 @@ export function TopProductsTable({
         <div
           className={cn(
             "hidden sm:grid gap-x-3 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-ink-muted bg-white/5 border-b border-white/10",
-            "sm:grid-cols-[2rem_3.25rem_5rem_minmax(0,1fr)_3.75rem_5.5rem] lg:grid-cols-[2rem_3.5rem_6rem_minmax(0,2fr)_4rem_6rem]"
+            "sm:grid-cols-[2rem_3.25rem_5rem_minmax(0,1fr)_3.75rem_5.5rem_3.75rem] lg:grid-cols-[2rem_3.5rem_6rem_minmax(0,2fr)_4rem_6rem_4rem]"
           )}
         >
           <span>#</span>
@@ -112,6 +117,9 @@ export function TopProductsTable({
           <span>Product</span>
           <span className="text-right">Qty</span>
           <span className="text-right">Revenue</span>
+          <span className="text-right" title="Profit ÷ Net sales (Total − Cost) / Total">
+            Margin
+          </span>
         </div>
         {rows.length === 0 ? (
           <p className="text-sm text-ink-muted py-8 text-center px-3">
@@ -122,6 +130,11 @@ export function TopProductsTable({
             {rows.map((product, i) => {
               const displayName = formatProductDisplayName(product.name);
               const model = product.vendorModel?.trim() || product.itemNumber || "—";
+              const marginRate =
+                product.marginRate ??
+                (product.revenue > 0 && product.margin != null
+                  ? product.margin / product.revenue
+                  : null);
               const skuLines: TopProductSkuLine[] =
                 product.skus?.length
                   ? product.skus
@@ -131,6 +144,8 @@ export function TopProductsTable({
                           sku: product.itemNumber,
                           units: product.units,
                           revenue: product.revenue,
+                          margin: product.margin,
+                          marginRate: marginRate ?? undefined,
                         },
                       ]
                     : [];
@@ -168,15 +183,32 @@ export function TopProductsTable({
                     )}
                   </div>
 
-                  <div className="flex sm:contents items-center justify-between gap-3 sm:col-span-2 col-span-full pt-1 sm:pt-0 border-t border-white/5 sm:border-0">
+                  <div className="flex sm:contents items-center justify-between gap-3 sm:col-span-3 col-span-full pt-1 sm:pt-0 border-t border-white/5 sm:border-0">
                     <span className="sm:hidden text-[11px] text-ink-muted uppercase tracking-wide">
-                      Qty / Revenue
+                      Qty / Revenue / Margin
                     </span>
                     <span className="text-sm font-semibold text-emerald-300/90 tabular-nums sm:text-right shrink-0">
                       {formatPieceCount(product.units)}
                     </span>
                     <span className="font-medium text-ink text-sm tabular-nums sm:text-right shrink-0">
                       {formatCurrency(product.revenue)}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-sm font-semibold tabular-nums sm:text-right shrink-0",
+                        marginRate != null && marginRate >= 0.5
+                          ? "text-amber-200/85"
+                          : marginRate != null && marginRate >= 0
+                            ? "text-white/70"
+                            : "text-accent-rose/80"
+                      )}
+                      title={
+                        product.margin != null
+                          ? `Profit ${formatCurrency(product.margin)} on ${formatCurrency(product.revenue)} net`
+                          : "Profit ÷ Net sales"
+                      }
+                    >
+                      {formatMarginPct(marginRate)}
                     </span>
                   </div>
                 </li>
