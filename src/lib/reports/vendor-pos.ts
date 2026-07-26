@@ -87,6 +87,8 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   const discCol = findCol(columns, [/disc amt/, /discount amt/]);
   const netCol = findCol(columns, [/^total$/]);
   const invCostCol = findCol(columns, [/inventory cost/]);
+  // POS export: use Profit Amount when present (avoids Total−Cost / split-line cost double-count)
+  const profitAmountCol = findCol(columns, [/^profit\s*amount$/]);
   const classCol = findCol(columns, [/^class$/]);
   const subClassCol = findCol(columns, [/sub-class/, /sub class/]);
   const discRateCol = findCol(columns, [/disc rate/, /discount rate/]);
@@ -116,7 +118,9 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
     // Either column is the product id — keep both fields populated for lookups / Top 20
     const sku = rawSku || rawItem;
     const itemNumber = rawItem || rawSku;
-    const margin = net - inventoryCost;
+    const margin = profitAmountCol
+      ? parseNumber(rec[profitAmountCol])
+      : net - inventoryCost;
 
     if (!store && !department && net === 0 && qty === 0) continue;
     if (!date && !txnId && !store) continue;

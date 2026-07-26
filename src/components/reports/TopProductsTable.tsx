@@ -36,7 +36,7 @@ export interface TopProductRow {
   units: number;
   /** Profit = net sales (Total) − inventory cost */
   margin?: number;
-  /** Profit margin = profit / net sales (0–1) — same as CSV Profit/Sales */
+  /** Profit margin = profit / net sales (0–1) — CSV Profit Amount ÷ Total when present */
   marginRate?: number;
   /** Distinct SKUs sold under this vendor model */
   skus?: TopProductSkuLine[];

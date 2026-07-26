@@ -45,7 +45,18 @@ These still count in Net Sales / store / vendor / department totals, but must **
 
 When adding exclusions, update `src/lib/utils.ts` only.
 
+## Profit / margin
+
+- When the CSV includes **Profit Amount**, use that column as row `margin` (do **not** recompute as Total − Inventory Cost). Margin % = Profit Amount ÷ Total.
+- Fallback only if Profit Amount is absent: `margin = Total − Inventory Cost`.
+
 ## Bundled default report
 
 - File: `data/reports/Sales-Report.csv`
 - Seeded via `src/lib/reports/store.ts`; app refreshes `.data/reports/` when the file changes
+- Current seed window: **2026-01-01 → 2026-07-25**
+
+## Salespersons
+
+- POS codes in the Salespersons cell (e.g. `SN/65% - SP/35%`) are mapped to real names via `data/salespersons/salespersons.csv` (`src/lib/sales/salesperson-directory.ts`).
+- Rankings / rank-detail show **Name (CODE)** when the code exists in the directory.

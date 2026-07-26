@@ -131,7 +131,7 @@ export function isExcludedSalesRow(row: {
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 9;
+export const SALES_EXCLUSION_RULES_VERSION = 10;
 
 type SalesReturnPairRow = {
   sku?: string | null;

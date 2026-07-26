@@ -139,7 +139,8 @@ export async function GET(req: NextRequest) {
     byStore.set(store, cur);
   }
 
-  const profit = netRevenue - inventoryCost;
+  // Prefer summed row.margin (CSV Profit Amount when present)
+  const profit = matchRows.reduce((s, r) => s + r.margin, 0);
   const marginRate = netRevenue > 0 ? profit / netRevenue : 0;
   const variants = groupSalesLookupVariants(matchRows);
   const stores = [...byStore.values()].sort((a, b) => b.revenue - a.revenue);
