@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { filterExcludedSalesRows } from "@/lib/utils";
+import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { ensureActiveSalesVersion } from "@/lib/sales/refresh/service";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
-import { readActivePointer, readNormalizedRows } from "@/lib/sales/data/version-store";
-import { getLatestReportWithSummary, readReportCsv } from "@/lib/reports/store";
+import {
+  readActivePointer,
+  readNormalizedRows,
+  readVersionMetadata,
+} from "@/lib/sales/data/version-store";
+import { getLatestReportMeta, readReportCsv } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import type { VendorPosRow } from "@/lib/reports/types";
 import Papa from "papaparse";
@@ -23,10 +27,10 @@ function parseCsvRows(csv: string): VendorPosRow[] {
 }
 
 function loadRows(): VendorPosRow[] {
-  const latest = getLatestReportWithSummary();
+  const meta = getLatestReportMeta();
   const fromCsv = (): VendorPosRow[] => {
-    if (!latest) return [];
-    const csv = readReportCsv(latest.meta.id);
+    if (!meta) return [];
+    const csv = readReportCsv(meta.id);
     if (!csv) return [];
     return parseCsvRows(csv);
   };
@@ -38,9 +42,15 @@ function loadRows(): VendorPosRow[] {
       : null;
     if (versionRows?.length) {
       // Stale/test caches (e.g. 4 fixture rows) must not shadow the real report.
-      const reportRows = latest?.meta.rowCount ?? 0;
+      const reportRows = meta?.rowCount ?? 0;
       if (reportRows > 0 && versionRows.length < Math.max(50, reportRows * 0.25)) {
         return fromCsv();
+      }
+      const versionMeta = pointer.activeVersion
+        ? readVersionMetadata(pointer.activeVersion)
+        : null;
+      if (versionMeta?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION) {
+        return versionRows;
       }
       return filterExcludedSalesRows(versionRows);
     }

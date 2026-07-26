@@ -34,6 +34,17 @@ import { readActivePointer, readNormalizedRows, readVersionMetadata } from "./da
 import { getActiveSalesContext } from "./active-context";
 import { formatReportDateLong } from "@/lib/reports/date-utils";
 
+/** Use cached cleaned rows when exclusion rules version matches; otherwise re-filter. */
+function rowsFromActiveVersion(version: string): VendorPosRow[] | null {
+  const versionRows = readNormalizedRows(version);
+  if (!versionRows?.length) return null;
+  const meta = readVersionMetadata(version);
+  if (meta?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION) {
+    return versionRows;
+  }
+  return filterExcludedSalesRows(versionRows);
+}
+
 function loadReportRows(): {
   rows: VendorPosRow[];
   reportName: string | null;
@@ -45,14 +56,17 @@ function loadReportRows(): {
 } | null {
   if (isSalesUnifiedIntelligenceEnabled()) {
     const pointer = readActivePointer();
-    const versionRows = pointer.activeVersion ? readNormalizedRows(pointer.activeVersion) : null;
-    if (versionRows?.length) {
-      // Always re-apply exclusions (incl. return pairs) — cached versions may predate rule bumps.
-      const clean = filterExcludedSalesRows(versionRows);
+    const clean = pointer.activeVersion
+      ? rowsFromActiveVersion(pointer.activeVersion)
+      : null;
+    if (clean?.length) {
       const meta = pointer.activeVersion
         ? readVersionMetadata(pointer.activeVersion)
         : null;
-      const dates = [...new Set(clean.map((r) => r.date).filter(Boolean))].sort();
+      const dates =
+        meta?.availableDates?.length
+          ? meta.availableDates
+          : [...new Set(clean.map((r) => r.date).filter(Boolean))].sort();
       return {
         rows: clean,
         reportName: meta?.fileName ?? "Sales Intelligence",

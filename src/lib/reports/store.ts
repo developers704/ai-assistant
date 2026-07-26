@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { summarizeCsvText, extractReportDimensions } from "./summarize-csv";
 import { enrichStoreSalesCsvDates } from "./enrich-sales-dates";
 import { datesInIsoRange, isoToUsDate } from "./date-utils";
+import { hashSalesSource } from "@/lib/sales/data/version-store";
 import type { ReportSummary, StoredReportMeta } from "./types";
 
 const REPORTS_DIR = path.join(process.cwd(), ".data", "reports");
@@ -31,33 +32,21 @@ function isBundledSalesReport(meta: StoredReportMeta): boolean {
   return meta.fileName === "Sales-Report.csv";
 }
 
-function readSeedCsv():
-  | {
-      fileName: string;
-      csvText: string;
-      label: string;
-      reportPeriod: import("./types").ReportPeriod;
-      reportDate?: string;
-      dateRange?: { from: string; to: string };
-    }
-  | null {
-  for (const seed of SEED_CANDIDATES) {
-    if (!fs.existsSync(seed.path)) continue;
-    const csvText = enrichStoreSalesCsvDates(fs.readFileSync(seed.path, "utf-8"), {
-      fallbackDate: seed.dateRange?.to ? isoToUsDate(seed.dateRange.to) : "7/17/2026",
-    });
-    if (csvText.trim()) {
-      return {
-        fileName: seed.fileName,
-        csvText,
-        label: seed.label,
-        reportPeriod: seed.reportPeriod,
-        reportDate: seed.reportDate,
-        dateRange: seed.dateRange,
-      };
-    }
+function seedFileStat(seedPath: string): { mtimeMs: number; size: number } | null {
+  try {
+    const st = fs.statSync(seedPath);
+    return { mtimeMs: st.mtimeMs, size: st.size };
+  } catch {
+    return null;
   }
-  return null;
+}
+
+function readSeedCsv(seed: (typeof SEED_CANDIDATES)[number]): string | null {
+  if (!fs.existsSync(seed.path)) return null;
+  const csvText = enrichStoreSalesCsvDates(fs.readFileSync(seed.path, "utf-8"), {
+    fallbackDate: seed.dateRange?.to ? isoToUsDate(seed.dateRange.to) : "7/17/2026",
+  });
+  return csvText.trim() ? csvText : null;
 }
 
 function ensureDir() {
@@ -68,32 +57,57 @@ function ensureDir() {
 
 /** Load bundled store sales CSV when no reports exist yet, or refresh when seed file changes. */
 function ensureSeedReport() {
-  const seed = readSeedCsv();
-  if (!seed) return;
+  for (const seed of SEED_CANDIDATES) {
+    const stat = seedFileStat(seed.path);
+    if (!stat) continue;
 
-  const index = readIndex();
-  const bundled = index.filter(isBundledSalesReport);
-  const existingBundled =
-    bundled.find((r) => r.fileName === seed.fileName) ?? bundled[0] ?? null;
+    const index = readIndex();
+    const bundled = index.filter(isBundledSalesReport);
+    const existingBundled =
+      bundled.find((r) => r.fileName === seed.fileName) ?? bundled[0] ?? null;
 
-  if (existingBundled) {
-    const existingCsv = readReportCsv(existingBundled.id);
-    if (existingCsv === seed.csvText) return;
+    if (
+      existingBundled &&
+      existingBundled.seedMtimeMs === stat.mtimeMs &&
+      existingBundled.seedSize === stat.size
+    ) {
+      return;
+    }
+
+    const csvText = readSeedCsv(seed);
+    if (!csvText) continue;
+
+    // Legacy index without fingerprint: skip reseed if stored CSV already matches.
+    if (existingBundled && existingBundled.seedMtimeMs == null) {
+      const existingCsv = readReportCsv(existingBundled.id);
+      if (existingCsv === csvText) {
+        existingBundled.seedMtimeMs = stat.mtimeMs;
+        existingBundled.seedSize = stat.size;
+        existingBundled.contentHash =
+          existingBundled.contentHash ?? hashSalesSource(csvText);
+        writeIndex(index);
+        return;
+      }
+    }
+
     for (const report of bundled) {
       deleteReport(report.id);
     }
-  }
 
-  try {
-    saveReport(seed.fileName, seed.csvText, {
-      label: seed.label,
-      reportPeriod: seed.reportPeriod,
-      reportCategory: "sales",
-      reportDate: seed.reportDate,
-      dateRange: seed.dateRange,
-    });
-  } catch (err) {
-    console.warn("Could not seed default sales report:", err);
+    try {
+      saveReport(seed.fileName, csvText, {
+        label: seed.label,
+        reportPeriod: seed.reportPeriod,
+        reportCategory: "sales",
+        reportDate: seed.reportDate,
+        dateRange: seed.dateRange,
+        seedMtimeMs: stat.mtimeMs,
+        seedSize: stat.size,
+      });
+    } catch (err) {
+      console.warn("Could not seed default sales report:", err);
+    }
+    return;
   }
 }
 
@@ -152,6 +166,8 @@ export function saveReport(
     reportCategory?: import("./types").ReportCategory;
     reportDate?: string | null;
     dateRange?: { from: string; to: string };
+    seedMtimeMs?: number;
+    seedSize?: number;
   }
 ): { meta: StoredReportMeta; summary: ReportSummary } {
   ensureDir();
@@ -190,6 +206,9 @@ export function saveReport(
     vendorCode,
     schema,
     dateRange: options?.dateRange ?? dateRange,
+    contentHash: hashSalesSource(csvText),
+    seedMtimeMs: options?.seedMtimeMs,
+    seedSize: options?.seedSize,
   };
 
   if (options?.dateRange || options?.reportDate) {

@@ -1,9 +1,13 @@
-import { filterExcludedSalesRows } from "@/lib/utils";
+import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
-import { getLatestReportWithSummary } from "@/lib/reports/store";
+import { getLatestReportMeta, getLatestReportWithSummary } from "@/lib/reports/store";
 import { datesInIsoRange, isValidIsoDate } from "@/lib/reports/date-utils";
 import Papa from "papaparse";
-import { readActivePointer, readNormalizedRows } from "@/lib/sales/data/version-store";
+import {
+  readActivePointer,
+  readNormalizedRows,
+  readVersionMetadata,
+} from "@/lib/sales/data/version-store";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import { filterRows, groupRows, summarizeRows } from "@/lib/sales/sales-aggregate";
 import { getTopVendorModels } from "@/lib/sales/sales-product-analysis";
@@ -65,13 +69,20 @@ function uniqSorted(values: string[]): string[] {
 function loadAllRows(): { rows: VendorPosRow[]; reportLabel: string | null } {
   if (isSalesUnifiedIntelligenceEnabled()) {
     const pointer = readActivePointer();
-    const versionRows = pointer.activeVersion ? readNormalizedRows(pointer.activeVersion) : null;
-    if (versionRows?.length) {
-      const latest = getLatestReportWithSummary();
-      return {
-        rows: filterExcludedSalesRows(versionRows),
-        reportLabel: latest?.meta.label ?? "Sales report",
-      };
+    if (pointer.activeVersion) {
+      const versionRows = readNormalizedRows(pointer.activeVersion);
+      if (versionRows?.length) {
+        const meta = readVersionMetadata(pointer.activeVersion);
+        const rows =
+          meta?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION
+            ? versionRows
+            : filterExcludedSalesRows(versionRows);
+        const report = getLatestReportMeta();
+        return {
+          rows,
+          reportLabel: report?.label ?? meta?.fileName ?? "Sales report",
+        };
+      }
     }
   }
 

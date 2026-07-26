@@ -2,7 +2,7 @@ import Papa from "papaparse";
 import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
 import {
   getLatestReportMeta,
-  getLatestReportWithSummary,
+  getReportMeta,
   readReportCsv,
 } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
@@ -51,8 +51,8 @@ export async function refreshSalesData(options?: {
     const errors: string[] = [];
 
     try {
-      const latest = getLatestReportWithSummary();
-      if (!latest) {
+      const meta = getLatestReportMeta();
+      if (!meta) {
         return {
           success: false,
           dataVersion: null,
@@ -66,8 +66,22 @@ export async function refreshSalesData(options?: {
         };
       }
 
-      const csv = latest.csv;
-      const fileHash = hashSalesSource(csv);
+      const csv = readReportCsv(meta.id);
+      if (!csv) {
+        return {
+          success: false,
+          dataVersion: null,
+          rowsProcessed: 0,
+          validRows: 0,
+          rejectedRows: 0,
+          dateRange: { from: null, to: null },
+          generatedAt,
+          warnings,
+          errors: ["Sales report CSV is missing on disk."],
+        };
+      }
+
+      const fileHash = meta.contentHash ?? hashSalesSource(csv);
       const pointer = readActivePointer();
       if (pointer.activeVersion && !options?.force) {
         const existing = readVersionMetadata(pointer.activeVersion);
@@ -111,12 +125,16 @@ export async function refreshSalesData(options?: {
         };
       }
 
+      const availableDates = [
+        ...new Set(validRows.map((r) => r.date).filter(Boolean)),
+      ].sort();
+
       const dataVersion = makeDataVersion();
       const snapshot = buildSalesDashboardSnapshot({
         dataVersion,
         rows: validRows,
         rejectedCount: rejectedRows,
-        fileName: latest.meta.fileName,
+        fileName: meta.fileName,
         fileHash,
         warnings,
       });
@@ -156,10 +174,10 @@ export async function refreshSalesData(options?: {
         dataVersion,
         metadata: {
           dataVersion,
-          fileName: latest.meta.fileName,
+          fileName: meta.fileName,
           fileHash,
           exclusionRulesVersion: SALES_EXCLUSION_RULES_VERSION,
-          reportId: latest.meta.id,
+          reportId: meta.id,
           generatedAt,
           refreshedAt: generatedAt,
           dataThrough: snapshot.dataThrough,
@@ -167,6 +185,7 @@ export async function refreshSalesData(options?: {
           validRowCount: validRows.length,
           rejectedRowCount: rejectedRows,
           dateRange: snapshot.source.dateRange,
+          availableDates,
           warnings,
         },
         snapshot: validated.data,
@@ -234,13 +253,28 @@ export async function ensureActiveSalesVersion(): Promise<string | null> {
   return result.success ? result.dataVersion : pointer.activeVersion;
 }
 
+/** Prefer stored contentHash on report meta — avoids reading 7MB CSV on every ensure. */
 export function peekLatestReportHash(): string | null {
   const meta = getLatestReportMeta();
   if (!meta) return null;
+  if (meta.contentHash) return meta.contentHash;
+  // Legacy reports without contentHash: hash once from disk.
   try {
     const csv = readReportCsv(meta.id);
     return csv ? hashSalesSource(csv) : null;
   } catch {
     return null;
   }
+}
+
+/** Report meta for the active sales version (no CSV summarize). */
+export function getActiveVersionReportMeta() {
+  const pointer = readActivePointer();
+  if (!pointer.activeVersion) return null;
+  const versionMeta = readVersionMetadata(pointer.activeVersion);
+  if (!versionMeta) return null;
+  const report =
+    (versionMeta.reportId ? getReportMeta(versionMeta.reportId) : null) ??
+    getLatestReportMeta();
+  return { pointer, versionMeta, report };
 }

@@ -28,8 +28,19 @@ export interface SalesVersionMetadata {
   validRowCount: number;
   rejectedRowCount: number;
   dateRange: { from: string | null; to: string | null };
+  /** Sorted unique transaction dates (ISO) — avoids re-parsing CSV for filter UI. */
+  availableDates?: string[];
   warnings: string[];
 }
+
+/** Process-local caches — invalidated on write. */
+let cachedPointer: SalesVersionPointer | null = null;
+let cachedRowsVersion: string | null = null;
+let cachedRows: VendorPosRow[] | null = null;
+let cachedSnapshotVersion: string | null = null;
+let cachedSnapshot: SalesDashboardSnapshot | null = null;
+let cachedMetaVersion: string | null = null;
+let cachedMeta: SalesVersionMetadata | null = null;
 
 function ensureRoot() {
   fs.mkdirSync(ROOT, { recursive: true });
@@ -54,17 +65,30 @@ export function makeDataVersion(now = new Date()): string {
   return `sales_${d}_${t}`;
 }
 
+export function invalidateSalesVersionCaches() {
+  cachedPointer = null;
+  cachedRowsVersion = null;
+  cachedRows = null;
+  cachedSnapshotVersion = null;
+  cachedSnapshot = null;
+  cachedMetaVersion = null;
+  cachedMeta = null;
+}
+
 export function readActivePointer(): SalesVersionPointer {
+  if (cachedPointer) return cachedPointer;
   ensureRoot();
   try {
     const raw = fs.readFileSync(pointerPath(), "utf8");
     const parsed = JSON.parse(raw) as SalesVersionPointer;
-    return {
+    cachedPointer = {
       activeVersion: parsed.activeVersion ?? null,
       activatedAt: parsed.activatedAt ?? null,
     };
+    return cachedPointer;
   } catch {
-    return { activeVersion: null, activatedAt: null };
+    cachedPointer = { activeVersion: null, activatedAt: null };
+    return cachedPointer;
   }
 }
 
@@ -77,13 +101,25 @@ export function writeActivePointer(version: string): SalesVersionPointer {
   const tmp = `${pointerPath()}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(next, null, 2), "utf8");
   fs.renameSync(tmp, pointerPath());
+  if (cachedPointer?.activeVersion !== version) {
+    cachedRowsVersion = null;
+    cachedRows = null;
+    cachedSnapshotVersion = null;
+    cachedSnapshot = null;
+    cachedMetaVersion = null;
+    cachedMeta = null;
+  }
+  cachedPointer = next;
   return next;
 }
 
 export function readVersionMetadata(version: string): SalesVersionMetadata | null {
+  if (cachedMetaVersion === version && cachedMeta) return cachedMeta;
   try {
     const raw = fs.readFileSync(path.join(versionDir(version), "metadata.json"), "utf8");
-    return JSON.parse(raw) as SalesVersionMetadata;
+    cachedMeta = JSON.parse(raw) as SalesVersionMetadata;
+    cachedMetaVersion = version;
+    return cachedMeta;
   } catch {
     return null;
   }
@@ -96,13 +132,17 @@ export function readActiveSnapshot(): SalesDashboardSnapshot | null {
 }
 
 export function readVersionSnapshot(version: string): SalesDashboardSnapshot | null {
+  if (cachedSnapshotVersion === version && cachedSnapshot) return cachedSnapshot;
   try {
     const raw = fs.readFileSync(
       path.join(versionDir(version), "dashboard-snapshot.json"),
       "utf8"
     );
     const parsed = salesDashboardSnapshotSchema.safeParse(JSON.parse(raw));
-    return parsed.success ? parsed.data : null;
+    if (!parsed.success) return null;
+    cachedSnapshot = parsed.data;
+    cachedSnapshotVersion = version;
+    return cachedSnapshot;
   } catch {
     return null;
   }
@@ -111,9 +151,12 @@ export function readVersionSnapshot(version: string): SalesDashboardSnapshot | n
 export function readNormalizedRows(version?: string): VendorPosRow[] | null {
   const v = version ?? readActivePointer().activeVersion;
   if (!v) return null;
+  if (cachedRowsVersion === v && cachedRows) return cachedRows;
   try {
     const raw = fs.readFileSync(path.join(versionDir(v), "normalized-rows.json"), "utf8");
-    return JSON.parse(raw) as VendorPosRow[];
+    cachedRows = JSON.parse(raw) as VendorPosRow[];
+    cachedRowsVersion = v;
+    return cachedRows;
   } catch {
     return null;
   }
@@ -143,6 +186,14 @@ export function writeSalesVersion(args: {
   writeAtomic("normalized-rows.json", args.rows);
   writeAtomic("rejected-rows.json", args.rejectedRows ?? []);
   writeAtomic("validation-report.json", args.validationReport ?? { ok: true });
+
+  invalidateSalesVersionCaches();
+  cachedRows = args.rows;
+  cachedRowsVersion = args.dataVersion;
+  cachedSnapshot = args.snapshot;
+  cachedSnapshotVersion = args.dataVersion;
+  cachedMeta = args.metadata;
+  cachedMetaVersion = args.dataVersion;
 }
 
 export function getActiveSalesStatus() {

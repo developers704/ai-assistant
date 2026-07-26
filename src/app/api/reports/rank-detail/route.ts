@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import Papa from "papaparse";
 import {
+  getLatestReportMeta,
   getLatestReportWithSummary,
   getReportMeta,
   readReportCsv,
 } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { filterExcludedSalesRows, isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
+import {
+  filterExcludedSalesRows,
+  isExcludedSalesSku,
+  isHiddenFromTopVendorModelsRow,
+  salesUnitsSold,
+  SALES_EXCLUSION_RULES_VERSION,
+} from "@/lib/utils";
 import { lookupOnhandQty } from "@/lib/inventory/onhand";
 import type { RankDimension, VendorPosRow } from "@/lib/reports/types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
@@ -21,6 +28,12 @@ import {
   resolveSalespersonLabelWithCode,
 } from "@/lib/sales/salesperson-directory";
 import type { VendorModelSkuLine } from "@/lib/sales/sales-types";
+import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
+import {
+  readActivePointer,
+  readNormalizedRows,
+  readVersionMetadata,
+} from "@/lib/sales/data/version-store";
 
 export const runtime = "nodejs";
 
@@ -46,6 +59,42 @@ function resolveSalespersonCode(value: string): string {
   const paren = raw.match(/\(([A-Za-z0-9_.-]+)\)\s*$/);
   if (paren) return paren[1].toUpperCase();
   return raw.toUpperCase();
+}
+
+function loadRankRows(reportId?: string): VendorPosRow[] | null {
+  const latestMeta = getLatestReportMeta();
+  const useVersion =
+    isSalesUnifiedIntelligenceEnabled() &&
+    (!reportId || !latestMeta || reportId === latestMeta.id);
+
+  if (useVersion) {
+    const pointer = readActivePointer();
+    if (pointer.activeVersion) {
+      const versionRows = readNormalizedRows(pointer.activeVersion);
+      if (versionRows?.length) {
+        const versionMeta = readVersionMetadata(pointer.activeVersion);
+        if (versionMeta?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION) {
+          return versionRows;
+        }
+        return filterExcludedSalesRows(versionRows);
+      }
+    }
+  }
+
+  let csv: string | null = null;
+  if (reportId) {
+    if (!getReportMeta(reportId)) return null;
+    csv = readReportCsv(reportId);
+  } else {
+    const latest = getLatestReportWithSummary();
+    csv = latest?.csv ?? null;
+  }
+  if (!csv) return null;
+  const parsed = Papa.parse<Record<string, unknown>>(csv, {
+    header: true,
+    skipEmptyLines: true,
+  });
+  return filterExcludedSalesRows(parseVendorPosRows(parsed.data ?? []).rows);
 }
 
 function skuLinesCredited(
@@ -132,26 +181,13 @@ export async function GET(req: Request) {
     );
   }
 
-  let csv: string | null = null;
-  if (id) {
-    if (!getReportMeta(id)) {
-      return NextResponse.json({ error: "Report not found" }, { status: 404 });
-    }
-    csv = readReportCsv(id);
-  } else {
-    const latest = getLatestReportWithSummary();
-    csv = latest?.csv ?? null;
+  let rows = loadRankRows(id);
+  if (!rows) {
+    return NextResponse.json(
+      { error: id ? "Report not found" : "No report available" },
+      { status: id ? 404 : 404 }
+    );
   }
-
-  if (!csv) {
-    return NextResponse.json({ error: "No report available" }, { status: 404 });
-  }
-
-  const parsed = Papa.parse<Record<string, unknown>>(csv, {
-    header: true,
-    skipEmptyLines: true,
-  });
-  let rows = filterExcludedSalesRows(parseVendorPosRows(parsed.data ?? []).rows);
   if (from && to) {
     const a = from <= to ? from : to;
     const b = from <= to ? to : from;

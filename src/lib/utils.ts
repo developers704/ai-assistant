@@ -184,43 +184,45 @@ function isSaleLeg(row: SalesReturnPairRow): boolean {
   return qty > 0 || net > 0 || gross > 0;
 }
 
-function findReturnPairMatch(
+function pairIndexKey(row: SalesReturnPairRow): string | null {
+  const store = (row.storeName ?? "").trim().toLowerCase();
+  if (!store) return null;
+  const amountCents = pairAmountCents(row);
+  if (!(amountCents > 0)) return null;
+  const date = (row.date ?? "").trim().slice(0, 10);
+  return `${store}|${date}|${amountCents}`;
+}
+
+function findReturnPairMatchIndexed(
   rows: SalesReturnPairRow[],
   negIdx: number,
   usedPositive: Set<number>,
   drop: Set<number>,
-  requireSameTxn: boolean
+  requireSameTxn: boolean,
+  saleIndex: Map<string, number[]>,
+  txnIndex: Map<string, number[]>
 ): number {
   const neg = rows[negIdx];
   if (!isReturnLeg(neg)) return -1;
 
-  const store = (neg.storeName ?? "").trim().toLowerCase();
-  if (!store) return -1;
-  const amountCents = pairAmountCents(neg);
-  if (!(amountCents > 0)) return -1;
-  const item = salesItemKey(neg);
-  const sku = salesSkuKey(neg);
+  const key = pairIndexKey(neg);
+  if (!key) return -1;
   const txn = (neg.transactionId ?? "").trim().toUpperCase();
-  const negDate = (neg.date ?? "").trim().slice(0, 10);
+  const sku = salesSkuKey(neg);
+  const item = salesItemKey(neg);
   const absNegQty = Math.abs(Number(neg.quantity ?? 0));
 
   // Cross-txn pairing must not steal exchange returns: if this receipt still has
   // a different sale line, keep the negative for net revenue.
-  if (!requireSameTxn && txn && txnHasOtherSaleContext(rows, negIdx, drop)) {
+  if (!requireSameTxn && txn && txnHasOtherSaleContextIndexed(rows, negIdx, drop, txnIndex)) {
     return -1;
   }
 
-  for (let j = 0; j < rows.length; j++) {
+  const candidates = saleIndex.get(key) ?? [];
+  for (const j of candidates) {
     if (negIdx === j || drop.has(j) || usedPositive.has(j)) continue;
     const pos = rows[j];
     if (!isSaleLeg(pos)) continue;
-    if ((pos.storeName ?? "").trim().toLowerCase() !== store) continue;
-    if (pairAmountCents(pos) !== amountCents) continue;
-    // Keep daily nets accurate — never void-pair across calendar days.
-    const posDate = (pos.date ?? "").trim().slice(0, 10);
-    if (negDate && posDate && negDate !== posDate) continue;
-    if (negDate && !posDate) continue;
-    if (!negDate && posDate) continue;
 
     const posItem = salesItemKey(pos);
     const posSku = salesSkuKey(pos);
@@ -228,10 +230,8 @@ function findReturnPairMatch(
     if (!sku && item && posItem && item !== posItem) continue;
     if (item && posItem && item !== posItem) continue;
 
-    // Prefer matching opposite absolute qty when both legs have a real qty signal
     const absPosQty = Math.abs(Number(pos.quantity ?? 0));
     if (absNegQty > 0 && absPosQty > 0 && absNegQty !== absPosQty) {
-      // Allow qty both +1 with opposite-signed money (legacy parse quirk)
       const negQty = Number(neg.quantity ?? 0);
       const posQty = Number(pos.quantity ?? 0);
       if (!(negQty > 0 && posQty > 0 && Number(neg.netRevenue ?? 0) < 0)) continue;
@@ -250,10 +250,11 @@ function findReturnPairMatch(
 }
 
 /** Same receipt has another sale line (different SKU/amount) → exchange / multi-line. */
-function txnHasOtherSaleContext(
+function txnHasOtherSaleContextIndexed(
   rows: SalesReturnPairRow[],
   negIdx: number,
-  drop: Set<number>
+  drop: Set<number>,
+  txnIndex: Map<string, number[]>
 ): boolean {
   const neg = rows[negIdx];
   const txn = (neg.transactionId ?? "").trim().toUpperCase();
@@ -262,10 +263,9 @@ function txnHasOtherSaleContext(
   const negItem = salesItemKey(neg);
   const negAmt = pairAmountCents(neg);
 
-  for (let j = 0; j < rows.length; j++) {
+  for (const j of txnIndex.get(txn) ?? []) {
     if (j === negIdx || drop.has(j)) continue;
     const r = rows[j];
-    if ((r.transactionId ?? "").trim().toUpperCase() !== txn) continue;
     if (!isSaleLeg(r)) continue;
     const posSku = salesSkuKey(r);
     const posItem = salesItemKey(r);
@@ -289,11 +289,37 @@ export function dropMatchedSalesReturnPairs<T extends SalesReturnPairRow>(rows: 
   const drop = new Set<number>();
   const usedPositive = new Set<number>();
 
+  const saleIndex = new Map<string, number[]>();
+  const txnIndex = new Map<string, number[]>();
+  for (let j = 0; j < rows.length; j++) {
+    const r = rows[j];
+    const txn = (r.transactionId ?? "").trim().toUpperCase();
+    if (txn) {
+      const list = txnIndex.get(txn);
+      if (list) list.push(j);
+      else txnIndex.set(txn, [j]);
+    }
+    if (!isSaleLeg(r)) continue;
+    const key = pairIndexKey(r);
+    if (!key) continue;
+    const list = saleIndex.get(key);
+    if (list) list.push(j);
+    else saleIndex.set(key, [j]);
+  }
+
   const pairPass = (requireSameTxn: boolean) => {
     for (let i = 0; i < rows.length; i++) {
       if (drop.has(i)) continue;
       if (!isReturnLeg(rows[i])) continue;
-      const match = findReturnPairMatch(rows, i, usedPositive, drop, requireSameTxn);
+      const match = findReturnPairMatchIndexed(
+        rows,
+        i,
+        usedPositive,
+        drop,
+        requireSameTxn,
+        saleIndex,
+        txnIndex
+      );
       if (match >= 0) {
         drop.add(i);
         drop.add(match);

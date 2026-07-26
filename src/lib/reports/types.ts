@@ -53,6 +53,11 @@ export interface StoredReportMeta {
   vendorCode?: string | null;
   schema?: ReportSchema;
   dateRange?: { from: string; to: string };
+  /** SHA-256 prefix of CSV body — used to skip re-hashing on every sales ensure. */
+  contentHash?: string;
+  /** Bundled seed fingerprint (mtime + size) so ensureSeedReport avoids full CSV compare. */
+  seedMtimeMs?: number;
+  seedSize?: number;
 }
 
 export interface ReportSummary extends SalesSummary {

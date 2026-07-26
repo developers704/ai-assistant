@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
-import { getLatestReportWithSummary } from "@/lib/reports/store";
+import {
+  getLatestReportMeta,
+  getLatestReportWithSummary,
+  getReportMeta,
+} from "@/lib/reports/store";
+import type { StoredReportMeta } from "@/lib/reports/types";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import { querySales } from "@/lib/sales/query-sales";
 import { reportSummaryFromQueryResult } from "@/lib/sales/dashboard-bridge";
-import { ensureActiveSalesVersion } from "@/lib/sales/refresh/service";
+import {
+  ensureActiveSalesVersion,
+} from "@/lib/sales/refresh/service";
 import { setActiveSalesContext, clearActiveSalesContext } from "@/lib/sales/active-context";
-import { readActivePointer } from "@/lib/sales/data/version-store";
+import {
+  readActivePointer,
+  readVersionMetadata,
+  readVersionSnapshot,
+} from "@/lib/sales/data/version-store";
 import type { SalesQueryResult } from "@/lib/sales/sales-types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 
@@ -25,6 +36,50 @@ function previousAvailableDate(dates: string[], current: string): string | null 
   const idx = sorted.indexOf(current);
   if (idx > 0) return sorted[idx - 1] ?? null;
   return null;
+}
+
+function filterValues(
+  options: { value: string }[] | undefined
+): string[] {
+  return (options ?? []).map((o) => o.value).filter(Boolean).sort((a, b) => a.localeCompare(b));
+}
+
+/** Shell for dashboard UI — version snapshot + report index meta (no CSV summarize). */
+function loadUnifiedSalesShell(version: string): {
+  report: StoredReportMeta;
+  availableDates: string[];
+  availableStores: string[];
+  availableDepartments: string[];
+  availableDesigns: string[];
+  availableClasses: string[];
+  availableVendors: string[];
+} | null {
+  const versionMeta = readVersionMetadata(version);
+  const snapshot = readVersionSnapshot(version);
+  if (!versionMeta || !snapshot) return null;
+
+  const report =
+    (versionMeta.reportId ? getReportMeta(versionMeta.reportId) : null) ??
+    getLatestReportMeta();
+  if (!report) return null;
+
+  const availableDates =
+    versionMeta.availableDates?.length
+      ? versionMeta.availableDates
+      : (snapshot.trends?.daily ?? [])
+          .map((p) => p.from || p.period)
+          .filter(Boolean)
+          .sort();
+
+  return {
+    report,
+    availableDates,
+    availableStores: filterValues(snapshot.availableFilters.stores),
+    availableDepartments: filterValues(snapshot.availableFilters.departments),
+    availableDesigns: filterValues(snapshot.availableFilters.designs),
+    availableClasses: filterValues(snapshot.availableFilters.classes),
+    availableVendors: filterValues(snapshot.availableFilters.vendors),
+  };
 }
 
 async function queryDashboardSlice(opts: {
@@ -151,9 +206,9 @@ export async function GET(req: NextRequest) {
   });
 
   if (isSalesUnifiedIntelligenceEnabled()) {
-    await ensureActiveSalesVersion();
-    const latestMeta = getLatestReportWithSummary();
-    if (latestMeta) {
+    const version = await ensureActiveSalesVersion();
+    const shell = version ? loadUnifiedSalesShell(version) : null;
+    if (shell) {
       const slice = {
         date: filterDate,
         dateFrom: filterDateFrom,
@@ -170,7 +225,7 @@ export async function GET(req: NextRequest) {
       let previousWeek: SalesQueryResult | null = null;
 
       if (filterDate) {
-        const prevDate = previousAvailableDate(latestMeta.availableDates, filterDate);
+        const prevDate = previousAvailableDate(shell.availableDates, filterDate);
         if (prevDate) {
           previousDay = await queryDashboardSlice({
             ...slice,
@@ -182,7 +237,7 @@ export async function GET(req: NextRequest) {
         }
 
         const weekAgo = shiftIsoDate(filterDate, -7);
-        if (latestMeta.availableDates.includes(weekAgo) && weekAgo !== prevDate) {
+        if (shell.availableDates.includes(weekAgo) && weekAgo !== prevDate) {
           previousWeek = await queryDashboardSlice({
             ...slice,
             date: weekAgo,
@@ -195,26 +250,26 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      const summary = reportSummaryFromQueryResult(result, latestMeta.meta, {
+      const summary = reportSummaryFromQueryResult(result, shell.report, {
         previousDay,
         previousWeek,
       });
       return NextResponse.json(
         {
           summary,
-          report: latestMeta.meta,
+          report: shell.report,
           data: [],
           source: "report",
           reportLabel: summary.reportLabel,
           reportDate: summary.reportDate,
           vendorCode: summary.vendorCode,
           reportPeriod: summary.reportPeriod,
-          availableDates: latestMeta.availableDates,
-          availableStores: latestMeta.availableStores,
-          availableDepartments: latestMeta.availableDepartments,
-          availableDesigns: latestMeta.availableDesigns,
-          availableClasses: latestMeta.availableClasses,
-          availableVendors: latestMeta.availableVendors,
+          availableDates: shell.availableDates,
+          availableStores: shell.availableStores,
+          availableDepartments: shell.availableDepartments,
+          availableDesigns: shell.availableDesigns,
+          availableClasses: shell.availableClasses,
+          availableVendors: shell.availableVendors,
           filterDate: filterDate ?? null,
           filterDateFrom: filterDateFrom ?? null,
           filterDateTo: filterDateTo ?? null,
