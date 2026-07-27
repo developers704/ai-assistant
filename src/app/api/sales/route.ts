@@ -128,7 +128,7 @@ async function queryDashboardSlice(opts: {
           topDesigns: true,
           topVendors: true,
           topClasses: true,
-          topProducts: true,
+          // Dashboard uses vendor models (not separate product ranking).
           topVendorModels: true,
           topSalesPeople: true,
         },

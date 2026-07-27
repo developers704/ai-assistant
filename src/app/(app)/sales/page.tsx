@@ -121,10 +121,15 @@ export default function SalesPage() {
   const salesFetchGenRef = useRef(0);
   /** When true and no date is selected, pick the newest available report day after fetch. */
   const autoSelectLatestRef = useRef(!rangeFromSearchParams(searchParams));
+  /** Wait for status bootstrap so the first /api/sales hit is already latest-day (not all 6 months). */
+  const [bootstrapped, setBootstrapped] = useState(
+    () => Boolean(rangeFromSearchParams(searchParams))
+  );
 
   const resetFiltersForNewReport = () => {
     skipUrlSyncRef.current = true;
     autoSelectLatestRef.current = true;
+    setBootstrapped(false);
     setDateRange(null);
     setDateWarning(null);
     setFilterStores([]);
@@ -144,6 +149,33 @@ export default function SalesPage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- subscribe once; reset uses stable setters
   }, []);
+
+  // Resolve newest report day before the first dashboard query (avoids loading all months).
+  useEffect(() => {
+    if (bootstrapped) return;
+    let cancelled = false;
+    if (!autoSelectLatestRef.current) {
+      setBootstrapped(true);
+      return;
+    }
+    fetch("/api/sales/status", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { metadata?: { dataThrough?: string | null } | null }) => {
+        if (cancelled) return;
+        const through = d.metadata?.dataThrough?.trim() ?? "";
+        if (through && isValidIsoDate(through)) {
+          autoSelectLatestRef.current = false;
+          setDateRange({ from: through, to: through });
+        }
+        setBootstrapped(true);
+      })
+      .catch(() => {
+        if (!cancelled) setBootstrapped(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bootstrapped]);
 
   // Voice / deep-link: apply URL → filters only when the URL itself changes.
   // (Do not re-apply on every local filter change — that causes the glitch.)
@@ -213,6 +245,8 @@ export default function SalesPage() {
   }, [detailTypeFromUrl, detailValueFromUrl]);
 
   useEffect(() => {
+    if (!bootstrapped) return;
+
     const params = new URLSearchParams();
     appendDateParams(params, dateRange);
     appendFilterParams(params, {
@@ -329,6 +363,7 @@ export default function SalesPage() {
     return () => ac.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- resetFilters uses router; intentional deps are filters/nonce
   }, [
+    bootstrapped,
     dateRange,
     filterStores,
     filterDepartments,

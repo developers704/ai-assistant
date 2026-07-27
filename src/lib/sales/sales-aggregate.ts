@@ -196,9 +196,10 @@ export function groupRows(
   }
 
   const totalNet = rows.reduce((s, r) => s + r.netRevenue, 0) || 1;
-  const list: SalesBreakdownRow[] = [...map.entries()].map(([name, v]) => {
+  const list: (SalesBreakdownRow & { _modelRows?: VendorPosRow[] })[] = [
+    ...map.entries(),
+  ].map(([name, v]) => {
     const s = summarizeRows(v.rows);
-    const skus = by === "vendor_model" ? skuLinesForModel(v.rows) : undefined;
     return {
       name,
       netSales: s.netSales ?? 0,
@@ -212,7 +213,8 @@ export function groupRows(
       sku: v.sku,
       vendorModel: v.vendorModel,
       description: v.description,
-      skus: skus?.length ? skus : undefined,
+      // Defer SKU/store/onhand breakdown until after sort — only top models need it.
+      ...(by === "vendor_model" ? { _modelRows: v.rows } : {}),
     };
   });
 
@@ -228,8 +230,23 @@ export function groupRows(
     return sortDirection === "asc" ? as - bs : bs - as;
   });
 
-  if (limit == null || limit <= 0) return list;
-  return list.slice(0, limit);
+  const capped =
+    limit == null || limit <= 0 ? list : list.slice(0, limit);
+
+  // Full model list can be large on multi-month reports; only expand SKU/onhand
+  // for the leading rows the UI typically shows first (search still uses model text).
+  const SKU_DETAIL_CAP = 100;
+  return capped.map((item, i) => {
+    const modelRows = item._modelRows;
+    const { _modelRows: _, ...rest } = item;
+    if (!modelRows) return rest;
+    if (i >= SKU_DETAIL_CAP) return rest;
+    const skus = skuLinesForModel(modelRows);
+    return {
+      ...rest,
+      skus: skus.length ? skus : undefined,
+    };
+  });
 }
 
 export function filterRows(

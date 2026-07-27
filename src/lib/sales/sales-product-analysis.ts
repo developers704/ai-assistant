@@ -1,5 +1,6 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { isHiddenFromTopVendorModelsRow } from "@/lib/utils";
+import { hasOnhandData } from "@/lib/inventory/onhand";
 import { groupRows } from "./sales-aggregate";
 import type { SalesBreakdownRow } from "./sales-types";
 
@@ -15,6 +16,8 @@ export function getTopVendorModels(
     limit?: number | null;
   }
 ): SalesBreakdownRow[] {
+  // Warm onhand index once before SKU store lines attach lookups.
+  hasOnhandData();
   // Dashboard default: all models by pieces sold (revenue as tiebreaker).
   const sortBy =
     opts?.sortBy === "revenue"

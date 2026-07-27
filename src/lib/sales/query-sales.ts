@@ -707,8 +707,13 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
 
   for (const g of groupBy) ensureGroup(g);
 
-  // Full store list (highest → lowest) for Store Performance; not capped by dashboard top-N.
-  if (include.topStores) rankings.topStores = groupRows(filtered, "store", null);
+  // Full store list (highest → lowest) for Store Performance; reuse groupBy when present.
+  if (include.topStores) {
+    rankings.topStores =
+      breakdowns.byStore?.length && groupBy.includes("store")
+        ? breakdowns.byStore
+        : groupRows(filtered, "store", null);
+  }
   if (include.lowestStores) {
     rankings.lowestStores = groupRows(filtered, "store", 50, "netSales", "asc").slice(0, limit);
   }

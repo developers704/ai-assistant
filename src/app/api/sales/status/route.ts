@@ -16,7 +16,11 @@ export async function GET() {
       ? {
           dataVersion: status.metadata.dataVersion,
           fileName: status.metadata.fileName,
-          dataThrough: status.metadata.dataThrough,
+          dataThrough:
+            status.metadata.dataThrough ??
+            status.metadata.availableDates?.at(-1) ??
+            null,
+          availableDates: status.metadata.availableDates ?? [],
           rowCount: status.metadata.rowCount,
           validRowCount: status.metadata.validRowCount,
           rejectedRowCount: status.metadata.rejectedRowCount,
