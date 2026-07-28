@@ -21,6 +21,10 @@ import {
   RankDetailDrawer,
   type RankDetailSelection,
 } from "@/components/reports/RankDetailDrawer";
+import {
+  VendorModelDetailDrawer,
+  type VendorModelDetailSelection,
+} from "@/components/reports/VendorModelDetailDrawer";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 import {
@@ -114,6 +118,8 @@ export default function SalesPage() {
   const [dateWarning, setDateWarning] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
+  const [vendorModelDetail, setVendorModelDetail] =
+    useState<VendorModelDetailSelection | null>(null);
   const knownReportIdRef = useRef<string | null>(null);
   const skipUrlSyncRef = useRef(false);
   const lastUrlKeyRef = useRef<string | null>(null);
@@ -737,15 +743,40 @@ export default function SalesPage() {
                 <span className="text-xs text-ink-muted">
                   {isFinancingReport
                     ? "By net sales amount"
-                    : `Top ${topProducts.length} by qty · click a SKU for store / on hand`}
+                    : `Top ${topProducts.length} by qty · click row for detail & trend · expand SKU for stores`}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">
-                <TopProductsTable products={topProducts} />
+                <TopProductsTable
+                  products={topProducts}
+                  onVendorModelDetail={(p) =>
+                    setVendorModelDetail({
+                      vendorModel: p.vendorModel || p.itemNumber || p.name,
+                      description: p.name,
+                      imageUrl: p.imageUrl,
+                    })
+                  }
+                />
               </div>
             </Card>
           </div>
         </PageShellBody>
+
+      <VendorModelDetailDrawer
+        selection={vendorModelDetail}
+        filterDate={
+          dateRange && dateRange.from === dateRange.to ? dateRange.from : undefined
+        }
+        filterDateFrom={dateRange?.from}
+        filterDateTo={dateRange?.to}
+        filterStore={filterStores.length ? filterStores.join(",") : undefined}
+        reportId={
+          reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
+            ? reportId
+            : undefined
+        }
+        onClose={() => setVendorModelDetail(null)}
+      />
 
       <RankDetailDrawer
         selection={rankDetail}

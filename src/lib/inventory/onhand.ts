@@ -9,10 +9,25 @@ const ONHAND_DIR = path.join(process.cwd(), ".data", "inventory");
 const ONHAND_FILE = path.join(ONHAND_DIR, "onhand.csv");
 const SEED_ONHAND = path.join(process.cwd(), "data", "inventory", "Inventory-Onhand.csv");
 
+type SkuCatalogMeta = {
+  sku: string;
+  department?: string;
+  design?: string;
+  productClass?: string;
+  subClass?: string;
+  vendor?: string;
+  vendorModel?: string;
+  description?: string;
+};
+
 type OnhandIndex = {
   byStoreSku: Map<string, number>;
   /** SKU (upper) → store → onhand qty */
   bySku: Map<string, Map<string, number>>;
+  /** SKU (upper) → catalog fields from inventory export */
+  bySkuMeta: Map<string, SkuCatalogMeta>;
+  /** Vendor model (upper) → SKU keys */
+  byVendorModel: Map<string, Set<string>>;
   loadedAt: number;
   fileMtime: number;
   rowCount: number;
@@ -60,13 +75,37 @@ function normalizeHeader(h: string): string {
 function parseOnhandCsv(csvText: string): {
   byStoreSku: Map<string, number>;
   bySku: Map<string, Map<string, number>>;
+  bySkuMeta: Map<string, SkuCatalogMeta>;
+  byVendorModel: Map<string, Set<string>>;
 } {
   const lines = csvText.split(/\r?\n/);
-  if (lines.length < 2) return { byStoreSku: new Map(), bySku: new Map() };
+  if (lines.length < 2) {
+    return {
+      byStoreSku: new Map(),
+      bySku: new Map(),
+      bySkuMeta: new Map(),
+      byVendorModel: new Map(),
+    };
+  }
 
   const headers = splitCsvLine(lines[0]).map(normalizeHeader);
   const skuIdx = headers.findIndex((h) => h === "sku #" || h === "sku" || h === "item #");
   const storeIdx = headers.findIndex((h) => h === "store");
+  const deptIdx = headers.findIndex((h) => h === "department");
+  const designIdx = headers.findIndex((h) => h === "design");
+  const classIdx = headers.findIndex((h) => h === "class");
+  const subClassIdx = headers.findIndex(
+    (h) => h === "sub-class" || h === "sub class" || h === "subclass"
+  );
+  const vendorIdx = headers.findIndex(
+    (h) => h === "vendor" || h === "vendor name" || h === "vendor name"
+  );
+  const modelIdx = headers.findIndex(
+    (h) => h === "vendor model #" || h === "vendor model" || h === "vendor model #"
+  );
+  const descIdx = headers.findIndex(
+    (h) => h === "item desc" || h === "description" || h === "item description"
+  );
   const qtyIdx = headers.findIndex(
     (h) =>
       h === "onhand qty" ||
@@ -82,6 +121,8 @@ function parseOnhandCsv(csvText: string): {
 
   const byStoreSku = new Map<string, number>();
   const bySku = new Map<string, Map<string, number>>();
+  const bySkuMeta = new Map<string, SkuCatalogMeta>();
+  const byVendorModel = new Map<string, Set<string>>();
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (!line || !line.trim()) continue;
@@ -102,8 +143,31 @@ function parseOnhandCsv(csvText: string): {
       bySku.set(skuKey, storeMap);
     }
     storeMap.set(store.trim(), n);
+
+    if (!bySkuMeta.has(skuKey)) {
+      bySkuMeta.set(skuKey, {
+        sku,
+        department: deptIdx >= 0 ? (cols[deptIdx] ?? "").trim() : undefined,
+        design: designIdx >= 0 ? (cols[designIdx] ?? "").trim() : undefined,
+        productClass: classIdx >= 0 ? (cols[classIdx] ?? "").trim() : undefined,
+        subClass: subClassIdx >= 0 ? (cols[subClassIdx] ?? "").trim() : undefined,
+        vendor: vendorIdx >= 0 ? (cols[vendorIdx] ?? "").trim() : undefined,
+        vendorModel: modelIdx >= 0 ? (cols[modelIdx] ?? "").trim() : undefined,
+        description: descIdx >= 0 ? (cols[descIdx] ?? "").trim() : undefined,
+      });
+    }
+    const model = modelIdx >= 0 ? (cols[modelIdx] ?? "").trim() : "";
+    if (model) {
+      const modelKey = model.toUpperCase();
+      let set = byVendorModel.get(modelKey);
+      if (!set) {
+        set = new Set();
+        byVendorModel.set(modelKey, set);
+      }
+      set.add(skuKey);
+    }
   }
-  return { byStoreSku, bySku };
+  return { byStoreSku, bySku, bySkuMeta, byVendorModel };
 }
 
 function ensureSeedOnhand() {
@@ -138,10 +202,12 @@ function loadIndex(): OnhandIndex | null {
   if (cache && cache.fileMtime === stat.mtimeMs) return cache;
 
   const text = fs.readFileSync(ONHAND_FILE, "utf-8");
-  const { byStoreSku, bySku } = parseOnhandCsv(text);
+  const { byStoreSku, bySku, bySkuMeta, byVendorModel } = parseOnhandCsv(text);
   cache = {
     byStoreSku,
     bySku,
+    bySkuMeta,
+    byVendorModel,
     loadedAt: Date.now(),
     fileMtime: stat.mtimeMs,
     rowCount: byStoreSku.size,
@@ -193,6 +259,20 @@ export function listOnhandStoresForSku(
 
 export function hasOnhandData(): boolean {
   return (loadIndex()?.rowCount ?? 0) > 0;
+}
+
+export function lookupSkuCatalogMeta(sku: string): SkuCatalogMeta | null {
+  const index = loadIndex();
+  if (!index) return null;
+  return index.bySkuMeta.get(sku.trim().toUpperCase()) ?? null;
+}
+
+/** SKU keys (upper) tied to a vendor model in the on-hand export. */
+export function listSkuKeysForVendorModel(vendorModel: string): string[] {
+  const index = loadIndex();
+  if (!index) return [];
+  const set = index.byVendorModel.get(vendorModel.trim().toUpperCase());
+  return set ? [...set] : [];
 }
 
 export function invalidateOnhandCache() {

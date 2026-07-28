@@ -55,6 +55,7 @@ export interface TopProductRow {
 interface TopProductsTableProps {
   products: TopProductRow[];
   emptyLabel?: string;
+  onVendorModelDetail?: (product: TopProductRow) => void;
 }
 
 /** Left identity cols + fixed metrics block so headers and values share one sub-grid. */
@@ -71,6 +72,7 @@ function formatMarginPct(rate: number | undefined | null): string {
 export function TopProductsTable({
   products,
   emptyLabel = "No product data in this report.",
+  onVendorModelDetail,
 }: TopProductsTableProps) {
   const baseRows = filterTopProductSkus(products);
   const [query, setQuery] = useState("");
@@ -171,8 +173,19 @@ export function TopProductsTable({
                   className={cn(
                     "grid grid-cols-1 gap-y-1 px-3 py-3 sm:py-2.5 sm:items-start gap-x-3",
                     MAIN_ROW_GRID,
+                    onVendorModelDetail && "cursor-pointer hover:bg-white/[0.04] transition-colors",
                     i % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
                   )}
+                  onClick={() => onVendorModelDetail?.(product)}
+                  onKeyDown={(e) => {
+                    if (!onVendorModelDetail) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onVendorModelDetail(product);
+                    }
+                  }}
+                  role={onVendorModelDetail ? "button" : undefined}
+                  tabIndex={onVendorModelDetail ? 0 : undefined}
                 >
                   <span className="text-xs font-medium text-ink-muted tabular-nums sm:text-sm sm:pt-1">
                     {i + 1}
@@ -190,10 +203,22 @@ export function TopProductsTable({
                     {model}
                   </span>
 
-                  <div className="sm:col-span-1 col-span-full -mt-1 sm:mt-0 min-w-0">
+                  <div
+                    className="sm:col-span-1 col-span-full -mt-1 sm:mt-0 min-w-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words whitespace-normal line-clamp-3">
                       {displayName}
                     </p>
+                    {onVendorModelDetail && (
+                      <button
+                        type="button"
+                        onClick={() => onVendorModelDetail(product)}
+                        className="mt-1 text-[11px] font-medium text-sky-300/80 hover:text-sky-200 underline-offset-2 hover:underline"
+                      >
+                        More detail & trend
+                      </button>
+                    )}
                     {skuLines.length > 0 && (
                       <SkuStoreBreakdownList lines={skuLines} />
                     )}
