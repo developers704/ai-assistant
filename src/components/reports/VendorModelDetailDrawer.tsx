@@ -15,7 +15,6 @@ import {
   formatCurrency,
   formatPieceCount,
   formatProductDisplayName,
-  cn,
 } from "@/lib/utils";
 import { formatReportDateDisplay } from "@/lib/reports/date-utils";
 import {
@@ -103,10 +102,14 @@ function UnitsTrendChart({ data }: { data: VendorModelDetail["trend"] }) {
               borderRadius: "12px",
               fontSize: "12px",
             }}
-            formatter={(value: number, name: string) => [
-              name === "units" ? formatPieceCount(value) : formatCurrency(value),
-              name === "units" ? "Units" : "Revenue",
-            ]}
+            formatter={(value, name) => {
+              const n = typeof value === "number" ? value : Number(value) || 0;
+              const key = String(name);
+              return [
+                key === "units" ? formatPieceCount(n) : formatCurrency(n),
+                key === "units" ? "Units" : "Revenue",
+              ];
+            }}
             labelFormatter={(label) => String(label)}
           />
           <Area

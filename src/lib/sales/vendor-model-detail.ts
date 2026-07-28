@@ -271,7 +271,7 @@ export function buildVendorModelDetail(
       : null;
     const storeCount = stores?.length ?? null;
     skus.push({
-      sku: meta?.sku ?? skuKey,
+      sku: skuKey,
       description: meta?.description ?? "—",
       vendor: meta?.vendor ?? "—",
       department: meta?.department ?? "—",
