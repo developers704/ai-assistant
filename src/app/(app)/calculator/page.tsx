@@ -180,7 +180,7 @@ export default function CalculatorPage() {
             gradient
             eyebrow="Pricing"
             title="Price Calculator"
-            subtitle="SKU lookup · manager tiers · financing · commission"
+            subtitle="SKU lookup · manager tiers · financing · regular / goal"
             action={
               <div className="flex items-center gap-2">
                 {inventoryLoaded === true && (
@@ -442,7 +442,7 @@ export default function CalculatorPage() {
                   </CardHeader>
                   <div className="space-y-4">
                     <Input
-                      label="Commission ($)"
+                      label="Regular ($)"
                       type="number"
                       step="0.01"
                       min="0"
@@ -451,7 +451,7 @@ export default function CalculatorPage() {
                       placeholder="0.00"
                     />
                     <Input
-                      label="Commission+ ($)"
+                      label="Goal ($)"
                       type="number"
                       step="0.01"
                       min="0"
@@ -473,10 +473,10 @@ export default function CalculatorPage() {
                         />
                       )}
                       {num(commission) > 0 && (
-                        <Row label="Commission" value={money(num(commission))} />
+                        <Row label="Regular" value={money(num(commission))} />
                       )}
                       {num(commissionPlus) > 0 && (
-                        <Row label="Commission+" value={money(num(commissionPlus))} />
+                        <Row label="Goal" value={money(num(commissionPlus))} />
                       )}
                     </div>
 
