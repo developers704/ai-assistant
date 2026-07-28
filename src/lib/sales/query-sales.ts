@@ -733,9 +733,9 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     rankings.topProducts = getTopProducts(filtered, { limit, sortBy: productSort });
   }
   if (include.topVendorModels) {
-    // Full vendor-model list (SKU breakdown + stores) — not capped by dashboard top-N.
     rankings.topVendorModels = getTopVendorModels(filtered, {
       sortBy: productSort,
+      limit,
     });
     if (!breakdowns.byVendorModel && groupBy.includes("vendor_model")) {
       breakdowns.byVendorModel = rankings.topVendorModels;

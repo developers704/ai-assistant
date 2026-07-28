@@ -109,7 +109,8 @@ async function queryDashboardSlice(opts: {
     classes: opts.classes?.length ? opts.classes : undefined,
     resetContext: true,
     exactFilters: true,
-    limit: isCompare ? 500 : 20,
+    /** Always top 100 vendor models on the sales dashboard. */
+    limit: isCompare ? 500 : 100,
     sortBy: "quantity",
     groupBy: ["store"],
     include: isCompare

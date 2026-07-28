@@ -135,20 +135,9 @@ export function TopProductsTable({
                 (product.revenue > 0 && product.margin != null
                   ? product.margin / product.revenue
                   : null);
-              const skuLines: TopProductSkuLine[] =
-                product.skus?.length
-                  ? product.skus
-                  : product.itemNumber
-                    ? [
-                        {
-                          sku: product.itemNumber,
-                          units: product.units,
-                          revenue: product.revenue,
-                          margin: product.margin,
-                          marginRate: marginRate ?? undefined,
-                        },
-                      ]
-                    : [];
+              const skuLines: TopProductSkuLine[] = product.skus?.length
+                ? product.skus
+                : [];
               return (
                 <li
                   key={`${product.vendorModel ?? ""}-${product.itemNumber ?? ""}-${product.name}-${i}`}

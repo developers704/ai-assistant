@@ -11,6 +11,8 @@ const SEED_ONHAND = path.join(process.cwd(), "data", "inventory", "Inventory-Onh
 
 type OnhandIndex = {
   byStoreSku: Map<string, number>;
+  /** SKU (upper) → store → onhand qty */
+  bySku: Map<string, Map<string, number>>;
   loadedAt: number;
   fileMtime: number;
   rowCount: number;
@@ -55,9 +57,12 @@ function normalizeHeader(h: string): string {
   return h.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function parseOnhandCsv(csvText: string): Map<string, number> {
+function parseOnhandCsv(csvText: string): {
+  byStoreSku: Map<string, number>;
+  bySku: Map<string, Map<string, number>>;
+} {
   const lines = csvText.split(/\r?\n/);
-  if (lines.length < 2) return new Map();
+  if (lines.length < 2) return { byStoreSku: new Map(), bySku: new Map() };
 
   const headers = splitCsvLine(lines[0]).map(normalizeHeader);
   const skuIdx = headers.findIndex((h) => h === "sku #" || h === "sku" || h === "item #");
@@ -69,7 +74,8 @@ function parseOnhandCsv(csvText: string): Map<string, number> {
     throw new Error('Onhand CSV needs "SKU #", "Store", and "Onhand Qty" columns.');
   }
 
-  const map = new Map<string, number>();
+  const byStoreSku = new Map<string, number>();
+  const bySku = new Map<string, Map<string, number>>();
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (!line || !line.trim()) continue;
@@ -82,9 +88,16 @@ function parseOnhandCsv(csvText: string): Map<string, number> {
     const n = Number.isFinite(qty) ? qty : 0;
     const key = storeSkuKey(store, sku);
     // If duplicate store+SKU rows appear, keep the last (snapshot truth).
-    map.set(key, n);
+    byStoreSku.set(key, n);
+    const skuKey = sku.toUpperCase();
+    let storeMap = bySku.get(skuKey);
+    if (!storeMap) {
+      storeMap = new Map();
+      bySku.set(skuKey, storeMap);
+    }
+    storeMap.set(store.trim(), n);
   }
-  return map;
+  return { byStoreSku, bySku };
 }
 
 function ensureSeedOnhand() {
@@ -119,9 +132,10 @@ function loadIndex(): OnhandIndex | null {
   if (cache && cache.fileMtime === stat.mtimeMs) return cache;
 
   const text = fs.readFileSync(ONHAND_FILE, "utf-8");
-  const byStoreSku = parseOnhandCsv(text);
+  const { byStoreSku, bySku } = parseOnhandCsv(text);
   cache = {
     byStoreSku,
+    bySku,
     loadedAt: Date.now(),
     fileMtime: stat.mtimeMs,
     rowCount: byStoreSku.size,
@@ -155,6 +169,22 @@ export function lookupOnhandQty(sku: string, store: string): number | null {
   return index.byStoreSku.get(key) ?? 0;
 }
 
+/**
+ * Every store that has an onhand row for this SKU (including qty 0).
+ * null = onhand file not loaded.
+ */
+export function listOnhandStoresForSku(
+  sku: string
+): { store: string; onhand: number }[] | null {
+  const index = loadIndex();
+  if (!index) return null;
+  const storeMap = index.bySku.get(sku.trim().toUpperCase());
+  if (!storeMap?.size) return [];
+  return [...storeMap.entries()]
+    .map(([store, onhand]) => ({ store, onhand }))
+    .sort((a, b) => a.store.localeCompare(b.store));
+}
+
 export function hasOnhandData(): boolean {
   return (loadIndex()?.rowCount ?? 0) > 0;
 }
@@ -166,10 +196,10 @@ export function invalidateOnhandCache() {
 /** Replace onhand snapshot (e.g. upload / deploy refresh). */
 export function saveOnhandCsv(csvText: string): { rowCount: number } {
   ensureDir();
-  const map = parseOnhandCsv(csvText);
-  if (!map.size) throw new Error("No onhand rows found.");
+  const { byStoreSku } = parseOnhandCsv(csvText);
+  if (!byStoreSku.size) throw new Error("No onhand rows found.");
   fs.writeFileSync(ONHAND_FILE, csvText, "utf-8");
   cache = null;
   const index = loadIndex();
-  return { rowCount: index?.rowCount ?? map.size };
+  return { rowCount: index?.rowCount ?? byStoreSku.size };
 }

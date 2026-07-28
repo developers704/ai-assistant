@@ -44,13 +44,21 @@ describe("skuLinesForModel store units", () => {
     expect(lines).toHaveLength(2);
     const primary = lines.find((l) => l.sku === "236292Y")!;
     expect(primary.units).toBe(4);
-    expect(primary.stores?.map((s) => ({ name: s.name, units: s.units }))).toEqual([
+    const sold = (primary.stores ?? [])
+      .filter((s) => s.units > 0)
+      .map((s) => ({ name: s.name, units: s.units }));
+    expect(sold).toEqual([
       { name: "VJ-ROSE", units: 3 },
       { name: "VJ-ARDN", units: 1 },
     ]);
+    // Onhand-only stores (0 sold) may also appear when inventory has the SKU
+    expect((primary.stores ?? []).some((s) => s.units === 0)).toBe(true);
+
     const other = lines.find((l) => l.sku === "999")!;
-    expect(other.stores?.map((s) => ({ name: s.name, units: s.units }))).toEqual([
-      { name: "VJ-ARDN", units: 4 },
-    ]);
+    expect(
+      other.stores
+        ?.filter((s) => s.units > 0)
+        .map((s) => ({ name: s.name, units: s.units }))
+    ).toEqual([{ name: "VJ-ARDN", units: 4 }]);
   });
 });

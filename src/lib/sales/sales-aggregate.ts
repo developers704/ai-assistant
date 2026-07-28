@@ -1,7 +1,7 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
-import { lookupOnhandQty } from "@/lib/inventory/onhand";
+import { listOnhandStoresForSku, lookupOnhandQty } from "@/lib/inventory/onhand";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type {
   SalesBreakdownRow,
@@ -9,6 +9,44 @@ import type {
   SalesMetricSummary,
   VendorModelSkuLine,
 } from "./sales-types";
+
+/** Merge sold units with every onhand store for this SKU (0 sold still listed). */
+export function buildSkuStoreLines(
+  sku: string,
+  storeUnits: Map<string, number>
+): { name: string; units: number; onhand?: number }[] {
+  const merged = new Map<string, { units: number; onhand: number | null }>();
+
+  for (const [name, units] of storeUnits) {
+    merged.set(name, { units, onhand: lookupOnhandQty(sku, name) });
+  }
+
+  const onhandStores = listOnhandStoresForSku(sku);
+  if (onhandStores) {
+    for (const { store, onhand } of onhandStores) {
+      const cur = merged.get(store);
+      if (cur) {
+        cur.onhand = onhand;
+      } else {
+        merged.set(store, { units: 0, onhand });
+      }
+    }
+  }
+
+  const hasOnhand = onhandStores !== null;
+  return [...merged.entries()]
+    .map(([name, v]) => ({
+      name,
+      units: v.units,
+      ...(hasOnhand ? { onhand: v.onhand ?? 0 } : {}),
+    }))
+    .sort(
+      (a, b) =>
+        b.units - a.units ||
+        (b.onhand ?? 0) - (a.onhand ?? 0) ||
+        a.name.localeCompare(b.name)
+    );
+}
 
 export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
   const map = new Map<
@@ -39,16 +77,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
   return [...map.values()]
     .map(({ storeUnits, ...line }) => {
       const margin = line.margin ?? 0;
-      const stores = [...storeUnits.entries()]
-        .map(([name, units]) => {
-          const onhand = lookupOnhandQty(line.sku, name);
-          return {
-            name,
-            units,
-            ...(onhand !== null ? { onhand } : {}),
-          };
-        })
-        .sort((a, b) => b.units - a.units || a.name.localeCompare(b.name));
+      const stores = buildSkuStoreLines(line.sku, storeUnits);
       return {
         ...line,
         margin,
