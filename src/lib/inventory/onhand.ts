@@ -68,7 +68,13 @@ function parseOnhandCsv(csvText: string): {
   const skuIdx = headers.findIndex((h) => h === "sku #" || h === "sku" || h === "item #");
   const storeIdx = headers.findIndex((h) => h === "store");
   const qtyIdx = headers.findIndex(
-    (h) => h === "onhand qty" || h === "on hand qty" || h === "on-hand qty" || h === "qty on hand"
+    (h) =>
+      h === "onhand qty" ||
+      h === "on hand qty" ||
+      h === "on-hand qty" ||
+      h === "qty on hand" ||
+      h === "on-hand" ||
+      h === "onhand"
   );
   if (skuIdx < 0 || storeIdx < 0 || qtyIdx < 0) {
     throw new Error('Onhand CSV needs "SKU #", "Store", and "Onhand Qty" columns.');
