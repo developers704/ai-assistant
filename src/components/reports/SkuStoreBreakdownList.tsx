@@ -40,6 +40,10 @@ export function SkuStoreBreakdownList({
         const showOnhand = (line.stores ?? []).some(
           (s) => s.onhand != null && s.onhand !== undefined
         );
+        const totalOnhand = (line.stores ?? []).reduce(
+          (sum, s) => sum + (typeof s.onhand === "number" ? s.onhand : 0),
+          0
+        );
         const canExpand = storeCount > 0;
 
         return (
@@ -72,12 +76,14 @@ export function SkuStoreBreakdownList({
                   SKU #{line.sku}
                 </span>
               </span>
-              <span className="tabular-nums text-[11px] text-emerald-300/75 font-medium">
-                {formatPieceCount(line.units)} sold
-                {canExpand && (
-                  <span className="text-white/30 font-normal">
+              <span className="tabular-nums text-[11px] font-medium">
+                <span className="text-emerald-300/75">
+                  {formatPieceCount(line.units)} sold
+                </span>
+                {showOnhand && (
+                  <span className="text-amber-200/70 font-normal">
                     {" "}
-                    · {storeCount} stores
+                    · {formatOnhand(totalOnhand)} on hand
                   </span>
                 )}
               </span>
