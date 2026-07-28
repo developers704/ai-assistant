@@ -19,6 +19,7 @@ import { resolveDateRange, todayIso } from "./sales-date-resolver";
 import { filterRows, groupRows, summarizeRows } from "./sales-aggregate";
 import { compareEntitySlices } from "./sales-comparison";
 import { getTopVendorModels, getTopProducts } from "./sales-product-analysis";
+import { inclusivePeriodDays } from "./inventory-metrics";
 import {
   attachNavigationHint,
   attachSpokenNav,
@@ -733,9 +734,14 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     rankings.topProducts = getTopProducts(filtered, { limit, sortBy: productSort });
   }
   if (include.topVendorModels) {
+    const periodDays = inclusivePeriodDays(
+      dateResolved.type === "report_all" ? loaded.reportStart : dateResolved.startDate,
+      dateResolved.type === "report_all" ? loaded.reportEnd : dateResolved.endDate
+    );
     rankings.topVendorModels = getTopVendorModels(filtered, {
       sortBy: productSort,
       limit,
+      periodDays,
     });
     if (!breakdowns.byVendorModel && groupBy.includes("vendor_model")) {
       breakdowns.byVendorModel = rankings.topVendorModels;

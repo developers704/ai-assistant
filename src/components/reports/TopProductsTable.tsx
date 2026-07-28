@@ -8,6 +8,10 @@ import {
   cn,
   filterTopProductSkus,
 } from "@/lib/utils";
+import {
+  formatInventoryTurn,
+  formatVelocityPerStore,
+} from "@/lib/sales/inventory-metrics";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import { VendorModelTextFilter } from "@/components/reports/VendorModelTextFilter";
 import { SkuStoreBreakdownList } from "@/components/reports/SkuStoreBreakdownList";
@@ -23,6 +27,9 @@ export interface TopProductSkuLine {
   revenue: number;
   margin?: number;
   marginRate?: number;
+  onHandTotal?: number;
+  inventoryTurn?: number | null;
+  velocityPerStore?: number | null;
   stores?: { name: string; units: number; onhand?: number | null }[];
 }
 
@@ -38,6 +45,9 @@ export interface TopProductRow {
   margin?: number;
   /** Profit margin = profit / net sales (0–1) — CSV Profit Amount ÷ Total when present */
   marginRate?: number;
+  onHandTotal?: number;
+  inventoryTurn?: number | null;
+  velocityPerStore?: number | null;
   /** Distinct SKUs sold under this vendor model */
   skus?: TopProductSkuLine[];
 }
@@ -47,8 +57,11 @@ interface TopProductsTableProps {
   emptyLabel?: string;
 }
 
-const ROW_GRID =
-  "grid grid-cols-1 sm:grid-cols-[2rem_3.25rem_5rem_minmax(0,1fr)_3.75rem_5.5rem_3.75rem] lg:grid-cols-[2rem_3.5rem_6rem_minmax(0,2fr)_4rem_6rem_4rem] gap-x-3 gap-y-1";
+/** Left identity cols + fixed metrics block so headers and values share one sub-grid. */
+const MAIN_ROW_GRID =
+  "sm:grid-cols-[2rem_3.5rem_5.5rem_minmax(0,1fr)_auto]";
+const METRICS_GRID =
+  "grid grid-cols-5 sm:grid-cols-[3.25rem_5rem_3rem_3.5rem_4rem] gap-x-2 sm:gap-x-2.5";
 
 function formatMarginPct(rate: number | undefined | null): string {
   if (rate == null || !Number.isFinite(rate)) return "—";
@@ -107,19 +120,33 @@ export function TopProductsTable({
       <div className="overflow-hidden rounded-xl ring-1 ring-white/10">
         <div
           className={cn(
-            "hidden sm:grid gap-x-3 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-ink-muted bg-white/5 border-b border-white/10",
-            "sm:grid-cols-[2rem_3.25rem_5rem_minmax(0,1fr)_3.75rem_5.5rem_3.75rem] lg:grid-cols-[2rem_3.5rem_6rem_minmax(0,2fr)_4rem_6rem_4rem]"
+            "hidden sm:grid gap-x-3 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-ink-muted bg-white/5 border-b border-white/10 items-center",
+            MAIN_ROW_GRID
           )}
         >
           <span>#</span>
           <span>Pic</span>
           <span>Vendor model</span>
           <span>Product</span>
-          <span className="text-right">Qty</span>
-          <span className="text-right">Revenue</span>
-          <span className="text-right" title="Profit ÷ Net sales (Total − Cost) / Total">
-            Margin
-          </span>
+          <div className={METRICS_GRID}>
+            <span className="text-right">Qty</span>
+            <span className="text-right">Revenue</span>
+            <span className="text-right" title="Profit ÷ Net sales (Total − Cost) / Total">
+              Margin
+            </span>
+            <span
+              className="text-right"
+              title="Annualized inventory turn = (sold × 365 ÷ days) ÷ on-hand"
+            >
+              Turn
+            </span>
+            <span
+              className="text-right"
+              title="Annualized units per active store = (sold × 365 ÷ days) ÷ store count"
+            >
+              Vel/store
+            </span>
+          </div>
         </div>
         {rows.length === 0 ? (
           <p className="text-sm text-ink-muted py-8 text-center px-3">
@@ -142,8 +169,8 @@ export function TopProductsTable({
                 <li
                   key={`${product.vendorModel ?? ""}-${product.itemNumber ?? ""}-${product.name}-${i}`}
                   className={cn(
-                    ROW_GRID,
-                    "px-3 py-3 sm:py-2.5 sm:items-start",
+                    "grid grid-cols-1 gap-y-1 px-3 py-3 sm:py-2.5 sm:items-start gap-x-3",
+                    MAIN_ROW_GRID,
                     i % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
                   )}
                 >
@@ -172,19 +199,24 @@ export function TopProductsTable({
                     )}
                   </div>
 
-                  <div className="flex sm:contents items-center justify-between gap-3 sm:col-span-3 col-span-full pt-1 sm:pt-0 border-t border-white/5 sm:border-0">
-                    <span className="sm:hidden text-[11px] text-ink-muted uppercase tracking-wide">
-                      Qty / Revenue / Margin
-                    </span>
-                    <span className="text-sm font-semibold text-emerald-300/90 tabular-nums sm:text-right shrink-0">
+                  <div
+                    className={cn(
+                      "col-span-full sm:col-span-1 sm:pt-1 pt-2 border-t border-white/5 sm:border-0"
+                    )}
+                  >
+                    <p className="sm:hidden text-[11px] text-ink-muted uppercase tracking-wide mb-1.5">
+                      Qty / Revenue / Margin / Turn / Vel
+                    </p>
+                    <div className={METRICS_GRID}>
+                    <span className="text-sm font-semibold text-emerald-300/90 tabular-nums text-right">
                       {formatPieceCount(product.units)}
                     </span>
-                    <span className="font-medium text-ink text-sm tabular-nums sm:text-right shrink-0">
+                    <span className="font-medium text-ink text-sm tabular-nums text-right">
                       {formatCurrency(product.revenue)}
                     </span>
                     <span
                       className={cn(
-                        "text-sm font-semibold tabular-nums sm:text-right shrink-0",
+                        "text-sm font-semibold tabular-nums text-right",
                         marginRate != null && marginRate >= 0.5
                           ? "text-amber-200/85"
                           : marginRate != null && marginRate >= 0
@@ -199,6 +231,23 @@ export function TopProductsTable({
                     >
                       {formatMarginPct(marginRate)}
                     </span>
+                    <span
+                      className="text-sm font-medium tabular-nums text-sky-200/80 text-right"
+                      title={
+                        product.onHandTotal != null
+                          ? `${formatPieceCount(product.units)} sold · ${formatPieceCount(product.onHandTotal)} on hand`
+                          : "On-hand file not loaded"
+                      }
+                    >
+                      {formatInventoryTurn(product.inventoryTurn)}
+                    </span>
+                    <span
+                      className="text-sm font-medium tabular-nums text-violet-200/75 text-right"
+                      title="Annualized units per store that sold or holds this model"
+                    >
+                      {formatVelocityPerStore(product.velocityPerStore)}
+                    </span>
+                    </div>
                   </div>
                 </li>
               );

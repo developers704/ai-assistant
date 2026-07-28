@@ -14,6 +14,7 @@ export function getTopVendorModels(
     sortBy?: "revenue" | "quantity" | "margin";
     /** Cap results; omit for all vendor models (qty-sorted). */
     limit?: number | null;
+    periodDays?: number;
   }
 ): SalesBreakdownRow[] {
   // Warm onhand index once before SKU store lines attach lookups.
@@ -25,7 +26,14 @@ export function getTopVendorModels(
       : opts?.sortBy === "margin"
         ? "estimatedMargin"
         : "unitsSold";
-  return groupRows(rowsForTopModels(rows), "vendor_model", opts?.limit ?? null, sortBy, "desc");
+  return groupRows(
+    rowsForTopModels(rows),
+    "vendor_model",
+    opts?.limit ?? null,
+    sortBy,
+    "desc",
+    { periodDays: opts?.periodDays }
+  );
 }
 
 export function getTopProducts(

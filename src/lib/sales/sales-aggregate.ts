@@ -1,8 +1,9 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
-import { listOnhandStoresForSku, lookupOnhandQty } from "@/lib/inventory/onhand";
+import { hasOnhandData, listOnhandStoresForSku, lookupOnhandQty } from "@/lib/inventory/onhand";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
+import { inventoryTurn, velocityPerStore } from "@/lib/sales/inventory-metrics";
 import type {
   SalesBreakdownRow,
   SalesGroupBy,
@@ -48,7 +49,42 @@ export function buildSkuStoreLines(
     );
 }
 
-export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
+function rollupModelInventory(modelRows: VendorPosRow[]): {
+  onHandTotal: number | null;
+  storeCount: number | null;
+} {
+  const skus = new Set<string>();
+  const activeStores = new Set<string>();
+
+  for (const r of modelRows) {
+    const sku = (r.sku || r.itemNumber || "").trim();
+    if (sku && !isExcludedSalesSku(sku)) skus.add(sku);
+    const store = r.storeName?.trim();
+    if (store && salesUnitsSold(r.quantity) > 0) activeStores.add(store);
+  }
+
+  let onHandTotal: number | null = null;
+  for (const sku of skus) {
+    const stores = listOnhandStoresForSku(sku);
+    if (!stores) continue;
+    if (onHandTotal === null) onHandTotal = 0;
+    for (const { store, onhand } of stores) {
+      activeStores.add(store);
+      onHandTotal += onhand;
+    }
+  }
+
+  return {
+    onHandTotal,
+    storeCount: activeStores.size > 0 ? activeStores.size : null,
+  };
+}
+
+export function skuLinesForModel(
+  rows: VendorPosRow[],
+  opts?: { periodDays?: number }
+): VendorModelSkuLine[] {
+  const periodDays = opts?.periodDays ?? 1;
   const map = new Map<
     string,
     VendorModelSkuLine & { storeUnits: Map<string, number> }
@@ -78,11 +114,19 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     .map(({ storeUnits, ...line }) => {
       const margin = line.margin ?? 0;
       const stores = buildSkuStoreLines(line.sku, storeUnits);
+      const hasOnhand = hasOnhandData();
+      const onHandTotal = hasOnhand
+        ? stores.reduce((sum, s) => sum + (s.onhand ?? 0), 0)
+        : null;
+      const storeCount = stores.length > 0 ? stores.length : null;
       return {
         ...line,
         margin,
         marginRate: line.revenue > 0 ? margin / line.revenue : 0,
         stores: stores.length ? stores : undefined,
+        onHandTotal: onHandTotal ?? undefined,
+        inventoryTurn: inventoryTurn(line.units, periodDays, onHandTotal),
+        velocityPerStore: velocityPerStore(line.units, periodDays, storeCount),
       };
     })
     .sort((a, b) => b.units - a.units || b.revenue - a.revenue);
@@ -168,8 +212,10 @@ export function groupRows(
   /** Cap results; omit / null / 0 = return all ranked rows. */
   limit: number | null = 50,
   sortBy: "netSales" | "unitsSold" | "estimatedMargin" = "netSales",
-  sortDirection: "asc" | "desc" = "desc"
+  sortDirection: "asc" | "desc" = "desc",
+  opts?: { periodDays?: number }
 ): SalesBreakdownRow[] {
+  const periodDays = opts?.periodDays ?? 1;
   if (by === "salesperson") {
     const credits = creditSalespersonRows(rows);
     const totalNet = credits.reduce((s, p) => s + p.netSales, 0) || 1;
@@ -229,12 +275,15 @@ export function groupRows(
     ...map.entries(),
   ].map(([name, v]) => {
     const s = summarizeRows(v.rows);
+    const unitsSold = s.unitsSold ?? 0;
+    const inventory =
+      by === "vendor_model" ? rollupModelInventory(v.rows) : null;
     return {
       name,
       netSales: s.netSales ?? 0,
       grossSales: s.grossSales ?? 0,
       discounts: s.discounts ?? 0,
-      unitsSold: s.unitsSold ?? 0,
+      unitsSold,
       transactions: s.transactions ?? 0,
       estimatedMargin: s.estimatedMargin ?? 0,
       share: ((s.netSales ?? 0) / totalNet) * 100,
@@ -242,6 +291,21 @@ export function groupRows(
       sku: v.sku,
       vendorModel: v.vendorModel,
       description: v.description,
+      ...(inventory
+        ? {
+            onHandTotal: inventory.onHandTotal ?? undefined,
+            inventoryTurn: inventoryTurn(
+              unitsSold,
+              periodDays,
+              inventory.onHandTotal
+            ),
+            velocityPerStore: velocityPerStore(
+              unitsSold,
+              periodDays,
+              inventory.storeCount
+            ),
+          }
+        : {}),
       // Defer SKU/store/onhand breakdown until after sort — only top models need it.
       ...(by === "vendor_model" ? { _modelRows: v.rows } : {}),
     };
@@ -270,7 +334,7 @@ export function groupRows(
     const { _modelRows: _, ...rest } = item;
     if (!modelRows) return rest;
     if (i >= SKU_DETAIL_CAP) return rest;
-    const skus = skuLinesForModel(modelRows);
+    const skus = skuLinesForModel(modelRows, { periodDays });
     return {
       ...rest,
       skus: skus.length ? skus : undefined,
