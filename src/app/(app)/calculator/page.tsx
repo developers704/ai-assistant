@@ -437,7 +437,7 @@ export default function CalculatorPage() {
                       <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/20">
                         <Calculator size={16} className="text-amber-300" />
                       </span>
-                      Final Amount
+                      Final Amount · Regular / Goal
                     </CardTitle>
                   </CardHeader>
                   <div className="space-y-4">
