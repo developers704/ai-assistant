@@ -17,10 +17,29 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+      # Prefer base64 key (avoids Windows CRLF / paste corruption in VPS_SSH_KEY).
+      # Fallback: raw multiline VPS_SSH_KEY for older setups.
+      - name: Install SSH private key
+        env:
+          VPS_SSH_KEY_B64: ${{ secrets.VPS_SSH_KEY_B64 }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          if [ -n "${VPS_SSH_KEY_B64:-}" ]; then
+            echo "$VPS_SSH_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
+          elif [ -n "${VPS_SSH_KEY:-}" ]; then
+            printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          else
+            echo "::error::Set secret VPS_SSH_KEY_B64 (preferred) or VPS_SSH_KEY"
+            exit 1
+          fi
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_ed25519
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
 
       - name: Trust VPS host key
         env:
@@ -28,8 +47,6 @@ jobs:
           VPS_PORT: ${{ secrets.VPS_PORT }}
         run: |
           PORT="${VPS_PORT:-2203}"
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
           ssh-keyscan -p "$PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to Hetzner VPS
@@ -41,7 +58,7 @@ jobs:
           VPS_PORT: ${{ secrets.VPS_PORT }}
         run: |
           PORT="${VPS_PORT:-2203}"
-          ssh -o BatchMode=yes -o ConnectTimeout=60 -p "$PORT" \
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 -o ConnectTimeout=60 -p "$PORT" \
             "${VPS_USER}@${VPS_HOST}" \
             'cd /var/www/lindy_ai && if [ -f scripts/deploy.sh ]; then bash scripts/deploy.sh; else bash deploy.sh; fi'
 
@@ -55,7 +72,7 @@ jobs:
         run: |
           sleep 10
           PORT="${VPS_PORT:-2203}"
-          ssh -o BatchMode=yes -o ConnectTimeout=60 -p "$PORT" \
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 -o ConnectTimeout=60 -p "$PORT" \
             "${VPS_USER}@${VPS_HOST}" \
             'cd /var/www/lindy_ai && if [ -f scripts/deploy.sh ]; then bash scripts/deploy.sh; else bash deploy.sh; fi'
 
@@ -65,6 +82,5 @@ jobs:
           VPS_PORT: ${{ secrets.VPS_PORT }}
         run: |
           PORT="${VPS_PORT:-2203}"
-          echo "::error::SSH deploy failed. Check VPS_SSH_KEY matches authorized_keys for VPS_USER on port $PORT."
-          echo "Test locally: ssh -i <private_key> -p $PORT <VPS_USER>@<VPS_HOST>"
+          echo "::error::SSH deploy failed on port $PORT. Prefer secret VPS_SSH_KEY_B64 from a working local key file."
           exit 1
