@@ -442,6 +442,7 @@ export default function CalculatorPage() {
                   </CardHeader>
                   <div className="space-y-4">
                     <Input
+                      id="final-regular"
                       label="Regular ($)"
                       type="number"
                       step="0.01"
@@ -451,6 +452,7 @@ export default function CalculatorPage() {
                       placeholder="0.00"
                     />
                     <Input
+                      id="final-goal"
                       label="Goal ($)"
                       type="number"
                       step="0.01"
