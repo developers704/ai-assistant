@@ -26,9 +26,14 @@ echo "Deploying commit: $(git rev-parse --short HEAD) — $(git log -1 --pretty=
 
 mkdir -p .data/reports
 
+# Clean previous build so clients never request missing chunk hashes.
+rm -rf .next
+
 npm ci
 npm run build
-pm2 restart all
+
+# Reload after .next is fully written (avoids 400 on /_next/static chunks).
+pm2 reload all --update-env || pm2 restart all
 
 # Rebuild sales cache so exclusion-rule bumps apply on VPS (stale .data versions otherwise stick).
 echo "Refreshing sales intelligence cache..."
@@ -41,3 +46,4 @@ curl -sS -X POST http://127.0.0.1:3000/api/sales/refresh \
   || echo "WARN: sales refresh curl failed (app may still lazy-rebuild on next /api/sales)."
 
 echo "Deploy finished at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+echo "Commit on disk: $(git rev-parse --short HEAD)"
