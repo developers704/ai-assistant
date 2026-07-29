@@ -450,6 +450,7 @@ export default function CalculatorPage() {
                       value={commission}
                       onChange={(e) => setCommission(e.target.value)}
                       placeholder="0.00"
+                      autoComplete="off"
                     />
                     <Input
                       id="final-goal"
@@ -460,6 +461,7 @@ export default function CalculatorPage() {
                       value={commissionPlus}
                       onChange={(e) => setCommissionPlus(e.target.value)}
                       placeholder="0.00"
+                      autoComplete="off"
                     />
 
                     <div className="space-y-2 text-sm border-t border-white/10 pt-3">
