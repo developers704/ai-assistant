@@ -196,7 +196,7 @@ export function TopProductsTable({
                         onClick={() => onVendorModelDetail(product)}
                         className="mt-1 text-[11px] font-medium text-sky-300/80 hover:text-sky-200 underline-offset-2 hover:underline"
                       >
-                        More detail & trend
+                        View trend
                       </button>
                     )}
                     {skuLines.length > 0 && (

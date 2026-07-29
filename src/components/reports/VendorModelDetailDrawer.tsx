@@ -10,7 +10,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { X, Sparkles } from "lucide-react";
+import { X } from "lucide-react";
 import {
   formatCurrency,
   formatPieceCount,
@@ -19,7 +19,6 @@ import {
 import { formatReportDateDisplay } from "@/lib/reports/date-utils";
 import type { VendorModelDetail } from "@/lib/sales/vendor-model-detail";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
-import { SkuStoreBreakdownList } from "@/components/reports/SkuStoreBreakdownList";
 
 export type VendorModelDetailSelection = {
   vendorModel: string;
@@ -29,24 +28,10 @@ export type VendorModelDetailSelection = {
 
 type VendorModelDetailDrawerProps = {
   selection: VendorModelDetailSelection | null;
-  filterDateFrom?: string;
-  filterDateTo?: string;
-  filterDate?: string;
   filterStore?: string;
   reportId?: string;
   onClose: () => void;
 };
-
-function AttrRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[10px] uppercase tracking-wider text-white/35">{label}</p>
-      <p className="text-sm text-white/80 truncate" title={value}>
-        {value || "—"}
-      </p>
-    </div>
-  );
-}
 
 function UnitsTrendChart({ data }: { data: VendorModelDetail["trend"] }) {
   const rows = useMemo(
@@ -61,13 +46,13 @@ function UnitsTrendChart({ data }: { data: VendorModelDetail["trend"] }) {
   if (!rows.length) {
     return (
       <p className="text-sm text-white/40 py-10 text-center">
-        No daily sales in this period.
+        No daily sales for this model.
       </p>
     );
   }
 
   return (
-    <div className="h-[220px]">
+    <div className="h-[min(420px,55vh)]">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <defs>
@@ -123,9 +108,6 @@ function UnitsTrendChart({ data }: { data: VendorModelDetail["trend"] }) {
 
 export function VendorModelDetailDrawer({
   selection,
-  filterDateFrom,
-  filterDateTo,
-  filterDate,
   filterStore,
   reportId,
   onClose,
@@ -150,13 +132,8 @@ export function VendorModelDetailDrawer({
     setLoading(true);
     setError(null);
 
+    // Full-report trend for this model (ignore day/range filters — a 1-day chart is useless).
     const params = new URLSearchParams({ vendorModel: selection.vendorModel });
-    if (filterDateFrom && filterDateTo) {
-      params.set("from", filterDateFrom);
-      params.set("to", filterDateTo);
-    } else if (filterDate) {
-      params.set("date", filterDate);
-    }
     if (filterStore) params.set("store", filterStore);
     if (reportId) params.set("id", reportId);
 
@@ -172,7 +149,7 @@ export function VendorModelDetailDrawer({
         if (!cancelled) setData(json);
       })
       .catch((e: Error) => {
-        if (!cancelled) setError(e.message || "Failed to load details");
+        if (!cancelled) setError(e.message || "Failed to load trend");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -181,7 +158,7 @@ export function VendorModelDetailDrawer({
     return () => {
       cancelled = true;
     };
-  }, [selection, filterDateFrom, filterDateTo, filterDate, filterStore, reportId]);
+  }, [selection, filterStore, reportId]);
 
   useEffect(() => {
     if (!selection) return;
@@ -194,15 +171,16 @@ export function VendorModelDetailDrawer({
 
   if (!selection) return null;
 
-  const title = formatProductDisplayName(data?.description || selection.description || selection.vendorModel);
-  const t = data?.totals;
+  const title = formatProductDisplayName(
+    data?.description || selection.description || selection.vendorModel
+  );
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end">
       <button
         type="button"
         className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
-        aria-label="Close details"
+        aria-label="Close trend"
         onClick={onClose}
       />
       <aside className="relative flex h-full w-full max-w-2xl flex-col border-l border-white/10 bg-[#0f1624] shadow-2xl">
@@ -216,16 +194,19 @@ export function VendorModelDetailDrawer({
             />
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
-                Vendor model detail
+                Sales trend
               </p>
               <h2 className="text-lg font-semibold text-ink truncate mt-0.5">{title}</h2>
-              <p className="font-mono text-[11px] text-cyan-300/80 mt-0.5">{selection.vendorModel}</p>
+              <p className="font-mono text-[11px] text-cyan-300/80 mt-0.5">
+                {selection.vendorModel}
+              </p>
               {data?.dateFrom && data?.dateTo && (
                 <p className="text-[10px] text-white/40 mt-1">
                   {data.dateFrom === data.dateTo
                     ? data.dateFrom
                     : `${data.dateFrom} → ${data.dateTo}`}
                   {filterStore ? ` · ${filterStore}` : ""}
+                  {data.totals ? ` · ${formatPieceCount(data.totals.units)} sold` : ""}
                 </p>
               )}
             </div>
@@ -240,130 +221,17 @@ export function VendorModelDetailDrawer({
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
-            {loading && (
-              <p className="text-sm text-white/40 animate-pulse">Loading model insights…</p>
-            )}
-            {error && <p className="text-sm text-rose-300">{error}</p>}
-
-            {t && data && (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {[
-                    { label: "Units sold", value: formatPieceCount(t.units) },
-                    { label: "Net sales", value: formatCurrency(t.revenue) },
-                    { label: "On hand", value: t.onHandTotal != null ? formatPieceCount(t.onHandTotal) : "—" },
-                    { label: "Margin", value: `${(t.marginRate * 100).toFixed(0)}%` },
-                    {
-                      label: "Sell-through",
-                      value: t.sellThrough != null ? `${(t.sellThrough * 100).toFixed(0)}%` : "—",
-                    },
-                    { label: "Active stores", value: String(t.activeStores) },
-                  ].map((m) => (
-                    <div
-                      key={m.label}
-                      className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 px-3 py-2.5"
-                    >
-                      <p className="text-[10px] uppercase tracking-wider text-white/35">{m.label}</p>
-                      <p className="text-sm font-semibold text-ink mt-1 tabular-nums">{m.value}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-3">
-                    Product attributes
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <AttrRow label="Vendor" value={data.attributes.vendor} />
-                    <AttrRow label="Department" value={data.attributes.department} />
-                    <AttrRow label="Design" value={data.attributes.design} />
-                    <AttrRow label="Class" value={data.attributes.productClass} />
-                    <AttrRow label="Sub-class" value={data.attributes.subClass} />
-                  </div>
-                </div>
-
-                <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-1">
-                    Sales trend
-                  </p>
-                  <p className="text-[11px] text-white/35 mb-3">Daily units sold in selected period</p>
-                  <UnitsTrendChart data={data.trend} />
-                </div>
-
-                {data.insights.length > 0 && (
-                  <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-2 flex items-center gap-1.5">
-                      <Sparkles size={12} className="text-amber-300/80" />
-                      Analysis
-                    </p>
-                    <ul className="space-y-2">
-                      {data.insights.map((line) => (
-                        <li key={line} className="text-sm text-white/70 leading-relaxed pl-3 border-l-2 border-sky-400/30">
-                          {line}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {data.skus.length > 0 && (
-                  <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] overflow-hidden">
-                    <div className="px-4 py-3 border-b border-white/10">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
-                        SKUs ({data.skus.length})
-                      </p>
-                    </div>
-                    <ul className="divide-y divide-white/5 max-h-80 overflow-y-auto">
-                      {data.skus.map((sku) => (
-                        <li key={sku.sku} className="px-4 py-3 space-y-2">
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <span className="font-mono text-[12px] text-cyan-300/90">#{sku.sku}</span>
-                            <span className="text-[11px] text-white/45 tabular-nums">
-                              {formatPieceCount(sku.units)} sold
-                              {sku.onHandTotal != null ? ` · ${formatPieceCount(sku.onHandTotal)} on hand` : ""}
-                            </span>
-                          </div>
-                          <p className="text-[12px] text-white/65 line-clamp-2">{sku.description}</p>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-[10px] text-white/40">
-                            <span>Vendor: {sku.vendor}</span>
-                            <span>Dept: {sku.department}</span>
-                            <span>Design: {sku.design}</span>
-                            <span>Class: {sku.productClass}</span>
-                            <span>Sub: {sku.subClass}</span>
-                          </div>
-                          {sku.stores && sku.stores.length > 0 && (
-                            <SkuStoreBreakdownList
-                              lines={[{ sku: sku.sku, units: sku.units, stores: sku.stores }]}
-                            />
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {data.stores.length > 0 && (
-                  <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-2">
-                      Top stores
-                    </p>
-                    <ul className="space-y-1.5">
-                      {data.stores.slice(0, 8).map((s) => (
-                        <li key={s.name} className="flex justify-between gap-2 text-sm">
-                          <span className="text-white/70 truncate">{s.name}</span>
-                          <span className="tabular-nums text-white/90 shrink-0">
-                            {formatPieceCount(s.units)} · {formatCurrency(s.revenue)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          {loading && (
+            <p className="text-sm text-white/40 animate-pulse">Loading trend…</p>
+          )}
+          {error && <p className="text-sm text-rose-300">{error}</p>}
+          {data && !loading && (
+            <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-4">
+              <p className="text-[11px] text-white/35 mb-3">Daily units sold</p>
+              <UnitsTrendChart data={data.trend} />
+            </div>
+          )}
         </div>
       </aside>
 

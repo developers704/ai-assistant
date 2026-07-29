@@ -743,7 +743,7 @@ export default function SalesPage() {
                 <span className="text-xs text-ink-muted">
                   {isFinancingReport
                     ? "By net sales amount"
-                    : `Top ${topProducts.length} by qty · click row for detail & trend · expand SKU for stores`}
+                    : `Top ${topProducts.length} by qty · click row for trend · expand SKU for stores`}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">
@@ -764,11 +764,6 @@ export default function SalesPage() {
 
       <VendorModelDetailDrawer
         selection={vendorModelDetail}
-        filterDate={
-          dateRange && dateRange.from === dateRange.to ? dateRange.from : undefined
-        }
-        filterDateFrom={dateRange?.from}
-        filterDateTo={dateRange?.to}
         filterStore={filterStores.length ? filterStores.join(",") : undefined}
         reportId={
           reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
