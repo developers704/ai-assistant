@@ -1,13 +1,7 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
-import {
-  formatInventoryTurn,
-  formatVelocityPerStore,
-  inclusivePeriodDays,
-  inventoryTurn,
-  velocityPerStore,
-} from "@/lib/sales/inventory-metrics";
+import { inclusivePeriodDays } from "@/lib/sales/inventory-metrics";
 import {
   hasOnhandData,
   listOnhandStoresForSku,
@@ -39,8 +33,6 @@ export type VendorModelSkuDetail = {
   margin: number;
   marginRate: number;
   onHandTotal: number | null;
-  inventoryTurn: number | null;
-  velocityPerStore: number | null;
   stores?: { name: string; units: number; onhand?: number | null }[];
 };
 
@@ -64,8 +56,6 @@ export type VendorModelDetail = {
     margin: number;
     marginRate: number;
     onHandTotal: number | null;
-    inventoryTurn: number | null;
-    velocityPerStore: number | null;
     sellThrough: number | null;
     activeStores: number;
     sellingDays: number;
@@ -106,22 +96,6 @@ function buildInsights(detail: Omit<VendorModelDetail, "insights">): string[] {
   const out: string[] = [];
   const { totals, stores, trend, periodDays } = detail;
 
-  if (totals.inventoryTurn != null) {
-    if (totals.inventoryTurn >= 4) {
-      out.push(
-        `Inventory turn is ${formatInventoryTurn(totals.inventoryTurn)}/year — stock is moving quickly at the current pace.`
-      );
-    } else if (totals.inventoryTurn < 1) {
-      out.push(
-        `Inventory turn is ${formatInventoryTurn(totals.inventoryTurn)}/year — stock is moving slowly; review pricing or transfers.`
-      );
-    } else {
-      out.push(
-        `Inventory turn is ${formatInventoryTurn(totals.inventoryTurn)}/year for this model in the selected period.`
-      );
-    }
-  }
-
   if (totals.sellThrough != null) {
     out.push(
       `Sell-through is ${(totals.sellThrough * 100).toFixed(0)}% (${totals.units} sold vs ${totals.onHandTotal ?? 0} on hand).`
@@ -150,12 +124,6 @@ function buildInsights(detail: Omit<VendorModelDetail, "insights">): string[] {
     const coverage = (totals.sellingDays / periodDays) * 100;
     out.push(
       `Sold on ${totals.sellingDays} of ${periodDays} days (${coverage.toFixed(0)}% day coverage) · avg ${totals.avgDailyUnits.toFixed(1)} units/selling day.`
-    );
-  }
-
-  if (totals.velocityPerStore != null) {
-    out.push(
-      `Velocity is ${formatVelocityPerStore(totals.velocityPerStore)} units/store/year across ${totals.activeStores} active stores.`
     );
   }
 
@@ -235,7 +203,7 @@ export function buildVendorModelDetail(
   }
 
   const periodDays = inclusivePeriodDays(dateFrom, dateTo);
-  const skuLines = skuLinesForModel(rows, { periodDays });
+  const skuLines = skuLinesForModel(rows);
 
   const skus: VendorModelSkuDetail[] = [];
   const seenSku = new Set<string>();
@@ -256,8 +224,6 @@ export function buildVendorModelDetail(
       margin: line.margin ?? 0,
       marginRate: line.marginRate ?? 0,
       onHandTotal: line.onHandTotal ?? null,
-      inventoryTurn: line.inventoryTurn ?? null,
-      velocityPerStore: line.velocityPerStore ?? null,
       stores: line.stores,
     });
   }
@@ -269,7 +235,6 @@ export function buildVendorModelDetail(
     const onHandTotal = stores
       ? stores.reduce((s, x) => s + x.onhand, 0)
       : null;
-    const storeCount = stores?.length ?? null;
     skus.push({
       sku: skuKey,
       description: meta?.description ?? "—",
@@ -283,8 +248,6 @@ export function buildVendorModelDetail(
       margin: 0,
       marginRate: 0,
       onHandTotal,
-      inventoryTurn: inventoryTurn(0, periodDays, onHandTotal),
-      velocityPerStore: velocityPerStore(0, periodDays, storeCount),
       stores: stores
         ? stores.map((s) => ({ name: s.store, units: 0, onhand: s.onhand }))
         : undefined,
@@ -369,8 +332,6 @@ export function buildVendorModelDetail(
       margin,
       marginRate: revenue > 0 ? margin / revenue : 0,
       onHandTotal,
-      inventoryTurn: inventoryTurn(units, periodDays, onHandTotal),
-      velocityPerStore: velocityPerStore(units, periodDays, activeStores.size || null),
       sellThrough: sellThrough(units, onHandTotal),
       activeStores: activeStores.size,
       sellingDays,

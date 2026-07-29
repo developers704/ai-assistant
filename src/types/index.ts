@@ -180,10 +180,6 @@ export interface SalesSummary {
     marginRate?: number;
     /** Chain on-hand total for SKUs under this vendor model. */
     onHandTotal?: number;
-    /** Annualized inventory turn. */
-    inventoryTurn?: number | null;
-    /** Annualized units per active store. */
-    velocityPerStore?: number | null;
     /** Distinct SKUs sold under this vendor model */
     skus?: {
       sku: string;
@@ -192,8 +188,6 @@ export interface SalesSummary {
       margin?: number;
       marginRate?: number;
       onHandTotal?: number;
-      inventoryTurn?: number | null;
-      velocityPerStore?: number | null;
       stores?: { name: string; units: number; onhand?: number | null }[];
     }[];
   }[];

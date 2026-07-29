@@ -17,10 +17,6 @@ import {
   formatProductDisplayName,
 } from "@/lib/utils";
 import { formatReportDateDisplay } from "@/lib/reports/date-utils";
-import {
-  formatInventoryTurn,
-  formatVelocityPerStore,
-} from "@/lib/sales/inventory-metrics";
 import type { VendorModelDetail } from "@/lib/sales/vendor-model-detail";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import { SkuStoreBreakdownList } from "@/components/reports/SkuStoreBreakdownList";
@@ -253,14 +249,12 @@ export function VendorModelDetailDrawer({
 
             {t && data && (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
                     { label: "Units sold", value: formatPieceCount(t.units) },
                     { label: "Net sales", value: formatCurrency(t.revenue) },
                     { label: "On hand", value: t.onHandTotal != null ? formatPieceCount(t.onHandTotal) : "—" },
                     { label: "Margin", value: `${(t.marginRate * 100).toFixed(0)}%` },
-                    { label: "Turn / yr", value: formatInventoryTurn(t.inventoryTurn) },
-                    { label: "Vel / store", value: formatVelocityPerStore(t.velocityPerStore) },
                     {
                       label: "Sell-through",
                       value: t.sellThrough != null ? `${(t.sellThrough * 100).toFixed(0)}%` : "—",
@@ -338,7 +332,6 @@ export function VendorModelDetailDrawer({
                             <span>Design: {sku.design}</span>
                             <span>Class: {sku.productClass}</span>
                             <span>Sub: {sku.subClass}</span>
-                            <span>Turn: {formatInventoryTurn(sku.inventoryTurn)}</span>
                           </div>
                           {sku.stores && sku.stores.length > 0 && (
                             <SkuStoreBreakdownList

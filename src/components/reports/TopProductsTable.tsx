@@ -8,10 +8,6 @@ import {
   cn,
   filterTopProductSkus,
 } from "@/lib/utils";
-import {
-  formatInventoryTurn,
-  formatVelocityPerStore,
-} from "@/lib/sales/inventory-metrics";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import { VendorModelTextFilter } from "@/components/reports/VendorModelTextFilter";
 import { SkuStoreBreakdownList } from "@/components/reports/SkuStoreBreakdownList";
@@ -28,8 +24,6 @@ export interface TopProductSkuLine {
   margin?: number;
   marginRate?: number;
   onHandTotal?: number;
-  inventoryTurn?: number | null;
-  velocityPerStore?: number | null;
   stores?: { name: string; units: number; onhand?: number | null }[];
 }
 
@@ -46,8 +40,6 @@ export interface TopProductRow {
   /** Profit margin = profit / net sales (0–1) — CSV Profit Amount ÷ Total when present */
   marginRate?: number;
   onHandTotal?: number;
-  inventoryTurn?: number | null;
-  velocityPerStore?: number | null;
   /** Distinct SKUs sold under this vendor model */
   skus?: TopProductSkuLine[];
 }
@@ -62,7 +54,7 @@ interface TopProductsTableProps {
 const MAIN_ROW_GRID =
   "sm:grid-cols-[2rem_3.5rem_5.5rem_minmax(0,1fr)_auto]";
 const METRICS_GRID =
-  "grid grid-cols-5 sm:grid-cols-[3.25rem_5rem_3rem_3.5rem_4rem] gap-x-2 sm:gap-x-2.5";
+  "grid grid-cols-3 sm:grid-cols-[3.25rem_5rem_3rem] gap-x-2 sm:gap-x-2.5";
 
 function formatMarginPct(rate: number | undefined | null): string {
   if (rate == null || !Number.isFinite(rate)) return "—";
@@ -135,18 +127,6 @@ export function TopProductsTable({
             <span className="text-right">Revenue</span>
             <span className="text-right" title="Profit ÷ Net sales (Total − Cost) / Total">
               Margin
-            </span>
-            <span
-              className="text-right"
-              title="Annualized inventory turn = (sold × 365 ÷ days) ÷ on-hand"
-            >
-              Turn
-            </span>
-            <span
-              className="text-right"
-              title="Annualized units per active store = (sold × 365 ÷ days) ÷ store count"
-            >
-              Vel/store
             </span>
           </div>
         </div>
@@ -230,7 +210,7 @@ export function TopProductsTable({
                     )}
                   >
                     <p className="sm:hidden text-[11px] text-ink-muted uppercase tracking-wide mb-1.5">
-                      Qty / Revenue / Margin / Turn / Vel
+                      Qty / Revenue / Margin
                     </p>
                     <div className={METRICS_GRID}>
                     <span className="text-sm font-semibold text-emerald-300/90 tabular-nums text-right">
@@ -255,22 +235,6 @@ export function TopProductsTable({
                       }
                     >
                       {formatMarginPct(marginRate)}
-                    </span>
-                    <span
-                      className="text-sm font-medium tabular-nums text-sky-200/80 text-right"
-                      title={
-                        product.onHandTotal != null
-                          ? `${formatPieceCount(product.units)} sold · ${formatPieceCount(product.onHandTotal)} on hand`
-                          : "On-hand file not loaded"
-                      }
-                    >
-                      {formatInventoryTurn(product.inventoryTurn)}
-                    </span>
-                    <span
-                      className="text-sm font-medium tabular-nums text-violet-200/75 text-right"
-                      title="Annualized units per store that sold or holds this model"
-                    >
-                      {formatVelocityPerStore(product.velocityPerStore)}
                     </span>
                     </div>
                   </div>

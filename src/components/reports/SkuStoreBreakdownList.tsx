@@ -14,8 +14,6 @@ export type SkuBreakdownRow = {
   sku: string;
   units: number;
   onHandTotal?: number;
-  inventoryTurn?: number | null;
-  velocityPerStore?: number | null;
   stores?: SkuStoreBreakdownLine[];
 };
 

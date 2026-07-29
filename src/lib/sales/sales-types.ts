@@ -175,10 +175,6 @@ export interface VendorModelSkuLine {
   stores?: VendorModelSkuStoreLine[];
   /** On-hand total across stores for this SKU. */
   onHandTotal?: number;
-  /** Annualized inventory turn for this SKU. */
-  inventoryTurn?: number | null;
-  /** Annualized units per store for this SKU. */
-  velocityPerStore?: number | null;
 }
 
 export interface SalesBreakdownRow {
@@ -200,10 +196,6 @@ export interface SalesBreakdownRow {
   skus?: VendorModelSkuLine[];
   /** Chain on-hand total for SKUs under this vendor model. */
   onHandTotal?: number;
-  /** Annualized inventory turn = (sold × 365 / days) / on-hand. */
-  inventoryTurn?: number | null;
-  /** Annualized units per active store = (sold × 365 / days) / store count. */
-  velocityPerStore?: number | null;
 }
 
 export interface SalesClarification {

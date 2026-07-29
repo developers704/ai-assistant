@@ -32,15 +32,21 @@ rm -rf .next
 npm ci
 npm run build
 
-# Reload after .next is fully written (avoids 400 on /_next/static chunks).
-pm2 reload all --update-env || pm2 restart all
+# Reload ONLY this app after .next is fully written.
+# NEVER use `pm2 restart all` — other apps (docusign / ai-valliani on :3000) share this PM2.
+# package.json start is plain `next start` (defaults to 3000) — always pass -p 3001.
+if pm2 describe lindy-ai >/dev/null 2>&1; then
+  pm2 delete lindy-ai
+fi
+# Drop orphans that would cause EADDRINUSE / dual-PM2 chunk mismatches
+fuser -k 3001/tcp 2>/dev/null || true
+sleep 1
+pm2 start npm --name lindy-ai --cwd "$REPO_DIR" -- start -- -H 0.0.0.0 -p 3001
+pm2 save
 
 # Rebuild sales cache so exclusion-rule bumps apply on VPS (stale .data versions otherwise stick).
 echo "Refreshing sales intelligence cache..."
-curl -sS -X POST http://127.0.0.1:3000/api/sales/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"force":true,"clearMemory":true}' \
-  || curl -sS -X POST http://127.0.0.1:3001/api/sales/refresh \
+curl -sS -X POST http://127.0.0.1:3001/api/sales/refresh \
   -H "Content-Type: application/json" \
   -d '{"force":true,"clearMemory":true}' \
   || echo "WARN: sales refresh curl failed (app may still lazy-rebuild on next /api/sales)."
