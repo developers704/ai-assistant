@@ -72,34 +72,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [fetchState]);
 
   useEffect(() => {
-    const init = async () => {
-      const nav = performance.getEntriesByType("navigation")[0] as
-        | PerformanceNavigationTiming
-        | undefined;
-      if (nav?.type === "reload" || nav?.type === "navigate") {
-        await fetch("/api/chat", { method: "DELETE" });
-      }
-      await refresh();
-    };
-    void init();
+    void refresh();
   }, [refresh]);
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setState(null);
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  };
 
   const login = async (email: string, password: string) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username: email, password }),
     });
     if (res.ok) {
       await refresh();
       return true;
     }
     return false;
-  };
-
-  const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    await refresh();
   };
 
   const sendChat = async (message: string): Promise<ChatMessage | null> => {

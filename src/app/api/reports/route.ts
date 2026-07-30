@@ -9,6 +9,7 @@ import {
 import { clearSalesWorkingMemory } from "@/lib/sales/sales-working-memory";
 import { clearActiveSalesContext } from "@/lib/sales/active-context";
 import { readActivePointer } from "@/lib/sales/data/version-store";
+import { readSessionFromCookies } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,11 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await readSessionFromCookies();
+  if (!session || session.role !== "admin") {
+    return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  }
+
   let formData: FormData;
   try {
     formData = await req.formData();
@@ -140,6 +146,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const session = await readSessionFromCookies();
+  if (!session || session.role !== "admin") {
+    return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  }
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "Report id required" }, { status: 400 });

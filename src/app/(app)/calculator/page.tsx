@@ -303,16 +303,14 @@ export default function CalculatorPage() {
                   <Detail label="Sub-Class" value={result.item.subClass || "—"} />
                   <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
                   <Detail label="Cost Price" value={money(result.item.costPrice)} />
-                  {result.pricing.category === "gold" && (
-                    <Detail
-                      label="Avg Weight (g)"
-                      value={
-                        result.item.avgWeight > 0
-                          ? String(result.item.avgWeight)
-                          : "—"
-                      }
-                    />
-                  )}
+                  <Detail
+                    label="Avg Weight (g)"
+                    value={
+                      Number.isFinite(result.item.avgWeight)
+                        ? String(result.item.avgWeight)
+                        : "—"
+                    }
+                  />
                   <Detail
                     label="Category"
                     value={result.pricing.categoryLabel}

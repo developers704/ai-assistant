@@ -114,6 +114,8 @@ export function buildSalesVisualizations(opts: {
   dateFrom?: string;
   dateTo?: string;
   store?: string;
+  /** Multi-store scope (DM districts). Takes precedence over store. */
+  stores?: string[];
   department?: string;
   design?: string;
   vendor?: string;
@@ -143,7 +145,11 @@ export function buildSalesVisualizations(opts: {
 
   const filtered = filterRows(allRows, {
     dates: filterDates,
-    stores: opts.store ? [opts.store] : undefined,
+    stores: opts.stores?.length
+      ? opts.stores
+      : opts.store
+        ? [opts.store]
+        : undefined,
     departments: opts.department ? [opts.department] : undefined,
     designs: opts.design ? [opts.design] : undefined,
     vendors: opts.vendor ? [opts.vendor] : undefined,

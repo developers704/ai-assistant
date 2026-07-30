@@ -43,6 +43,12 @@ function storeSkuKey(store: string, sku: string): string {
   return `${store.trim().toUpperCase()}|${sku.trim().toUpperCase()}`;
 }
 
+/** MAIN warehouse — never include in Top Vendor Models / store on-hand totals. */
+export function isExcludedOnhandStore(store: string): boolean {
+  const n = store.trim().toUpperCase().replace(/\s+/g, " ");
+  return n === "MAIN" || n.startsWith("MAIN ");
+}
+
 /** Minimal CSV line split that respects quotes. */
 function splitCsvLine(line: string): string[] {
   const fields: string[] = [];
@@ -231,11 +237,12 @@ export function getOnhandStatus(): {
 /**
  * On-hand qty for SKU at store.
  * null = onhand file not loaded.
- * 0 = loaded but this store+SKU absent (or qty 0).
+ * 0 = loaded but this store+SKU absent (or qty 0), or MAIN warehouse (never counted).
  */
 export function lookupOnhandQty(sku: string, store: string): number | null {
   const index = loadIndex();
   if (!index) return null;
+  if (isExcludedOnhandStore(store)) return 0;
   const key = storeSkuKey(store, sku);
   if (!index.byStoreSku.has(key)) return 0;
   return index.byStoreSku.get(key) ?? 0;
@@ -243,6 +250,7 @@ export function lookupOnhandQty(sku: string, store: string): number | null {
 
 /**
  * Every store that has an onhand row for this SKU (including qty 0).
+ * MAIN / warehouse is excluded — store qty only.
  * null = onhand file not loaded.
  */
 export function listOnhandStoresForSku(
@@ -253,6 +261,7 @@ export function listOnhandStoresForSku(
   const storeMap = index.bySku.get(sku.trim().toUpperCase());
   if (!storeMap?.size) return [];
   return [...storeMap.entries()]
+    .filter(([store]) => !isExcludedOnhandStore(store))
     .map(([store, onhand]) => ({ store, onhand }))
     .sort((a, b) => a.store.localeCompare(b.store));
 }

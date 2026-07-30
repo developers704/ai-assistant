@@ -1064,3 +1064,15 @@
 .stores-miles-chip__spin {
   color: #c4b5fd !important;
 }
+
+@keyframes loginFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

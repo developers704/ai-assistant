@@ -4,10 +4,20 @@ import {
   lookupInventory,
   saveInventoryCsv,
 } from "@/lib/inventory/store";
+import { readSessionFromCookies } from "@/lib/auth/session";
+import { calculatePricing } from "@/lib/inventory/pricing";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  const session = await readSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (session.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   let formData: FormData;
   try {
     formData = await req.formData();
@@ -47,6 +57,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const session = await readSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const sku = req.nextUrl.searchParams.get("sku")?.trim();
   const store = req.nextUrl.searchParams.get("store")?.trim();
   const status = getInventoryStatus();
@@ -74,8 +89,20 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Kash → Cost Price column. DMs → Wholesale Cost as Cost Price (fallback Cost Price).
+  let item = result.item;
+  let pricing = result.pricing;
+  if (session.role === "dm") {
+    const wholesale = Number(item.wholesaleCost) || 0;
+    if (wholesale > 0) {
+      item = { ...item, costPrice: wholesale };
+      pricing = calculatePricing(item);
+    }
+  }
+
   return NextResponse.json({
-    ...result,
+    item,
+    pricing,
     status,
   });
 }

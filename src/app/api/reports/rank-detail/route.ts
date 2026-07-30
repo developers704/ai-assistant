@@ -34,6 +34,9 @@ import {
   readNormalizedRows,
   readVersionMetadata,
 } from "@/lib/sales/data/version-store";
+import { readSessionFromCookies } from "@/lib/auth/session";
+import { scopeStoresForUser } from "@/lib/auth/scope-stores";
+import { sumCostPriceForRole } from "@/lib/sales/cost-price";
 
 export const runtime = "nodejs";
 
@@ -143,13 +146,19 @@ function skuLinesCredited(
 }
 
 export async function GET(req: Request) {
+  const session = await readSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const dimension = searchParams.get("dimension") as RankDimension | null;
   const value = searchParams.get("value")?.trim() ?? "";
   const date = searchParams.get("date")?.trim() || undefined;
   const from = searchParams.get("from")?.trim() || undefined;
   const to = searchParams.get("to")?.trim() || undefined;
-  const stores = parseMultiParam(searchParams, "store", "stores");
+  const requested = parseMultiParam(searchParams, "store", "stores");
+  const { stores } = scopeStoresForUser(session, requested);
   const departments = parseMultiParam(searchParams, "department", "departments");
   const designs = parseMultiParam(searchParams, "design", "designs");
   const vendors = parseMultiParam(searchParams, "vendor", "vendors");
@@ -186,7 +195,7 @@ export async function GET(req: Request) {
   } else if (date) {
     rows = rows.filter((r) => r.date === date);
   }
-  const storeSet = multiSet(stores);
+  const storeSet = multiSet(stores ?? []);
   const deptSet = multiSet(departments);
   const designSet = multiSet(designs);
   const vendorSet = multiSet(vendors);
@@ -240,9 +249,10 @@ export async function GET(req: Request) {
     (s, r) => s + r.discountAmount * creditOf(r),
     0
   );
-  const inventoryCost = matched.reduce(
-    (s, r) => s + r.inventoryCost * creditOf(r),
-    0
+  const inventoryCost = sumCostPriceForRole(
+    matched,
+    session.role,
+    (r) => creditOf(r)
   );
   const uniqueTransactions = new Set(
     matched.map((r) => r.transactionId).filter(Boolean)

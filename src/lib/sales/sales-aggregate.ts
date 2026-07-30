@@ -267,6 +267,7 @@ export function groupRows(
       transactions: s.transactions ?? 0,
       estimatedMargin: s.estimatedMargin ?? 0,
       share: ((s.netSales ?? 0) / totalNet) * 100,
+      imageDir: v.imageDir,
       imageUrl: resolveProductImageUrl(v.imageDir),
       sku: v.sku,
       vendorModel: v.vendorModel,

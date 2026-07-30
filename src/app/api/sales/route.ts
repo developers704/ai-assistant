@@ -21,6 +21,11 @@ import {
 } from "@/lib/sales/data/version-store";
 import type { SalesQueryResult } from "@/lib/sales/sales-types";
 import { parseMultiParam } from "@/lib/sales/filter-params";
+import { readSessionFromCookies } from "@/lib/auth/session";
+import {
+  filterAvailableStores,
+  scopeStoresForUser,
+} from "@/lib/auth/scope-stores";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -163,7 +168,13 @@ export async function GET(req: NextRequest) {
       ? filterDateFrom
       : undefined;
 
-  const filterStores = parseMultiParam(sp, "store", "stores");
+  const filterStoresRaw = parseMultiParam(sp, "store", "stores");
+  const session = await readSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const scoped = scopeStoresForUser(session, filterStoresRaw);
+  const filterStores = scoped.stores ?? [];
   const filterDepartments = parseMultiParam(sp, "department", "departments");
   const filterDesigns = parseMultiParam(sp, "design", "designs");
   const filterVendors = parseMultiParam(sp, "vendor", "vendors");
@@ -266,7 +277,7 @@ export async function GET(req: NextRequest) {
           vendorCode: summary.vendorCode,
           reportPeriod: summary.reportPeriod,
           availableDates: shell.availableDates,
-          availableStores: shell.availableStores,
+          availableStores: filterAvailableStores(session, shell.availableStores),
           availableDepartments: shell.availableDepartments,
           availableDesigns: shell.availableDesigns,
           availableClasses: shell.availableClasses,
@@ -322,7 +333,7 @@ export async function GET(req: NextRequest) {
       vendorCode: latest.summary.vendorCode,
       reportPeriod: latest.summary.reportPeriod,
       availableDates: latest.availableDates,
-      availableStores: latest.availableStores,
+      availableStores: filterAvailableStores(session, latest.availableStores),
       availableDepartments: latest.availableDepartments,
       availableDesigns: latest.availableDesigns,
       availableClasses: latest.availableClasses,

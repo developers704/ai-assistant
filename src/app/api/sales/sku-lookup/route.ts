@@ -17,6 +17,9 @@ import {
   groupSalesLookupVariants,
   resolveSalesLookupRows,
 } from "@/lib/sales/sku-lookup";
+import { readSessionFromCookies } from "@/lib/auth/session";
+import { scopeStoresForUser } from "@/lib/auth/scope-stores";
+import { costPriceForRole } from "@/lib/sales/cost-price";
 
 function parseCsvRows(csv: string): VendorPosRow[] {
   const parsed = Papa.parse<Record<string, unknown>>(csv, {
@@ -59,6 +62,11 @@ function loadRows(): VendorPosRow[] {
 }
 
 export async function GET(req: NextRequest) {
+  const session = await readSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const sp = req.nextUrl.searchParams;
   const skuRaw = (sp.get("sku") ?? sp.get("q") ?? "").trim();
   if (!skuRaw) {
@@ -87,6 +95,23 @@ export async function GET(req: NextRequest) {
   }
 
   let scoped = loadRows();
+  const { stores: allowedStores } = scopeStoresForUser(session, []);
+  if (allowedStores?.length) {
+    const set = new Set(
+      allowedStores.map((s) =>
+        s.trim().toLowerCase().replace(/[\u2010-\u2015\u2212]/g, "-").replace(/\s+/g, " ")
+      )
+    );
+    scoped = scoped.filter((r) =>
+      set.has(
+        (r.storeName || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[\u2010-\u2015\u2212]/g, "-")
+          .replace(/\s+/g, " ")
+      )
+    );
+  }
   if (from && to) {
     const a = from <= to ? from : to;
     const b = from <= to ? to : from;
@@ -127,7 +152,8 @@ export async function GET(req: NextRequest) {
     units += r.quantity;
     netRevenue += r.netRevenue;
     grossSales += r.grossSales;
-    inventoryCost += r.inventoryCost;
+    const rowCost = costPriceForRole(r, session.role);
+    inventoryCost += rowCost;
     discountAmount += r.discountAmount;
     if (r.transactionId) txns.add(r.transactionId);
     if (!imageDir && r.imageDir?.trim()) imageDir = r.imageDir.trim();
@@ -145,7 +171,7 @@ export async function GET(req: NextRequest) {
     const cur = byStore.get(store) ?? { store, units: 0, revenue: 0, cost: 0 };
     cur.units += r.quantity;
     cur.revenue += r.netRevenue;
-    cur.cost += r.inventoryCost;
+    cur.cost += rowCost;
     byStore.set(store, cur);
   }
 

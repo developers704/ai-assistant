@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/lib/store/app-context";
 import { Sidebar, MobileNav } from "@/components/layout/Sidebar";
 import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
@@ -13,7 +14,11 @@ import { cn } from "@/lib/utils";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { state, loading, refresh } = useApp();
   const pathname = usePathname();
+  const router = useRouter();
+  const isAdmin = state?.user?.authRole === "admin";
+
   const showFloatingVoice =
+    isAdmin &&
     pathname !== "/chat" &&
     pathname !== "/voice" &&
     pathname !== "/email" &&
@@ -23,8 +28,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isVoicePage = pathname === "/voice";
 
-  if (loading) {
-    return null;
+  useEffect(() => {
+    if (loading) return;
+    if (!state?.isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [loading, state?.isAuthenticated, router]);
+
+  if (loading || !state?.isAuthenticated) {
+    return (
+      <div className="min-h-screen relative flex items-center justify-center">
+        <FuturisticBackground />
+        <p className="relative text-sm text-ink-muted animate-pulse">Loading…</p>
+      </div>
+    );
   }
 
   if (!state) {
@@ -43,27 +60,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
-    <VoiceProvider>
-      <div className="flex min-h-screen relative">
-        <UiContextSync />
-        <FuturisticBackground />
-        {!isVoicePage && <Sidebar />}
-        <div className="flex-1 flex flex-col min-w-0">
-          {!isVoicePage && <MobileNav />}
-          <main className={cn("flex-1 overflow-x-hidden", isVoicePage && "overflow-hidden")}>
-            {isVoicePage ? (
-              children
-            ) : (
-              <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
-                {children}
-              </div>
-            )}
-          </main>
-        </div>
-        {showFloatingVoice && <RealtimeVoiceButton />}
-        <VoiceMiniHud />
+  const shell = (
+    <div className="flex min-h-screen relative">
+      <UiContextSync />
+      <FuturisticBackground />
+      {!isVoicePage && <Sidebar />}
+      <div className="flex-1 flex flex-col min-w-0">
+        {!isVoicePage && <MobileNav />}
+        <main className={cn("flex-1 overflow-x-hidden", isVoicePage && "overflow-hidden")}>
+          {isVoicePage ? (
+            children
+          ) : (
+            <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
+              {children}
+            </div>
+          )}
+        </main>
       </div>
-    </VoiceProvider>
+      {showFloatingVoice && <RealtimeVoiceButton />}
+      {isAdmin && <VoiceMiniHud />}
+    </div>
   );
+
+  if (!isAdmin) return shell;
+
+  return <VoiceProvider>{shell}</VoiceProvider>;
 }

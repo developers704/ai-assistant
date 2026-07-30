@@ -35,7 +35,7 @@ type NavItem = {
   palette: GlassPalette;
 };
 
-const navItems: NavItem[] = [
+const ADMIN_NAV: NavItem[] = [
   { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
   { href: "/chat", label: "AI Chat", icon: MessageSquare, palette: "violet" },
   { href: "/news", label: "News & Markets", icon: Newspaper, palette: "sky" },
@@ -49,6 +49,21 @@ const navItems: NavItem[] = [
   { href: "/contacts", label: "Contacts", icon: Users, palette: "indigo" },
   { href: "/settings", label: "Settings", icon: Settings, palette: "slate" },
 ];
+
+const DM_NAV: NavItem[] = [
+  { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
+  { href: "/stores", label: "Stores Map & Info", icon: MapPinned, palette: "violet" },
+  { href: "/calculator", label: "Price Calculator", icon: Calculator, palette: "amber" },
+];
+
+function useNavItems(): NavItem[] {
+  const { state } = useApp();
+  return state?.user?.authRole === "admin" ? ADMIN_NAV : DM_NAV;
+}
+
+function isActivePath(pathname: string, href: string) {
+  return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+}
 
 function NavTile({ item, active }: { item: NavItem; active: boolean }) {
   return <GlassIconTile icon={item.icon} palette={item.palette} active={active} size="sm" />;
@@ -75,6 +90,7 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
 export function Sidebar() {
   const pathname = usePathname();
   const { state, logout } = useApp();
+  const navItems = useNavItems();
 
   return (
     <aside className="hidden lg:flex flex-col w-[19rem] shrink-0 p-3 h-screen sticky top-0">
@@ -91,7 +107,11 @@ export function Sidebar() {
 
         <nav className="flex-1 px-2.5 py-3 overflow-y-auto space-y-1">
           {navItems.map((item) => (
-            <NavLink key={item.href} item={item} active={pathname === item.href} />
+            <NavLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+            />
           ))}
         </nav>
 
@@ -121,6 +141,7 @@ export function Sidebar() {
 export function MobileNav() {
   const pathname = usePathname();
   const { state, logout } = useApp();
+  const navItems = useNavItems();
   const [open, setOpen] = useState(false);
 
   useEffect(() => setOpen(false), [pathname]);
@@ -134,7 +155,7 @@ export function MobileNav() {
     }
   }, [open]);
 
-  const active = navItems.find((i) => i.href === pathname);
+  const active = navItems.find((i) => isActivePath(pathname, i.href));
 
   return (
     <>
@@ -181,7 +202,12 @@ export function MobileNav() {
 
           <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
             {navItems.map((item) => (
-              <NavLink key={item.href} item={item} active={pathname === item.href} onClick={() => setOpen(false)} />
+              <NavLink
+                key={item.href}
+                item={item}
+                active={isActivePath(pathname, item.href)}
+                onClick={() => setOpen(false)}
+              />
             ))}
           </nav>
 

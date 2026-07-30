@@ -87,6 +87,10 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   const discCol = findCol(columns, [/disc amt/, /discount amt/]);
   const netCol = findCol(columns, [/^total$/]);
   const invCostCol = findCol(columns, [/inventory cost/]);
+  const wholesaleCostCol = findCol(columns, [
+    /wholesale\s*cost/,
+    /whole\s*cost/,
+  ]);
   // POS export: use Profit Amount when present (avoids Total−Cost / split-line cost double-count)
   const profitAmountCol = findCol(columns, [/^profit\s*amount$/]);
   const classCol = findCol(columns, [/^class$/]);
@@ -109,6 +113,9 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
     const gross = grossCol ? parseNumber(rec[grossCol]) : net;
     const qty = qtyCol ? parseNumber(rec[qtyCol]) : 1;
     const inventoryCost = invCostCol ? parseNumber(rec[invCostCol]) : 0;
+    const wholesaleCost = wholesaleCostCol
+      ? parseNumber(rec[wholesaleCostCol])
+      : 0;
     const store = storeCol ? String(rec[storeCol] ?? "").trim() : "";
     const department = deptCol ? String(rec[deptCol] ?? "").trim() : "";
     const date = dateCol ? normalizeDate(rec[dateCol]) : null;
@@ -145,6 +152,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       subClass: subClassCol ? String(rec[subClassCol] ?? "").trim() : "",
       quantity: qty === 0 || qty == null || Number.isNaN(qty) ? 1 : qty,
       inventoryCost,
+      wholesaleCost,
       grossSales: gross,
       discountAmount: discCol ? parseNumber(rec[discCol]) : Math.max(0, gross - net),
       netRevenue: netCol ? net : gross,

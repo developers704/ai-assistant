@@ -188,6 +188,8 @@ export interface SalesBreakdownRow {
   transactions: number;
   estimatedMargin: number;
   share?: number;
+  /** Raw POS Image Dir. (for client-side CDN fallback). */
+  imageDir?: string;
   imageUrl?: string | null;
   sku?: string;
   vendorModel?: string;

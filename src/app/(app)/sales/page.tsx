@@ -754,6 +754,7 @@ export default function SalesPage() {
                       vendorModel: p.vendorModel || p.itemNumber || p.name,
                       description: p.name,
                       imageUrl: p.imageUrl,
+                      imageDir: p.imageDir,
                     })
                   }
                 />
@@ -765,6 +766,8 @@ export default function SalesPage() {
       <VendorModelDetailDrawer
         selection={vendorModelDetail}
         filterStore={filterStores.length ? filterStores.join(",") : undefined}
+        dateFrom={dateRange?.from}
+        dateTo={dateRange?.to}
         reportId={
           reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
             ? reportId

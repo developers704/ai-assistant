@@ -35,7 +35,11 @@ const EXCLUDED_SALES_SKUS = new Set([
 ]);
 
 /** Vendor models hidden from Top Vendor Models / top-product lists only (still in net sales). */
-const TOP_MODEL_HIDDEN_VENDOR_MODELS = new Set(["WG2787"]);
+const TOP_MODEL_HIDDEN_VENDOR_MODELS = new Set([
+  "WG2787",
+  "WG670", // Threaded earring post — findings accessory
+  "2200-2218", // Screwback earring back / pad — findings accessory
+]);
 
 function normalizeSalesModelKey(value?: string | null): string {
   return (value ?? "")
@@ -131,7 +135,7 @@ export function isExcludedSalesRow(row: {
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 10;
+export const SALES_EXCLUSION_RULES_VERSION = 11;
 
 type SalesReturnPairRow = {
   sku?: string | null;

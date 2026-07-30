@@ -29,6 +29,8 @@ export interface VendorPosRow {
   subClass: string;
   quantity: number;
   inventoryCost: number;
+  /** Wholesale Cost from POS export (DM Cost Price). */
+  wholesaleCost: number;
   grossSales: number;
   discountAmount: number;
   netRevenue: number;

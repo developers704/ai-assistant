@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { logout } from "@/lib/store/server-store";
+import { clearSessionCookie } from "@/lib/auth/session";
+import { logout as clearServerAuthFlag } from "@/lib/store/server-store";
 
 export async function POST() {
-  logout();
-  return NextResponse.json({ success: true });
+  clearServerAuthFlag();
+  const res = NextResponse.json({ success: true });
+  clearSessionCookie(res);
+  return res;
 }

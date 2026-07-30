@@ -34,6 +34,8 @@ export interface InventoryItem {
   vendorModel: string;
   tagPrice: number;
   costPrice: number;
+  /** From inventory "Wholesale Cost" — shown as Cost Price for DMs. */
+  wholesaleCost: number;
   store: string;
   department: string;
   design: string;

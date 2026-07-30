@@ -11,7 +11,7 @@ import {
 
 let serverState: AppState = {
   user: defaultUser,
-  isAuthenticated: true,
+  isAuthenticated: false,
   reminders: [...mockReminders],
   events: [...mockEvents],
   emails: [...mockEmails],
@@ -41,7 +41,7 @@ export function setState(updater: (state: AppState) => AppState): AppState {
 export function resetState(): void {
   serverState = {
     user: defaultUser,
-    isAuthenticated: true,
+    isAuthenticated: false,
     reminders: [...mockReminders],
     events: [...mockEvents],
     emails: [...mockEmails],
@@ -60,16 +60,13 @@ export function resetState(): void {
   };
 }
 
-export function login(email: string, password: string): boolean {
-  if (email === defaultUser.email && password === "demo123") {
-    serverState = { ...serverState, isAuthenticated: true };
-    return true;
-  }
+export function login(_email: string, _password: string): boolean {
+  // Real auth is cookie-based via /api/auth/login — keep stub for legacy callers.
   return false;
 }
 
 export function logout(): void {
-  serverState = { ...serverState, isAuthenticated: false };
+  serverState = { ...serverState, isAuthenticated: false, user: null };
 }
 
 export function clearChatHistory(): void {

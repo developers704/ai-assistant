@@ -2,17 +2,24 @@ import { NextResponse } from "next/server";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 import { buildVendorModelDetail } from "@/lib/sales/vendor-model-detail";
+import { readSessionFromCookies } from "@/lib/auth/session";
+import { scopeStoresForUser } from "@/lib/auth/scope-stores";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  const session = await readSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const vendorModel = searchParams.get("vendorModel")?.trim() ?? "";
-  const from = searchParams.get("from")?.trim() || undefined;
-  const to = searchParams.get("to")?.trim() || undefined;
-  const date = searchParams.get("date")?.trim() || undefined;
   const id = searchParams.get("id")?.trim() || undefined;
-  const stores = parseMultiParam(searchParams, "store", "stores");
+  const dateFrom = searchParams.get("dateFrom")?.trim().slice(0, 10) || null;
+  const dateTo = searchParams.get("dateTo")?.trim().slice(0, 10) || null;
+  const requested = parseMultiParam(searchParams, "store", "stores");
+  const { stores } = scopeStoresForUser(session, requested);
 
   if (!vendorModel) {
     return NextResponse.json({ error: "vendorModel is required" }, { status: 400 });
@@ -26,14 +33,8 @@ export async function GET(req: Request) {
     );
   }
 
-  let dateFrom = from;
-  let dateTo = to;
-  if (!dateFrom && !dateTo && date) {
-    dateFrom = date;
-    dateTo = date;
-  }
-
-  if (stores.length) {
+  // Trend scoped to DM stores (admin = all) + optional dashboard date range.
+  if (stores?.length) {
     const storeSet = new Set(
       stores.map((s) =>
         s
@@ -55,8 +56,8 @@ export async function GET(req: Request) {
   }
 
   const detail = buildVendorModelDetail(rows, vendorModel, {
-    dateFrom: dateFrom ?? null,
-    dateTo: dateTo ?? null,
+    dateFrom,
+    dateTo,
   });
 
   if (!detail) {

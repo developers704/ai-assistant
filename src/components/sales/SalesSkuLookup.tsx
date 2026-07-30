@@ -185,10 +185,9 @@ export function SalesSkuLookup({ dateRange }: { dateRange: SalesDateRangeValue |
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {[
                 { label: "Revenue", value: formatCurrency(result.netRevenue) },
-                { label: "Cost", value: formatCurrency(result.inventoryCost) },
                 { label: "Units", value: String(result.units) },
               ].map((m) => (
                 <div

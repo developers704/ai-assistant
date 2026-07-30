@@ -286,9 +286,26 @@ export function buildVendorModelDetail(
     cur.revenue += r.netRevenue;
     byDate.set(r.date, cur);
   }
-  const trend = [...byDate.entries()]
+  let trend = [...byDate.entries()]
     .map(([date, v]) => ({ date, ...v }))
     .sort((a, b) => a.date.localeCompare(b.date));
+
+  // Fill calendar gaps so a month filter shows a continuous chart (not sparse dots).
+  const fillFrom = dateFrom ?? trend[0]?.date ?? null;
+  const fillTo = dateTo ?? trend[trend.length - 1]?.date ?? null;
+  const fillDays = inclusivePeriodDays(fillFrom, fillTo);
+  if (fillFrom && fillTo && fillDays > 1 && fillDays <= 93) {
+    const by = new Map(trend.map((p) => [p.date, p]));
+    const filled: VendorModelTrendPoint[] = [];
+    const cursor = new Date(`${fillFrom}T12:00:00Z`);
+    const endMs = new Date(`${fillTo}T12:00:00Z`).getTime();
+    while (cursor.getTime() <= endMs) {
+      const iso = cursor.toISOString().slice(0, 10);
+      filled.push(by.get(iso) ?? { date: iso, units: 0, revenue: 0 });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    trend = filled;
+  }
 
   const byStore = new Map<string, { revenue: number; units: number }>();
   for (const r of rows) {
@@ -316,9 +333,9 @@ export function buildVendorModelDetail(
     vendorModel,
     description,
     imageUrl: resolveProductImageUrl(firstImage),
-    dateFrom,
-    dateTo,
-    periodDays,
+    dateFrom: dateFrom ?? trend[0]?.date ?? null,
+    dateTo: dateTo ?? trend[trend.length - 1]?.date ?? null,
+    periodDays: dateFrom && dateTo ? periodDays : inclusivePeriodDays(trend[0]?.date, trend[trend.length - 1]?.date),
     attributes: {
       vendor: pickDominant([...skuMetaFromRows.values()].map((m) => m.vendor)),
       department: pickDominant([...skuMetaFromRows.values()].map((m) => m.department)),

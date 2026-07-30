@@ -3,6 +3,10 @@ export interface UserProfile {
   name: string;
   email: string;
   role: string;
+  /** Auth role from session cookie — drives nav / voice access */
+  authRole?: "admin" | "dm";
+  /** null/undefined = all stores (admin); DM = POS store codes */
+  storeCodes?: string[] | null;
   company: string;
   companyDescription: string;
   timezone: string;

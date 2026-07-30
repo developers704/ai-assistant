@@ -8,7 +8,7 @@ function parsePrice(raw: string): number {
 
 function parseWeight(raw: string): number {
   const n = parseFloat(raw.trim().replace(/,/g, ""));
-  return Number.isFinite(n) && n > 0 ? n : 0;
+  return Number.isFinite(n) ? n : 0;
 }
 
 /** Parse a single CSV line respecting quoted fields. */
@@ -47,6 +47,7 @@ type ColumnKey =
   | "vendorModel"
   | "tagPrice"
   | "costPrice"
+  | "wholesaleCost"
   | "store"
   | "department"
   | "design"
@@ -68,6 +69,8 @@ const HEADER_ALIASES: Record<string, ColumnKey> = {
   "cost price": "costPrice",
   "individual cost value": "costPrice",
   "cost value": "costPrice",
+  "wholesale cost": "wholesaleCost",
+  "whole cost": "wholesaleCost",
   "store": "store",
   "department": "department",
   "design": "design",
@@ -156,7 +159,8 @@ function rowToItem(cols: string[], map: Partial<Record<ColumnKey, number>>): Inv
 
   const tagPrice = parsePrice(getField(cols, map, "tagPrice"));
   const costPrice = parsePrice(getField(cols, map, "costPrice"));
-  if (tagPrice <= 0 && costPrice <= 0) return null;
+  const wholesaleCost = parsePrice(getField(cols, map, "wholesaleCost"));
+  if (tagPrice <= 0 && costPrice <= 0 && wholesaleCost <= 0) return null;
 
   const department = getField(cols, map, "department");
   const design = getField(cols, map, "design");
@@ -169,6 +173,7 @@ function rowToItem(cols: string[], map: Partial<Record<ColumnKey, number>>): Inv
     vendorModel,
     tagPrice,
     costPrice,
+    wholesaleCost,
     store: getField(cols, map, "store"),
     department,
     design,
