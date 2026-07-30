@@ -15,10 +15,10 @@ export function costPriceForRole(
   return wholesale > 0 ? wholesale : inventory;
 }
 
-export function sumCostPriceForRole(
-  rows: { inventoryCost?: number | null; wholesaleCost?: number | null }[],
+export function sumCostPriceForRole<T extends { inventoryCost?: number | null; wholesaleCost?: number | null }>(
+  rows: T[],
   role: AuthRole | null | undefined,
-  weight: (row: (typeof rows)[number]) => number = () => 1
+  weight: (row: T) => number = () => 1
 ): number {
   let sum = 0;
   for (const r of rows) sum += costPriceForRole(r, role) * weight(r);

@@ -84,7 +84,7 @@ export function directoryStoreAllowedForSession(
     if (allowed.has(normStore(alias))) return true;
   }
 
-  const name = normStore(store.name);
+  const name = normStore(store.name ?? "");
   for (const code of allowed) {
     if (name === code || name.includes(code)) return true;
   }
