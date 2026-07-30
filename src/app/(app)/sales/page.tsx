@@ -420,6 +420,10 @@ export default function SalesPage() {
     (a, b) => b.revenue - a.revenue || a.name.localeCompare(b.name)
   );
   const maxStoreRevenue = Math.max(...storePerformance.map((s) => s.revenue), 1);
+  const yoyCompareLabel =
+    dateRange && dateRange.from !== dateRange.to
+      ? "vs last year"
+      : "vs same day last year";
 
   const openRank = (dimension: RankDimension, value: string) => {
     setRankDetail({ dimension, value });
@@ -617,7 +621,7 @@ export default function SalesPage() {
                     )}
                   >
                     {summary.comparisonPreviousDay >= 0 ? "+" : ""}
-                    {summary.comparisonPreviousDay.toFixed(1)}% vs previous day
+                    {summary.comparisonPreviousDay.toFixed(1)}% {yoyCompareLabel}
                   </span>
                 </div>
               }
@@ -680,7 +684,7 @@ export default function SalesPage() {
                     Store Performance
                   </CardTitle>
                   <span className="text-xs text-ink-muted">
-                    {storePerformance.length} stores · highest to lowest net sales · scroll for all
+                    {storePerformance.length} stores · highest to lowest · % {yoyCompareLabel}
                   </span>
                 </CardHeader>
                 <div className="max-h-[min(36rem,70vh)] overflow-y-auto p-4 space-y-3">

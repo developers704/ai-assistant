@@ -50,15 +50,94 @@ interface TopProductsTableProps {
   onVendorModelDetail?: (product: TopProductRow) => void;
 }
 
-/** Left identity cols + fixed metrics block so headers and values share one sub-grid. */
-const MAIN_ROW_GRID =
+const DESKTOP_ROW_GRID =
   "sm:grid-cols-[2rem_3.5rem_5.5rem_minmax(0,1fr)_auto]";
-const METRICS_GRID =
-  "grid grid-cols-3 sm:grid-cols-[3.25rem_5rem_3rem] gap-x-2 sm:gap-x-2.5";
+const DESKTOP_METRICS =
+  "grid grid-cols-[3.25rem_5rem_3rem] gap-x-2.5";
 
 function formatMarginPct(rate: number | undefined | null): string {
   if (rate == null || !Number.isFinite(rate)) return "—";
   return `${(rate * 100).toFixed(0)}%`;
+}
+
+function MetricsBlock({
+  units,
+  revenue,
+  marginRate,
+  profit,
+  mobile,
+}: {
+  units: number;
+  revenue: number;
+  marginRate: number | null;
+  profit?: number;
+  mobile?: boolean;
+}) {
+  const marginClass =
+    marginRate != null && marginRate >= 0.5
+      ? "text-amber-200/90"
+      : marginRate != null && marginRate >= 0
+        ? "text-white/75"
+        : "text-accent-rose/80";
+
+  if (mobile) {
+    return (
+      <div className="grid grid-cols-3 divide-x divide-white/10 rounded-xl bg-white/[0.04] ring-1 ring-white/10 overflow-hidden">
+        <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+            Qty
+          </span>
+          <span className="mt-0.5 text-sm font-semibold text-emerald-300 tabular-nums">
+            {formatPieceCount(units)}
+          </span>
+        </div>
+        <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+            Revenue
+          </span>
+          <span className="mt-0.5 text-sm font-semibold text-ink tabular-nums">
+            {formatCurrency(revenue)}
+          </span>
+        </div>
+        <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+            Margin
+          </span>
+          <span
+            className={cn("mt-0.5 text-sm font-semibold tabular-nums", marginClass)}
+            title={
+              profit != null
+                ? `Profit ${formatCurrency(profit)} on ${formatCurrency(revenue)} net`
+                : "Profit ÷ Net sales"
+            }
+          >
+            {formatMarginPct(marginRate)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={DESKTOP_METRICS}>
+      <span className="text-sm font-semibold text-emerald-300/90 tabular-nums text-right">
+        {formatPieceCount(units)}
+      </span>
+      <span className="font-medium text-ink text-sm tabular-nums text-right">
+        {formatCurrency(revenue)}
+      </span>
+      <span
+        className={cn("text-sm font-semibold tabular-nums text-right", marginClass)}
+        title={
+          profit != null
+            ? `Profit ${formatCurrency(profit)} on ${formatCurrency(revenue)} net`
+            : "Profit ÷ Net sales"
+        }
+      >
+        {formatMarginPct(marginRate)}
+      </span>
+    </div>
+  );
 }
 
 export function TopProductsTable({
@@ -115,14 +194,14 @@ export function TopProductsTable({
         <div
           className={cn(
             "hidden sm:grid gap-x-3 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-ink-muted bg-white/5 border-b border-white/10 items-center",
-            MAIN_ROW_GRID
+            DESKTOP_ROW_GRID
           )}
         >
           <span>#</span>
           <span>Pic</span>
           <span>Vendor model</span>
           <span>Product</span>
-          <div className={METRICS_GRID}>
+          <div className={DESKTOP_METRICS}>
             <span className="text-right">Qty</span>
             <span className="text-right">Revenue</span>
             <span className="text-right" title="Profit ÷ Net sales (Total − Cost) / Total">
@@ -147,95 +226,100 @@ export function TopProductsTable({
               const skuLines: TopProductSkuLine[] = product.skus?.length
                 ? product.skus
                 : [];
+
               return (
                 <li
                   key={`${product.vendorModel ?? ""}-${product.itemNumber ?? ""}-${product.name}-${i}`}
                   className={cn(
-                    "grid grid-cols-1 gap-y-1 px-3 py-3 sm:py-2.5 sm:items-start gap-x-3",
-                    MAIN_ROW_GRID,
-                    onVendorModelDetail && "cursor-pointer hover:bg-white/[0.04] transition-colors",
-                    i % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"
+                    i % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent",
+                    // Mobile card
+                    "px-3 py-3 space-y-2.5 sm:space-y-0 sm:py-2.5 sm:grid sm:gap-x-3 sm:items-start",
+                    DESKTOP_ROW_GRID,
+                    onVendorModelDetail &&
+                      "sm:cursor-pointer sm:hover:bg-white/[0.04] transition-colors"
                   )}
-                  onClick={() => onVendorModelDetail?.(product)}
-                  onKeyDown={(e) => {
-                    if (!onVendorModelDetail) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onVendorModelDetail(product);
+                  onClick={() => {
+                    // Desktop row click opens trend; mobile uses explicit button
+                    if (typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches) {
+                      onVendorModelDetail?.(product);
                     }
                   }}
-                  role={onVendorModelDetail ? "button" : undefined}
-                  tabIndex={onVendorModelDetail ? 0 : undefined}
                 >
-                  <span className="text-xs font-medium text-ink-muted tabular-nums sm:text-sm sm:pt-1">
-                    {i + 1}
-                  </span>
+                  {/* Mobile header: # + pic + model/title */}
+                  <div className="flex gap-3 min-w-0 sm:contents">
+                    <div className="flex flex-col items-center gap-1.5 shrink-0 sm:contents">
+                      <span className="text-xs font-medium text-ink-muted tabular-nums sm:pt-1">
+                        {i + 1}
+                      </span>
+                      <ProductThumb
+                        imageDir={product.imageDir}
+                        imageUrl={product.imageUrl}
+                        alt={displayName || model}
+                        subtitle={model !== "—" ? model : undefined}
+                        onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
+                      />
+                    </div>
 
-                  <ProductThumb
-                    imageDir={product.imageDir}
-                    imageUrl={product.imageUrl}
-                    alt={displayName || model}
-                    subtitle={model !== "—" ? model : undefined}
-                    onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
-                  />
-
-                  <span className="font-mono text-[11px] text-cyan-300/90 tabular-nums break-all sm:pt-1">
-                    {model}
-                  </span>
-
-                  <div
-                    className="sm:col-span-1 col-span-full -mt-1 sm:mt-0 min-w-0"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words whitespace-normal line-clamp-3">
-                      {displayName}
-                    </p>
-                    {onVendorModelDetail && (
-                      <button
-                        type="button"
-                        onClick={() => onVendorModelDetail(product)}
-                        className="mt-1 text-[11px] font-medium text-sky-300/80 hover:text-sky-200 underline-offset-2 hover:underline"
-                      >
-                        View trend
-                      </button>
-                    )}
-                    {skuLines.length > 0 && (
-                      <SkuStoreBreakdownList lines={skuLines} />
-                    )}
+                    <div
+                      className="min-w-0 flex-1 sm:contents"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="font-mono text-[11px] text-cyan-300/90 tabular-nums break-all sm:pt-1 block sm:inline">
+                        {model}
+                      </span>
+                      <div className="mt-0.5 sm:mt-0 sm:col-span-1 min-w-0">
+                        <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words line-clamp-2 sm:line-clamp-3">
+                          {displayName}
+                        </p>
+                        {/* Desktop: SKUs + trend under product name */}
+                        <div className="hidden sm:block">
+                          {skuLines.length > 0 && (
+                            <SkuStoreBreakdownList lines={skuLines} />
+                          )}
+                          {onVendorModelDetail && (
+                            <button
+                              type="button"
+                              onClick={() => onVendorModelDetail(product)}
+                              className="mt-1 text-[12px] font-medium text-sky-300/80 hover:underline underline-offset-2"
+                            >
+                              View trend
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div
-                    className={cn(
-                      "col-span-full sm:col-span-1 sm:pt-1 pt-2 border-t border-white/5 sm:border-0"
-                    )}
-                  >
-                    <p className="sm:hidden text-[11px] text-ink-muted uppercase tracking-wide mb-1.5">
-                      Qty / Revenue / Margin
-                    </p>
-                    <div className={METRICS_GRID}>
-                    <span className="text-sm font-semibold text-emerald-300/90 tabular-nums text-right">
-                      {formatPieceCount(product.units)}
-                    </span>
-                    <span className="font-medium text-ink text-sm tabular-nums text-right">
-                      {formatCurrency(product.revenue)}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-sm font-semibold tabular-nums text-right",
-                        marginRate != null && marginRate >= 0.5
-                          ? "text-amber-200/85"
-                          : marginRate != null && marginRate >= 0
-                            ? "text-white/70"
-                            : "text-accent-rose/80"
+                  {/* Metrics — mobile: right under title; desktop: right column */}
+                  <div className="sm:pt-1" onClick={(e) => e.stopPropagation()}>
+                    <div className="sm:hidden">
+                      <MetricsBlock
+                        mobile
+                        units={product.units}
+                        revenue={product.revenue}
+                        marginRate={marginRate}
+                        profit={product.margin}
+                      />
+                      {onVendorModelDetail && (
+                        <button
+                          type="button"
+                          onClick={() => onVendorModelDetail(product)}
+                          className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-sky-500/15 px-3 py-2.5 text-[13px] font-semibold text-sky-200 ring-1 ring-sky-400/25 active:bg-sky-500/25"
+                        >
+                          View trend
+                        </button>
                       )}
-                      title={
-                        product.margin != null
-                          ? `Profit ${formatCurrency(product.margin)} on ${formatCurrency(product.revenue)} net`
-                          : "Profit ÷ Net sales"
-                      }
-                    >
-                      {formatMarginPct(marginRate)}
-                    </span>
+                      {skuLines.length > 0 && (
+                        <SkuStoreBreakdownList lines={skuLines} className="mt-2" />
+                      )}
+                    </div>
+                    <div className="hidden sm:block">
+                      <MetricsBlock
+                        units={product.units}
+                        revenue={product.revenue}
+                        marginRate={marginRate}
+                        profit={product.margin}
+                      />
                     </div>
                   </div>
                 </li>

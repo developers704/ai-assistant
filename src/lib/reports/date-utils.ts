@@ -172,6 +172,22 @@ export function isValidIsoDate(iso: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(new Date(`${iso}T12:00:00`).getTime());
 }
 
+/**
+ * Shift an ISO date by whole years (same month/day).
+ * Feb 29 → Feb 28 in non-leap target years.
+ */
+export function shiftIsoYears(iso: string, years: number): string {
+  if (!isValidIsoDate(iso)) return iso;
+  const [ys, ms, ds] = iso.split("-");
+  const y = Number(ys) + years;
+  const m = Number(ms);
+  const d = Number(ds);
+  // Clamp day into the target month (handles Feb 29 → Feb 28).
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const day = Math.min(d, lastDay);
+  return `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 /** ISO YYYY-MM-DD → M/D/YYYY for CSV Transaction Date cells */
 export function isoToUsDate(iso: string): string {
   const [y, m, d] = iso.split("-");

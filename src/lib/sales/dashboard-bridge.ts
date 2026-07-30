@@ -39,7 +39,7 @@ export function reportSummaryFromQueryResult(
   result: SalesQueryResult,
   meta: StoredReportMeta,
   opts?: {
-    /** Prior available report day for day-over-day %. */
+    /** Same calendar date(s) last year for YoY % (net sales + stores). */
     previousDay?: SalesQueryResult | null;
     /** ~7 days earlier when available in the report (avg sale value wow). */
     previousWeek?: SalesQueryResult | null;

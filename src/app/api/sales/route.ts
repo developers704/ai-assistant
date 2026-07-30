@@ -6,7 +6,11 @@ import {
   getReportMeta,
 } from "@/lib/reports/store";
 import type { StoredReportMeta } from "@/lib/reports/types";
-import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
+import {
+  isValidIsoDate,
+  parseReportFilterDate,
+  shiftIsoYears,
+} from "@/lib/reports/date-utils";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import { querySales } from "@/lib/sales/query-sales";
 import { reportSummaryFromQueryResult } from "@/lib/sales/dashboard-bridge";
@@ -34,13 +38,6 @@ function shiftIsoDate(iso: string, days: number): string {
   const d = new Date(`${iso}T12:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
-}
-
-function previousAvailableDate(dates: string[], current: string): string | null {
-  const sorted = [...dates].filter(Boolean).sort();
-  const idx = sorted.indexOf(current);
-  if (idx > 0) return sorted[idx - 1] ?? null;
-  return null;
 }
 
 function filterValues(
@@ -233,23 +230,32 @@ export async function GET(req: NextRequest) {
       };
       const result = await queryDashboardSlice({ ...slice, mode: "dashboard" });
 
+      // Net sales + store % = same calendar date(s) last year (YoY).
       let previousDay: SalesQueryResult | null = null;
       let previousWeek: SalesQueryResult | null = null;
 
-      if (filterDate) {
-        const prevDate = previousAvailableDate(shell.availableDates, filterDate);
-        if (prevDate) {
-          previousDay = await queryDashboardSlice({
-            ...slice,
-            date: prevDate,
-            dateFrom: prevDate,
-            dateTo: prevDate,
-            mode: "comparison",
-          });
-        }
+      if (filterDateFrom && filterDateTo) {
+        const lyFrom = shiftIsoYears(filterDateFrom, -1);
+        const lyTo = shiftIsoYears(filterDateTo, -1);
+        previousDay = await queryDashboardSlice({
+          ...slice,
+          date: undefined,
+          dateFrom: lyFrom,
+          dateTo: lyTo,
+          mode: "comparison",
+        });
+      } else if (filterDate) {
+        const lyDate = shiftIsoYears(filterDate, -1);
+        previousDay = await queryDashboardSlice({
+          ...slice,
+          date: lyDate,
+          dateFrom: lyDate,
+          dateTo: lyDate,
+          mode: "comparison",
+        });
 
         const weekAgo = shiftIsoDate(filterDate, -7);
-        if (shell.availableDates.includes(weekAgo) && weekAgo !== prevDate) {
+        if (shell.availableDates.includes(weekAgo) && weekAgo !== lyDate) {
           previousWeek = await queryDashboardSlice({
             ...slice,
             date: weekAgo,
@@ -257,8 +263,6 @@ export async function GET(req: NextRequest) {
             dateTo: weekAgo,
             mode: "comparison",
           });
-        } else if (weekAgo === prevDate) {
-          previousWeek = previousDay;
         }
       }
 

@@ -1,16 +1,10 @@
 import type { SalesSummary } from "@/types";
 import { filterExcludedSalesRows, isExcludedSalesRow, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
+import { isValidIsoDate, parseReportFilterDate, shiftIsoYears } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
-
-function shiftIso(iso: string, days: number): string {
-  const d = new Date(`${iso}T12:00:00.000Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 function parseNumber(raw: unknown): number {
   if (raw == null || raw === "") return 0;
@@ -331,28 +325,22 @@ export function summarizeVendorPos(
     const from = rangeFrom <= rangeTo ? rangeFrom : rangeTo;
     const to = rangeFrom <= rangeTo ? rangeTo : rangeFrom;
     periodRows = periodRows.filter((r) => r.date && r.date >= from && r.date <= to);
-    // Prior period of equal length for % change when possible
-    const spanDays =
-      Math.round(
-        (Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86400000
-      ) + 1;
-    const prevEnd = shiftIso(from, -1);
-    const prevStart = shiftIso(prevEnd, -(spanDays - 1));
+    // Same calendar window last year (YoY)
+    const lyFrom = shiftIsoYears(from, -1);
+    const lyTo = shiftIsoYears(to, -1);
     compareRows = filterExcludedSalesRows(rows).filter(
-      (r) => r.date && r.date >= prevStart && r.date <= prevEnd
+      (r) => r.date && r.date >= lyFrom && r.date <= lyTo
     );
   } else if (opts.filterDate) {
     periodRows = periodRows.filter((r) => r.date === opts.filterDate);
-    const idx = dates.indexOf(opts.filterDate);
-    if (idx > 0) {
-      compareRows = filterExcludedSalesRows(rows).filter((r) => r.date === dates[idx - 1]);
-    }
+    const lyDate = shiftIsoYears(opts.filterDate, -1);
+    compareRows = filterExcludedSalesRows(rows).filter((r) => r.date === lyDate);
   } else if (opts.period === "daily" && dates.length === 1) {
     periodRows = periodRows.filter((r) => r.date === dateTo);
-  } else if (opts.period === "daily" && dates.length === 2) {
-    compareRows = filterExcludedSalesRows(rows).filter(
-      (r) => r.date === dates[dates.length - 2]
-    );
+    if (dateTo) {
+      const lyDate = shiftIsoYears(dateTo, -1);
+      compareRows = filterExcludedSalesRows(rows).filter((r) => r.date === lyDate);
+    }
   }
 
   const storeList =
@@ -552,7 +540,7 @@ export function summarizeVendorPos(
     );
   }
   if (underperformingStores.length > 0 && opts.period === "daily" && compareRows.length > 0) {
-    recommendations.push(`${underperformingStores[0].name} is down vs prior day in this file.`);
+    recommendations.push(`${underperformingStores[0].name} is down vs same day last year in this file.`);
   }
 
   const base: SalesSummary = {
