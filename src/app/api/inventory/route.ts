@@ -6,6 +6,9 @@ import {
 } from "@/lib/inventory/store";
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { calculatePricing } from "@/lib/inventory/pricing";
+import { resolveProductImageUrl } from "@/lib/reports/product-image";
+import { hidesVendorInfo } from "@/lib/auth/users";
+import { saveOnhandCsv, invalidateOnhandCache } from "@/lib/inventory/onhand";
 
 export const runtime = "nodejs";
 
@@ -45,6 +48,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const { rowCount } = saveInventoryCsv(csvText, file.name);
+    // Same sheet drives Top Vendor Models on-hand.
+    try {
+      saveOnhandCsv(csvText);
+    } catch {
+      invalidateOnhandCache();
+    }
     return NextResponse.json({
       ok: true,
       rowCount,
@@ -74,7 +83,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error: "Inventory file not loaded",
-        hint: "Upload inventory CSV to .data/inventory/inventory.csv on the server, or use POST /api/inventory",
+        hint: "Upload ON_HAND_REPORT CSV to .data/inventory/inventory.csv, or use POST /api/inventory",
         status,
       },
       { status: 503 }
@@ -89,8 +98,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Kash → Cost Price column. DMs → Wholesale Cost as Cost Price (fallback Cost Price).
-  let item = result.item;
+  // Kash (admin) → Individual Cost Value. DMs → Whole Cost (fallback Individual Cost).
+  let item = { ...result.item };
   let pricing = result.pricing;
   if (session.role === "dm") {
     const wholesale = Number(item.wholesaleCost) || 0;
@@ -100,9 +109,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const hideVendor = hidesVendorInfo(session.username);
+
   return NextResponse.json({
-    item,
+    item: hideVendor ? { ...item, vendor: "" } : item,
     pricing,
+    stores: result.stores,
+    onHandTotal: result.onHandTotal,
+    imageUrl: resolveProductImageUrl(item.imageDir),
+    hideVendor,
     status,
   });
 }

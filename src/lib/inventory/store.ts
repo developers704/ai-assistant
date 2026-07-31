@@ -106,6 +106,8 @@ export function lookupInventory(
 ): {
   item: InventoryItem;
   pricing: ReturnType<typeof calculatePricing>;
+  stores: { name: string; onhand: number }[];
+  onHandTotal: number;
 } | null {
   const index = loadIndex();
   if (!index) return null;
@@ -113,19 +115,42 @@ export function lookupInventory(
   const normalizedSku = sku.trim().toUpperCase();
   if (!normalizedSku) return null;
 
-  if (store?.trim()) {
-    const normalizedStore = store.trim().toUpperCase();
-    const atStore = index.byStoreSku.get(storeSkuKey(normalizedStore, normalizedSku));
-    if (atStore) {
-      return { item: atStore, pricing: calculatePricing(atStore) };
-    }
-  }
-
   const candidates = index.bySku.get(normalizedSku);
   if (!candidates?.length) return null;
 
-  const item = candidates[0];
-  return { item, pricing: calculatePricing(item) };
+  let item = candidates.find((c) => c.tagPrice > 0) ?? candidates[0];
+  if (store?.trim()) {
+    const atStore = index.byStoreSku.get(
+      storeSkuKey(store.trim().toUpperCase(), normalizedSku)
+    );
+    if (atStore) {
+      item = {
+        ...item,
+        ...atStore,
+        tagPrice: atStore.tagPrice || item.tagPrice,
+        costPrice: atStore.costPrice || item.costPrice,
+        wholesaleCost: atStore.wholesaleCost || item.wholesaleCost,
+      };
+    }
+  }
+
+  const byStore = new Map<string, number>();
+  for (const c of candidates) {
+    const name = c.store?.trim();
+    if (!name) continue;
+    byStore.set(name, (byStore.get(name) ?? 0) + (Number(c.onHand) || 0));
+  }
+  const stores = [...byStore.entries()]
+    .map(([name, onhand]) => ({ name, onhand }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const onHandTotal = stores.reduce((s, x) => s + x.onhand, 0);
+
+  return {
+    item,
+    pricing: calculatePricing(item),
+    stores,
+    onHandTotal,
+  };
 }
 
 export function invalidateInventoryCache() {

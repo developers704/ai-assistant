@@ -11,6 +11,11 @@ function parseWeight(raw: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function parseQty(raw: string): number {
+  const n = parseFloat(raw.trim().replace(/,/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
 /** Parse a single CSV line respecting quoted fields. */
 function parseCsvLine(line: string): string[] {
   const fields: string[] = [];
@@ -45,24 +50,31 @@ type ColumnKey =
   | "sku"
   | "description"
   | "vendorModel"
+  | "vendor"
   | "tagPrice"
   | "costPrice"
   | "wholesaleCost"
   | "store"
+  | "onHand"
   | "department"
   | "design"
   | "class"
   | "subClass"
-  | "avgWeight";
+  | "avgWeight"
+  | "imageDir"
+  | "createDate";
 
 const HEADER_ALIASES: Record<string, ColumnKey> = {
   "sku #": "sku",
-  "sku": "sku",
+  sku: "sku",
   "item #": "sku",
   "item desc": "description",
-  "description": "description",
+  description: "description",
   "vendor model": "vendorModel",
   "vendor model #": "vendorModel",
+  vendor: "vendor",
+  "vendor #": "vendor",
+  "vendor name": "vendor",
   "tag price": "tagPrice",
   "individual selling value": "tagPrice",
   "selling value": "tagPrice",
@@ -71,14 +83,24 @@ const HEADER_ALIASES: Record<string, ColumnKey> = {
   "cost value": "costPrice",
   "wholesale cost": "wholesaleCost",
   "whole cost": "wholesaleCost",
-  "store": "store",
-  "department": "department",
-  "design": "design",
-  "class": "class",
+  store: "store",
+  "on-hand": "onHand",
+  onhand: "onHand",
+  "onhand qty": "onHand",
+  "on hand qty": "onHand",
+  "on-hand qty": "onHand",
+  department: "department",
+  design: "design",
+  class: "class",
   "sub-class": "subClass",
   "sub class": "subClass",
-  "avgweight": "avgWeight",
+  avgweight: "avgWeight",
   "avg weight": "avgWeight",
+  "image dir.": "imageDir",
+  "image dir": "imageDir",
+  imagedir: "imageDir",
+  "create date": "createDate",
+  createdate: "createDate",
 };
 
 function buildColumnMap(headers: string[]): Partial<Record<ColumnKey, number>> {
@@ -160,30 +182,46 @@ function rowToItem(cols: string[], map: Partial<Record<ColumnKey, number>>): Inv
   const tagPrice = parsePrice(getField(cols, map, "tagPrice"));
   const costPrice = parsePrice(getField(cols, map, "costPrice"));
   const wholesaleCost = parsePrice(getField(cols, map, "wholesaleCost"));
-  if (tagPrice <= 0 && costPrice <= 0 && wholesaleCost <= 0) return null;
+  const onHand = parseQty(getField(cols, map, "onHand"));
+  const store = getField(cols, map, "store");
+
+  // Keep on-hand rows even when prices are blank (still useful for qty by store).
+  if (tagPrice <= 0 && costPrice <= 0 && wholesaleCost <= 0 && onHand <= 0 && !store) {
+    return null;
+  }
 
   const department = getField(cols, map, "department");
   const design = getField(cols, map, "design");
   const description = getField(cols, map, "description");
   const vendorModel = getField(cols, map, "vendorModel");
+  const imageDir = getField(cols, map, "imageDir") || undefined;
+  const createDate = getField(cols, map, "createDate") || undefined;
 
   return {
     sku,
     description,
     vendorModel,
+    vendor: getField(cols, map, "vendor"),
     tagPrice,
     costPrice,
     wholesaleCost,
-    store: getField(cols, map, "store"),
+    store,
+    onHand,
     department,
     design,
     class: getField(cols, map, "class"),
     subClass: getField(cols, map, "subClass"),
     avgWeight: parseWeight(getField(cols, map, "avgWeight")),
     brand: deriveBrand(department, design, description, vendorModel),
+    imageDir,
+    createDate,
   };
 }
 
+/**
+ * Parse on-hand / inventory export.
+ * Keeps one row per Store+SKU (for on-hand by store). Catalog fields repeat per store.
+ */
 export function parseInventoryCsv(csvText: string): InventoryItem[] {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
@@ -192,24 +230,15 @@ export function parseInventoryCsv(csvText: string): InventoryItem[] {
   const columnMap = buildColumnMap(headers);
 
   if (columnMap.sku === undefined) {
-    throw new Error('Inventory CSV must include a "SKU #" column.');
-  }
-  if (columnMap.tagPrice === undefined) {
-    throw new Error('Inventory CSV must include a "Tag Price" column.');
+    throw new Error('Inventory CSV must include an "Item #" / "SKU #" column.');
   }
 
   const items: InventoryItem[] = [];
-  const seenSku = new Set<string>();
 
   for (let i = 1; i < lines.length; i++) {
     const cols = parseCsvLine(lines[i]);
     const item = rowToItem(cols, columnMap);
     if (!item) continue;
-
-    const skuKey = item.sku.trim().toUpperCase();
-    if (seenSku.has(skuKey)) continue;
-    seenSku.add(skuKey);
-
     items.push(item);
   }
 

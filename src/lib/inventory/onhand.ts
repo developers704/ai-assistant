@@ -103,7 +103,11 @@ function parseOnhandCsv(csvText: string): {
     (h) => h === "sub-class" || h === "sub class" || h === "subclass"
   );
   const vendorIdx = headers.findIndex(
-    (h) => h === "vendor" || h === "vendor name" || h === "vendor name"
+    (h) =>
+      h === "vendor" ||
+      h === "vendor #" ||
+      h === "vendor name" ||
+      h === "vendor name"
   );
   const modelIdx = headers.findIndex(
     (h) => h === "vendor model #" || h === "vendor model" || h === "vendor model #"

@@ -28,7 +28,9 @@ import {
   Tag,
   CreditCard,
   DollarSign,
+  Package,
 } from "lucide-react";
+import { ProductThumb, ProductLightbox } from "@/components/reports/ProductImagePreview";
 
 const selectClass =
   "select-dark w-full px-4 py-2.5 rounded-2xl backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400/40";
@@ -50,6 +52,10 @@ const num = (v: string) => {
 interface LookupResponse {
   item: InventoryItem;
   pricing: PricingResult;
+  stores?: { name: string; onhand: number }[];
+  onHandTotal?: number;
+  imageUrl?: string | null;
+  hideVendor?: boolean;
   status: { loaded: boolean; rowCount: number };
 }
 
@@ -67,6 +73,11 @@ export default function CalculatorPage() {
   const [financingPlan, setFinancingPlan] = useState<FinancingPlan>("6_months");
   const [commission, setCommission] = useState("");
   const [commissionPlus, setCommissionPlus] = useState("");
+  const [preview, setPreview] = useState<{
+    src: string;
+    alt: string;
+    subtitle?: string;
+  } | null>(null);
 
   const checkInventory = useCallback(async () => {
     try {
@@ -219,11 +230,11 @@ export default function CalculatorPage() {
           {inventoryLoaded === false && (
             <Card className="p-4 ring-1 ring-amber-400/20">
               <p className="text-sm text-ink-secondary">
-                Place your inventory CSV at{" "}
+                Place your on-hand CSV at{" "}
                 <code className="text-amber-300">.data/inventory/inventory.csv</code> on the
-                server, or use <strong>Upload CSV</strong> above. Expected columns include SKU
-                #, Item Desc, Department, Design, Class, Sub-Class, Store, Cost Price, Tag
-                Price, and AvgWeight.
+                server, or use <strong>Upload CSV</strong> above. Expected columns: Item #,
+                Vendor Model #, Individual Selling Value (tag), Individual Cost Value, Whole
+                Cost, Store, On-hand, Image Dir., AvgWeight, Create Date.
               </p>
             </Card>
           )}
@@ -276,11 +287,30 @@ export default function CalculatorPage() {
                     SKU Details
                   </CardTitle>
                 </CardHeader>
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                  <ProductThumb
+                    imageDir={result.item.imageDir}
+                    imageUrl={result.imageUrl}
+                    alt={result.item.description || result.item.sku}
+                    subtitle={result.item.vendorModel || result.item.sku}
+                    onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
+                  />
+                  <p className="text-sm text-ink-secondary leading-relaxed flex-1">
+                    {result.item.description || "—"}
+                  </p>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                  <Detail label="SKU" value={result.item.sku} />
-                  <Detail label="Brand" value={result.item.brand} />
+                  <Detail label="Item #" value={result.item.sku} />
+                  <Detail
+                    label="Vendor model #"
+                    value={result.item.vendorModel || "—"}
+                  />
+                  {!result.hideVendor && (
+                    <Detail label="Vendor" value={result.item.vendor || "—"} />
+                  )}
                   <Detail label="Department" value={result.item.department || "—"} />
                   <Detail label="Design" value={result.item.design || "—"} />
+                  <Detail label="Class" value={result.item.class || "—"} />
                   <Detail label="Sub-Class" value={result.item.subClass || "—"} />
                   <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
                   <Detail label="Cost Price" value={money(result.item.costPrice)} />
@@ -293,14 +323,33 @@ export default function CalculatorPage() {
                     }
                   />
                   <Detail
-                    label="Category"
-                    value={result.pricing.categoryLabel}
+                    label="Create Date"
+                    value={result.item.createDate || "—"}
                   />
+                  <Detail
+                    label="On hand (all stores)"
+                    value={String(result.onHandTotal ?? 0)}
+                  />
+                  <Detail label="Category" value={result.pricing.categoryLabel} />
                 </div>
-                <p className="mt-4 text-sm text-ink-secondary leading-relaxed">
-                  {result.item.description}
-                </p>
-                <p className="mt-2 text-xs text-ink-muted">{result.pricing.rulesSummary}</p>
+                {(result.stores?.length ?? 0) > 0 && (
+                  <div className="mt-4 rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-2 flex items-center gap-1.5">
+                      <Package size={12} /> On-hand by store (incl. MAIN)
+                    </p>
+                    <ul className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5 text-sm max-h-48 overflow-y-auto">
+                      {result.stores!.map((s) => (
+                        <li key={s.name} className="flex justify-between gap-2">
+                          <span className="text-ink-secondary truncate">{s.name}</span>
+                          <span className="tabular-nums text-ink font-medium shrink-0">
+                            {s.onhand}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <p className="mt-3 text-xs text-ink-muted">{result.pricing.rulesSummary}</p>
               </Card>
 
               <Card>
@@ -479,6 +528,15 @@ export default function CalculatorPage() {
             </>
           )}
         </PageShellBody>
+
+      {preview && (
+        <ProductLightbox
+          src={preview.src}
+          alt={preview.alt}
+          subtitle={preview.subtitle}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </PageShell>
   );
 }

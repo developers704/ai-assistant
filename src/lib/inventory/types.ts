@@ -32,17 +32,24 @@ export interface InventoryItem {
   sku: string;
   description: string;
   vendorModel: string;
+  /** Vendor # / vendor code from on-hand export */
+  vendor: string;
   tagPrice: number;
+  /** Individual Cost Value — Cost Price for Kash (admin) */
   costPrice: number;
-  /** From inventory "Wholesale Cost" — shown as Cost Price for DMs. */
+  /** Whole Cost — Cost Price for DMs */
   wholesaleCost: number;
   store: string;
+  /** On-hand qty at this store row */
+  onHand: number;
   department: string;
   design: string;
   class: string;
   subClass: string;
   avgWeight: number;
   brand: string;
+  imageDir?: string;
+  createDate?: string;
 }
 
 export type ProductCategory =
