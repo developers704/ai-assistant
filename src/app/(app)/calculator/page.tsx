@@ -28,7 +28,6 @@ import {
   Tag,
   CreditCard,
   DollarSign,
-  Package,
 } from "lucide-react";
 import { ProductThumb, ProductLightbox } from "@/components/reports/ProductImagePreview";
 
@@ -332,23 +331,6 @@ export default function CalculatorPage() {
                   />
                   <Detail label="Category" value={result.pricing.categoryLabel} />
                 </div>
-                {(result.stores?.length ?? 0) > 0 && (
-                  <div className="mt-4 rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-2 flex items-center gap-1.5">
-                      <Package size={12} /> On-hand by store (incl. MAIN)
-                    </p>
-                    <ul className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5 text-sm max-h-48 overflow-y-auto">
-                      {result.stores!.map((s) => (
-                        <li key={s.name} className="flex justify-between gap-2">
-                          <span className="text-ink-secondary truncate">{s.name}</span>
-                          <span className="tabular-nums text-ink font-medium shrink-0">
-                            {s.onhand}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
                 <p className="mt-3 text-xs text-ink-muted">{result.pricing.rulesSummary}</p>
               </Card>
 
