@@ -50,33 +50,42 @@ type ChartRow = {
 function UnitsTrendChart({
   trend,
   trendLastYear,
+  trendLabel,
+  compareLabel,
 }: {
   trend: VendorModelDetail["trend"];
   trendLastYear: VendorModelDetail["trendLastYear"];
+  trendLabel: string;
+  compareLabel: string;
 }) {
   const [ready, setReady] = useState(false);
   const rows = useMemo(() => {
-    const lyByMd = new Map(
-      (trendLastYear ?? []).map((p) => [p.date.slice(5), p])
-    );
-    const base = trend.length
-      ? trend
-      : (trendLastYear ?? []).map((p) => ({
-          date: p.date,
-          units: 0,
-          revenue: 0,
-        }));
-    return base.map((d): ChartRow => {
-      const md = d.date.slice(5);
-      const ly = lyByMd.get(md);
-      return {
+    const byMd = new Map<string, ChartRow>();
+    for (const p of trend ?? []) {
+      const md = p.date.slice(5);
+      byMd.set(md, {
         label: md,
-        units: d.units,
-        unitsLy: ly?.units ?? 0,
-        revenue: d.revenue,
-        revenueLy: ly?.revenue ?? 0,
+        units: p.units,
+        unitsLy: 0,
+        revenue: p.revenue,
+        revenueLy: 0,
+      });
+    }
+    for (const p of trendLastYear ?? []) {
+      const md = p.date.slice(5);
+      const cur = byMd.get(md) ?? {
+        label: md,
+        units: 0,
+        unitsLy: 0,
+        revenue: 0,
+        revenueLy: 0,
       };
-    });
+      cur.unitsLy = p.units;
+      cur.revenueLy = p.revenue;
+      byMd.set(md, cur);
+    }
+    // Calendar order by month-day (MM-DD sorts lexicographically).
+    return [...byMd.values()].sort((a, b) => a.label.localeCompare(b.label));
   }, [trend, trendLastYear]);
 
   useEffect(() => {
@@ -92,11 +101,6 @@ function UnitsTrendChart({
       </p>
     );
   }
-
-  const thisYear = trend[0]?.date?.slice(0, 4) || "This year";
-  const lastYear =
-    trendLastYear[0]?.date?.slice(0, 4) ||
-    (Number(thisYear) ? String(Number(thisYear) - 1) : "Last year");
 
   return (
     <div
@@ -175,8 +179,8 @@ function UnitsTrendChart({
               formatter={(value, name) => {
                 const n = typeof value === "number" ? value : Number(value) || 0;
                 const key = String(name);
-                if (key === "units") return [formatPieceCount(n), thisYear];
-                if (key === "unitsLy") return [formatPieceCount(n), lastYear];
+                if (key === "units") return [formatPieceCount(n), trendLabel];
+                if (key === "unitsLy") return [formatPieceCount(n), compareLabel];
                 return [formatCurrency(n), key];
               }}
               labelFormatter={(label) => `Day ${String(label)}`}
@@ -185,7 +189,11 @@ function UnitsTrendChart({
               verticalAlign="top"
               height={28}
               formatter={(value) =>
-                value === "units" ? thisYear : value === "unitsLy" ? lastYear : value
+                value === "units"
+                  ? trendLabel
+                  : value === "unitsLy"
+                    ? compareLabel
+                    : value
               }
               wrapperStyle={{ fontSize: 11, color: "rgba(241,245,249,0.55)" }}
             />
@@ -306,15 +314,26 @@ export function VendorModelDetailDrawer({
         : `${data.dateFrom} → ${data.dateTo}`
       : null;
 
-  const lyUnits = (data?.trendLastYear ?? []).reduce((s, p) => s + p.units, 0);
+  const primaryUnits = (data?.trend ?? []).reduce((s, p) => s + p.units, 0);
+  const compareUnits = (data?.trendLastYear ?? []).reduce((s, p) => s + p.units, 0);
+  const trendLabel = data?.trendLabel;
+  const compareLabel = data?.compareLabel;
 
   const metaLine = [
     periodLabel,
     filterStore
       ? filterStore.split(",")[0] + (filterStore.includes(",") ? " +" : "")
       : null,
-    data?.totals ? formatPieceCount(data.totals.units) + " sold" : null,
-    lyUnits > 0 ? `${formatPieceCount(lyUnits)} LY` : null,
+    data?.compareMode === "calendar-years" && trendLabel && compareLabel
+      ? `${formatPieceCount(primaryUnits)} in ${trendLabel} · ${formatPieceCount(compareUnits)} in ${compareLabel}`
+      : [
+          data?.totals ? formatPieceCount(data.totals.units) + " sold" : null,
+          compareUnits > 0 && compareLabel
+            ? `${formatPieceCount(compareUnits)} in ${compareLabel}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") || null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -381,11 +400,13 @@ export function VendorModelDetailDrawer({
           {data && !loading && (
             <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-3 sm:p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <p className="text-[11px] text-white/35 mb-1">
-                Daily units · this year vs last year
+                Daily units · {data.trendLabel ?? "—"} vs {data.compareLabel ?? "—"}
               </p>
               <UnitsTrendChart
                 trend={data.trend}
                 trendLastYear={data.trendLastYear ?? []}
+                trendLabel={data.trendLabel || "This year"}
+                compareLabel={data.compareLabel || "Last year"}
               />
             </div>
           )}

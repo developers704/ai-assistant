@@ -62,10 +62,16 @@ export type VendorModelDetail = {
     sellingDays: number;
     avgDailyUnits: number;
   };
-  /** Selected period (this year / current window). */
+  /** Primary series (selected year, or first calendar year in a multi-year filter). */
   trend: VendorModelTrendPoint[];
-  /** Same calendar window one year earlier (for YoY overlay). */
+  /** Compare series: prior-year YoY window, or last calendar year in a multi-year filter. */
   trendLastYear: VendorModelTrendPoint[];
+  /** Legend label for `trend` (e.g. "2026" or "2025"). */
+  trendLabel: string;
+  /** Legend label for `trendLastYear` (e.g. "2025"). */
+  compareLabel: string;
+  /** How the two series were built. */
+  compareMode: "yoy" | "calendar-years";
   skus: VendorModelSkuDetail[];
   stores: { name: string; revenue: number; units: number }[];
   insights: string[];
@@ -159,11 +165,16 @@ function buildInsights(detail: Omit<VendorModelDetail, "insights">): string[] {
     }
   }
 
-  const lyUnits = detail.trendLastYear.reduce((s, p) => s + p.units, 0);
-  if (lyUnits > 0 && totals.units > 0) {
-    const delta = ((totals.units - lyUnits) / lyUnits) * 100;
+  const primaryUnits = detail.trend.reduce((s, p) => s + p.units, 0);
+  const compareUnits = detail.trendLastYear.reduce((s, p) => s + p.units, 0);
+  if (compareUnits > 0 && primaryUnits > 0) {
+    const delta = ((primaryUnits - compareUnits) / compareUnits) * 100;
+    const vs =
+      detail.compareMode === "calendar-years"
+        ? `${detail.compareLabel}`
+        : "same period last year";
     out.push(
-      `Units ${delta >= 0 ? "up" : "down"} ${Math.abs(delta).toFixed(0)}% vs same period last year (${totals.units} vs ${lyUnits}).`
+      `Units ${delta >= 0 ? "up" : "down"} ${Math.abs(delta).toFixed(0)}% vs ${vs} (${primaryUnits} in ${detail.trendLabel} vs ${compareUnits} in ${detail.compareLabel}).`
     );
   }
 
@@ -327,23 +338,69 @@ export function buildVendorModelDetail(
     }
   }
 
-  const trend = buildDailyTrend(rows, dateFrom, dateTo);
+  const rangeFrom =
+    dateFrom && dateTo
+      ? dateFrom <= dateTo
+        ? dateFrom
+        : dateTo
+      : null;
+  const rangeTo =
+    dateFrom && dateTo
+      ? dateFrom <= dateTo
+        ? dateTo
+        : dateFrom
+      : null;
 
-  // Same calendar window last year (YoY overlay).
-  let lyFrom: string | null = null;
-  let lyTo: string | null = null;
-  if (dateFrom && dateTo) {
-    lyFrom = shiftIsoYears(dateFrom <= dateTo ? dateFrom : dateTo, -1);
-    lyTo = shiftIsoYears(dateFrom <= dateTo ? dateTo : dateFrom, -1);
-  } else if (trend.length) {
-    lyFrom = shiftIsoYears(trend[0].date, -1);
-    lyTo = shiftIsoYears(trend[trend.length - 1].date, -1);
+  let trend: VendorModelTrendPoint[];
+  let trendLastYear: VendorModelTrendPoint[];
+  let trendLabel: string;
+  let compareLabel: string;
+  let compareMode: VendorModelDetail["compareMode"];
+
+  // Multi-year filter (e.g. 2025-01-01 → 2026-07-30): overlay first vs last
+  // calendar year in the selection — not YoY-shifted (that labeled both lines 2025).
+  if (rangeFrom && rangeTo && rangeFrom.slice(0, 4) !== rangeTo.slice(0, 4)) {
+    compareMode = "calendar-years";
+    const y0 = rangeFrom.slice(0, 4);
+    const y1 = rangeTo.slice(0, 4);
+    const y0To = `${y0}-12-31`;
+    const y1From = `${y1}-01-01`;
+    const rowsY0 = rows.filter(
+      (r) => r.date && r.date >= rangeFrom && r.date <= y0To
+    );
+    const rowsY1 = rows.filter(
+      (r) => r.date && r.date >= y1From && r.date <= rangeTo
+    );
+    trend = buildDailyTrend(rowsY0, rangeFrom, y0To);
+    trendLastYear = buildDailyTrend(rowsY1, y1From, rangeTo);
+    trendLabel = y0;
+    compareLabel = y1;
+  } else {
+    compareMode = "yoy";
+    trend = buildDailyTrend(rows, dateFrom, dateTo);
+
+    let lyFrom: string | null = null;
+    let lyTo: string | null = null;
+    if (rangeFrom && rangeTo) {
+      lyFrom = shiftIsoYears(rangeFrom, -1);
+      lyTo = shiftIsoYears(rangeTo, -1);
+    } else if (trend.length) {
+      lyFrom = shiftIsoYears(trend[0].date, -1);
+      lyTo = shiftIsoYears(trend[trend.length - 1].date, -1);
+    }
+    const lyRows =
+      lyFrom && lyTo
+        ? modelRows.filter((r) => r.date && r.date >= lyFrom! && r.date <= lyTo!)
+        : [];
+    trendLastYear = buildDailyTrend(lyRows, lyFrom, lyTo);
+    trendLabel =
+      rangeFrom?.slice(0, 4) ||
+      trend[0]?.date?.slice(0, 4) ||
+      "This year";
+    compareLabel =
+      lyFrom?.slice(0, 4) ||
+      (Number(trendLabel) ? String(Number(trendLabel) - 1) : "Last year");
   }
-  const lyRows =
-    lyFrom && lyTo
-      ? modelRows.filter((r) => r.date && r.date >= lyFrom! && r.date <= lyTo!)
-      : [];
-  const trendLastYear = buildDailyTrend(lyRows, lyFrom, lyTo);
 
   const byStore = new Map<string, { revenue: number; units: number }>();
   for (const r of rows) {
@@ -358,7 +415,11 @@ export function buildVendorModelDetail(
     .map(([name, v]) => ({ name, ...v }))
     .sort((a, b) => b.units - a.units || b.revenue - a.revenue);
 
-  const sellingDays = trend.filter((p) => p.units > 0).length;
+  const sellingSource =
+    compareMode === "calendar-years"
+      ? buildDailyTrend(rows, dateFrom, dateTo)
+      : trend;
+  const sellingDays = sellingSource.filter((p) => p.units > 0).length;
   const avgDailyUnits = sellingDays > 0 ? units / sellingDays : 0;
 
   const firstImage = rows.find((r) => r.imageDir)?.imageDir;
@@ -397,6 +458,9 @@ export function buildVendorModelDetail(
     },
     trend,
     trendLastYear,
+    trendLabel,
+    compareLabel,
+    compareMode,
     skus,
     stores,
   };
