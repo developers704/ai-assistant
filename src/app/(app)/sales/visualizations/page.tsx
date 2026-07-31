@@ -27,6 +27,8 @@ import {
 } from "@/components/sales/SalesDateRangePicker";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { ArrowLeft, LineChart, Sparkles } from "lucide-react";
+import { useApp } from "@/lib/store/app-context";
+import { hidesVendorInfo } from "@/lib/auth/users";
 
 const selectClass =
   "select-dark h-9 px-3 rounded-xl text-sm backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-cyan-400/30 focus:border-cyan-400/40 min-w-[8.5rem]";
@@ -72,6 +74,8 @@ export default function SalesVisualizationsPage() {
 function SalesVisualizationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { state } = useApp();
+  const hideVendors = hidesVendorInfo(state?.user?.username);
 
   const [data, setData] = useState<SalesVisualizationPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,7 +112,7 @@ function SalesVisualizationsContent() {
     if (filterStore) params.set("store", filterStore);
     if (filterDepartment) params.set("department", filterDepartment);
     if (filterDesign) params.set("design", filterDesign);
-    if (filterVendor) params.set("vendor", filterVendor);
+    if (!hideVendors && filterVendor) params.set("vendor", filterVendor);
     if (filterClass) params.set("class", filterClass);
     const qs = params.toString();
     router.replace(qs ? `/sales/visualizations?${qs}` : "/sales/visualizations", {
@@ -183,11 +187,11 @@ function SalesVisualizationsContent() {
     if (filterStore) params.set("store", filterStore);
     if (filterDepartment) params.set("department", filterDepartment);
     if (filterDesign) params.set("design", filterDesign);
-    if (filterVendor) params.set("vendor", filterVendor);
+    if (!hideVendors && filterVendor) params.set("vendor", filterVendor);
     if (filterClass) params.set("class", filterClass);
     const qs = params.toString();
     return qs ? `/sales?${qs}` : "/sales";
-  }, [dateRange, filterStore, filterDepartment, filterDesign, filterVendor, filterClass]);
+  }, [dateRange, filterStore, filterDepartment, filterDesign, filterVendor, filterClass, hideVendors]);
 
   const clearFilters = () => {
     setDateRange(null);
@@ -212,7 +216,9 @@ function SalesVisualizationsContent() {
           subtitle={
             data?.reportLabel
               ? `${data.reportLabel} · interactive trends & rankings`
-              : "Interactive trends, designs, stores & vendors"
+              : hideVendors
+                ? "Interactive trends, designs & stores"
+                : "Interactive trends, designs, stores & vendors"
           }
           action={
             <div className="flex flex-wrap items-center gap-2 justify-end">
@@ -283,19 +289,21 @@ function SalesVisualizationsContent() {
                 </option>
               ))}
             </select>
-            <select
-              value={filterVendor}
-              onChange={(e) => setFilterVendor(e.target.value)}
-              className={selectClass}
-              aria-label="Filter by vendor"
-            >
-              <option value="">All vendors</option>
-              {(data?.filters.vendors ?? []).map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+            {!hideVendors && (
+              <select
+                value={filterVendor}
+                onChange={(e) => setFilterVendor(e.target.value)}
+                className={selectClass}
+                aria-label="Filter by vendor"
+              >
+                <option value="">All vendors</option>
+                {(data?.filters.vendors ?? []).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
             <select
               value={filterClass}
               onChange={(e) => setFilterClass(e.target.value)}
@@ -404,11 +412,13 @@ function SalesVisualizationsContent() {
                 subtitle="Product class share"
                 data={data.charts.byClass}
               />
-              <SalesHBarChart
-                title="Top vendors"
-                subtitle="Vendor ranking"
-                data={data.charts.byVendor}
-              />
+              {!hideVendors && (
+                <SalesHBarChart
+                  title="Top vendors"
+                  subtitle="Vendor ranking"
+                  data={data.charts.byVendor}
+                />
+              )}
               <SalesModelsChart data={data.charts.topVendorModels} />
             </div>
           </>

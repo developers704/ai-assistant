@@ -37,6 +37,7 @@ import {
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { scopeStoresForUser } from "@/lib/auth/scope-stores";
 import { sumCostPriceForRole } from "@/lib/sales/cost-price";
+import { hidesVendorInfo } from "@/lib/auth/users";
 
 export const runtime = "nodejs";
 
@@ -173,7 +174,7 @@ export async function GET(req: Request) {
     "class",
     "vendorModel",
     "salesperson",
-  ];
+  ].filter((d) => !(hidesVendorInfo(session.username) && d === "vendor")) as RankDimension[];
   if (!dimension || !allowed.includes(dimension) || !value) {
     return NextResponse.json(
       { error: "dimension and value are required" },
@@ -370,7 +371,7 @@ export async function GET(req: Request) {
       departments: topN(byDept),
       designs: topN(byDesign),
       classes: topN(byClass),
-      vendors: topN(byVendor),
+      vendors: hidesVendorInfo(session.username) ? [] : topN(byVendor),
       models: topModels,
     },
   });

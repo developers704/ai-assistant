@@ -38,6 +38,8 @@ import {
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
+import { useApp } from "@/lib/store/app-context";
+import { hidesVendorInfo } from "@/lib/auth/users";
 import { TrendingUp, TrendingDown, Package, Store, LineChart, GitCompareArrows, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +87,8 @@ function appendFilterParams(
 export default function SalesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { state } = useApp();
+  const hideVendors = hidesVendorInfo(state?.user?.username);
   const detailTypeFromUrl = searchParams.get("detail");
   const detailValueFromUrl = searchParams.get("detailValue");
   const [summary, setSummary] = useState<SalesSummary | null>(null);
@@ -499,7 +503,7 @@ export default function SalesPage() {
           availableStores.length > 0 ||
           availableDepartments.length > 0 ||
           availableDesigns.length > 0 ||
-          availableVendors.length > 0 ||
+          (!hideVendors && availableVendors.length > 0) ||
           availableClasses.length > 0 ||
           reportSummary?.dateRange) && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -544,7 +548,7 @@ export default function SalesPage() {
                 onChange={setFilterDesigns}
               />
             )}
-            {availableVendors.length > 0 && (
+            {!hideVendors && availableVendors.length > 0 && (
               <SalesMultiSelectFilter
                 label="Vendors"
                 allLabel="All vendors"
@@ -672,7 +676,11 @@ export default function SalesPage() {
           </div>
 
           {reportSummary && dataSource === "report" && (
-            <ReportInsightsCards summary={reportSummary} onRankClick={openRank} />
+            <ReportInsightsCards
+              summary={reportSummary}
+              hideVendors={hideVendors}
+              onRankClick={openRank}
+            />
           )}
 
           <div className="flex flex-col gap-5">

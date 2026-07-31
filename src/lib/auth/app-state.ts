@@ -17,6 +17,7 @@ export function appStateForSession(
     ...baseUser,
     id: session.sub,
     name: session.name,
+    username: session.username,
     email: isAdmin ? defaultUser.email : `${session.username}@valliani.local`,
     role: session.title,
     authRole: session.role,

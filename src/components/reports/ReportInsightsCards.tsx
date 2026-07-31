@@ -20,10 +20,17 @@ import {
 interface ReportInsightsProps {
   summary: ReportSummary;
   compact?: boolean;
+  /** Hide Top vendors list (e.g. Rozina). */
+  hideVendors?: boolean;
   onRankClick?: (dimension: RankDimension, value: string) => void;
 }
 
-export function ReportInsightsCards({ summary, compact, onRankClick }: ReportInsightsProps) {
+export function ReportInsightsCards({
+  summary,
+  compact,
+  hideVendors,
+  onRankClick,
+}: ReportInsightsProps) {
   if (summary.source !== "report") return null;
 
   const isStoreSales =
@@ -107,7 +114,7 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
             onItemClick={onRankClick ? (name) => onRankClick("department", name) : undefined}
           />
         )}
-        {summary.topVendors && summary.topVendors.length > 0 && (
+        {!hideVendors && summary.topVendors && summary.topVendors.length > 0 && (
           <ListCard
             title="Top vendors"
             icon={Truck}
@@ -175,7 +182,10 @@ export function ReportInsightsCards({ summary, compact, onRankClick }: ReportIns
         <div className="rounded-3xl p-5 glass-panel ring-1 ring-indigo-400/15">
           <p className="text-xs font-medium text-indigo-200 mb-2">Insights</p>
           <ul className="space-y-1.5 text-sm text-ink-secondary">
-            {summary.recommendations.slice(0, 4).map((rec) => (
+            {summary.recommendations
+              .filter((rec) => !(hideVendors && /top vendor/i.test(rec)))
+              .slice(0, 4)
+              .map((rec) => (
               <li key={rec}>• {rec}</li>
             ))}
           </ul>

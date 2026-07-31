@@ -30,6 +30,7 @@ import {
   filterAvailableStores,
   scopeStoresForUser,
 } from "@/lib/auth/scope-stores";
+import { hidesVendorInfo } from "@/lib/auth/users";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -174,7 +175,10 @@ export async function GET(req: NextRequest) {
   const filterStores = scoped.stores ?? [];
   const filterDepartments = parseMultiParam(sp, "department", "departments");
   const filterDesigns = parseMultiParam(sp, "design", "designs");
-  const filterVendors = parseMultiParam(sp, "vendor", "vendors");
+  const hideVendors = hidesVendorInfo(session.username);
+  const filterVendors = hideVendors
+    ? []
+    : parseMultiParam(sp, "vendor", "vendors");
   const filterClasses = parseMultiParam(sp, "class", "classes");
 
   if (dateParam && (!singleDate || !isValidIsoDate(singleDate))) {
@@ -270,6 +274,12 @@ export async function GET(req: NextRequest) {
         previousDay,
         previousWeek,
       });
+      if (hideVendors) {
+        summary.topVendors = [];
+        summary.recommendations = summary.recommendations.filter(
+          (r) => !/top vendor/i.test(r)
+        );
+      }
       return NextResponse.json(
         {
           summary,
@@ -285,7 +295,7 @@ export async function GET(req: NextRequest) {
           availableDepartments: shell.availableDepartments,
           availableDesigns: shell.availableDesigns,
           availableClasses: shell.availableClasses,
-          availableVendors: shell.availableVendors,
+          availableVendors: hideVendors ? [] : shell.availableVendors,
           filterDate: filterDate ?? null,
           filterDateFrom: filterDateFrom ?? null,
           filterDateTo: filterDateTo ?? null,
@@ -327,21 +337,28 @@ export async function GET(req: NextRequest) {
   });
 
   if (latest) {
+    const summary = { ...latest.summary };
+    if (hideVendors) {
+      summary.topVendors = [];
+      summary.recommendations = (summary.recommendations ?? []).filter(
+        (r) => !/top vendor/i.test(r)
+      );
+    }
     return NextResponse.json({
-      summary: latest.summary,
+      summary,
       report: latest.meta,
       data: [],
       source: "report",
-      reportLabel: latest.summary.reportLabel,
-      reportDate: latest.summary.reportDate,
-      vendorCode: latest.summary.vendorCode,
-      reportPeriod: latest.summary.reportPeriod,
+      reportLabel: summary.reportLabel,
+      reportDate: summary.reportDate,
+      vendorCode: summary.vendorCode,
+      reportPeriod: summary.reportPeriod,
       availableDates: latest.availableDates,
       availableStores: filterAvailableStores(session, latest.availableStores),
       availableDepartments: latest.availableDepartments,
       availableDesigns: latest.availableDesigns,
       availableClasses: latest.availableClasses,
-      availableVendors: latest.availableVendors,
+      availableVendors: hideVendors ? [] : latest.availableVendors,
       filterDate: filterDate ?? null,
       filterDateFrom: filterDateFrom ?? null,
       filterDateTo: filterDateTo ?? null,

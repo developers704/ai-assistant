@@ -2,6 +2,8 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
+  /** Login username (e.g. rozina, aj) — used for role-specific UI */
+  username?: string;
   role: string;
   /** Auth role from session cookie — drives nav / voice access */
   authRole?: "admin" | "dm";

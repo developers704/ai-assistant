@@ -135,3 +135,8 @@ export function getAllowedStoreCodes(user: AuthUserRecord): string[] | null {
   if (user.role === "admin") return null;
   return user.storeCodes;
 }
+
+/** Rozina: no vendor filter / Top vendors / vendor charts (POS vendor names). */
+export function hidesVendorInfo(username: string | null | undefined): boolean {
+  return (username ?? "").trim().toLowerCase() === "rozina";
+}

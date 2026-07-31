@@ -8,6 +8,7 @@ import {
   filterAvailableStores,
   scopeStoresForUser,
 } from "@/lib/auth/scope-stores";
+import { hidesVendorInfo } from "@/lib/auth/users";
 
 export async function GET(req: NextRequest) {
   const session = await readSessionFromCookies();
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
   const single = sp.get("store")?.trim();
   if (single && !requested.length) requested.push(single);
   const { stores } = scopeStoresForUser(session, requested);
+  const hideVendors = hidesVendorInfo(session.username);
 
   const payload = buildSalesVisualizations({
     date: dateFrom && dateTo && dateFrom === dateTo ? dateFrom : undefined,
@@ -64,11 +66,17 @@ export async function GET(req: NextRequest) {
     store: stores?.length === 1 ? stores[0] : undefined,
     department: sp.get("department")?.trim() || undefined,
     design: sp.get("design")?.trim() || undefined,
-    vendor: sp.get("vendor")?.trim() || undefined,
+    vendor: hideVendors ? undefined : sp.get("vendor")?.trim() || undefined,
     className: sp.get("class")?.trim() || undefined,
   });
 
   payload.filters.stores = filterAvailableStores(session, payload.filters.stores);
+  if (hideVendors) {
+    payload.charts.byVendor = [];
+    if (payload.filters && "vendors" in payload.filters) {
+      (payload.filters as { vendors?: string[] }).vendors = [];
+    }
+  }
 
   return NextResponse.json(payload);
 }
