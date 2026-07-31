@@ -63,10 +63,10 @@ export async function GET(req: NextRequest) {
   }
 
   const sku = req.nextUrl.searchParams.get("sku")?.trim();
-  const store = req.nextUrl.searchParams.get("store")?.trim();
+  const store = req.nextUrl.searchParams.get("store")?.trim() || undefined;
   const status = getInventoryStatus();
 
-  if (!sku || !store) {
+  if (!sku) {
     return NextResponse.json({ status });
   }
 

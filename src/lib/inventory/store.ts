@@ -102,7 +102,7 @@ export function saveInventoryCsv(csvText: string, fileName?: string): {
 
 export function lookupInventory(
   sku: string,
-  store: string
+  store?: string | null
 ): {
   item: InventoryItem;
   pricing: ReturnType<typeof calculatePricing>;
@@ -111,11 +111,14 @@ export function lookupInventory(
   if (!index) return null;
 
   const normalizedSku = sku.trim().toUpperCase();
-  const normalizedStore = store.trim().toUpperCase();
+  if (!normalizedSku) return null;
 
-  const atStore = index.byStoreSku.get(storeSkuKey(normalizedStore, normalizedSku));
-  if (atStore) {
-    return { item: atStore, pricing: calculatePricing(atStore) };
+  if (store?.trim()) {
+    const normalizedStore = store.trim().toUpperCase();
+    const atStore = index.byStoreSku.get(storeSkuKey(normalizedStore, normalizedSku));
+    if (atStore) {
+      return { item: atStore, pricing: calculatePricing(atStore) };
+    }
   }
 
   const candidates = index.bySku.get(normalizedSku);

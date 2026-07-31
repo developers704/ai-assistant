@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import {
-  STORES,
+  FINANCING_PLAN_LABELS,
+  calculateFinancedPrice,
+  calculateGrandTotal,
+} from "@/lib/inventory/pricing";
+import {
   type FinancingPlan,
   type InventoryItem,
   type ManagerTier,
@@ -17,16 +21,10 @@ import {
   type PricingResult,
 } from "@/lib/inventory/types";
 import {
-  FINANCING_PLAN_LABELS,
-  calculateFinancedPrice,
-  calculateGrandTotal,
-} from "@/lib/inventory/pricing";
-import {
   Calculator,
   Loader2,
   Search,
   Upload,
-  Store,
   Tag,
   CreditCard,
   DollarSign,
@@ -56,7 +54,6 @@ interface LookupResponse {
 }
 
 export default function CalculatorPage() {
-  const [store, setStore] = useState<string>(STORES[0]);
   const [sku, setSku] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +98,7 @@ export default function CalculatorPage() {
 
     try {
       const res = await fetch(
-        `/api/inventory?sku=${encodeURIComponent(trimmed)}&store=${encodeURIComponent(store)}`,
+        `/api/inventory?sku=${encodeURIComponent(trimmed)}`,
         { cache: "no-store" }
       );
       const json = await res.json();
@@ -235,28 +232,12 @@ export default function CalculatorPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/20">
-                  <Store size={16} className="text-sky-300" />
+                  <Search size={16} className="text-sky-300" />
                 </span>
-                Store & SKU
+                SKU Lookup
               </CardTitle>
             </CardHeader>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-ink-secondary mb-1.5">
-                  Select Store
-                </label>
-                <select
-                  value={store}
-                  onChange={(e) => setStore(e.target.value)}
-                  className={selectClass}
-                >
-                  {STORES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
               <Input
                 label="SKU Number"
                 placeholder="Enter SKU #"
@@ -266,7 +247,7 @@ export default function CalculatorPage() {
               />
               <div className="flex items-end">
                 <Button
-                  className="w-full"
+                  className="w-full md:w-auto"
                   onClick={lookupSku}
                   disabled={loading || !sku.trim()}
                 >
