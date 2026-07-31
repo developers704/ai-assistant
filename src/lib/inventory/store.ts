@@ -6,6 +6,7 @@ import type { InventoryItem } from "./types";
 
 const INVENTORY_DIR = path.join(process.cwd(), ".data", "inventory");
 const INVENTORY_FILE = path.join(INVENTORY_DIR, "inventory.csv");
+const ONHAND_FILE = path.join(INVENTORY_DIR, "onhand.csv");
 
 interface InventoryIndex {
   byStoreSku: Map<string, InventoryItem>;
@@ -21,6 +22,17 @@ function ensureDir() {
   if (!fs.existsSync(INVENTORY_DIR)) {
     fs.mkdirSync(INVENTORY_DIR, { recursive: true });
   }
+}
+
+/** Prefer the sheet that has On-hand / Vendor # (calculator + upload share this data). */
+function resolveInventoryCsvPath(): string {
+  ensureDir();
+  const candidates = [INVENTORY_FILE, ONHAND_FILE].filter((p) => fs.existsSync(p));
+  for (const filePath of candidates) {
+    const head = fs.readFileSync(filePath, "utf-8").slice(0, 800).split(/\r?\n/)[0] ?? "";
+    if (/on-?hand/i.test(head) && /vendor\s*#/i.test(head)) return filePath;
+  }
+  return candidates[0] ?? INVENTORY_FILE;
 }
 
 function storeSkuKey(store: string, sku: string): string {
@@ -49,16 +61,26 @@ function buildIndex(items: InventoryItem[], fileMtime: number): InventoryIndex {
   };
 }
 
+function inventorySourceStamp(): number {
+  let stamp = 0;
+  for (const p of [INVENTORY_FILE, ONHAND_FILE]) {
+    if (fs.existsSync(p)) stamp = Math.max(stamp, fs.statSync(p).mtimeMs);
+  }
+  return stamp;
+}
+
 function loadIndex(): InventoryIndex | null {
   ensureDir();
-  if (!fs.existsSync(INVENTORY_FILE)) return null;
+  const stamp = inventorySourceStamp();
+  if (!stamp) return null;
+  if (cache && cache.fileMtime === stamp) return cache;
 
-  const stat = fs.statSync(INVENTORY_FILE);
-  if (cache && cache.fileMtime === stat.mtimeMs) return cache;
+  const filePath = resolveInventoryCsvPath();
+  if (!fs.existsSync(filePath)) return null;
 
-  const csvText = fs.readFileSync(INVENTORY_FILE, "utf-8");
+  const csvText = fs.readFileSync(filePath, "utf-8");
   const items = parseInventoryCsv(csvText);
-  cache = buildIndex(items, stat.mtimeMs);
+  cache = buildIndex(items, stamp);
   return cache;
 }
 
