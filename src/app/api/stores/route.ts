@@ -6,7 +6,6 @@ import {
 } from "@/lib/stores/store-directory";
 import { mockStores, getStoreStats } from "@/lib/mock-data";
 import { readSessionFromCookies } from "@/lib/auth/session";
-import { filterDirectoryStoresForSession } from "@/lib/auth/scope-stores";
 import type { StoreDirectoryEntry } from "@/lib/stores/types";
 
 function summarizeStores(stores: StoreDirectoryEntry[]) {
@@ -22,6 +21,7 @@ function summarizeStores(stores: StoreDirectoryEntry[]) {
   return { openNow, openingSoon, byState };
 }
 
+/** Stores Map — full directory for every signed-in user (DMs included). Sales stays district-scoped. */
 export async function GET() {
   const session = await readSessionFromCookies();
   if (!session) {
@@ -30,7 +30,7 @@ export async function GET() {
 
   if (isStoreDirectoryAvailable()) {
     const dir = loadStoreDirectory();
-    const stores = filterDirectoryStoresForSession(session, getAllStores());
+    const stores = getAllStores();
     const summary = summarizeStores(stores);
 
     return NextResponse.json({
@@ -48,8 +48,7 @@ export async function GET() {
     });
   }
 
-  const allMock = mockStores as unknown as StoreDirectoryEntry[];
-  const stores = filterDirectoryStoresForSession(session, allMock);
+  const stores = mockStores as unknown as StoreDirectoryEntry[];
   const stats = getStoreStats();
   return NextResponse.json({
     source: "mock",

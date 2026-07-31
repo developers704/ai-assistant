@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getStoreById } from "@/lib/stores/store-directory";
 import { readSessionFromCookies } from "@/lib/auth/session";
-import { directoryStoreAllowedForSession } from "@/lib/auth/scope-stores";
 
 export const runtime = "nodejs";
 
+/** Single store detail for map — any signed-in user may open any directory store. */
 export async function GET(
   _req: Request,
   context: { params: Promise<{ id: string }> }
@@ -17,10 +17,6 @@ export async function GET(
   const { id } = await context.params;
   const store = getStoreById(id);
   if (!store) {
-    return NextResponse.json({ ok: false, message: "Store not found" }, { status: 404 });
-  }
-
-  if (!directoryStoreAllowedForSession(session, store)) {
     return NextResponse.json({ ok: false, message: "Store not found" }, { status: 404 });
   }
 
