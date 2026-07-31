@@ -10,6 +10,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
 } from "recharts";
 import { X } from "lucide-react";
 import {
@@ -17,7 +18,6 @@ import {
   formatPieceCount,
   formatProductDisplayName,
 } from "@/lib/utils";
-import { formatReportDateDisplay } from "@/lib/reports/date-utils";
 import type { VendorModelDetail } from "@/lib/sales/vendor-model-detail";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 
@@ -37,20 +37,48 @@ type VendorModelDetailDrawerProps = {
   onClose: () => void;
 };
 
-const CHART_H = 260;
+const CHART_H = 280;
 
-function UnitsTrendChart({ data }: { data: VendorModelDetail["trend"] }) {
+type ChartRow = {
+  label: string;
+  units: number;
+  unitsLy: number;
+  revenue: number;
+  revenueLy: number;
+};
+
+function UnitsTrendChart({
+  trend,
+  trendLastYear,
+}: {
+  trend: VendorModelDetail["trend"];
+  trendLastYear: VendorModelDetail["trendLastYear"];
+}) {
   const [ready, setReady] = useState(false);
-  const rows = useMemo(
-    () =>
-      data.map((d) => ({
-        ...d,
-        label: formatReportDateDisplay(d.date) || d.date.slice(5),
-      })),
-    [data]
-  );
+  const rows = useMemo(() => {
+    const lyByMd = new Map(
+      (trendLastYear ?? []).map((p) => [p.date.slice(5), p])
+    );
+    const base = trend.length
+      ? trend
+      : (trendLastYear ?? []).map((p) => ({
+          date: p.date,
+          units: 0,
+          revenue: 0,
+        }));
+    return base.map((d): ChartRow => {
+      const md = d.date.slice(5);
+      const ly = lyByMd.get(md);
+      return {
+        label: md,
+        units: d.units,
+        unitsLy: ly?.units ?? 0,
+        revenue: d.revenue,
+        revenueLy: ly?.revenue ?? 0,
+      };
+    });
+  }, [trend, trendLastYear]);
 
-  // Recharts ResponsiveContainer often paints blank on first modal mount.
   useEffect(() => {
     setReady(false);
     const id = requestAnimationFrame(() => setReady(true));
@@ -65,16 +93,61 @@ function UnitsTrendChart({ data }: { data: VendorModelDetail["trend"] }) {
     );
   }
 
+  const thisYear = trend[0]?.date?.slice(0, 4) || "This year";
+  const lastYear =
+    trendLastYear[0]?.date?.slice(0, 4) ||
+    (Number(thisYear) ? String(Number(thisYear) - 1) : "Last year");
+
   return (
-    <div className="w-full min-w-0" style={{ height: CHART_H }}>
+    <div
+      className="w-full min-w-0 relative"
+      style={{
+        height: CHART_H,
+        perspective: "900px",
+      }}
+    >
+      <div
+        className="absolute inset-0 rounded-xl pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(160deg, rgba(56,189,248,0.12) 0%, transparent 42%, rgba(251,191,36,0.08) 100%)",
+          transform: "rotateX(8deg) translateZ(0)",
+          transformOrigin: "center bottom",
+        }}
+        aria-hidden
+      />
       {ready ? (
         <ResponsiveContainer width="100%" height={CHART_H} minWidth={0}>
-          <AreaChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <AreaChart data={rows} margin={{ top: 12, right: 8, left: 0, bottom: 4 }}>
             <defs>
-              <linearGradient id="vmUnitsFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.02} />
+              <linearGradient id="vmUnitsFillTy" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.55} />
+                <stop offset="55%" stopColor="#0ea5e9" stopOpacity={0.18} />
+                <stop offset="100%" stopColor="#0284c7" stopOpacity={0.02} />
               </linearGradient>
+              <linearGradient id="vmUnitsFillLy" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.4} />
+                <stop offset="55%" stopColor="#f59e0b" stopOpacity={0.14} />
+                <stop offset="100%" stopColor="#d97706" stopOpacity={0.02} />
+              </linearGradient>
+              <filter id="vmTrendGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow
+                  dx="0"
+                  dy="6"
+                  stdDeviation="4"
+                  floodColor="#38bdf8"
+                  floodOpacity="0.35"
+                />
+              </filter>
+              <filter id="vmTrendGlowLy" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow
+                  dx="0"
+                  dy="5"
+                  stdDeviation="3.5"
+                  floodColor="#fbbf24"
+                  floodOpacity="0.3"
+                />
+              </filter>
             </defs>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
             <XAxis
@@ -93,27 +166,47 @@ function UnitsTrendChart({ data }: { data: VendorModelDetail["trend"] }) {
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "rgba(15, 23, 42, 0.94)",
+                backgroundColor: "rgba(15, 23, 42, 0.96)",
                 border: "1px solid rgba(255,255,255,0.12)",
                 borderRadius: "12px",
                 fontSize: "12px",
+                boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
               }}
               formatter={(value, name) => {
                 const n = typeof value === "number" ? value : Number(value) || 0;
                 const key = String(name);
-                return [
-                  key === "units" ? formatPieceCount(n) : formatCurrency(n),
-                  key === "units" ? "Units" : "Revenue",
-                ];
+                if (key === "units") return [formatPieceCount(n), thisYear];
+                if (key === "unitsLy") return [formatPieceCount(n), lastYear];
+                return [formatCurrency(n), key];
               }}
-              labelFormatter={(label) => String(label)}
+              labelFormatter={(label) => `Day ${String(label)}`}
+            />
+            <Legend
+              verticalAlign="top"
+              height={28}
+              formatter={(value) =>
+                value === "units" ? thisYear : value === "unitsLy" ? lastYear : value
+              }
+              wrapperStyle={{ fontSize: 11, color: "rgba(241,245,249,0.55)" }}
+            />
+            <Area
+              type="monotone"
+              dataKey="unitsLy"
+              name="unitsLy"
+              stroke="#fbbf24"
+              strokeWidth={2.5}
+              fill="url(#vmUnitsFillLy)"
+              filter="url(#vmTrendGlowLy)"
+              isAnimationActive={false}
             />
             <Area
               type="monotone"
               dataKey="units"
+              name="units"
               stroke="#38bdf8"
-              strokeWidth={2}
-              fill="url(#vmUnitsFill)"
+              strokeWidth={2.75}
+              fill="url(#vmUnitsFillTy)"
+              filter="url(#vmTrendGlow)"
               isAnimationActive={false}
             />
           </AreaChart>
@@ -172,7 +265,7 @@ export function VendorModelDetailDrawer({
         return res.json() as Promise<VendorModelDetail>;
       })
       .then((json) => {
-        if (!cancelled) setData(json);
+        if (!cancelled) setData({ ...json, trendLastYear: json.trendLastYear ?? [] });
       })
       .catch((e: Error) => {
         if (!cancelled) setError(e.message || "Failed to load trend");
@@ -213,12 +306,15 @@ export function VendorModelDetailDrawer({
         : `${data.dateFrom} → ${data.dateTo}`
       : null;
 
+  const lyUnits = (data?.trendLastYear ?? []).reduce((s, p) => s + p.units, 0);
+
   const metaLine = [
     periodLabel,
     filterStore
       ? filterStore.split(",")[0] + (filterStore.includes(",") ? " +" : "")
       : null,
     data?.totals ? formatPieceCount(data.totals.units) + " sold" : null,
+    lyUnits > 0 ? `${formatPieceCount(lyUnits)} LY` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -234,7 +330,6 @@ export function VendorModelDetailDrawer({
         aria-label="Close trend"
         onClick={onClose}
       />
-      {/* Mobile: fixed tall sheet so chart is on-screen. Desktop: centered card. */}
       <aside
         className="relative z-10 mt-auto sm:mt-0 flex w-full max-w-lg flex-col rounded-t-2xl sm:rounded-2xl border border-white/10 bg-[#0f1624] shadow-2xl overflow-hidden h-[min(88dvh,720px)] sm:h-auto sm:max-h-[min(85vh,640px)]"
         role="dialog"
@@ -284,9 +379,14 @@ export function VendorModelDetailDrawer({
           )}
           {error && <p className="text-sm text-rose-300 py-4">{error}</p>}
           {data && !loading && (
-            <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-3 sm:p-4">
-              <p className="text-[11px] text-white/35 mb-2">Daily units sold</p>
-              <UnitsTrendChart data={data.trend} />
+            <div className="rounded-xl ring-1 ring-white/10 bg-white/[0.03] p-3 sm:p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <p className="text-[11px] text-white/35 mb-1">
+                Daily units · this year vs last year
+              </p>
+              <UnitsTrendChart
+                trend={data.trend}
+                trendLastYear={data.trendLastYear ?? []}
+              />
             </div>
           )}
         </div>

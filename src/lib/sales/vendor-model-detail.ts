@@ -8,6 +8,7 @@ import {
   lookupSkuCatalogMeta,
   listSkuKeysForVendorModel,
 } from "@/lib/inventory/onhand";
+import { shiftIsoYears } from "@/lib/reports/date-utils";
 import {
   isExcludedSalesSku,
   isHiddenFromTopVendorModelsRow,
@@ -61,7 +62,10 @@ export type VendorModelDetail = {
     sellingDays: number;
     avgDailyUnits: number;
   };
+  /** Selected period (this year / current window). */
   trend: VendorModelTrendPoint[];
+  /** Same calendar window one year earlier (for YoY overlay). */
+  trendLastYear: VendorModelTrendPoint[];
   skus: VendorModelSkuDetail[];
   stores: { name: string; revenue: number; units: number }[];
   insights: string[];
@@ -92,6 +96,41 @@ function sellThrough(units: number, onHand: number | null): number | null {
   return units / denom;
 }
 
+function buildDailyTrend(
+  rows: VendorPosRow[],
+  fillFrom: string | null,
+  fillTo: string | null
+): VendorModelTrendPoint[] {
+  const byDate = new Map<string, { units: number; revenue: number }>();
+  for (const r of rows) {
+    if (!r.date) continue;
+    const cur = byDate.get(r.date) ?? { units: 0, revenue: 0 };
+    cur.units += salesUnitsSold(r.quantity);
+    cur.revenue += r.netRevenue;
+    byDate.set(r.date, cur);
+  }
+  let trend = [...byDate.entries()]
+    .map(([date, v]) => ({ date, ...v }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const from = fillFrom ?? trend[0]?.date ?? null;
+  const to = fillTo ?? trend[trend.length - 1]?.date ?? null;
+  const fillDays = inclusivePeriodDays(from, to);
+  if (from && to && fillDays > 1 && fillDays <= 93) {
+    const by = new Map(trend.map((p) => [p.date, p]));
+    const filled: VendorModelTrendPoint[] = [];
+    const cursor = new Date(`${from}T12:00:00Z`);
+    const endMs = new Date(`${to}T12:00:00Z`).getTime();
+    while (cursor.getTime() <= endMs) {
+      const iso = cursor.toISOString().slice(0, 10);
+      filled.push(by.get(iso) ?? { date: iso, units: 0, revenue: 0 });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    trend = filled;
+  }
+  return trend;
+}
+
 function buildInsights(detail: Omit<VendorModelDetail, "insights">): string[] {
   const out: string[] = [];
   const { totals, stores, trend, periodDays } = detail;
@@ -120,6 +159,14 @@ function buildInsights(detail: Omit<VendorModelDetail, "insights">): string[] {
     }
   }
 
+  const lyUnits = detail.trendLastYear.reduce((s, p) => s + p.units, 0);
+  if (lyUnits > 0 && totals.units > 0) {
+    const delta = ((totals.units - lyUnits) / lyUnits) * 100;
+    out.push(
+      `Units ${delta >= 0 ? "up" : "down"} ${Math.abs(delta).toFixed(0)}% vs same period last year (${totals.units} vs ${lyUnits}).`
+    );
+  }
+
   if (totals.sellingDays > 0 && periodDays > 0) {
     const coverage = (totals.sellingDays / periodDays) * 100;
     out.push(
@@ -141,11 +188,13 @@ export function buildVendorModelDetail(
   const needle = normKey(vendorModel);
   if (!needle) return null;
 
-  let rows = allRows.filter(
+  const modelRows = allRows.filter(
     (r) =>
       !isHiddenFromTopVendorModelsRow(r) &&
       normKey(r.vendorModel || r.sku || r.itemNumber || "") === needle
   );
+
+  let rows = modelRows;
 
   const dateFrom = opts?.dateFrom?.slice(0, 10) ?? null;
   const dateTo = opts?.dateTo?.slice(0, 10) ?? null;
@@ -278,34 +327,23 @@ export function buildVendorModelDetail(
     }
   }
 
-  const byDate = new Map<string, { units: number; revenue: number }>();
-  for (const r of rows) {
-    if (!r.date) continue;
-    const cur = byDate.get(r.date) ?? { units: 0, revenue: 0 };
-    cur.units += salesUnitsSold(r.quantity);
-    cur.revenue += r.netRevenue;
-    byDate.set(r.date, cur);
-  }
-  let trend = [...byDate.entries()]
-    .map(([date, v]) => ({ date, ...v }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const trend = buildDailyTrend(rows, dateFrom, dateTo);
 
-  // Fill calendar gaps so a month filter shows a continuous chart (not sparse dots).
-  const fillFrom = dateFrom ?? trend[0]?.date ?? null;
-  const fillTo = dateTo ?? trend[trend.length - 1]?.date ?? null;
-  const fillDays = inclusivePeriodDays(fillFrom, fillTo);
-  if (fillFrom && fillTo && fillDays > 1 && fillDays <= 93) {
-    const by = new Map(trend.map((p) => [p.date, p]));
-    const filled: VendorModelTrendPoint[] = [];
-    const cursor = new Date(`${fillFrom}T12:00:00Z`);
-    const endMs = new Date(`${fillTo}T12:00:00Z`).getTime();
-    while (cursor.getTime() <= endMs) {
-      const iso = cursor.toISOString().slice(0, 10);
-      filled.push(by.get(iso) ?? { date: iso, units: 0, revenue: 0 });
-      cursor.setUTCDate(cursor.getUTCDate() + 1);
-    }
-    trend = filled;
+  // Same calendar window last year (YoY overlay).
+  let lyFrom: string | null = null;
+  let lyTo: string | null = null;
+  if (dateFrom && dateTo) {
+    lyFrom = shiftIsoYears(dateFrom <= dateTo ? dateFrom : dateTo, -1);
+    lyTo = shiftIsoYears(dateFrom <= dateTo ? dateTo : dateFrom, -1);
+  } else if (trend.length) {
+    lyFrom = shiftIsoYears(trend[0].date, -1);
+    lyTo = shiftIsoYears(trend[trend.length - 1].date, -1);
   }
+  const lyRows =
+    lyFrom && lyTo
+      ? modelRows.filter((r) => r.date && r.date >= lyFrom! && r.date <= lyTo!)
+      : [];
+  const trendLastYear = buildDailyTrend(lyRows, lyFrom, lyTo);
 
   const byStore = new Map<string, { revenue: number; units: number }>();
   for (const r of rows) {
@@ -335,7 +373,10 @@ export function buildVendorModelDetail(
     imageUrl: resolveProductImageUrl(firstImage),
     dateFrom: dateFrom ?? trend[0]?.date ?? null,
     dateTo: dateTo ?? trend[trend.length - 1]?.date ?? null,
-    periodDays: dateFrom && dateTo ? periodDays : inclusivePeriodDays(trend[0]?.date, trend[trend.length - 1]?.date),
+    periodDays:
+      dateFrom && dateTo
+        ? periodDays
+        : inclusivePeriodDays(trend[0]?.date, trend[trend.length - 1]?.date),
     attributes: {
       vendor: pickDominant([...skuMetaFromRows.values()].map((m) => m.vendor)),
       department: pickDominant([...skuMetaFromRows.values()].map((m) => m.department)),
@@ -355,6 +396,7 @@ export function buildVendorModelDetail(
       avgDailyUnits,
     },
     trend,
+    trendLastYear,
     skus,
     stores,
   };

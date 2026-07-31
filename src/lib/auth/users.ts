@@ -15,11 +15,7 @@ export type AuthUserRecord = {
   title: string;
 };
 
-/** Default password for all seed users: Valliani2026! — change via scripts/hash-password.ts */
-const DEFAULT_HASH =
-  "$2b$10$YTSd.KkKs4EykPNF5s0ckuPKDIKbXTWuq6Tc5aHvGSsqXkdcfh1w6";
-
-export const AKBER_STORES = [
+export const AJ_STORES = [
   "DBC-GM",
   "VJ-VAL",
   "VJ-EAST",
@@ -37,6 +33,9 @@ export const AKBER_STORES = [
   "VJ-BAY",
   "VJ-BAKER",
 ] as const;
+
+/** @deprecated use AJ_STORES */
+export const AKBER_STORES = AJ_STORES;
 
 export const SHAUN_STORES = [
   "VJ-CULVER",
@@ -64,23 +63,26 @@ const USERS: AuthUserRecord[] = [
   {
     username: "kash",
     name: "Kash Valliani",
-    passwordHash: DEFAULT_HASH,
+    passwordHash:
+      "$2b$10$OOR0KpMPwlmJVTYq6XEZ1ewnj8cTHd8GQec/dS3C90al8axjElReq", // Kash-Valliani
     role: "admin",
     storeCodes: [],
     title: "Founder & President",
   },
   {
-    username: "akber",
-    name: "Akber Jivani",
-    passwordHash: DEFAULT_HASH,
+    username: "aj",
+    name: "AJ",
+    passwordHash:
+      "$2b$10$jJOVYmYvNxqCNyMon31GVu/65jMjPqxnYTOmo7QcWLjXq25AmRlFC", // AJ-Valliani
     role: "dm",
-    storeCodes: [...AKBER_STORES],
+    storeCodes: [...AJ_STORES],
     title: "District Manager",
   },
   {
     username: "shaun",
     name: "Shaun McCullough",
-    passwordHash: DEFAULT_HASH,
+    passwordHash:
+      "$2b$10$osp08e.v5x3cWWCVzrDAseA7NDUveOAn5Xy3Qa62mB8O72JXGXAka", // Shaun-Valliani
     role: "dm",
     storeCodes: [...SHAUN_STORES],
     title: "District Manager",
@@ -88,7 +90,8 @@ const USERS: AuthUserRecord[] = [
   {
     username: "adeel",
     name: "Adeel Valliani",
-    passwordHash: DEFAULT_HASH,
+    passwordHash:
+      "$2b$10$fbYMCo9.e.CPpQp0DUrZXeQ9PSf1DKKTSXbakOtcLkk94rmYBD/Xm", // Adeel-Valliani
     role: "dm",
     storeCodes: [...ADEEL_STORES],
     title: "District Manager",
@@ -96,7 +99,8 @@ const USERS: AuthUserRecord[] = [
   {
     username: "rozina",
     name: "Rozina Kassam",
-    passwordHash: DEFAULT_HASH,
+    passwordHash:
+      "$2b$10$OBpALP1RdZwVEQxVzl61JevYdrYcaDp521ZWmMndRQzJP4tvqRa7W", // Rozy-Valliani
     role: "dm",
     storeCodes: [...ROZINA_STORES],
     title: "District Manager",
@@ -122,7 +126,9 @@ export function listAuthUsers(): AuthUserRecord[] {
 
 export function findAuthUser(username: string): AuthUserRecord | null {
   const needle = username.trim().toLowerCase();
-  return listAuthUsers().find((u) => u.username.toLowerCase() === needle) ?? null;
+  // Former login "akber" → AJ
+  const alias = needle === "akber" ? "aj" : needle;
+  return listAuthUsers().find((u) => u.username.toLowerCase() === alias) ?? null;
 }
 
 export function getAllowedStoreCodes(user: AuthUserRecord): string[] | null {
