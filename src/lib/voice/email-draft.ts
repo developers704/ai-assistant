@@ -149,7 +149,7 @@ Thread subject: ${email.subject}
 
 ${threadText}`;
   } else if (mode === "rewrite" && rough) {
-    userPrompt = `${rewriteInstruction(options.rewriteTone)}
+    userPrompt = `${rewriteInstruction(options?.rewriteTone)}
 
 Current draft:
 ${rough}
