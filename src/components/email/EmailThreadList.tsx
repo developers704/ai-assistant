@@ -126,7 +126,11 @@ export function EmailThreadList({
                             ? "bg-sky-500/15 text-sky-200"
                             : bucket === "marketing"
                               ? "bg-white/5 text-white/40"
-                              : "bg-emerald-500/10 text-emerald-200/80"
+                              : bucket === "purchases"
+                                ? "bg-amber-500/15 text-amber-200"
+                                : bucket === "travel"
+                                  ? "bg-cyan-500/15 text-cyan-200"
+                                  : "bg-emerald-500/10 text-emerald-200/80"
                         )}
                       >
                         {bucketLabel(bucket)}

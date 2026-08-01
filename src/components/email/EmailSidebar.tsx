@@ -11,6 +11,10 @@ import {
   MessageSquareWarning,
   Eye,
   Megaphone,
+  FileEdit,
+  ShoppingBag,
+  Briefcase,
+  Tag,
 } from "lucide-react";
 
 export type EmailNavId = MailFolder | InboxBucket;
@@ -21,12 +25,18 @@ const FOLDERS: { id: MailFolder; label: string; icon: typeof Inbox }[] = [
   { id: "inbox", label: "Inbox", icon: Inbox },
   { id: "starred", label: "Starred", icon: Star },
   { id: "sent", label: "Sent", icon: Send },
+  { id: "drafts", label: "Drafts", icon: FileEdit },
 ];
 
-const BUCKETS: { id: InboxBucket; icon: typeof Eye }[] = [
+const TRIAGE: { id: InboxBucket; icon: typeof Eye }[] = [
   { id: "to_respond", icon: MessageSquareWarning },
   { id: "fyi", icon: Eye },
   { id: "marketing", icon: Megaphone },
+];
+
+const CATEGORIES: { id: InboxBucket; icon: typeof ShoppingBag }[] = [
+  { id: "purchases", icon: ShoppingBag },
+  { id: "travel", icon: Briefcase },
 ];
 
 export function EmailSidebar({
@@ -45,7 +55,7 @@ export function EmailSidebar({
   return (
     <aside
       className={cn(
-        "flex flex-col gap-1 p-2 sm:p-3 border-r border-white/10 bg-black/20 min-h-0",
+        "flex flex-col gap-1 p-2 sm:p-3 border-r border-white/10 bg-black/20 min-h-0 overflow-y-auto",
         className
       )}
     >
@@ -75,7 +85,7 @@ export function EmailSidebar({
       <p className="px-2 pt-3 text-[10px] uppercase tracking-wider text-white/35 font-semibold">
         AI triage
       </p>
-      {BUCKETS.map(({ id, icon: Icon }) => (
+      {TRIAGE.map(({ id, icon: Icon }) => (
         <NavBtn
           key={id}
           active={active === id}
@@ -83,6 +93,22 @@ export function EmailSidebar({
           count={counts[id]}
           icon={<Icon size={15} />}
           onClick={() => onSelect(id)}
+        />
+      ))}
+
+      <p className="px-2 pt-3 text-[10px] uppercase tracking-wider text-white/35 font-semibold flex items-center gap-1.5">
+        <Tag size={11} className="opacity-70" />
+        Categories
+      </p>
+      {CATEGORIES.map(({ id, icon: Icon }) => (
+        <NavBtn
+          key={id}
+          active={active === id}
+          label={bucketLabel(id)}
+          count={counts[id]}
+          icon={<Icon size={15} />}
+          onClick={() => onSelect(id)}
+          indent
         />
       ))}
     </aside>
@@ -95,12 +121,14 @@ function NavBtn({
   count,
   icon,
   onClick,
+  indent,
 }: {
   active: boolean;
   label: string;
   count?: number;
   icon: React.ReactNode;
   onClick: () => void;
+  indent?: boolean;
 }) {
   return (
     <button
@@ -108,6 +136,7 @@ function NavBtn({
       onClick={onClick}
       className={cn(
         "flex items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] transition-colors",
+        indent && "ml-2",
         active
           ? "bg-violet-500/20 text-violet-100 ring-1 ring-violet-400/30"
           : "text-white/55 hover:bg-white/[0.05] hover:text-white/80"

@@ -166,7 +166,7 @@ export interface GmailInboxPage {
   nextPageToken?: string;
 }
 
-export type GmailListQuery = "inbox" | "starred" | "sent";
+export type GmailListQuery = "inbox" | "starred" | "sent" | "drafts";
 
 function queryForFolder(folder: GmailListQuery): string {
   switch (folder) {
@@ -174,6 +174,8 @@ function queryForFolder(folder: GmailListQuery): string {
       return "is:starred";
     case "sent":
       return "in:sent";
+    case "drafts":
+      return "in:drafts";
     default:
       return "in:inbox";
   }
@@ -190,6 +192,13 @@ export async function fetchGmailInbox(
   const maxResults = options.maxResults ?? 25;
   const gmail = google.gmail({ version: "v1", auth: client });
   const folder = options.folder ?? "inbox";
+
+  if (folder === "drafts") {
+    return fetchGmailDrafts(client, {
+      maxResults,
+      pageToken: options.pageToken,
+    });
+  }
 
   const list = await gmail.users.threads.list({
     userId: "me",
@@ -329,6 +338,143 @@ export async function fetchRecentSentSnippets(
   return snippets;
 }
 
+export async function fetchGmailDrafts(
+  client: GoogleOAuth2Client,
+  options: { maxResults?: number; pageToken?: string } = {}
+): Promise<GmailInboxPage> {
+  const maxResults = options.maxResults ?? 25;
+  const gmail = google.gmail({ version: "v1", auth: client });
+  const list = await gmail.users.drafts.list({
+    userId: "me",
+    maxResults,
+    pageToken: options.pageToken,
+  });
+
+  const refs = list.data.drafts ?? [];
+  if (!refs.length) {
+    return { emails: [], nextPageToken: list.data.nextPageToken ?? undefined };
+  }
+
+  const emails: Email[] = [];
+  for (const ref of refs) {
+    if (!ref.id) continue;
+    try {
+      const { data } = await gmail.users.drafts.get({
+        userId: "me",
+        id: ref.id,
+        format: "full",
+      });
+      if (!data.message) continue;
+      const parsed = parseGmailMessage(data.message);
+      if (!parsed) continue;
+      const toDisplay = parsed.to?.trim() || "(No recipient)";
+      emails.push({
+        ...parsed,
+        draftId: ref.id,
+        from: toDisplay,
+        fromEmail: parsed.to || "",
+        subject: parsed.subject || "(No subject)",
+        preview: parsed.preview || parsed.body.slice(0, 120),
+        isRead: true,
+        needsReply: false,
+        inboxBucket: "fyi",
+      });
+    } catch (err) {
+      console.warn("Failed to load draft", ref.id, err);
+    }
+  }
+
+  return { emails, nextPageToken: list.data.nextPageToken ?? undefined };
+}
+
+function buildRawMime(params: {
+  to: string;
+  subject: string;
+  body: string;
+  inReplyTo?: string;
+  references?: string;
+}): string {
+  const headers = [
+    `To: ${params.to}`,
+    `Subject: ${params.subject}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "MIME-Version: 1.0",
+  ];
+  if (params.inReplyTo) {
+    headers.push(`In-Reply-To: ${params.inReplyTo}`);
+    const refs = [params.references, params.inReplyTo].filter(Boolean).join(" ").trim();
+    if (refs) headers.push(`References: ${refs}`);
+  }
+  return [...headers, "", params.body].join("\r\n");
+}
+
+export async function saveGmailDraft(
+  client: GoogleOAuth2Client,
+  params: {
+    to: string;
+    subject: string;
+    body: string;
+    threadId?: string;
+    draftId?: string;
+    inReplyTo?: string;
+    references?: string;
+  }
+): Promise<{ ok: boolean; draftId?: string; error?: string }> {
+  const gmail = google.gmail({ version: "v1", auth: client });
+  const raw = encodeRawMessage(
+    buildRawMime({
+      to: params.to || "",
+      subject: params.subject || "(No subject)",
+      body: params.body || "",
+      inReplyTo: params.inReplyTo,
+      references: params.references,
+    })
+  );
+  const message: gmail_v1.Schema$Message = {
+    raw,
+    threadId: params.threadId,
+  };
+
+  try {
+    if (params.draftId) {
+      await gmail.users.drafts.update({
+        userId: "me",
+        id: params.draftId,
+        requestBody: { message },
+      });
+      return { ok: true, draftId: params.draftId };
+    }
+    const { data } = await gmail.users.drafts.create({
+      userId: "me",
+      requestBody: { message },
+    });
+    return { ok: true, draftId: data.id ?? undefined };
+  } catch (err) {
+    console.error("Gmail save draft failed:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to save draft",
+    };
+  }
+}
+
+export async function deleteGmailDraft(
+  client: GoogleOAuth2Client,
+  draftId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const gmail = google.gmail({ version: "v1", auth: client });
+  try {
+    await gmail.users.drafts.delete({ userId: "me", id: draftId });
+    return { ok: true };
+  } catch (err) {
+    console.error("Gmail delete draft failed:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to delete draft",
+    };
+  }
+}
+
 function encodeRawMessage(raw: string): string {
   return Buffer.from(raw)
     .toString("base64")
@@ -355,24 +501,20 @@ export async function sendGmailMessage(params: {
 
   try {
     const gmail = google.gmail({ version: "v1", auth: client });
-    const headers = [
-      `To: ${params.to}`,
-      `Subject: ${params.subject}`,
-      'Content-Type: text/plain; charset="UTF-8"',
-      "MIME-Version: 1.0",
-    ];
+    const raw = encodeRawMessage(
+      buildRawMime({
+        to: params.to,
+        subject: params.subject,
+        body: params.body,
+        inReplyTo: params.inReplyTo,
+        references: params.references,
+      })
+    );
 
-    if (params.inReplyTo) {
-      headers.push(`In-Reply-To: ${params.inReplyTo}`);
-      const refs = [params.references, params.inReplyTo].filter(Boolean).join(" ").trim();
-      if (refs) headers.push(`References: ${refs}`);
-    }
-
-    const raw = [...headers, "", params.body].join("\r\n");
     const { data } = await gmail.users.messages.send({
       userId: "me",
       requestBody: {
-        raw: encodeRawMessage(raw),
+        raw,
         threadId: params.threadId,
       },
     });

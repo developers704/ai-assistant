@@ -36,11 +36,62 @@ function dedupeEmails(emails: Email[]): Email[] {
 }
 
 function isFolder(id: EmailNavId): id is MailFolder {
-  return id === "inbox" || id === "starred" || id === "sent";
+  return id === "inbox" || id === "starred" || id === "sent" || id === "drafts";
 }
 
 function isBucket(id: EmailNavId): id is InboxBucket {
-  return id === "to_respond" || id === "fyi" || id === "marketing";
+  return (
+    id === "to_respond" ||
+    id === "fyi" ||
+    id === "marketing" ||
+    id === "purchases" ||
+    id === "travel"
+  );
+}
+
+function composeHasContent(c: ComposeState): boolean {
+  return !!(c.to.trim() || c.subject.trim() || c.body.trim());
+}
+
+const LOCAL_DRAFTS_KEY = "alexa-email-local-drafts";
+
+type LocalDraft = ComposeState & { id: string; updatedAt: string };
+
+function readLocalDrafts(): LocalDraft[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_DRAFTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as LocalDraft[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalDrafts(drafts: LocalDraft[]) {
+  localStorage.setItem(LOCAL_DRAFTS_KEY, JSON.stringify(drafts));
+}
+
+function localDraftToEmail(d: LocalDraft): Email {
+  return {
+    id: d.id,
+    threadId: d.threadId || d.id,
+    draftId: d.id,
+    from: d.to.trim() || "(No recipient)",
+    fromEmail: d.to,
+    to: d.to,
+    subject: d.subject.trim() || "(No subject)",
+    preview: d.body.slice(0, 140),
+    body: d.body,
+    receivedAt: d.updatedAt,
+    isImportant: false,
+    isRead: true,
+    needsReply: false,
+    category: "normal",
+    inboxBucket: "fyi",
+    messageCount: 1,
+  };
 }
 
 export default function EmailPage() {
@@ -69,7 +120,12 @@ export default function EmailPage() {
   const loadFolder = useCallback(
     async (folder: MailFolder, pageToken?: string, append = false) => {
       if (!googleConnected) {
-        setFolderEmails([]);
+        if (folder === "drafts") {
+          setFolderEmails(readLocalDrafts().map(localDraftToEmail));
+          setNextPageToken(undefined);
+        } else {
+          setFolderEmails([]);
+        }
         return;
       }
       if (append) setLoadingMore(true);
@@ -83,7 +139,9 @@ export default function EmailPage() {
         const res = await fetch(`/api/gmail?${qs}`, { cache: "no-store" });
         const data = await res.json();
         const list = Array.isArray(data.emails)
-          ? data.emails.map((e: Email) => withInboxBucket(e))
+          ? folder === "drafts"
+            ? data.emails
+            : data.emails.map((e: Email) => withInboxBucket(e))
           : [];
         setFolderEmails((prev) =>
           append ? dedupeEmails([...prev, ...list]) : list
@@ -99,12 +157,19 @@ export default function EmailPage() {
 
   useEffect(() => {
     if (isFolder(nav)) {
+      // Save open compose before leaving current view
+      if (compose && composeHasContent(compose)) {
+        void saveDraftOnClose(compose);
+      } else {
+        setCompose(null);
+      }
       void loadFolder(nav);
       setSelectedId(null);
     } else {
       setFolderEmails([]);
       setNextPageToken(undefined);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on nav change
   }, [nav, loadFolder]);
 
   useEffect(() => {
@@ -131,7 +196,9 @@ export default function EmailPage() {
           e.fromEmail.toLowerCase().includes(q)
       );
     }
-    return sortEmails(list.map(withInboxBucket));
+    return sortEmails(
+      list.map((e) => (nav === "drafts" ? e : withInboxBucket(e)))
+    );
   }, [nav, inboxEmails, folderEmails, query, googleConnected]);
 
   const counts = useMemo(() => {
@@ -142,11 +209,15 @@ export default function EmailPage() {
           ? folderEmails.length
           : inboxEmails.filter((e) => e.isStarred).length,
       sent: nav === "sent" ? folderEmails.length : undefined,
+      drafts: nav === "drafts" ? folderEmails.length : undefined,
       to_respond: inboxEmails.filter((e) => e.inboxBucket === "to_respond")
         .length,
       fyi: inboxEmails.filter((e) => e.inboxBucket === "fyi").length,
       marketing: inboxEmails.filter((e) => e.inboxBucket === "marketing")
         .length,
+      purchases: inboxEmails.filter((e) => e.inboxBucket === "purchases")
+        .length,
+      travel: inboxEmails.filter((e) => e.inboxBucket === "travel").length,
     };
   }, [inboxEmails, folderEmails, nav]);
 
@@ -244,6 +315,81 @@ export default function EmailPage() {
     });
   };
 
+  const saveDraftOnClose = async (c: ComposeState) => {
+    if (!composeHasContent(c)) {
+      setCompose(null);
+      setComposeError(null);
+      return;
+    }
+
+    if (!googleConnected) {
+      const id = c.draftId || `local-${Date.now()}`;
+      const next: LocalDraft = {
+        ...c,
+        id,
+        draftId: id,
+        updatedAt: new Date().toISOString(),
+      };
+      const others = readLocalDrafts().filter((d) => d.id !== id);
+      writeLocalDrafts([next, ...others]);
+      setCompose(null);
+      setComposeError(null);
+      if (nav === "drafts") {
+        setFolderEmails(readLocalDrafts().map(localDraftToEmail));
+      }
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/gmail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save_draft",
+          to: c.to,
+          subject: c.subject || "(No subject)",
+          body: c.body,
+          threadId: c.threadId,
+          draftId: c.draftId,
+          inReplyTo: c.inReplyTo,
+          references: c.references,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setComposeError(data.error || "Could not save draft");
+        return;
+      }
+      setCompose(null);
+      setComposeError(null);
+      if (nav === "drafts") void loadFolder("drafts");
+    } catch {
+      setComposeError("Could not save draft");
+    }
+  };
+
+  const openDraft = (email: Email) => {
+    setSelectedId(null);
+    setComposeError(null);
+    setCompose({
+      mode: email.threadId && email.inReplyTo ? "reply" : "compose",
+      to: email.to || email.fromEmail || "",
+      subject: email.subject.startsWith("Re:")
+        ? email.subject
+        : email.subject || "",
+      body: email.body || "",
+      threadId: email.threadId,
+      draftId: email.draftId,
+      inReplyTo: email.rfcMessageId,
+      references: email.references,
+    });
+  };
+
+  const closeCompose = () => {
+    if (!compose) return;
+    void saveDraftOnClose(compose);
+  };
+
   const runThreadAction = async (
     email: Email,
     action: "star" | "unstar" | "archive" | "trash" | "mark_read" | "mark_unread"
@@ -294,6 +440,7 @@ export default function EmailPage() {
           threadId: compose.threadId,
           inReplyTo: compose.inReplyTo,
           references: compose.references,
+          draftId: compose.draftId,
         }),
       });
       const data = await res.json();
@@ -301,7 +448,13 @@ export default function EmailPage() {
         setComposeError(data.error || "Send failed");
         return;
       }
+      if (!googleConnected && compose.draftId) {
+        writeLocalDrafts(
+          readLocalDrafts().filter((d) => d.id !== compose.draftId)
+        );
+      }
       setCompose(null);
+      if (nav === "drafts") void loadFolder("drafts");
     } catch {
       setComposeError("Send failed");
     } finally {
@@ -489,7 +642,13 @@ export default function EmailPage() {
               emails={listEmails}
               selectedId={selectedId}
               loading={loadingList && isFolder(nav) && nav !== "inbox"}
-              onSelect={(e) => setSelectedId(e.id)}
+              onSelect={(e) => {
+                if (nav === "drafts" || e.draftId) {
+                  openDraft(e);
+                  return;
+                }
+                setSelectedId(e.id);
+              }}
               onToggleStar={(e) =>
                 void runThreadAction(e, e.isStarred ? "unstar" : "star")
               }
@@ -537,10 +696,7 @@ export default function EmailPage() {
                     }
                   }
                   onChange={(v) => setCompose(v)}
-                  onClose={() => {
-                    setCompose(null);
-                    setComposeError(null);
-                  }}
+                  onClose={closeCompose}
                   onSend={() => void sendCompose()}
                   onAiDraft={() => void aiDraft()}
                   onRewrite={(t) => void rewrite(t)}
@@ -573,9 +729,8 @@ export default function EmailPage() {
               <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center px-6">
                 <p className="text-ink font-medium">Select a conversation</p>
                 <p className="text-sm text-ink-muted mt-1 max-w-sm">
-                  Gmail-style inbox with AI drafts in your voice. Press{" "}
-                  <kbd className="text-violet-200">c</kbd> to compose,{" "}
-                  <kbd className="text-violet-200">r</kbd> to reply.
+                  Gmail-style inbox with AI drafts in your voice. Unfinished
+                  messages are saved under Drafts when you close compose.
                 </p>
                 {selectedId === null && counts.to_respond ? (
                   <p className="text-xs text-sky-200/70 mt-3">
@@ -592,7 +747,7 @@ export default function EmailPage() {
                 open
                 value={compose}
                 onChange={(v) => setCompose(v)}
-                onClose={() => setCompose(null)}
+                onClose={closeCompose}
                 onSend={() => void sendCompose()}
                 onAiDraft={() => void aiDraft()}
                 onRewrite={(t) => void rewrite(t)}

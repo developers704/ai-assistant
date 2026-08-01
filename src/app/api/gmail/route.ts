@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedClient } from "@/lib/google/client";
 import {
+  deleteGmailDraft,
   fetchGmailInbox,
   modifyGmailThread,
+  saveGmailDraft,
   sendGmailMessage,
   type GmailListQuery,
   type GmailThreadAction,
@@ -10,6 +12,8 @@ import {
 import { isGoogleConnected } from "@/lib/google/token-store";
 import { sortEmails } from "@/lib/email-utils";
 import { withInboxBucket } from "@/lib/email-buckets";
+
+const FOLDERS = ["inbox", "starred", "sent", "drafts"] as const;
 
 export async function GET(req: NextRequest) {
   if (!isGoogleConnected()) {
@@ -27,7 +31,7 @@ export async function GET(req: NextRequest) {
   const pageToken = req.nextUrl.searchParams.get("pageToken") ?? undefined;
   const folderParam = req.nextUrl.searchParams.get("folder") ?? "inbox";
   const folder = (
-    ["inbox", "starred", "sent"].includes(folderParam) ? folderParam : "inbox"
+    FOLDERS.includes(folderParam as (typeof FOLDERS)[number]) ? folderParam : "inbox"
   ) as GmailListQuery;
   const maxResults = Math.min(
     50,
@@ -35,7 +39,10 @@ export async function GET(req: NextRequest) {
   );
 
   const page = await fetchGmailInbox(client, { maxResults, pageToken, folder });
-  const emails = sortEmails(page.emails.map(withInboxBucket));
+  const emails =
+    folder === "drafts"
+      ? page.emails
+      : sortEmails(page.emails.map(withInboxBucket));
 
   return NextResponse.json({
     connected: true,
@@ -64,6 +71,34 @@ export async function POST(req: NextRequest) {
 
   const action = String(body.action ?? "");
 
+  if (action === "save_draft") {
+    const result = await saveGmailDraft(client, {
+      to: String(body.to ?? ""),
+      subject: String(body.subject ?? ""),
+      body: String(body.body ?? ""),
+      threadId: body.threadId ? String(body.threadId) : undefined,
+      draftId: body.draftId ? String(body.draftId) : undefined,
+      inReplyTo: body.inReplyTo ? String(body.inReplyTo) : undefined,
+      references: body.references ? String(body.references) : undefined,
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, draftId: result.draftId });
+  }
+
+  if (action === "delete_draft") {
+    const draftId = String(body.draftId ?? "").trim();
+    if (!draftId) {
+      return NextResponse.json({ error: "draftId required" }, { status: 400 });
+    }
+    const result = await deleteGmailDraft(client, draftId);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   if (action === "send") {
     const to = String(body.to ?? "").trim();
     const subject = String(body.subject ?? "").trim();
@@ -74,6 +109,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    const draftId = body.draftId ? String(body.draftId) : "";
     const result = await sendGmailMessage({
       to,
       subject,
@@ -84,6 +120,9 @@ export async function POST(req: NextRequest) {
     });
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    if (draftId) {
+      await deleteGmailDraft(client, draftId).catch(() => null);
     }
     return NextResponse.json({ ok: true, messageId: result.messageId });
   }

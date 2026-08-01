@@ -21,6 +21,8 @@ export type ComposeState = {
   threadId?: string;
   inReplyTo?: string;
   references?: string;
+  /** Gmail draft id when editing a saved draft. */
+  draftId?: string;
 };
 
 export function ComposePanel({
@@ -202,8 +204,9 @@ export function ComposePanel({
               type="button"
               onClick={onClose}
               className="ml-auto text-xs text-white/40 hover:text-white/70 px-2 py-1"
+              title="Close — unfinished mail is saved to Drafts"
             >
-              Discard
+              Close
             </button>
           </div>
         </div>

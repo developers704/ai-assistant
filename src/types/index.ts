@@ -71,7 +71,7 @@ export interface CalendarEvent {
   reminders?: number[];
 }
 
-export type InboxBucket = "to_respond" | "fyi" | "marketing";
+export type InboxBucket = "to_respond" | "fyi" | "marketing" | "purchases" | "travel";
 
 export interface Email {
   id: string;
@@ -95,6 +95,8 @@ export interface Email {
   inboxBucket?: InboxBucket;
   /** Gmail STARRED. */
   isStarred?: boolean;
+  /** Gmail draft id when this row is a saved draft. */
+  draftId?: string;
   /** RFC 2822 Message-ID of this message (for In-Reply-To). */
   rfcMessageId?: string;
   /** RFC In-Reply-To header value. */
