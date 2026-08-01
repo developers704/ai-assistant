@@ -1,6 +1,7 @@
 import type { AppState, UserProfile } from "@/types";
 import { defaultUser } from "@/lib/mock-data";
 import type { SessionPayload } from "@/lib/auth/session-token";
+import { findAuthUser } from "@/lib/auth/users";
 
 export function appStateForSession(
   base: AppState,
@@ -10,18 +11,25 @@ export function appStateForSession(
     return { ...base, user: null, isAuthenticated: false };
   }
 
-  const isAdmin = session.role === "admin";
+  // Prefer live directory so name/title updates without forcing re-login
+  const live = findAuthUser(session.username);
+  const isAdmin = (live?.role ?? session.role) === "admin";
   const baseUser = isAdmin ? defaultUser : base.user ?? defaultUser;
 
   const user: UserProfile = {
     ...baseUser,
     id: session.sub,
-    name: session.name,
+    name: live?.name ?? session.name,
     username: session.username,
     email: isAdmin ? defaultUser.email : `${session.username}@valliani.local`,
-    role: session.title,
-    authRole: session.role,
-    storeCodes: session.storeCodes,
+    role: live?.title ?? session.title,
+    authRole: live?.role ?? session.role,
+    storeCodes:
+      live != null
+        ? live.role === "admin"
+          ? null
+          : live.storeCodes
+        : session.storeCodes,
     preferences: {
       ...(baseUser.preferences ?? defaultUser.preferences),
       voiceEnabled: isAdmin,

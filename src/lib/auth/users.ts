@@ -107,7 +107,7 @@ const USERS: AuthUserRecord[] = [
   },
   {
     username: "ross",
-    name: "Ross Katodia",
+    name: "Ross K",
     passwordHash:
       "$2b$10$T8O/8kBzGyqCdcJszmf9jO6p6HvRCum.yQ.ekReIaU9fFcu8YSqgK", // Ross-Valliani
     role: "admin",
