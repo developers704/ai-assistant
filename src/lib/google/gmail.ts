@@ -669,7 +669,7 @@ export async function sendGmailMessage(params: {
   inReplyTo?: string;
   references?: string;
   attachments?: GmailAttachment[];
-}): Promise<{ ok: boolean; error?: string; messageId?: string }> {
+}): Promise<{ ok: boolean; error?: string; messageId?: string; threadId?: string }> {
   const client = await getAuthenticatedClient();
   if (!client) {
     return {
@@ -701,7 +701,7 @@ export async function sendGmailMessage(params: {
       },
     });
 
-    return { ok: true, messageId: data.id ?? undefined };
+    return { ok: true, messageId: data.id ?? undefined, threadId: data.threadId ?? params.threadId };
   } catch (err) {
     console.error("Gmail send failed:", err);
     return {

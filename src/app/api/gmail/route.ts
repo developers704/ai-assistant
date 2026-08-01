@@ -3,6 +3,7 @@ import { getAuthenticatedClient } from "@/lib/google/client";
 import {
   deleteGmailDraft,
   fetchGmailInbox,
+  fetchGmailThread,
   modifyGmailThread,
   saveGmailDraft,
   sendGmailMessage,
@@ -45,6 +46,21 @@ export async function GET(req: NextRequest) {
       { connected: true, error: "Session expired — reconnect Google", emails: [] },
       { status: 401 }
     );
+  }
+
+  const threadIdParam = req.nextUrl.searchParams.get("threadId")?.trim();
+  if (threadIdParam) {
+    const email = await fetchGmailThread(client, threadIdParam);
+    if (!email) {
+      return NextResponse.json(
+        { connected: true, error: "Thread not found", email: null },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json({
+      connected: true,
+      email: withInboxBucket(email),
+    });
   }
 
   const pageToken = req.nextUrl.searchParams.get("pageToken") ?? undefined;
@@ -151,7 +167,20 @@ export async function POST(req: NextRequest) {
     if (draftId) {
       await deleteGmailDraft(client, draftId).catch(() => null);
     }
-    return NextResponse.json({ ok: true, messageId: result.messageId });
+    const threadId = result.threadId || (body.threadId ? String(body.threadId) : undefined);
+    let email = null;
+    if (threadId) {
+      // Brief pause so Gmail indexes the sent message into the thread
+      await new Promise((r) => setTimeout(r, 400));
+      email = await fetchGmailThread(client, threadId).catch(() => null);
+      if (email) email = withInboxBucket(email);
+    }
+    return NextResponse.json({
+      ok: true,
+      messageId: result.messageId,
+      threadId,
+      email,
+    });
   }
 
   const threadId = String(body.threadId ?? "").trim();

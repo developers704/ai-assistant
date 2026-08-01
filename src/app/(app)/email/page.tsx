@@ -126,6 +126,10 @@ export default function EmailPage() {
   const [sending, setSending] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
   const [markedRead, setMarkedRead] = useState<Set<string>>(new Set());
+  /** Live thread updates after send (keeps reading pane in sync without full reload). */
+  const [threadOverrides, setThreadOverrides] = useState<Record<string, Email>>(
+    {}
+  );
 
   const googleConnected = state?.integrations?.google?.connected ?? false;
 
@@ -215,14 +219,16 @@ export default function EmailPage() {
     }
     return sortEmails(
       list.map((e) => {
+        const live = threadOverrides[e.threadId];
+        const base = live ?? e;
         // Sent / drafts shouldn't show AI triage tags
         if (nav === "sent" || nav === "drafts") {
-          return { ...e, inboxBucket: undefined, needsReply: false };
+          return { ...base, inboxBucket: undefined, needsReply: false };
         }
-        return withInboxBucket(e);
+        return withInboxBucket(base);
       })
     );
-  }, [nav, inboxEmails, folderEmails, query, googleConnected]);
+  }, [nav, inboxEmails, folderEmails, query, googleConnected, threadOverrides]);
 
   const counts = useMemo(() => {
     return {
@@ -246,6 +252,9 @@ export default function EmailPage() {
 
   const selected =
     listEmails.find((e) => e.id === selectedId || e.threadId === selectedId) ??
+    listEmails.find((e) =>
+      e.threadMessages?.some((m) => m.id === selectedId)
+    ) ??
     null;
 
   const mobileReading = !!selectedId;
@@ -504,8 +513,115 @@ export default function EmailPage() {
     }
   };
 
+  const applyThreadUpdate = useCallback((email: Email) => {
+    const tid = email.threadId;
+    setThreadOverrides((prev) => ({ ...prev, [tid]: email }));
+    setFolderEmails((prev) => {
+      const idx = prev.findIndex((e) => e.threadId === tid);
+      if (idx < 0) return [email, ...prev];
+      const next = [...prev];
+      next[idx] = email;
+      return next;
+    });
+  }, []);
+
+  const appendOptimisticSent = useCallback(
+    (c: ComposeState, messageId?: string) => {
+      const tid = c.threadId;
+      if (!tid) return;
+      const existing =
+        threadOverrides[tid] ||
+        listEmails.find((e) => e.threadId === tid) ||
+        null;
+      if (!existing) return;
+
+      const now = new Date().toISOString();
+      const meName = state?.user?.name?.trim() || "You";
+      const meEmail = state?.user?.email?.trim() || "";
+      const sentMsg: Email = {
+        id: messageId || `sent-${Date.now()}`,
+        threadId: tid,
+        from: meName,
+        fromEmail: meEmail,
+        to: c.to,
+        cc: c.cc,
+        subject: c.subject,
+        preview: c.body.slice(0, 140),
+        body: c.body,
+        receivedAt: now,
+        isImportant: false,
+        isRead: true,
+        isStarred: false,
+        needsReply: false,
+        category: "normal",
+        messageCount: 1,
+      };
+
+      const prior =
+        existing.threadMessages && existing.threadMessages.length > 0
+          ? existing.threadMessages.map(
+              ({ threadMessages: _t, ...rest }) => rest
+            )
+          : [
+              (() => {
+                const { threadMessages: _t, ...rest } = existing;
+                return rest;
+              })(),
+            ];
+
+      // Avoid duplicate if we already have this message id
+      if (prior.some((m) => m.id === sentMsg.id)) return;
+
+      const threadMessages = [...prior, sentMsg];
+      applyThreadUpdate(
+        withInboxBucket({
+          ...existing,
+          // Keep list selection id stable; show latest message in the row
+          from: sentMsg.from,
+          fromEmail: sentMsg.fromEmail,
+          preview: sentMsg.preview,
+          body: sentMsg.body,
+          bodyHtml: undefined,
+          attachments: undefined,
+          receivedAt: now,
+          isRead: true,
+          needsReply: false,
+          threadMessages,
+          messageCount: threadMessages.length,
+        })
+      );
+    },
+    [
+      applyThreadUpdate,
+      listEmails,
+      state?.user?.email,
+      state?.user?.name,
+      threadOverrides,
+    ]
+  );
+
+  const refreshThread = useCallback(
+    async (threadId: string) => {
+      if (!googleConnected || !threadId) return;
+      try {
+        const res = await fetch(
+          `/api/gmail?threadId=${encodeURIComponent(threadId)}`,
+          { cache: "no-store" }
+        );
+        const data = await res.json();
+        if (res.ok && data.email) {
+          applyThreadUpdate(data.email as Email);
+        }
+      } catch {
+        // keep optimistic view
+      }
+    },
+    [applyThreadUpdate, googleConnected]
+  );
+
   const sendCompose = async () => {
     if (!compose) return;
+    const snapshot = compose;
     setSending(true);
     setComposeError(null);
     try {
@@ -514,16 +630,16 @@ export default function EmailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "send",
-          to: compose.to,
-          cc: compose.cc,
-          bcc: compose.bcc,
-          subject: compose.subject,
-          body: compose.body,
-          threadId: compose.threadId,
-          inReplyTo: compose.inReplyTo,
-          references: compose.references,
-          draftId: compose.draftId,
-          attachments: (compose.attachments ?? []).map((a) => ({
+          to: snapshot.to,
+          cc: snapshot.cc,
+          bcc: snapshot.bcc,
+          subject: snapshot.subject,
+          body: snapshot.body,
+          threadId: snapshot.threadId,
+          inReplyTo: snapshot.inReplyTo,
+          references: snapshot.references,
+          draftId: snapshot.draftId,
+          attachments: (snapshot.attachments ?? []).map((a) => ({
             filename: a.name,
             mimeType: a.mimeType,
             dataBase64: a.dataBase64,
@@ -535,12 +651,25 @@ export default function EmailPage() {
         setComposeError(data.error || "Send failed");
         return;
       }
-      if (!googleConnected && compose.draftId) {
+      if (!googleConnected && snapshot.draftId) {
         writeLocalDrafts(
-          readLocalDrafts().filter((d) => d.id !== compose.draftId)
+          readLocalDrafts().filter((d) => d.id !== snapshot.draftId)
         );
       }
+
+      const tid = snapshot.threadId || data.threadId;
       setCompose(null);
+
+      // Show the sent message in the thread immediately, then sync from Gmail
+      if (tid) {
+        appendOptimisticSent(snapshot, data.messageId);
+      }
+      if (data.email) {
+        applyThreadUpdate(data.email as Email);
+      } else if (tid) {
+        void refreshThread(String(tid));
+      }
+
       if (nav === "drafts") void loadFolder("drafts");
     } catch {
       setComposeError("Send failed");
