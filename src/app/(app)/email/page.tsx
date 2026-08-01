@@ -296,7 +296,7 @@ export default function EmailPage() {
       inReplyTo: latest.rfcMessageId,
       references: [latest.references, latest.rfcMessageId].filter(Boolean).join(" "),
     });
-    // Auto-generate draft
+    // Auto-generate AI draft as soon as reply opens
     setDrafting(true);
     try {
       const res = await fetch("/api/email/draft", {
@@ -330,6 +330,27 @@ export default function EmailPage() {
     } finally {
       setDrafting(false);
     }
+  };
+
+  const openForward = (email: Email) => {
+    const latest =
+      email.threadMessages?.[email.threadMessages.length - 1] ?? email;
+    const subject = /^(fwd|fw):/i.test(email.subject)
+      ? email.subject
+      : `Fwd: ${email.subject}`;
+    const quoted =
+      latest.body?.trim() ||
+      latest.preview ||
+      "(No content)";
+    setComposeError(null);
+    setCompose({
+      mode: "forward",
+      to: "",
+      cc: "",
+      bcc: "",
+      subject,
+      body: `\n\n---------- Forwarded message ---------\nFrom: ${latest.from} <${latest.fromEmail}>\nDate: ${new Date(latest.receivedAt).toLocaleString()}\nSubject: ${email.subject}\nTo: ${latest.to || "me"}\n\n${quoted}`,
+    });
   };
 
   const openComposeNew = () => {
@@ -890,62 +911,56 @@ export default function EmailPage() {
           >
             {selected ? (
               <>
-                <div className="flex-1 min-h-0 h-0 flex flex-col overflow-hidden">
+                <div
+                  className={cn(
+                    "flex-1 min-h-0 h-0 flex flex-col overflow-hidden",
+                    compose && "hidden lg:flex"
+                  )}
+                >
                   <EmailReadingPane
                     email={selected}
-                    onClose={() => setSelectedId(null)}
+                    onClose={() => {
+                      setSelectedId(null);
+                      if (compose) void saveDraftOnClose(compose);
+                    }}
                     onReply={() => void openReply(selected)}
+                    onForward={() => openForward(selected)}
                     onAction={(a) => void runThreadAction(selected, a)}
                     busy={actionBusy}
                     showTriage={showTriage}
                   />
                 </div>
-                <ComposePanel
-                  open={!!compose}
-                  value={
-                    compose ?? {
-                      mode: "reply",
-                      to: "",
-                      cc: "",
-                      bcc: "",
-                      subject: "",
-                      body: "",
+                {/* Desktop: docked compose under reading pane */}
+                <div className="hidden lg:block">
+                  <ComposePanel
+                    open={!!compose}
+                    variant="dock"
+                    value={
+                      compose ?? {
+                        mode: "reply",
+                        to: "",
+                        cc: "",
+                        bcc: "",
+                        subject: "",
+                        body: "",
+                      }
                     }
-                  }
-                  onChange={(v) => setCompose(v)}
-                  onClose={closeCompose}
-                  onSend={() => void sendCompose()}
-                  onAiDraft={() => void aiDraft()}
-                  onRewrite={(t) => void rewrite(t)}
-                  drafting={drafting}
-                  sending={sending}
-                  error={composeError}
-                />
-                {!compose && (
-                  <div className="shrink-0 px-3 py-2 border-t border-white/10 flex gap-2 safe-area-bottom lg:hidden">
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => void openReply(selected)}
-                    >
-                      Reply
-                    </Button>
-                    {selected.inboxBucket === "to_respond" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void openReply(selected, "followup")}
-                      >
-                        Follow up
-                      </Button>
-                    )}
-                  </div>
-                )}
+                    onChange={(v) => setCompose(v)}
+                    onClose={closeCompose}
+                    onSend={() => void sendCompose()}
+                    onAiDraft={() => void aiDraft()}
+                    onRewrite={(t) => void rewrite(t)}
+                    drafting={drafting}
+                    sending={sending}
+                    error={composeError}
+                  />
+                </div>
               </>
             ) : compose ? (
               <div className="hidden lg:flex flex-1 min-h-0 flex-col">
                 <ComposePanel
                   open
+                  variant="dock"
                   value={compose}
                   onChange={(v) => setCompose(v)}
                   onClose={closeCompose}
@@ -970,11 +985,12 @@ export default function EmailPage() {
           </section>
         </div>
 
-        {/* New-mail compose on phone (reading pane is hidden without selection) */}
-        {!!compose && !selected && (
-          <div className="lg:hidden absolute inset-0 z-30 flex flex-col bg-[#0c1018]">
+        {/* Mobile: full-screen compose (reply / forward / new) — Gmail style */}
+        {!!compose && (
+          <div className="lg:hidden absolute inset-0 z-30 flex flex-col bg-[#121018]">
             <ComposePanel
               open
+              variant="fullscreen"
               value={compose}
               onChange={(v) => setCompose(v)}
               onClose={closeCompose}
