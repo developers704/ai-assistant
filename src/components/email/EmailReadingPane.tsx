@@ -167,21 +167,18 @@ export function EmailReadingPane({
         className="flex-1 min-h-0 h-0 overflow-y-auto overscroll-y-contain touch-pan-y"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {conversation.map((msg, idx) => {
+        {conversation.map((msg) => {
           const isYou =
             /valliani|kash@/i.test(msg.fromEmail) || /kash/i.test(msg.from);
           return (
             <section
               key={msg.id}
-              className={cn(
-                "border-b border-white/[0.04] last:border-b-0",
-                idx > 0 && "mt-0"
-              )}
+              className="border-b border-white/[0.05] last:border-b-0"
             >
-              <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
+              <div className="flex items-center gap-3 px-4 sm:px-6 pt-4 pb-2">
                 <div
                   className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
                     isYou
                       ? "bg-[#2a4a55] text-cyan-100"
                       : "bg-[#2a3548] text-white/80"
@@ -204,7 +201,7 @@ export function EmailReadingPane({
                   {formatRelativeTime(msg.receivedAt)}
                 </p>
               </div>
-              <div className="px-4 sm:px-6 pb-5">
+              <div className="px-4 sm:px-6 pb-5 pt-1">
                 <EmailBody
                   body={msg.body}
                   bodyHtml={msg.bodyHtml}
