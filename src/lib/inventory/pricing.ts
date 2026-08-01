@@ -22,7 +22,77 @@ const WATCH_DISCOUNTS: Record<string, Record<ManagerTier, number>> = {
   MOVADO: { dm: 25, cm: 25, m: 25 },
   BULOVA: { dm: 25, cm: 25, m: 25 },
   "MICHAEL KO": { dm: 25, cm: 25, m: 25 },
+  "G-SHOCK": { dm: 25, cm: 25, m: 25 },
 };
+
+/** Whole gold — one tier for all gold (no under/over 20g split). */
+const GOLD_DISCOUNTS: Record<ManagerTier, number> = {
+  dm: 65,
+  cm: 60,
+  m: 55,
+};
+
+const BENCHMARK_FAMILY_DISCOUNTS: Record<ManagerTier, number> = {
+  dm: 65,
+  cm: 60,
+  m: 55,
+};
+
+const DIAMOND_DISCOUNTS: Record<ManagerTier, number> = {
+  dm: 82,
+  cm: 80,
+  m: 77.5,
+};
+
+/** UV / Ultimate Value + diamond — flat 82% (except zero-discount SKUs). */
+const UV_DIAMOND_DISCOUNTS: Record<ManagerTier, number> = {
+  dm: 82,
+  cm: 82,
+  m: 82,
+};
+
+const ZERO_DISCOUNTS: Record<ManagerTier, number> = { dm: 0, cm: 0, m: 0 };
+
+const FIXED_DESIGN_DISCOUNTS: Record<ManagerTier, number> = {
+  dm: 20,
+  cm: 15,
+  m: 10,
+};
+
+const FIXED_DESIGN_LABELS: Record<string, string> = {
+  LINKNLOCK: "Link N Lock",
+  LOVE: "Love",
+  OROVENTI: "Oroventi",
+};
+
+/** Departments that count as Diamond category (plus "diamond" in description). */
+const DIAMOND_DEPARTMENTS = new Set([
+  "BANGLE",
+  "EARRINGS",
+  "FANCY NECK",
+  "GENTS RING",
+  "LADYS RING",
+  "LADYS BRCL",
+  "MENS BRCLT",
+  "PENDANT",
+  "TRIO",
+  "SOL RING",
+]);
+
+/**
+ * UV / Ultimate Value + diamond → 0% for these SKUs (match Item # base before '-').
+ */
+const UV_DIAMOND_ZERO_SKUS = new Set([
+  "231611",
+  "231614",
+  "231616",
+  "231618",
+  "231620",
+  "231622",
+  "231624",
+  "230768",
+  "232736",
+]);
 
 const GOLD_DEPTS = [
   "GOLD BANDS",
@@ -37,6 +107,25 @@ function normalizeDept(dept: string): string {
   return dept.trim().toUpperCase();
 }
 
+function skuBase(sku: string): string {
+  return sku.trim().toUpperCase().split(/[-\s]/)[0] ?? "";
+}
+
+function textBlob(item: InventoryItem): string {
+  return [
+    item.description,
+    item.vendorModel,
+    item.design,
+    item.department,
+    item.class,
+    item.brand,
+  ].join(" ");
+}
+
+function isGShock(item: InventoryItem): boolean {
+  return /g[\s-]?shock/i.test(textBlob(item));
+}
+
 function isGold(item: InventoryItem): boolean {
   const dept = normalizeDept(item.department);
   if (GOLD_DEPTS.some((g) => dept.includes(g) || dept === g)) return true;
@@ -45,19 +134,21 @@ function isGold(item: InventoryItem): boolean {
   return false;
 }
 
-/** Gold under/over 20g discounts use AvgWeight column only. */
+/** Gold weight still shown in UI; discounts no longer split on it. */
 function getGoldAvgWeightGrams(item: InventoryItem): number {
   return item.avgWeight > 0 ? item.avgWeight : 0;
 }
 
-function isBenchmark(item: InventoryItem): boolean {
-  return (
-    /benchmark/i.test(item.vendorModel) ||
-    /benchmark/i.test(item.description)
-  );
+function getBenchmarkFamilyLabel(item: InventoryItem): string | null {
+  const blob = textBlob(item);
+  if (/benchmark/i.test(blob)) return "Benchmark";
+  if (/triton/i.test(blob)) return "Triton";
+  if (/tungsten/i.test(blob)) return "Tungsten";
+  return null;
 }
 
 function isWatch(item: InventoryItem): boolean {
+  if (isGShock(item)) return true;
   const dept = normalizeDept(item.department);
   if (dept in WATCH_DISCOUNTS) return true;
   if (dept.startsWith("MICHAEL")) return true;
@@ -65,6 +156,7 @@ function isWatch(item: InventoryItem): boolean {
 }
 
 function getWatchBrand(item: InventoryItem): string {
+  if (isGShock(item)) return "G-SHOCK";
   const dept = normalizeDept(item.department);
   if (dept in WATCH_DISCOUNTS) return dept;
   if (dept.startsWith("MICHAEL")) return "MICHAEL KO";
@@ -85,33 +177,37 @@ function getWatchDiscountPercents(
   );
 }
 
-const FIXED_DESIGN_DISCOUNT_PCT = 20;
-
-const FIXED_DESIGN_LABELS: Record<string, string> = {
-  LINKNLOCK: "Link N Lock",
-  LOVE: "Love",
-  OROVENTI: "Oroventi",
-};
-
 function getFixedDesignCollection(item: InventoryItem): string | null {
   const design = item.design.trim().toUpperCase();
   return FIXED_DESIGN_LABELS[design] ?? null;
-}
-
-function fixedDesignDiscounts(): Record<ManagerTier, number> {
-  return {
-    dm: FIXED_DESIGN_DISCOUNT_PCT,
-    cm: FIXED_DESIGN_DISCOUNT_PCT,
-    m: FIXED_DESIGN_DISCOUNT_PCT,
-  };
 }
 
 function isGemstone(item: InventoryItem): boolean {
   return /birthstone/i.test(item.subClass);
 }
 
-function isDiamond(item: InventoryItem): boolean {
-  return /diamond/i.test(item.description);
+function hasUvOrUltimateValue(item: InventoryItem): boolean {
+  const desc = item.description ?? "";
+  return /\buv\b/i.test(desc) || /ultimate\s*value/i.test(desc);
+}
+
+function isUvGoldJewelZeroDiscount(item: InventoryItem): boolean {
+  return (
+    /^UV$/i.test(item.class.trim()) && /^GOLD JEWL$/i.test(item.design.trim())
+  );
+}
+
+function isDiamondCategory(item: InventoryItem): boolean {
+  if (/diamond/i.test(item.description ?? "")) return true;
+  return DIAMOND_DEPARTMENTS.has(normalizeDept(item.department));
+}
+
+function isUvDiamondSpecial(item: InventoryItem): boolean {
+  return hasUvOrUltimateValue(item) && isDiamondCategory(item);
+}
+
+function isUvDiamondZeroSku(item: InventoryItem): boolean {
+  return UV_DIAMOND_ZERO_SKUS.has(skuBase(item.sku));
 }
 
 export function classifyProduct(item: InventoryItem): {
@@ -120,6 +216,19 @@ export function classifyProduct(item: InventoryItem): {
   watchBrand?: string;
   goldWeightGrams?: number;
 } {
+  if (isUvGoldJewelZeroDiscount(item)) {
+    return { category: "other", categoryLabel: "UV Gold Jewel" };
+  }
+
+  if (isUvDiamondSpecial(item)) {
+    return {
+      category: "diamond_gemstone",
+      categoryLabel: isUvDiamondZeroSku(item)
+        ? "UV / Ultimate Value Diamond (no discount)"
+        : "UV / Ultimate Value Diamond",
+    };
+  }
+
   if (isWatch(item)) {
     return {
       category: "watch",
@@ -136,10 +245,11 @@ export function classifyProduct(item: InventoryItem): {
     };
   }
 
-  if (isBenchmark(item)) {
+  const metalBrand = getBenchmarkFamilyLabel(item);
+  if (metalBrand) {
     return {
       category: "benchmark",
-      categoryLabel: "Benchmark Gold",
+      categoryLabel: metalBrand,
     };
   }
 
@@ -150,7 +260,7 @@ export function classifyProduct(item: InventoryItem): {
     };
   }
 
-  if (isDiamond(item)) {
+  if (isDiamondCategory(item)) {
     return {
       category: "diamond_gemstone",
       categoryLabel: "Diamond Jewelry",
@@ -158,11 +268,10 @@ export function classifyProduct(item: InventoryItem): {
   }
 
   if (isGold(item)) {
-    const goldWeightGrams = getGoldAvgWeightGrams(item);
     return {
       category: "gold",
       categoryLabel: "Gold",
-      goldWeightGrams,
+      goldWeightGrams: getGoldAvgWeightGrams(item),
     };
   }
 
@@ -175,32 +284,43 @@ export function classifyProduct(item: InventoryItem): {
 function getDiscountPercents(
   item: InventoryItem,
   category: ProductCategory,
-  watchBrand?: string,
-  goldWeightGrams?: number
+  watchBrand?: string
 ): Record<ManagerTier, number> {
+  if (isUvGoldJewelZeroDiscount(item)) {
+    return ZERO_DISCOUNTS;
+  }
+
+  if (isUvDiamondSpecial(item)) {
+    return isUvDiamondZeroSku(item) ? ZERO_DISCOUNTS : UV_DIAMOND_DISCOUNTS;
+  }
+
   if (category === "watch" && watchBrand) {
     return getWatchDiscountPercents(watchBrand, item);
   }
 
   if (getFixedDesignCollection(item)) {
-    return fixedDesignDiscounts();
+    return FIXED_DESIGN_DISCOUNTS;
   }
 
   if (category === "benchmark") {
-    return { dm: 65, cm: 60, m: 55 };
+    return BENCHMARK_FAMILY_DISCOUNTS;
   }
 
   if (category === "diamond_gemstone" || category === "other") {
-    return { dm: 82, cm: 80, m: 77.5 };
+    return DIAMOND_DISCOUNTS;
   }
 
   if (category === "gold") {
-    const over20 = (goldWeightGrams ?? 0) >= 20;
-    if (over20) return { dm: 65, cm: 60, m: 55 };
-    return { dm: 58, cm: 55, m: 50 };
+    return GOLD_DISCOUNTS;
   }
 
-  return { dm: 82, cm: 80, m: 77.5 };
+  return DIAMOND_DISCOUNTS;
+}
+
+function formatTierSummary(discounts: Record<ManagerTier, number>): string {
+  const { dm, cm, m } = discounts;
+  if (dm === cm && cm === m) return `${dm}% off (DM / CM / M)`;
+  return `DM ${dm}%, CM ${cm}%, M ${m}% off`;
 }
 
 function buildRulesSummary(
@@ -210,42 +330,51 @@ function buildRulesSummary(
   goldWeightGrams?: number,
   discounts?: Record<ManagerTier, number>
 ): string {
-  const fixedDesign = getFixedDesignCollection(item);
-  if (fixedDesign && discounts) {
-    return `${fixedDesign} — ${discounts.dm}% off (fixed for DM / CM / M)`;
+  if (!discounts) return "";
+
+  if (isUvGoldJewelZeroDiscount(item)) {
+    return "Class UV + Design GOLD JEWL — 0% discount";
   }
 
-  if (category === "watch" && watchBrand && discounts) {
-    const { dm, cm, m } = discounts;
-    if (dm === cm && cm === m) {
-      return `${watchBrand} watch — ${dm}% off (DM / CM / M)`;
+  if (isUvDiamondSpecial(item)) {
+    if (isUvDiamondZeroSku(item)) {
+      return `UV / Ultimate Value + diamond (SKU ${skuBase(item.sku)}) — 0% discount`;
     }
-    return `${watchBrand} watch — DM ${dm}%, CM ${cm}%, M ${m}% off`;
+    return "UV / Ultimate Value + diamond — 82% off (DM / CM / M)";
   }
+
+  const fixedDesign = getFixedDesignCollection(item);
+  if (fixedDesign) {
+    return `${fixedDesign} — ${formatTierSummary(discounts)}`;
+  }
+
+  if (category === "watch" && watchBrand) {
+    return `${watchBrand} watch — ${formatTierSummary(discounts)}`;
+  }
+
   if (category === "benchmark") {
-    return "Benchmark — DM 65%, CM 60%, M 55% off";
+    const label = getBenchmarkFamilyLabel(item) ?? "Benchmark";
+    return `${label} — ${formatTierSummary(discounts)}`;
   }
+
   if (category === "diamond_gemstone") {
-    return "Diamond / Gemstone — DM 82%, CM 80%, M 77.5% off";
+    return `Diamond / Gemstone — ${formatTierSummary(discounts)}`;
   }
+
   if (category === "gold") {
     const weight = goldWeightGrams ?? 0;
-    const tier = weight >= 20 ? "20g and over" : "under 20g";
-    const weightLabel = weight > 0 ? `${weight}g avg weight — ` : "avg weight not set — ";
-    return `Gold (${weightLabel}${tier}) — DM ${discounts?.dm}%, CM ${discounts?.cm}%, M ${discounts?.m}% off`;
+    const weightLabel =
+      weight > 0 ? `${weight}g avg weight — ` : "avg weight not set — ";
+    return `Gold (${weightLabel}whole gold) — ${formatTierSummary(discounts)}`;
   }
-  return "Standard jewelry — DM 82%, CM 80%, M 77.5% off";
+
+  return `Standard jewelry — ${formatTierSummary(discounts)}`;
 }
 
 export function calculatePricing(item: InventoryItem): PricingResult {
   const { category, categoryLabel, watchBrand, goldWeightGrams } =
     classifyProduct(item);
-  const discountPercents = getDiscountPercents(
-    item,
-    category,
-    watchBrand,
-    goldWeightGrams
-  );
+  const discountPercents = getDiscountPercents(item, category, watchBrand);
 
   const tiers: TierPricing[] = (["dm", "cm", "m"] as ManagerTier[]).map(
     (tier) => {
