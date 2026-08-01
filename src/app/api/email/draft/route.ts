@@ -36,6 +36,25 @@ async function getStyleCard(): Promise<string> {
   }
 }
 
+function stubComposeEmail(subject: string, to: string): Email {
+  return {
+    id: "compose",
+    threadId: "compose",
+    from: "You",
+    fromEmail: "",
+    to,
+    subject: subject || "(no subject)",
+    preview: "",
+    body: "",
+    receivedAt: new Date().toISOString(),
+    isImportant: false,
+    isRead: true,
+    needsReply: false,
+    category: "normal",
+    messageCount: 1,
+  };
+}
+
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
   try {
@@ -51,6 +70,8 @@ export async function POST(req: NextRequest) {
   const existingDraft = body.existingDraft ? String(body.existingDraft) : undefined;
   const threadId = body.threadId ? String(body.threadId) : "";
   const emailId = body.emailId ? String(body.emailId) : "";
+  const subjectHint = body.subject ? String(body.subject) : "";
+  const toHint = body.to ? String(body.to) : "";
 
   const state = getState();
   const signer = {
@@ -79,8 +100,22 @@ export async function POST(req: NextRequest) {
     email = body.email as Email;
   }
 
+  // New message / rewrite without a thread — polish the user's rough draft
+  const draftOnly =
+    (mode === "polish" || mode === "rewrite") && !!existingDraft?.trim();
+  if (!email && draftOnly) {
+    email = stubComposeEmail(subjectHint, toHint);
+  }
+
   if (!email) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+  }
+
+  if (mode === "polish" && !existingDraft?.trim()) {
+    return NextResponse.json(
+      { error: "Write a rough message first, then use AI Draft" },
+      { status: 400 }
+    );
   }
 
   const styleCard = await getStyleCard();
@@ -89,7 +124,16 @@ export async function POST(req: NextRequest) {
     rewriteTone,
     existingDraft,
     styleCard,
+    recipients: toHint || email.to,
   });
+
+  if (mode === "polish" || (mode === "rewrite" && !threadId)) {
+    return NextResponse.json({
+      draft,
+      to: toHint || email.to || undefined,
+      subject: subjectHint || email.subject,
+    });
+  }
 
   const latest =
     email.threadMessages?.[email.threadMessages.length - 1] ?? email;

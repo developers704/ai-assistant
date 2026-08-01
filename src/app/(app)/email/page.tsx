@@ -679,7 +679,41 @@ export default function EmailPage() {
   };
 
   const aiDraft = async () => {
-    if (!compose?.threadId && !selected) return;
+    if (!compose) return;
+    const isNewMail =
+      compose.mode === "compose" || compose.mode === "forward";
+
+    if (isNewMail) {
+      if (!compose.body.trim()) {
+        setComposeError("Write a rough message first, then use AI Draft");
+        return;
+      }
+      setDrafting(true);
+      setComposeError(null);
+      try {
+        const res = await fetch("/api/email/draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "polish",
+            existingDraft: compose.body,
+            subject: compose.subject,
+            to: compose.to,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setComposeError(data.error || "Draft failed");
+          return;
+        }
+        setCompose((c) => (c ? { ...c, body: data.draft } : c));
+      } finally {
+        setDrafting(false);
+      }
+      return;
+    }
+
+    if (!compose.threadId && !selected) return;
     setDrafting(true);
     setComposeError(null);
     try {
@@ -687,8 +721,8 @@ export default function EmailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          threadId: compose?.threadId || selected?.threadId,
-          mode: compose?.mode === "followup" ? "followup" : "reply",
+          threadId: compose.threadId || selected?.threadId,
+          mode: compose.mode === "followup" ? "followup" : "reply",
         }),
       });
       const data = await res.json();
@@ -726,6 +760,8 @@ export default function EmailPage() {
           mode: "rewrite",
           rewriteTone: tone,
           existingDraft: compose.body,
+          subject: compose.subject,
+          to: compose.to,
         }),
       });
       const data = await res.json();

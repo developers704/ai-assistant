@@ -123,7 +123,9 @@ export function ComposePanel({
   );
 
   const attachments = value.attachments ?? [];
-  const canAiDraft = value.mode === "reply" || value.mode === "followup";
+  const isNewMail = value.mode === "compose" || value.mode === "forward";
+  const canAiDraft = true;
+  const aiDraftNeedsBody = isNewMail;
   const canSend =
     parseRecipients(value.to).length > 0 &&
     (!!value.body.trim() || attachments.length > 0);
@@ -370,8 +372,17 @@ export function ComposePanel({
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={drafting}
+                  disabled={
+                    drafting || (aiDraftNeedsBody && !value.body.trim())
+                  }
                   onClick={onAiDraft}
+                  title={
+                    aiDraftNeedsBody && !value.body.trim()
+                      ? "Write a rough message first"
+                      : isNewMail
+                        ? "Paraphrase into a professional email"
+                        : "Generate AI reply"
+                  }
                   className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-[#5b4a8a]/45 ring-1 ring-[#5b4a8a]/50 text-[13px] font-medium text-violet-100 hover:bg-[#5b4a8a]/60 disabled:opacity-50"
                 >
                   {drafting ? (
@@ -379,7 +390,13 @@ export function ComposePanel({
                   ) : (
                     <Sparkles size={14} />
                   )}
-                  {value.body.trim() ? "Regen AI draft" : "AI Draft"}
+                  {isNewMail
+                    ? value.body.trim()
+                      ? "AI Draft · make professional"
+                      : "AI Draft"
+                    : value.body.trim()
+                      ? "Regen AI draft"
+                      : "AI Draft"}
                 </button>
                 {value.body.trim() ? (
                   <>
@@ -570,15 +587,24 @@ export function ComposePanel({
               <Button
                 size="sm"
                 variant="outline"
-                disabled={drafting}
+                disabled={
+                  drafting || (aiDraftNeedsBody && !value.body.trim())
+                }
                 onClick={onAiDraft}
+                title={
+                  isNewMail
+                    ? "Paraphrase into a professional email"
+                    : "Generate AI reply"
+                }
               >
                 {drafting ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
                   <Sparkles size={14} />
                 )}
-                <span className="ml-1">AI Draft</span>
+                <span className="ml-1">
+                  {isNewMail ? "AI Draft" : "AI Draft"}
+                </span>
               </Button>
             )}
 
