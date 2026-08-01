@@ -109,6 +109,18 @@ export interface Email {
   threadMessages?: Email[];
   /** Message count in the thread (convenience for list badges). */
   messageCount?: number;
+  /** File attachments on this message (Gmail MIME). */
+  attachments?: EmailAttachment[];
+}
+
+export interface EmailAttachment {
+  filename: string;
+  mimeType: string;
+  size?: number;
+  /** Gmail attachment id — required to download. */
+  attachmentId?: string;
+  /** Gmail message id that owns the attachment. */
+  messageId?: string;
 }
 
 export interface WhatsAppMessage {

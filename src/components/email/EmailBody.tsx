@@ -1,21 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { EmailAttachment } from "@/types";
 import {
   extractInlineAttachmentNames,
   preferPlainEmailBody,
   sanitizeEmailHtmlForPreview,
   toPlainText,
 } from "@/lib/email-html";
-import { FileIcon, Paperclip } from "lucide-react";
+import { Download, FileIcon, Paperclip } from "lucide-react";
 
 interface EmailBodyProps {
   body: string;
   bodyHtml?: string;
   preview?: string;
+  attachments?: EmailAttachment[];
 }
 
-export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
+function formatBytes(n?: number): string {
+  if (n == null || n <= 0) return "";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function EmailBody({ body, bodyHtml, preview, attachments }: EmailBodyProps) {
   const plain = toPlainText(body) || toPlainText(preview ?? "");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeHeight, setIframeHeight] = useState(120);
@@ -83,6 +92,10 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
     };
   }, [bodyHtml, usePlain, resizeIframe]);
 
+  const attachmentPanel = (
+    <AttachmentPanel attachments={attachments} inlineNames={inlineFiles} />
+  );
+
   if (!usePlain && bodyHtml?.trim()) {
     const cleaned = sanitizeEmailHtmlForPreview(bodyHtml);
     const doc = `<!DOCTYPE html>
@@ -149,7 +162,7 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
             className="w-full max-w-full block border-0 bg-transparent"
           />
         </div>
-        <AttachmentChips names={inlineFiles} />
+        {attachmentPanel}
       </div>
     );
   }
@@ -159,26 +172,76 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
       <div className="rounded-xl bg-[#141a24] ring-1 ring-white/[0.08] px-4 sm:px-5 py-4 text-[14.5px] text-white/80 leading-[1.6] whitespace-pre-wrap break-words">
         {plain || "No content."}
       </div>
-      <AttachmentChips names={inlineFiles} />
+      {attachmentPanel}
     </div>
   );
 }
 
-function AttachmentChips({ names }: { names: string[] }) {
-  if (!names.length) return null;
+function AttachmentPanel({
+  attachments,
+  inlineNames,
+}: {
+  attachments?: EmailAttachment[];
+  inlineNames: string[];
+}) {
+  const real = attachments ?? [];
+  if (!real.length && !inlineNames.length) return null;
+
+  const count = real.length || inlineNames.length;
+
   return (
-    <ul className="flex flex-wrap gap-1.5">
-      {names.map((name) => (
-        <li
-          key={name}
-          className="inline-flex items-center gap-1.5 max-w-full rounded-lg bg-white/[0.05] ring-1 ring-white/[0.08] px-2.5 py-1.5 text-[12px] text-white/65"
-          title={name}
-        >
-          <Paperclip size={12} className="text-white/35 shrink-0" />
-          <FileIcon size={12} className="text-white/35 shrink-0 hidden sm:block" />
-          <span className="truncate">{name}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="rounded-xl ring-1 ring-white/[0.08] bg-white/[0.03] px-3 py-2.5">
+      <p className="text-[11px] font-medium text-white/45 mb-2">
+        {count} attachment{count === 1 ? "" : "s"}
+      </p>
+      <ul className="flex flex-wrap gap-2">
+        {real.map((a) => {
+          const href =
+            a.attachmentId && a.messageId
+              ? `/api/gmail/attachment?messageId=${encodeURIComponent(a.messageId)}&attachmentId=${encodeURIComponent(a.attachmentId)}&filename=${encodeURIComponent(a.filename)}&mimeType=${encodeURIComponent(a.mimeType)}`
+              : undefined;
+          const size = formatBytes(a.size);
+          return (
+            <li key={`${a.messageId}-${a.attachmentId || a.filename}`}>
+              {href ? (
+                <a
+                  href={href}
+                  download={a.filename}
+                  className="inline-flex items-center gap-2 max-w-full rounded-lg bg-[#1a2230] ring-1 ring-white/[0.1] px-3 py-2 text-[12px] text-white/80 hover:bg-[#222b3c] hover:text-white transition-colors"
+                  title={`Download ${a.filename}`}
+                >
+                  <FileIcon size={14} className="text-sky-300/80 shrink-0" />
+                  <span className="truncate max-w-[14rem]">{a.filename}</span>
+                  {size ? (
+                    <span className="text-white/35 tabular-nums shrink-0">{size}</span>
+                  ) : null}
+                  <Download size={12} className="text-white/35 shrink-0" />
+                </a>
+              ) : (
+                <span
+                  className="inline-flex items-center gap-1.5 max-w-full rounded-lg bg-white/[0.05] ring-1 ring-white/[0.08] px-2.5 py-1.5 text-[12px] text-white/65"
+                  title={a.filename}
+                >
+                  <Paperclip size={12} className="text-white/35 shrink-0" />
+                  <span className="truncate">{a.filename}</span>
+                </span>
+              )}
+            </li>
+          );
+        })}
+        {!real.length
+          ? inlineNames.map((name) => (
+              <li
+                key={name}
+                className="inline-flex items-center gap-1.5 max-w-full rounded-lg bg-white/[0.05] ring-1 ring-white/[0.08] px-2.5 py-1.5 text-[12px] text-white/65"
+                title={name}
+              >
+                <Paperclip size={12} className="text-white/35 shrink-0" />
+                <span className="truncate">{name}</span>
+              </li>
+            ))
+          : null}
+      </ul>
+    </div>
   );
 }

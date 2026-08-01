@@ -206,6 +206,7 @@ export function EmailReadingPane({
                   body={msg.body}
                   bodyHtml={msg.bodyHtml}
                   preview={msg.preview}
+                  attachments={msg.attachments}
                 />
               </div>
             </section>

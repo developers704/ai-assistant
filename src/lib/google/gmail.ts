@@ -23,7 +23,13 @@ function getHeader(
 
 interface MimePart {
   mimeType?: string | null;
-  body?: { data?: string | null };
+  filename?: string | null;
+  headers?: { name?: string | null; value?: string | null }[] | null;
+  body?: {
+    data?: string | null;
+    attachmentId?: string | null;
+    size?: number | null;
+  };
   parts?: MimePart[];
 }
 
@@ -34,6 +40,11 @@ function extractEmailParts(payload: MimePart | undefined): { plain: string; html
   function walk(part: MimePart | undefined) {
     if (!part) return;
     const mime = (part.mimeType ?? "").toLowerCase();
+    // Skip binary attachment bodies when walking for text
+    if (part.filename || part.body?.attachmentId) {
+      part.parts?.forEach(walk);
+      return;
+    }
     if (part.body?.data) {
       const decoded = decodeBase64Url(part.body.data);
       if (mime.includes("text/plain")) plainParts.push(decoded);
@@ -54,6 +65,79 @@ function extractEmailParts(payload: MimePart | undefined): { plain: string; html
   let plain = plainParts.join("\n\n").trim();
   if (!plain && html) plain = htmlToPlainText(html);
   return { plain, html };
+}
+
+function guessAttachmentName(mime: string): string {
+  if (mime.includes("spreadsheet") || mime.includes("excel")) return "spreadsheet.xlsx";
+  if (mime.includes("pdf")) return "document.pdf";
+  if (mime.includes("csv")) return "data.csv";
+  if (mime.includes("image/")) return "image";
+  return "attachment";
+}
+
+function filenameFromDisposition(disposition: string): string {
+  const star = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(disposition);
+  if (star?.[1]) {
+    try {
+      return decodeURIComponent(star[1].trim().replace(/["']/g, ""));
+    } catch {
+      return star[1].trim().replace(/["']/g, "");
+    }
+  }
+  const plain = /filename\s*=\s*"([^"]+)"|filename\s*=\s*([^;\s]+)/i.exec(disposition);
+  return (plain?.[1] || plain?.[2] || "").trim();
+}
+
+function extractMessageAttachments(
+  payload: MimePart | undefined,
+  messageId: string
+): NonNullable<Email["attachments"]> {
+  const out: NonNullable<Email["attachments"]> = [];
+
+  function walk(part: MimePart | undefined) {
+    if (!part) return;
+    const mime = (part.mimeType ?? "").toLowerCase();
+    if (mime.startsWith("multipart/")) {
+      part.parts?.forEach(walk);
+      return;
+    }
+
+    const disposition = getHeader(part.headers ?? undefined, "Content-Disposition");
+    const filename =
+      (part.filename || "").trim() || filenameFromDisposition(disposition);
+    const isAttachment =
+      !!filename ||
+      /attachment/i.test(disposition) ||
+      (!!part.body?.attachmentId && !mime.startsWith("text/"));
+
+    if (
+      isAttachment &&
+      (filename || part.body?.attachmentId) &&
+      !mime.startsWith("text/plain") &&
+      !mime.startsWith("text/html")
+    ) {
+      out.push({
+        filename: filename || guessAttachmentName(mime),
+        mimeType: part.mimeType || "application/octet-stream",
+        size: part.body?.size ?? undefined,
+        attachmentId: part.body?.attachmentId ?? undefined,
+        messageId,
+      });
+    }
+
+    part.parts?.forEach(walk);
+  }
+
+  walk(payload);
+
+  // Dedupe by filename + size
+  const seen = new Set<string>();
+  return out.filter((a) => {
+    const key = `${a.filename}|${a.size ?? 0}|${a.attachmentId ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function parseFrom(from: string): { name: string; email: string } {
@@ -82,6 +166,10 @@ function parseGmailMessage(msg: gmail_v1.Schema$Message): Email | null {
   const { name, email } = parseFrom(fromRaw);
   const subject = getHeader(headers, "Subject") || "(No subject)";
   const { plain, html } = extractEmailParts(msg.payload as MimePart | undefined);
+  const attachments = extractMessageAttachments(
+    msg.payload as MimePart | undefined,
+    msg.id
+  );
   const body = plain || toPlainText(msg.snippet ?? "") || "";
   const preview = toEmailPreview(body || html || msg.snippet || "");
   const bodyHtml = html || undefined;
@@ -113,6 +201,7 @@ function parseGmailMessage(msg: gmail_v1.Schema$Message): Email | null {
     preview,
     body: body || msg.snippet || "",
     bodyHtml,
+    attachments: attachments.length ? attachments : undefined,
     receivedAt,
     isImportant,
     isRead,
@@ -397,6 +486,23 @@ export type GmailAttachment = {
   /** Raw base64 (no data: URL prefix). */
   dataBase64: string;
 };
+
+/** Download a received Gmail attachment by message + attachment id. */
+export async function fetchGmailAttachment(
+  client: GoogleOAuth2Client,
+  messageId: string,
+  attachmentId: string
+): Promise<{ data: Buffer; mimeType?: string } | null> {
+  const gmail = google.gmail({ version: "v1", auth: client });
+  const { data } = await gmail.users.messages.attachments.get({
+    userId: "me",
+    messageId,
+    id: attachmentId,
+  });
+  if (!data.data) return null;
+  const normalized = data.data.replace(/-/g, "+").replace(/_/g, "/");
+  return { data: Buffer.from(normalized, "base64") };
+}
 
 function encodeSubject(subject: string): string {
   // Keep ASCII subjects plain; encode UTF-8 with RFC 2047 when needed
