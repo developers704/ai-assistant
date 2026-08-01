@@ -4,6 +4,10 @@ import type { GoogleOAuth2Client } from "./client";
 import { getAuthenticatedClient } from "./client";
 import type { Email } from "@/types";
 import { htmlToPlainText, toEmailPreview, toPlainText } from "@/lib/email-html";
+import {
+  isLikelyAutomatedMail,
+  withInboxBucket,
+} from "@/lib/email-buckets";
 
 function decodeBase64Url(data: string): string {
   const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
@@ -23,23 +27,18 @@ interface MimePart {
   parts?: MimePart[];
 }
 
-/** Walk multipart MIME and collect text/plain + text/html separately. */
 function extractEmailParts(payload: MimePart | undefined): { plain: string; html: string } {
   const plainParts: string[] = [];
   const htmlParts: string[] = [];
 
   function walk(part: MimePart | undefined) {
     if (!part) return;
-
     const mime = (part.mimeType ?? "").toLowerCase();
-
     if (part.body?.data) {
       const decoded = decodeBase64Url(part.body.data);
-      if (mime.includes("text/plain")) {
-        plainParts.push(decoded);
-      } else if (mime.includes("text/html")) {
-        htmlParts.push(decoded);
-      } else if (!mime.startsWith("multipart/") && decoded.trim()) {
+      if (mime.includes("text/plain")) plainParts.push(decoded);
+      else if (mime.includes("text/html")) htmlParts.push(decoded);
+      else if (!mime.startsWith("multipart/") && decoded.trim()) {
         if (decoded.trim().startsWith("<") || /<html[\s>]/i.test(decoded)) {
           htmlParts.push(decoded);
         } else {
@@ -47,16 +46,13 @@ function extractEmailParts(payload: MimePart | undefined): { plain: string; html
         }
       }
     }
-
     part.parts?.forEach(walk);
   }
 
   walk(payload);
-
   const html = htmlParts.join("\n").trim();
   let plain = plainParts.join("\n\n").trim();
   if (!plain && html) plain = htmlToPlainText(html);
-
   return { plain, html };
 }
 
@@ -69,20 +65,9 @@ function parseFrom(from: string): { name: string; email: string } {
 }
 
 function mapCategory(labelIds: string[] = []): Email["category"] {
-  if (labelIds.includes("IMPORTANT") || labelIds.includes("STARRED")) return "important";
   if (labelIds.includes("CATEGORY_PROMOTIONS")) return "promotional";
+  if (labelIds.includes("IMPORTANT") || labelIds.includes("STARRED")) return "important";
   return "normal";
-}
-
-/** Skip auto-generated mail for "needs reply" (orders, login alerts, newsletters). */
-function isLikelyAutomated(from: string, subject: string): boolean {
-  const text = `${from} ${subject}`.toLowerCase();
-  return (
-    /noreply|no-reply|donotreply|mailer-daemon|notification@|notifications@/.test(text) ||
-    /order has been received|login details|password reset|verify your email|your receipt|unsubscribe|newsletter|wordpress/.test(
-      text
-    )
-  );
 }
 
 function parseGmailMessage(msg: gmail_v1.Schema$Message): Email | null {
@@ -91,6 +76,7 @@ function parseGmailMessage(msg: gmail_v1.Schema$Message): Email | null {
   const labelIds = msg.labelIds ?? [];
   const headers = msg.payload?.headers;
   const fromRaw = getHeader(headers, "From");
+  const toRaw = getHeader(headers, "To");
   const { name, email } = parseFrom(fromRaw);
   const subject = getHeader(headers, "Subject") || "(No subject)";
   const { plain, html } = extractEmailParts(msg.payload as MimePart | undefined);
@@ -101,24 +87,24 @@ function parseGmailMessage(msg: gmail_v1.Schema$Message): Email | null {
     ? new Date(Number(msg.internalDate)).toISOString()
     : new Date().toISOString();
   const isRead = !labelIds.includes("UNREAD");
-  const isImportant = labelIds.includes("IMPORTANT") || labelIds.includes("STARRED");
+  const isStarred = labelIds.includes("STARRED");
+  const isImportant = labelIds.includes("IMPORTANT") || isStarred;
   const category = mapCategory(labelIds);
+  const automated = isLikelyAutomatedMail(fromRaw, subject);
+  const asksSomething = /\?|\b(please|can you|could you|let me know)\b/i.test(
+    `${subject} ${preview} ${body}`
+  );
   const needsReply =
-    !isRead &&
+    !automated &&
     category !== "promotional" &&
-    !isLikelyAutomated(fromRaw, subject) &&
-    (isImportant || category === "important");
+    ((!isRead && (isImportant || asksSomething)) || asksSomething);
 
-  const rfcMessageId = getHeader(headers, "Message-ID") || getHeader(headers, "Message-Id") || undefined;
-  const inReplyTo = getHeader(headers, "In-Reply-To") || undefined;
-  const references = getHeader(headers, "References") || undefined;
-  const threadId = msg.threadId || msg.id;
-
-  return {
+  return withInboxBucket({
     id: msg.id,
-    threadId,
+    threadId: msg.threadId || msg.id,
     from: name,
     fromEmail: email,
+    to: toRaw || undefined,
     subject,
     preview,
     body: body || msg.snippet || "",
@@ -126,16 +112,17 @@ function parseGmailMessage(msg: gmail_v1.Schema$Message): Email | null {
     receivedAt,
     isImportant,
     isRead,
+    isStarred,
     needsReply,
     category,
-    rfcMessageId,
-    inReplyTo,
-    references,
+    rfcMessageId:
+      getHeader(headers, "Message-ID") || getHeader(headers, "Message-Id") || undefined,
+    inReplyTo: getHeader(headers, "In-Reply-To") || undefined,
+    references: getHeader(headers, "References") || undefined,
     messageCount: 1,
-  };
+  });
 }
 
-/** Collapse messages in one thread into a single inbox row (latest on top). */
 export function collapseThread(messages: Email[]): Email | null {
   if (messages.length === 0) return null;
   const ordered = [...messages].sort(
@@ -144,6 +131,7 @@ export function collapseThread(messages: Email[]): Email | null {
   const latest = ordered[ordered.length - 1];
   const anyUnread = ordered.some((m) => !m.isRead);
   const anyImportant = ordered.some((m) => m.isImportant);
+  const anyStarred = ordered.some((m) => m.isStarred);
   const anyNeedsReply = ordered.some((m) => m.needsReply);
   const worstCategory = ordered.some((m) => m.category === "urgent")
     ? "urgent"
@@ -154,23 +142,23 @@ export function collapseThread(messages: Email[]): Email | null {
         ? "promotional"
         : latest.category;
 
-  // Strip nested threadMessages on children to avoid huge payloads
   const threadMessages = ordered.map(({ threadMessages: _t, ...rest }) => ({
     ...rest,
     messageCount: 1,
   }));
 
-  return {
+  return withInboxBucket({
     ...latest,
     isRead: !anyUnread,
     isImportant: anyImportant || latest.isImportant,
+    isStarred: anyStarred || !!latest.isStarred,
     needsReply: anyNeedsReply,
     category: worstCategory as Email["category"],
     threadId: latest.threadId || latest.id,
     threadMessages,
     messageCount: ordered.length,
     preview: latest.preview,
-  };
+  });
 }
 
 export interface GmailInboxPage {
@@ -178,18 +166,36 @@ export interface GmailInboxPage {
   nextPageToken?: string;
 }
 
+export type GmailListQuery = "inbox" | "starred" | "sent";
+
+function queryForFolder(folder: GmailListQuery): string {
+  switch (folder) {
+    case "starred":
+      return "is:starred";
+    case "sent":
+      return "in:sent";
+    default:
+      return "in:inbox";
+  }
+}
+
 export async function fetchGmailInbox(
   client: GoogleOAuth2Client,
-  options: { maxResults?: number; pageToken?: string } = {}
+  options: {
+    maxResults?: number;
+    pageToken?: string;
+    folder?: GmailListQuery;
+  } = {}
 ): Promise<GmailInboxPage> {
   const maxResults = options.maxResults ?? 25;
   const gmail = google.gmail({ version: "v1", auth: client });
+  const folder = options.folder ?? "inbox";
 
   const list = await gmail.users.threads.list({
     userId: "me",
     maxResults,
     pageToken: options.pageToken,
-    q: "in:inbox",
+    q: queryForFolder(folder),
   });
 
   const threadRefs = list.data.threads ?? [];
@@ -210,14 +216,12 @@ export async function fetchGmailInbox(
   );
 
   const emails: Email[] = [];
-
   for (const thread of threads) {
     if (!thread?.id || !thread.messages?.length) continue;
     const messages = thread.messages
       .map((msg) => parseGmailMessage(msg))
       .filter((e): e is Email => e != null)
       .map((e) => ({ ...e, threadId: thread.id! }));
-
     const collapsed = collapseThread(messages);
     if (collapsed) emails.push(collapsed);
   }
@@ -225,7 +229,6 @@ export async function fetchGmailInbox(
   return { emails, nextPageToken: list.data.nextPageToken ?? undefined };
 }
 
-/** Fetch one thread by id (full conversation). */
 export async function fetchGmailThread(
   client: GoogleOAuth2Client,
   threadId: string
@@ -244,6 +247,88 @@ export async function fetchGmailThread(
   return collapseThread(messages);
 }
 
+export type GmailThreadAction =
+  | "star"
+  | "unstar"
+  | "archive"
+  | "trash"
+  | "mark_read"
+  | "mark_unread";
+
+export async function modifyGmailThread(
+  client: GoogleOAuth2Client,
+  threadId: string,
+  action: GmailThreadAction
+): Promise<{ ok: boolean; error?: string }> {
+  const gmail = google.gmail({ version: "v1", auth: client });
+  const add: string[] = [];
+  const remove: string[] = [];
+
+  switch (action) {
+    case "star":
+      add.push("STARRED");
+      break;
+    case "unstar":
+      remove.push("STARRED");
+      break;
+    case "archive":
+      remove.push("INBOX");
+      break;
+    case "trash":
+      add.push("TRASH");
+      remove.push("INBOX");
+      break;
+    case "mark_read":
+      remove.push("UNREAD");
+      break;
+    case "mark_unread":
+      add.push("UNREAD");
+      break;
+  }
+
+  try {
+    await gmail.users.threads.modify({
+      userId: "me",
+      id: threadId,
+      requestBody: {
+        addLabelIds: add.length ? add : undefined,
+        removeLabelIds: remove.length ? remove : undefined,
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("Gmail modify failed:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to update thread",
+    };
+  }
+}
+
+export async function fetchRecentSentSnippets(
+  client: GoogleOAuth2Client,
+  max = 12
+): Promise<string[]> {
+  const gmail = google.gmail({ version: "v1", auth: client });
+  const list = await gmail.users.messages.list({
+    userId: "me",
+    q: "in:sent",
+    maxResults: max,
+  });
+  const ids = (list.data.messages ?? []).map((m) => m.id).filter(Boolean) as string[];
+  const snippets: string[] = [];
+  for (const id of ids) {
+    const { data } = await gmail.users.messages.get({
+      userId: "me",
+      id,
+      format: "full",
+    });
+    const parsed = parseGmailMessage(data);
+    if (parsed?.body?.trim()) snippets.push(parsed.body.trim().slice(0, 900));
+  }
+  return snippets;
+}
+
 function encodeRawMessage(raw: string): string {
   return Buffer.from(raw)
     .toString("base64")
@@ -257,9 +342,7 @@ export async function sendGmailMessage(params: {
   subject: string;
   body: string;
   threadId?: string;
-  /** RFC Message-ID of the message being replied to. */
   inReplyTo?: string;
-  /** Existing References chain (optional). */
   references?: string;
 }): Promise<{ ok: boolean; error?: string; messageId?: string }> {
   const client = await getAuthenticatedClient();
@@ -286,7 +369,6 @@ export async function sendGmailMessage(params: {
     }
 
     const raw = [...headers, "", params.body].join("\r\n");
-
     const { data } = await gmail.users.messages.send({
       userId: "me",
       requestBody: {

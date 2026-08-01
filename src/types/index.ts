@@ -71,12 +71,16 @@ export interface CalendarEvent {
   reminders?: number[];
 }
 
+export type InboxBucket = "to_respond" | "fyi" | "marketing";
+
 export interface Email {
   id: string;
   /** Gmail thread id (demo threads use a stable string). */
   threadId: string;
   from: string;
   fromEmail: string;
+  /** Optional To: header for reply-all. */
+  to?: string;
   subject: string;
   preview: string;
   body: string;
@@ -87,6 +91,10 @@ export interface Email {
   isRead: boolean;
   needsReply: boolean;
   category: "urgent" | "important" | "normal" | "promotional";
+  /** Fyxer-style triage (no meeting bucket). */
+  inboxBucket?: InboxBucket;
+  /** Gmail STARRED. */
+  isStarred?: boolean;
   /** RFC 2822 Message-ID of this message (for In-Reply-To). */
   rfcMessageId?: string;
   /** RFC In-Reply-To header value. */
