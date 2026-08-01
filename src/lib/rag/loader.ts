@@ -75,11 +75,27 @@ export function isRagAvailable(): boolean {
 }
 
 export function getRagStats() {
-  const chunks = loadAllRagChunks();
+  // Fast path for /api/state — never parse the full knowledge corpus on bootstrap.
+  if (!isRagAvailable()) {
+    return {
+      available: false,
+      totalChunks: 0,
+      totalFaqs: 0,
+      sourceDir: KNOWLEDGE_DIR,
+    };
+  }
+  if (cachedChunks) {
+    return {
+      available: true,
+      totalChunks: cachedChunks.filter((c) => c.source === "chunk").length,
+      totalFaqs: cachedChunks.filter((c) => c.source === "faq").length,
+      sourceDir: KNOWLEDGE_DIR,
+    };
+  }
   return {
-    available: isRagAvailable(),
-    totalChunks: chunks.filter((c) => c.source === "chunk").length,
-    totalFaqs: chunks.filter((c) => c.source === "faq").length,
+    available: true,
+    totalChunks: 0,
+    totalFaqs: 0,
     sourceDir: KNOWLEDGE_DIR,
   };
 }

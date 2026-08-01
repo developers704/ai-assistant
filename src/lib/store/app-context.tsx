@@ -60,14 +60,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const hadState = stateRef.current !== null;
     if (!hadState) setLoading(true);
 
+    // Always prefer quick — never block the shell on a full Google sync
     const quickLoaded = await fetchState(true);
     if (!hadState) setLoading(false);
 
     if (!quickLoaded && !hadState) {
-      await fetchState(false);
+      // Network blip on first paint — one more quick try, then show retry UI
+      await fetchState(true);
+      setLoading(false);
       return;
     }
 
+    // Background enrich (cache / Gmail) — does not gate the UI
     void fetchState(false);
   }, [fetchState]);
 

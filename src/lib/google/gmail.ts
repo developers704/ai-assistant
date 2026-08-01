@@ -305,17 +305,24 @@ export async function fetchGmailInbox(
     return { emails: [], nextPageToken: list.data.nextPageToken ?? undefined };
   }
 
-  const threads = await Promise.all(
-    threadRefs.map(async (item) => {
-      if (!item.id) return null;
-      const { data: thread } = await gmail.users.threads.get({
-        userId: "me",
-        id: item.id,
-        format: "full",
-      });
-      return thread;
-    })
-  );
+  // Cap parallel Gmail thread fetches — unbounded Promise.all was starving the VPS
+  const CONCURRENCY = 4;
+  const threads: (gmail_v1.Schema$Thread | null)[] = [];
+  for (let i = 0; i < threadRefs.length; i += CONCURRENCY) {
+    const batch = threadRefs.slice(i, i + CONCURRENCY);
+    const part = await Promise.all(
+      batch.map(async (item) => {
+        if (!item.id) return null;
+        const { data: thread } = await gmail.users.threads.get({
+          userId: "me",
+          id: item.id,
+          format: "full",
+        });
+        return thread;
+      })
+    );
+    threads.push(...part);
+  }
 
   const emails: Email[] = [];
   for (const thread of threads) {

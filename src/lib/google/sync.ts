@@ -12,13 +12,18 @@ import {
   setGoogleCache,
   applyGoogleCacheToState,
   invalidateGoogleCache,
+  isGoogleCacheStale,
 } from "./cache";
 import { isLLMChatConfigured } from "@/lib/ai/llm-chat";
 import { getRagStats } from "@/lib/rag";
 import { isNewsApiConfigured } from "@/lib/news";
 import { withTimeout } from "@/lib/async-utils";
 
-const GOOGLE_SYNC_TIMEOUT_MS = 18000;
+const GOOGLE_SYNC_TIMEOUT_MS = 12000;
+/** Keep state sync light — Email page loads its own fuller inbox. */
+const STATE_GMAIL_MAX = 12;
+
+let backgroundRefresh: Promise<void> | null = null;
 
 export { applyGoogleCacheToState, invalidateGoogleCache, getIntegrationsMeta };
 
@@ -44,6 +49,41 @@ function getIntegrationsMeta(): AppIntegrations {
   };
 }
 
+async function refreshGoogleInBackground(timezone: string) {
+  if (backgroundRefresh) return backgroundRefresh;
+  backgroundRefresh = (async () => {
+    try {
+      const client = await getAuthenticatedClient();
+      if (!client) return;
+      const [inbox, events, contacts] = await Promise.all([
+        fetchGmailInbox(client, { maxResults: STATE_GMAIL_MAX }),
+        fetchGoogleCalendarEvents(client, timezone),
+        fetchGoogleContacts(client),
+      ]);
+      const sortedEmails = sortEmails(inbox.emails);
+      const filteredEvents = filterCalendarEvents(events);
+      setGoogleCache({
+        emails: sortedEmails,
+        events: filteredEvents,
+        contacts,
+        integration: {
+          connected: true,
+          email: getGoogleTokens()?.email,
+          contactsSynced: contacts.length,
+          gmailNextPageToken: inbox.nextPageToken,
+          gmailHasMore: !!inbox.nextPageToken,
+        },
+        gmailNextPageToken: inbox.nextPageToken,
+      });
+    } catch (err) {
+      console.warn("[google-sync] background refresh failed:", err);
+    } finally {
+      backgroundRefresh = null;
+    }
+  })();
+  return backgroundRefresh;
+}
+
 export async function getEnrichedState(options?: {
   force?: boolean;
   quick?: boolean;
@@ -56,26 +96,31 @@ export async function getEnrichedState(options?: {
     email: getGoogleTokens()?.email,
   };
 
+  if (!integration.connected) {
+    return { ...base, integrations };
+  }
+
+  // Prefer cache (fresh or stale) so login / open never waits on Gmail
+  const cached = getGoogleCache({ allowStale: true });
+  if (cached && !options?.force) {
+    if (isGoogleCacheStale()) {
+      void refreshGoogleInBackground(base.user?.timezone || "Asia/Karachi");
+    }
+    return {
+      ...base,
+      emails: cached.emails,
+      events: filterCalendarEvents(cached.events),
+      contacts: cached.contacts,
+      integrations: {
+        ...integrations,
+        google: cached.integration,
+      },
+    };
+  }
+
   if (options?.quick) {
-    if (!integration.connected) {
-      return { ...base, integrations };
-    }
-
-    const cached = getGoogleCache();
-    if (cached) {
-      return {
-        ...base,
-        emails: cached.emails,
-        events: filterCalendarEvents(cached.events),
-        contacts: cached.contacts,
-        integrations: {
-          ...integrations,
-          google: cached.integration,
-        },
-      };
-    }
-
-    // Google connected but cache cold — do not leak demo mock data into live views
+    // Cold cache — return empty shell immediately; kick off refresh
+    void refreshGoogleInBackground(base.user?.timezone || "Asia/Karachi");
     return {
       ...base,
       events: [],
@@ -85,26 +130,7 @@ export async function getEnrichedState(options?: {
     };
   }
 
-  if (!integration.connected) {
-    return { ...base, integrations };
-  }
-
-  if (!options?.force) {
-    const cached = getGoogleCache();
-    if (cached) {
-      return {
-        ...base,
-        emails: cached.emails,
-        events: filterCalendarEvents(cached.events),
-        contacts: cached.contacts,
-        integrations: {
-          ...integrations,
-          google: cached.integration,
-        },
-      };
-    }
-  }
-
+  // Full request with no cache — bounded sync (smaller inbox than before)
   try {
     const client = await getAuthenticatedClient();
     if (!client) {
@@ -112,21 +138,28 @@ export async function getEnrichedState(options?: {
         ...base,
         integrations: {
           ...integrations,
-          google: { ...integrations.google, syncError: "Session expired — reconnect Google" },
+          google: {
+            ...integrations.google,
+            syncError: "Session expired — reconnect Google",
+          },
         },
       };
     }
 
     const syncGoogle = async () => {
       const [inbox, events, contacts] = await Promise.all([
-        fetchGmailInbox(client, { maxResults: 40 }),
+        fetchGmailInbox(client, { maxResults: STATE_GMAIL_MAX }),
         fetchGoogleCalendarEvents(client, base.user?.timezone || "Asia/Karachi"),
         fetchGoogleContacts(client),
       ]);
       return { inbox, events, contacts };
     };
 
-    const googleResult = await withTimeout(syncGoogle(), GOOGLE_SYNC_TIMEOUT_MS, "Google sync");
+    const googleResult = await withTimeout(
+      syncGoogle(),
+      GOOGLE_SYNC_TIMEOUT_MS,
+      "Google sync"
+    );
 
     const sortedEmails = sortEmails(googleResult.inbox.emails);
     const filteredEvents = filterCalendarEvents(googleResult.events);

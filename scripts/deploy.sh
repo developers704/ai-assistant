@@ -44,12 +44,16 @@ sleep 1
 pm2 start npm --name lindy-ai --cwd "$REPO_DIR" -- start -- -H 0.0.0.0 -p 3001
 pm2 save
 
-# Rebuild sales cache so exclusion-rule bumps apply on VPS (stale .data versions otherwise stick).
-echo "Refreshing sales intelligence cache..."
-curl -sS -X POST http://127.0.0.1:3001/api/sales/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"force":true,"clearMemory":true}' \
-  || echo "WARN: sales refresh curl failed (app may still lazy-rebuild on next /api/sales)."
+# Sales rebuild is heavy — do it in the background so login/open stay responsive after deploy.
+echo "Scheduling background sales cache refresh (45s delay)..."
+(
+  sleep 45
+  curl -sS -m 300 -X POST http://127.0.0.1:3001/api/sales/refresh \
+    -H "Content-Type: application/json" \
+    -d '{"force":true,"clearMemory":true}' \
+    || echo "WARN: sales refresh curl failed (app may still lazy-rebuild on next /api/sales)."
+) >/tmp/lindy-sales-refresh.log 2>&1 &
 
 echo "Deploy finished at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 echo "Commit on disk: $(git rev-parse --short HEAD)"
+echo "Note: sales cache refresh runs in background — first login should stay fast."
