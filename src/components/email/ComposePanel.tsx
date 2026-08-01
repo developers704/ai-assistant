@@ -118,15 +118,16 @@ export function ComposePanel({
     !!value.to.trim() && (!!value.body.trim() || attachments.length > 0);
 
   useEffect(() => {
-    if (open) {
-      setExpanded(true);
-      setAttachError(null);
-      setShowToEdit(value.mode === "compose" || value.mode === "forward");
-      if (value.cc?.trim() || value.bcc?.trim()) setShowCcBcc(true);
-      const t = setTimeout(() => taRef.current?.focus(), 80);
-      return () => clearTimeout(t);
-    }
-  }, [open, value.threadId, value.mode, value.cc, value.bcc]);
+    if (!open) return;
+    setExpanded(true);
+    setAttachError(null);
+    setShowToEdit(value.mode === "compose" || value.mode === "forward");
+    if (value.cc?.trim() || value.bcc?.trim()) setShowCcBcc(true);
+    // Only steal focus when opening / switching thread — not on every Cc/Bcc keystroke
+    const t = setTimeout(() => taRef.current?.focus(), 80);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: don't re-focus on cc/bcc edits
+  }, [open, value.threadId, value.mode]);
 
   const addFiles = async (files: FileList | null) => {
     if (!files?.length) return;
