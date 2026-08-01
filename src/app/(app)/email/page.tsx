@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { Button } from "@/components/ui/Button";
-import { formatRelativeTime, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { sortEmails } from "@/lib/email-utils";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
 import type { Email } from "@/types";
@@ -248,6 +248,7 @@ export default function EmailPage() {
     listEmails.find((e) => e.id === selectedId || e.threadId === selectedId) ??
     null;
 
+  const mobileReading = !!selectedId;
   const showTriage = nav === "inbox" || isBucket(nav);
   const showFilterTabs = nav === "inbox" || isBucket(nav);
 
