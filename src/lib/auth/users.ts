@@ -105,6 +105,15 @@ const USERS: AuthUserRecord[] = [
     storeCodes: [...ROZINA_STORES],
     title: "District Manager",
   },
+  {
+    username: "ross",
+    name: "Ross Valliani",
+    passwordHash:
+      "$2b$10$T8O/8kBzGyqCdcJszmf9jO6p6HvRCum.yQ.ekReIaU9fFcu8YSqgK", // Ross-Valliani
+    role: "admin",
+    storeCodes: [],
+    title: "Team",
+  },
 ];
 
 function parseEnvUsers(): AuthUserRecord[] | null {

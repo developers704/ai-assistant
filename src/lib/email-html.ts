@@ -103,6 +103,15 @@ export function sanitizeEmailHtmlForPreview(html: string): string {
     .replace(/<img\b[^>]*src=["']cid:[^"']*["'][^>]*>/gi, "")
     .replace(/<img\b[^>]*src=["']#["'][^>]*>/gi, "")
     .replace(/(<br\s*\/?>\s*){3,}/gi, "<br/><br/>")
-    .replace(/(<p[^>]*>\s*(&nbsp;|\s|<br\s*\/?>)*<\/p>\s*){2,}/gi, "<p><br/></p>");
+    .replace(/(<p[^>]*>\s*(&nbsp;|\s|<br\s*\/?>)*<\/p>\s*){2,}/gi, "<p><br/></p>")
+    // Dark-on-dark: rewrite near-black inline colors so signatures stay readable
+    .replace(
+      /((?:^|[;\s])color\s*:\s*)(#[0-4][0-9a-f]{5}\b|#000\b|#111\b|#222\b|#333\b|black|rgb\(\s*\d{1,2}\s*,\s*\d{1,2}\s*,\s*\d{1,2}\s*\)|rgba\(\s*\d{1,2}\s*,\s*\d{1,2}\s*,\s*\d{1,2}\s*,[^)]+\))/gi,
+      "$1#e8eaef"
+    )
+    .replace(
+      /(<font\b[^>]*\bcolor\s*=\s*["']?)(#[0-4][0-9a-f]{5}|#000|#111|#222|#333|black)(["']?)/gi,
+      "$1#e8eaef$3"
+    );
 }
 

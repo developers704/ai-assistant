@@ -122,6 +122,11 @@ export function EmailBody({ body, bodyHtml, preview, attachments }: EmailBodyPro
     word-wrap: break-word;
     overflow-wrap: anywhere;
   }
+  /* Signatures often ship with color:#000 — force readable text on dark pane */
+  body, body *:not(a):not(a *) {
+    color: #e8eaef !important;
+  }
+  a, a * { color: #8ab4ff !important; }
   img {
     max-width: 100% !important;
     height: auto !important;
@@ -132,10 +137,9 @@ export function EmailBody({ body, bodyHtml, preview, attachments }: EmailBodyPro
   }
   hr {
     border: 0;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid rgba(255,255,255,0.18);
     margin: 14px 0;
   }
-  a { color: #8ab4ff; }
   table { max-width: 100% !important; }
   body > table, body > center > table, body > div > table {
     width: 100% !important;

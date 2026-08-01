@@ -69,6 +69,17 @@ async function readFileAsAttachment(file: File): Promise<ComposeAttachment> {
   };
 }
 
+function parseRecipients(raw: string): string[] {
+  return raw
+    .split(/[,;\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function joinRecipients(list: string[]): string {
+  return list.join(", ");
+}
+
 function modeTitle(mode: ComposeState["mode"]): string {
   if (mode === "compose") return "New message";
   if (mode === "followup") return "Follow-up";
@@ -110,18 +121,17 @@ export function ComposePanel({
   const [showCcBcc, setShowCcBcc] = useState(
     () => !!(value.cc?.trim() || value.bcc?.trim())
   );
-  const [showToEdit, setShowToEdit] = useState(false);
 
   const attachments = value.attachments ?? [];
   const canAiDraft = value.mode === "reply" || value.mode === "followup";
   const canSend =
-    !!value.to.trim() && (!!value.body.trim() || attachments.length > 0);
+    parseRecipients(value.to).length > 0 &&
+    (!!value.body.trim() || attachments.length > 0);
 
   useEffect(() => {
     if (!open) return;
     setExpanded(true);
     setAttachError(null);
-    setShowToEdit(value.mode === "compose" || value.mode === "forward");
     if (value.cc?.trim() || value.bcc?.trim()) setShowCcBcc(true);
     // Only steal focus when opening / switching thread — not on every Cc/Bcc keystroke
     const t = setTimeout(() => taRef.current?.focus(), 80);
@@ -184,11 +194,6 @@ export function ComposePanel({
   );
 
   if (variant === "fullscreen") {
-    const toDisplay =
-      value.to.trim() ||
-      (value.mode === "forward" ? "Add recipient" : "Recipient");
-    const toInitial = (value.to.trim()[0] || "?").toUpperCase();
-
     return (
       <div className="flex flex-col flex-1 min-h-0 h-full bg-[#121018] safe-area-bottom">
         {/* Gmail mobile compose top bar */}
@@ -235,77 +240,60 @@ export function ComposePanel({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {/* Headers — Gmail style rows */}
           <div className="px-4 pt-2 space-y-0 border-b border-white/[0.06]">
             <div className="flex items-center gap-3 py-2.5 border-b border-white/[0.05]">
               <span className="text-[13px] text-white/40 w-12 shrink-0">From</span>
               <span className="text-[14px] text-white/75 truncate">me</span>
             </div>
 
-            <div className="flex items-center gap-2 py-2 border-b border-white/[0.05]">
-              <ReplyCorner mode={value.mode} />
-              <button
-                type="button"
-                onClick={() => setShowToEdit((v) => !v)}
-                className="flex-1 min-w-0 flex items-center gap-2 text-left"
-              >
-                {!showToEdit && value.to.trim() && value.mode !== "compose" ? (
-                  <span className="inline-flex items-center gap-2 max-w-full rounded-full bg-white/[0.08] pl-1 pr-2.5 py-1 ring-1 ring-white/[0.1]">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#2d5a45] text-[11px] font-semibold text-emerald-100">
-                      {toInitial}
-                    </span>
-                    <span className="text-[13px] text-white/85 truncate max-w-[12rem]">
-                      {toDisplay.split(/[,<]/)[0].trim().replace(/"/g, "") ||
-                        toDisplay}
-                    </span>
-                  </span>
-                ) : (
-                  <span className="text-[14px] text-white/35 truncate">
-                    {value.mode === "forward" ? "To" : "Recipient"}
-                  </span>
-                )}
-              </button>
+            <div className="flex items-start gap-2 py-2 border-b border-white/[0.05]">
+              <div className="flex items-center gap-1.5 pt-1.5 shrink-0">
+                <ReplyCorner mode={value.mode} />
+                <span className="text-[13px] text-white/40 w-8">To</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <RecipientChips
+                  value={value.to}
+                  onChange={(to) => onChange({ ...value, to })}
+                  placeholder="Add recipient"
+                  bare
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => setShowCcBcc((v) => !v)}
-                className="p-1.5 rounded-full text-white/40 hover:bg-white/10"
-                aria-label="More recipients"
+                className="p-1.5 rounded-full text-white/40 hover:bg-white/10 shrink-0 mt-0.5"
+                aria-label="Cc / Bcc"
+                title="Cc / Bcc"
               >
                 <ChevronDown size={18} />
               </button>
             </div>
 
-            {(showToEdit || value.mode === "compose" || value.mode === "forward") && (
-              <label className="flex items-center gap-3 py-2 border-b border-white/[0.05]">
-                <span className="text-[13px] text-white/40 w-12 shrink-0">To</span>
-                <input
-                  value={value.to}
-                  onChange={(e) => onChange({ ...value, to: e.target.value })}
-                  placeholder="recipient@email.com"
-                  className="flex-1 min-w-0 bg-transparent text-[14px] text-white/90 placeholder:text-white/25 focus:outline-none"
-                  autoComplete="email"
-                />
-              </label>
-            )}
-
             {showCcBcc && (
               <>
-                <label className="flex items-center gap-3 py-2 border-b border-white/[0.05]">
-                  <span className="text-[13px] text-white/40 w-12 shrink-0">Cc</span>
-                  <input
+                <div className="flex items-start gap-3 py-2 border-b border-white/[0.05]">
+                  <span className="text-[13px] text-white/40 w-12 shrink-0 pt-1.5">
+                    Cc
+                  </span>
+                  <RecipientChips
                     value={value.cc ?? ""}
-                    onChange={(e) => onChange({ ...value, cc: e.target.value })}
-                    className="flex-1 min-w-0 bg-transparent text-[14px] text-white/90 focus:outline-none"
+                    onChange={(cc) => onChange({ ...value, cc })}
+                    placeholder="Add Cc"
+                    bare
                   />
-                </label>
-                <label className="flex items-center gap-3 py-2 border-b border-white/[0.05]">
-                  <span className="text-[13px] text-white/40 w-12 shrink-0">Bcc</span>
-                  <input
+                </div>
+                <div className="flex items-start gap-3 py-2 border-b border-white/[0.05]">
+                  <span className="text-[13px] text-white/40 w-12 shrink-0 pt-1.5">
+                    Bcc
+                  </span>
+                  <RecipientChips
                     value={value.bcc ?? ""}
-                    onChange={(e) => onChange({ ...value, bcc: e.target.value })}
-                    className="flex-1 min-w-0 bg-transparent text-[14px] text-white/90 focus:outline-none"
+                    onChange={(bcc) => onChange({ ...value, bcc })}
+                    placeholder="Add Bcc"
+                    bare
                   />
-                </label>
+                </div>
               </>
             )}
 
@@ -378,7 +366,6 @@ export function ComposePanel({
               <p className="mt-2 text-xs text-rose-300">{error || attachError}</p>
             )}
 
-            {/* AI draft actions — always visible for reply */}
             {canAiDraft && (
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
@@ -459,19 +446,20 @@ export function ComposePanel({
 
       {expanded && (
         <div className="px-3 sm:px-4 py-3 space-y-2 max-h-[min(56vh,480px)] overflow-y-auto">
-          <div className="flex items-center gap-2">
+          <div className="flex items-start gap-2">
             <div className="flex-1 min-w-0">
-              <Field
+              <RecipientChips
                 label="To"
                 value={value.to}
                 onChange={(to) => onChange({ ...value, to })}
+                placeholder="name@email.com, then Enter"
               />
             </div>
             {!showCcBcc && (
               <button
                 type="button"
                 onClick={() => setShowCcBcc(true)}
-                className="shrink-0 text-[11px] font-medium text-white/40 hover:text-violet-200 px-1.5 py-1"
+                className="shrink-0 text-[11px] font-medium text-white/40 hover:text-violet-200 px-1.5 py-2 mt-0.5"
               >
                 Cc/Bcc
               </button>
@@ -480,17 +468,17 @@ export function ComposePanel({
 
           {showCcBcc && (
             <>
-              <Field
+              <RecipientChips
                 label="Cc"
                 value={value.cc ?? ""}
                 onChange={(cc) => onChange({ ...value, cc })}
-                placeholder="optional"
+                placeholder="Add Cc · Enter"
               />
-              <Field
+              <RecipientChips
                 label="Bcc"
                 value={value.bcc ?? ""}
                 onChange={(bcc) => onChange({ ...value, bcc })}
-                placeholder="optional"
+                placeholder="Add Bcc · Enter"
               />
             </>
           )}
@@ -658,6 +646,117 @@ function ReplyCorner({ mode }: { mode: ComposeState["mode"] }) {
     <span className="text-white/40 shrink-0 p-0.5" aria-hidden>
       {mode === "forward" ? <Forward size={16} /> : <Reply size={16} />}
     </span>
+  );
+}
+
+function RecipientChips({
+  label,
+  value,
+  onChange,
+  placeholder,
+  bare,
+}: {
+  label?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  /** No outer ring — for fullscreen rows */
+  bare?: boolean;
+}) {
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const chips = parseRecipients(value);
+
+  const commit = (raw: string) => {
+    const parts = parseRecipients(raw);
+    if (!parts.length) return;
+    const next = [...chips];
+    for (const p of parts) {
+      const exists = next.some((c) => c.toLowerCase() === p.toLowerCase());
+      if (!exists) next.push(p);
+    }
+    onChange(joinRecipients(next));
+    setDraft("");
+  };
+
+  const removeAt = (idx: number) => {
+    onChange(joinRecipients(chips.filter((_, i) => i !== idx)));
+  };
+
+  const shell = bare
+    ? "flex flex-wrap items-center gap-1.5 min-w-0 w-full py-0.5"
+    : "flex flex-wrap items-center gap-1.5 rounded-xl bg-black/25 ring-1 ring-white/10 px-3 py-1.5 min-h-[2.5rem]";
+
+  return (
+    <div
+      className={shell}
+      onClick={() => inputRef.current?.focus()}
+      role="group"
+      aria-label={label || "Recipients"}
+    >
+      {label ? (
+        <span className="text-[11px] text-white/40 w-14 shrink-0 font-medium self-center">
+          {label}
+        </span>
+      ) : null}
+      {chips.map((chip, idx) => {
+        const initial = (chip.match(/[a-zA-Z0-9]/)?.[0] || "?").toUpperCase();
+        const short = chip.length > 36 ? `${chip.slice(0, 34)}…` : chip;
+        return (
+          <span
+            key={`${chip}-${idx}`}
+            className="inline-flex items-center gap-1 max-w-full rounded-full bg-white/[0.1] pl-1 pr-1 py-0.5 ring-1 ring-white/[0.12]"
+          >
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2d5a45] text-[10px] font-semibold text-emerald-100 shrink-0">
+              {initial}
+            </span>
+            <span className="text-[12px] text-white/85 truncate max-w-[11rem]" title={chip}>
+              {short}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeAt(idx);
+              }}
+              className="p-0.5 rounded-full text-white/40 hover:text-white/90 hover:bg-white/10"
+              aria-label={`Remove ${chip}`}
+            >
+              <X size={12} />
+            </button>
+          </span>
+        );
+      })}
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === "," || e.key === "Tab") {
+            if (draft.trim()) {
+              e.preventDefault();
+              commit(draft.replace(/,$/, ""));
+            }
+          } else if (e.key === "Backspace" && !draft && chips.length) {
+            removeAt(chips.length - 1);
+          }
+        }}
+        onBlur={() => {
+          if (draft.trim()) commit(draft);
+        }}
+        onPaste={(e) => {
+          const text = e.clipboardData.getData("text");
+          if (/[,;\n]/.test(text)) {
+            e.preventDefault();
+            commit(`${draft} ${text}`);
+          }
+        }}
+        placeholder={chips.length ? "Add another…" : placeholder || "Add recipient"}
+        className="flex-1 min-w-[8rem] bg-transparent text-sm text-white/90 placeholder:text-white/25 focus:outline-none py-1"
+        autoComplete="email"
+        inputMode="email"
+      />
+    </div>
   );
 }
 
