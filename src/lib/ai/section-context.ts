@@ -184,7 +184,7 @@ export function buildSectionContextBlock(ctx: SectionRuntimeContext): string {
 
   if (ctx.sectionId === "email") {
     lines.push(
-      `EMAIL EXPERT MODE: Inbox unread/urgent/needs-reply and drafts. Use get_email_summary and draft_email_reply; never invent senders or subjects.`
+      `EMAIL EXPERT MODE: Inbox unread/urgent/needs-reply and drafts. Use get_email_summary, draft_email_reply (thread reply), compose_email_to (new mail to a name/address); never invent senders or subjects.`
     );
   }
 

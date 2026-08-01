@@ -1,11 +1,39 @@
-import { NextResponse } from "next/server";
-import { buildVoiceEmailDraft } from "@/lib/voice/email-data";
+import { NextRequest, NextResponse } from "next/server";
+import { isComposeEmailToPerson } from "@/lib/ai/email-compose";
+import {
+  buildVoiceComposeEmail,
+  buildVoiceEmailDraft,
+} from "@/lib/voice/email-data";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    const draft = await buildVoiceEmailDraft({ source: "voice" });
+    let userMessage = "";
+    try {
+      const body = await req.json();
+      userMessage = typeof body?.user_message === "string" ? body.user_message : "";
+    } catch {
+      // empty body = legacy reply draft
+    }
+
+    if (userMessage && isComposeEmailToPerson(userMessage)) {
+      const composed = await buildVoiceComposeEmail({
+        userMessage,
+        source: "voice",
+      });
+      return NextResponse.json({
+        script: composed.script,
+        hasDraft: composed.success,
+        compose: composed.compose,
+        navigateTo: composed.success ? "/email" : undefined,
+      });
+    }
+
+    const draft = await buildVoiceEmailDraft({
+      userMessage: userMessage || undefined,
+      source: "voice",
+    });
     return NextResponse.json({
       script: draft.script,
       targetEmail: draft.targetEmail,

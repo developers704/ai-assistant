@@ -1120,6 +1120,28 @@ export async function executeVoiceTool(
 
     case "draft_email_reply": {
       const userMessage = args.user_message ? String(args.user_message) : undefined;
+      // New compose-to-person → don't force a reply to the selected inbox thread
+      if (userMessage) {
+        const { isComposeEmailToPerson } = await import("@/lib/ai/email-compose");
+        if (isComposeEmailToPerson(userMessage)) {
+          const { buildVoiceComposeEmail } = await import("@/lib/voice/email-data");
+          const composed = await buildVoiceComposeEmail({
+            userMessage,
+            source: "voice",
+          });
+          return {
+            output: JSON.stringify({
+              success: composed.success,
+              spokenAnswer: composed.script,
+              compose: composed.compose,
+              needsClarify: composed.needsClarify,
+            }),
+            uiAction: composed.success
+              ? { type: "navigate", path: "/email" }
+              : undefined,
+          };
+        }
+      }
       const draft = await buildVoiceEmailDraft({ userMessage });
       return {
         output: JSON.stringify({
@@ -1129,6 +1151,29 @@ export async function executeVoiceTool(
           draftPreview: draft.draftPreview,
         }),
         uiAction: { type: "navigate", path: draft.targetEmail ? "/chat" : "/email" },
+      };
+    }
+
+    case "compose_email_to": {
+      const { buildVoiceComposeEmail } = await import("@/lib/voice/email-data");
+      const composed = await buildVoiceComposeEmail({
+        userMessage: args.user_message ? String(args.user_message) : undefined,
+        to: args.to ? String(args.to) : undefined,
+        topic: args.topic ? String(args.topic) : undefined,
+        subject: args.subject ? String(args.subject) : undefined,
+        body: args.body ? String(args.body) : undefined,
+        source: "voice",
+      });
+      return {
+        output: JSON.stringify({
+          success: composed.success,
+          spokenAnswer: composed.script,
+          compose: composed.compose,
+          needsClarify: composed.needsClarify,
+        }),
+        uiAction: composed.success
+          ? { type: "navigate", path: "/email" }
+          : undefined,
       };
     }
 

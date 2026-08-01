@@ -378,7 +378,7 @@ export function intentToTool(intent: RoutedIntent): string | null {
     "calendar.delete": "delete_meeting",
     "calendar.delete_all": "delete_all_meetings",
     "email.summary": "get_email_summary",
-    "email.draft": "draft_email_reply",
+    "email.draft": "draft_email_reply", // compose-to-person handled in routed-handler via compose_email_to
     "sales.read": "get_today_sales",
     "sales.top_store": "get_today_sales",
     "sales.query": "query_sales",

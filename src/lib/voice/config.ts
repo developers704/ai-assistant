@@ -44,7 +44,8 @@ TOOL RULES (critical — always follow):
 - Store addresses, phone, hours, listings by state/city → call get_store_directory. Never guess store data.
 - Nearest/closest store questions → call find_nearest_store. Never invent distance; if coordinates missing, say needsGeocoding.
 - Distance between two stores / how far from A to B / distances from one store to all others → call get_store_distance. LIVE CONTEXT also lists all pairwise km — use those or the tool; never invent.
-- Draft email / reply → call draft_email_reply (opens chat with draft ready).
+- Draft a REPLY to inbox mail → call draft_email_reply.
+- NEW email to a person/address ("send email to Umair about…", "email name@x.com that…") → call compose_email_to with user_message. Opens Email compose; never send without confirmation.
 - Tasks / to-do / reminders list → call list_tasks.
 - Add task / remind me → call add_task with title and due_date (YYYY-MM-DD).
 - Remove / delete task → call delete_task with title.

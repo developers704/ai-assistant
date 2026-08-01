@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updatePendingEmailDraft } from "@/lib/actions/confirmation";
+import {
+  clearPendingActions,
+  updatePendingEmailDraft,
+} from "@/lib/actions/confirmation";
 import { applyGoogleCacheToState, getEnrichedState, getIntegrationsMeta } from "@/lib/google/sync";
+
+export async function DELETE() {
+  clearPendingActions();
+  return NextResponse.json({ ok: true });
+}
 
 export async function PATCH(req: NextRequest) {
   const body = await req.json().catch(() => ({}));

@@ -59,15 +59,28 @@ export function mapLegacyResult(toolName: string, legacy: VoiceToolResult): Tool
 }
 
 function attachDraftPending(result: ToolResult): ToolResult {
-  if (result.toolName !== "draft_email_reply" || !result.ok) return result;
+  if (
+    (result.toolName !== "draft_email_reply" &&
+      result.toolName !== "compose_email_to") ||
+    !result.ok
+  ) {
+    return result;
+  }
   const pending = getActivePendingAction();
   if (!pending || pending.type !== "email") return result;
+  const isCompose = pending.payload.openCompose === true || result.toolName === "compose_email_to";
+  const who = String(pending.payload.to_name ?? pending.title);
+  const subject = String(pending.payload.subject ?? "");
   return {
     ...result,
     status: "needs_confirmation",
     pendingAction: pending,
-    textAnswer: `I've drafted a reply to **${pending.payload.to_name ?? pending.title}** about "${String(pending.payload.subject ?? "")}". Review the draft below and tap **Send email** to send.`,
-    spokenAnswer: `I've drafted a reply to ${pending.payload.to_name ?? pending.title}. Review it and tap Send email to confirm.`,
+    textAnswer: isCompose
+      ? `I've drafted an email to **${who}**.\n\n**To:** ${String(pending.payload.to ?? "")}\n**Subject:** ${subject}\n\n---\n${String(pending.payload.body ?? pending.preview ?? "")}\n\n---\n\nReview on Email or tap **Send email** to send.`
+      : `I've drafted a reply to **${who}** about "${subject}". Review the draft below and tap **Send email** to send.`,
+    spokenAnswer: isCompose
+      ? `I've drafted an email to ${who}. Review it and say send when you're ready.`
+      : `I've drafted a reply to ${who}. Review it and tap Send email to confirm.`,
   };
 }
 

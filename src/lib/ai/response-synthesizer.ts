@@ -169,13 +169,14 @@ export function synthesizeToolResponse(input: SynthesizeInput): SynthesizedRespo
     };
   }
 
-  if (toolName === "draft_email_reply") {
+  if (toolName === "draft_email_reply" || toolName === "compose_email_to") {
     return {
       message:
         result.textAnswer ??
         result.spokenAnswer ??
         "Email draft ready — review below and tap **Send email** when ready.",
       pendingOffer: result.pendingAction,
+      navigateTo: toolName === "compose_email_to" ? result.navigateTo ?? "/email" : result.navigateTo,
     };
   }
 

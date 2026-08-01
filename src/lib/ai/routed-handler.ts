@@ -192,19 +192,23 @@ export async function tryRoutedResponse(
     }
   }
 
-  if (
-    routed === "email.draft" &&
-    isComposeEmailToPerson(message) &&
-    !composeEmailHasBody(message) &&
-    !ui?.selectedEmailId
-  ) {
-    const prompt = buildComposeEmailPrompt(message, state);
-    recordNavigationOffer("/email", "compose email");
-    return {
-      intent: "email_draft",
-      message: prompt,
-      speak: true,
-    };
+  if (routed === "email.draft" && isComposeEmailToPerson(message)) {
+    if (!composeEmailHasBody(message) && !ui?.selectedEmailId) {
+      const prompt = buildComposeEmailPrompt(message, state);
+      recordNavigationOffer("/email", "compose email");
+      return {
+        intent: "email_draft",
+        message: prompt,
+        speak: true,
+      };
+    }
+    const result = await executeTool(
+      "compose_email_to",
+      { user_message: message },
+      { source: channel }
+    );
+    validateToolResult(result);
+    return finalizeResponse("compose_email_to", result, message, routed, channel);
   }
 
   if (routed === "calendar.create" && meetingRequestNeedsTime(message)) {

@@ -1,4 +1,5 @@
 export type VoicePrefetchIntent =
+  | "email_compose"
   | "email_draft"
   | "email"
   | "calendar"
@@ -331,6 +332,18 @@ export function detectVoiceIntent(text: string): VoicePrefetchIntent | null {
     )
   ) {
     return "settings";
+  }
+
+  if (
+    /\b(?:send|write|draft|compose)\b[\s\S]{0,40}\b(?:an?\s+)?(?:email|mail)\b[\s\S]{0,20}\bto\b/i.test(
+      lower
+    ) ||
+    /\b(?:email|mail)\s+to\s+\S+/i.test(lower) ||
+    /\b(?:email|mail)\s+[a-zA-Z][a-zA-Z'.-]+(?:\s+[a-zA-Z][a-zA-Z'.-]+)?\s+(?:about|regarding|saying|that)\b/i.test(
+      lower
+    )
+  ) {
+    return "email_compose";
   }
 
   if (

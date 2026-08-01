@@ -87,6 +87,16 @@ export function useRealtimeVoice(enabled: boolean) {
   const applyUiAction = useCallback(
     (action?: VoiceUiAction) => {
       if (action?.type === "navigate" && action.path) {
+        if (action.compose && typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem(
+              "alexa-voice-compose",
+              JSON.stringify(action.compose)
+            );
+          } catch {
+            // ignore quota
+          }
+        }
         router.push(action.path);
       }
     },
@@ -179,21 +189,57 @@ export function useRealtimeVoice(enabled: boolean) {
         });
       };
 
-      if (intent === "email_draft") {
+      if (intent === "email_compose" || intent === "email_draft") {
         try {
-          const res = await fetch("/api/voice/email-draft", { method: "POST" });
+          const toolName =
+            intent === "email_compose" ? "compose_email_to" : "draft_email_reply";
+          const res = await fetch("/api/voice/tools", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: toolName,
+              arguments: { user_message: normalized },
+            }),
+          });
           const data = await res.json();
-          if (data.navigateTo) {
-            applyUiAction({ type: "navigate", path: data.navigateTo });
+          const parsed = JSON.parse(String(data.output ?? "{}")) as {
+            spokenAnswer?: string;
+            script?: string;
+            compose?: {
+              to: string;
+              subject: string;
+              body: string;
+              toName?: string;
+            };
+          };
+          const compose = parsed.compose ?? data.compose;
+          if (data.uiAction?.path || data.navigateTo) {
+            applyUiAction({
+              type: "navigate",
+              path: String(data.uiAction?.path ?? data.navigateTo),
+              compose: compose,
+            });
+          } else if (compose) {
+            applyUiAction({
+              type: "navigate",
+              path: "/email",
+              compose,
+            });
           }
-          const script = String(data.script ?? "");
+          const script = String(
+            parsed.spokenAnswer ?? parsed.script ?? data.script ?? "Done."
+          );
           setAssistantTranscript(script);
           setStatus("thinking");
           disableMic();
           sendEvent(dc, {
             type: "response.create",
             response: {
-              instructions: `The user asked to DRAFT AN EMAIL REPLY.\n\n${STOP_INSTRUCTION}\n\n${script}`,
+              instructions: `The user asked to ${
+                intent === "email_compose"
+                  ? "COMPOSE A NEW EMAIL"
+                  : "DRAFT AN EMAIL REPLY"
+              }.\n\n${STOP_INSTRUCTION}\n\n${script}`,
               max_output_tokens: 280,
             },
           });

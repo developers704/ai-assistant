@@ -31,6 +31,7 @@ export function intentForTool(name: string): IntentType {
     show_detail_page: "general",
     open_data_analyst: "general",
     draft_email_reply: "email_draft",
+    compose_email_to: "email_draft",
     search_company_knowledge: "general",
     get_store_directory: "store_list",
     find_nearest_store: "store_list",

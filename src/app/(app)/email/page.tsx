@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +29,10 @@ import {
   mergeRecipientSuggestions,
   rememberRecipients,
 } from "@/lib/email-recipients";
+import {
+  VOICE_COMPOSE_STORAGE_KEY,
+  type VoiceComposePayload,
+} from "@/lib/ai/email-compose";
 
 const MOBILE_HEIGHT = "h-full max-h-full";
 
@@ -118,7 +122,7 @@ function localDraftToEmail(d: LocalDraft): Email {
 }
 
 export default function EmailPage() {
-  const { state } = useApp();
+  const { state, refresh } = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [nav, setNav] = useState<EmailNavId>("inbox");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -137,6 +141,7 @@ export default function EmailPage() {
   const [threadOverrides, setThreadOverrides] = useState<Record<string, Email>>(
     {}
   );
+  const openedPendingComposeId = useRef<string | null>(null);
 
   const googleConnected = state?.integrations?.google?.connected ?? false;
 
@@ -402,6 +407,54 @@ export default function EmailPage() {
       body: "",
     });
   };
+
+  const openComposeFromPayload = useCallback((payload: VoiceComposePayload) => {
+    setComposeError(null);
+    setCompose({
+      mode: "compose",
+      to: payload.to,
+      cc: "",
+      bcc: "",
+      subject: payload.subject,
+      body: payload.body,
+    });
+  }, []);
+
+  // Voice / chat handoff: sessionStorage compose draft
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(VOICE_COMPOSE_STORAGE_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(VOICE_COMPOSE_STORAGE_KEY);
+      const parsed = JSON.parse(raw) as VoiceComposePayload;
+      if (parsed?.to || parsed?.subject || parsed?.body) {
+        openComposeFromPayload(parsed);
+        void refresh();
+      }
+    } catch {
+      // ignore
+    }
+  }, [openComposeFromPayload, refresh]);
+
+  // Pending email with openCompose (after chat compose_email_to + navigate)
+  useEffect(() => {
+    const pending = state?.pendingActions?.find(
+      (a) => a.type === "email" && a.payload?.openCompose === true
+    );
+    if (!pending || openedPendingComposeId.current === pending.id) return;
+    openedPendingComposeId.current = pending.id;
+    const name = pending.payload.to_name
+      ? String(pending.payload.to_name)
+      : "";
+    const email = String(pending.payload.to ?? "");
+    const to = name && email ? `${name} <${email}>` : email || name;
+    openComposeFromPayload({
+      to,
+      subject: String(pending.payload.subject ?? ""),
+      body: String(pending.payload.body ?? pending.preview ?? ""),
+      toName: name || undefined,
+    });
+  }, [state?.pendingActions, openComposeFromPayload]);
 
   const saveDraftOnClose = async (c: ComposeState) => {
     if (!composeHasContent(c)) {
@@ -722,6 +775,10 @@ export default function EmailPage() {
         ])
       );
       setCompose(null);
+      // Clear voice/chat pending so "send" confirm can't double-send
+      void fetch("/api/pending-action", { method: "DELETE" }).then(() =>
+        refresh()
+      );
 
       // Show the sent message in the thread immediately, then sync from Gmail
       if (tid) {

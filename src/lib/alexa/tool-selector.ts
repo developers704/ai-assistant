@@ -11,7 +11,7 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
     "get_top_vendor_models",
     "apply_sales_dashboard_filters",
   ],
-  email: ["get_email_summary", "draft_email_reply"],
+  email: ["get_email_summary", "draft_email_reply", "compose_email_to"],
   calendar: [
     "get_calendar_today",
     "add_meeting",
@@ -83,6 +83,9 @@ export function pickPrimaryTool(intent: AlexaIntent): string | null {
         return "get_top_vendor_models";
       return "query_sales";
     case "email":
+      if (intent.action === "compose" || intent.entities?.to || intent.entities?.recipient) {
+        return "compose_email_to";
+      }
       return intent.action === "draft" ? "draft_email_reply" : "get_email_summary";
     case "calendar":
       if (intent.action === "create") return "add_meeting";

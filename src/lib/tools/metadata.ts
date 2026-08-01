@@ -897,9 +897,49 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     allowedInChat: true,
     opensPage: "/chat",
     whenToUse: "Draft/reply to email. Safe to draft; never sends.",
-    whenNotToUse: "Sending requires propose_send_email + confirm.",
+    whenNotToUse: "Sending requires propose_send_email + confirm. For a NEW email to a named person, use compose_email_to.",
     examplePhrases: ["draft a reply", "reply politely"],
     parameters: emptyParams,
+  },
+  {
+    name: "compose_email_to",
+    description:
+      "Compose a NEW outbound email to a person or address from a voice/chat request. Resolves name or email, drafts subject and body. Never sends — user must confirm.",
+    category: "email",
+    riskLevel: "safe",
+    requiresConfirmation: false,
+    allowedInVoice: true,
+    allowedInChat: true,
+    opensPage: "/email",
+    whenToUse:
+      "Send/write/email to [name or address] about [topic]. New compose, not a reply to a selected thread.",
+    whenNotToUse:
+      "Replying to an open inbox thread — use draft_email_reply. Sending requires user confirm.",
+    examplePhrases: [
+      "send an email to Umair Jam about the meeting tomorrow at 9 pm",
+      "email ross@valliani.com that I'll be late",
+      "write an email to Ansar about the invoice",
+    ],
+    parameters: {
+      type: "object",
+      properties: {
+        user_message: {
+          type: "string",
+          description: "Full user request with recipient and topic",
+        },
+        to: {
+          type: "string",
+          description: "Recipient name or email if already parsed",
+        },
+        topic: {
+          type: "string",
+          description: "What the email should say / be about",
+        },
+        subject: { type: "string" },
+        body: { type: "string" },
+      },
+      additionalProperties: false,
+    },
   },
   {
     name: "open_data_analyst",

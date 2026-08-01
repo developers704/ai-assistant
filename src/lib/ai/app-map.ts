@@ -137,17 +137,18 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
       "Unread / urgent / needs-reply flags",
       "Draft pending actions",
     ],
-    relatedTools: ["get_email_summary", "draft_email_reply"],
+    relatedTools: ["get_email_summary", "draft_email_reply", "compose_email_to"],
     commonQuestions: [
       "Any urgent emails?",
       "Reply to this",
-      "Send email to Ross",
+      "Send email to Ross about the meeting",
       "Summarize inbox",
     ],
     whenToNavigate: "When user needs to browse threads or read full HTML bodies.",
     whenToClarify:
       "When no email is selected and user says 'reply to this' — ask which thread or offer inbox summary.",
-    whenToUseLiveTool: "Call get_email_summary for counts; draft_email_reply for compose (uses selected thread + full conversation).",
+    whenToUseLiveTool:
+      "Call get_email_summary for counts; draft_email_reply for thread replies; compose_email_to for new mail to a named person/address.",
     exampleResponses: {
       explain:
         "This is your **Email** workspace — threaded inbox with urgent flags and context-aware reply drafting. Select a thread, then say **reply to this**.",

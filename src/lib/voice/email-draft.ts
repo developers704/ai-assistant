@@ -23,6 +23,95 @@ ${signer.name}
 ${signer.role} | ${signer.company}`;
 }
 
+function titleCaseSubject(topic: string): string {
+  const t = topic.replace(/\s+/g, " ").trim();
+  if (!t) return "Quick note";
+  const short = t.length > 72 ? `${t.slice(0, 69).trim()}…` : t;
+  return short.charAt(0).toUpperCase() + short.slice(1);
+}
+
+function buildTemplateComposePair(
+  signer: EmailSigner,
+  toName: string,
+  topic: string
+): { subject: string; body: string } {
+  const first = toName.split(/\s+/)[0] || toName || "there";
+  const subject = titleCaseSubject(topic);
+  const body = `Hi ${first},
+
+I wanted to let you know that ${topic.replace(/^(to\s+)/i, "").trim()}.
+
+Best regards,
+${signer.name}
+${signer.role} | ${signer.company}`;
+  return { subject, body };
+}
+
+/** New outbound email from a spoken/typed topic (not a reply thread). */
+export async function generateComposeEmail(
+  signer: EmailSigner,
+  opts: {
+    to: string;
+    toName?: string;
+    topic: string;
+    styleCard?: string;
+  }
+): Promise<{ subject: string; body: string }> {
+  const topic = opts.topic.replace(/\s+/g, " ").trim();
+  const toName = opts.toName?.trim() || opts.to;
+  const fallback = buildTemplateComposePair(signer, toName, topic || "following up");
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || apiKey.includes("REPLACE") || !topic) {
+    return fallback;
+  }
+
+  const style =
+    opts.styleCard?.trim() ||
+    "Warm, concise, confident. Match a senior jewelry-retail executive voice.";
+
+  try {
+    const client = new OpenAI({ apiKey });
+    const completion = await client.chat.completions.create({
+      model: OPENAI_CHAT_MODEL,
+      ...chatCompletionLimits(OPENAI_CHAT_MODEL, {
+        temperature: 0.4,
+        maxTokens: 500,
+      }),
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You write new outbound emails for ${signer.name}, ${signer.role} at ${signer.company}.
+Return JSON only: {"subject":"...","body":"..."}.
+Plain text body (no markdown). Short subject. Natural sign-off with name (and role/company if it fits).
+Do not invent facts beyond the user's topic. STYLE GUIDE:
+${style}`,
+        },
+        {
+          role: "user",
+          content: `To: ${toName} <${opts.to}>
+Topic / intent from user:
+${topic}
+
+Write a professional email that conveys this.`,
+        },
+      ],
+    });
+
+    const raw = completion.choices[0]?.message?.content?.trim();
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as { subject?: string; body?: string };
+    const subject = parsed.subject?.trim();
+    const body = parsed.body?.trim();
+    if (!subject || !body) return fallback;
+    return { subject, body };
+  } catch (err) {
+    console.warn("Compose email generation failed, using template:", err);
+    return fallback;
+  }
+}
+
 function buildTemplateReply(email: Email, signer: EmailSigner): string {
   const firstName = email.from.split(" ")[0] || email.from;
   return `Hi ${firstName},

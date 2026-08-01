@@ -8,9 +8,18 @@ import { getGoogleCache, setGoogleCache } from "@/lib/google/cache";
 import { sortEmails } from "@/lib/email-utils";
 import { findEmailByContext, parseReplyTargetFromMessage } from "@/lib/email-utils";
 import { withTimeout } from "@/lib/async-utils";
-import { generateSmartEmailReply } from "@/lib/voice/email-draft";
+import {
+  generateComposeEmail,
+  generateSmartEmailReply,
+} from "@/lib/voice/email-draft";
 import { createPendingAction, savePendingAction } from "@/lib/actions/confirmation";
 import type { PendingAction } from "@/types";
+import {
+  composeEmailHasBody,
+  parseComposeTopic,
+  parseEmailRecipient,
+  resolveEmailRecipient,
+} from "@/lib/ai/email-compose";
 
 const EMAIL_FETCH_TIMEOUT_MS = 10000;
 
@@ -252,5 +261,143 @@ export function saveVoiceEmailDraftPending(
 
   savePendingAction(pending);
   return pending;
+}
+
+export type VoiceComposeEmailResult = {
+  script: string;
+  success: boolean;
+  compose?: {
+    to: string;
+    subject: string;
+    body: string;
+    toName?: string;
+  };
+  pendingAction?: PendingAction;
+  needsClarify?: boolean;
+};
+
+/** New email to a named person or address (voice + chat). Never sends. */
+export async function buildVoiceComposeEmail(hints?: {
+  userMessage?: string;
+  to?: string;
+  toName?: string;
+  topic?: string;
+  subject?: string;
+  body?: string;
+  source?: "voice" | "chat";
+}): Promise<VoiceComposeEmailResult> {
+  const state = getState();
+  const source = hints?.source ?? "chat";
+  const message = hints?.userMessage?.trim() || "";
+
+  const recipientQuery =
+    hints?.to?.trim() ||
+    parseEmailRecipient(message) ||
+    "";
+
+  if (!recipientQuery) {
+    return {
+      success: false,
+      needsClarify: true,
+      script:
+        "Who should I email? Say a name or an email address, like send email to Umair Jam about the meeting.",
+    };
+  }
+
+  const { emails } = await getVoiceEmails();
+  const resolved = resolveEmailRecipient(recipientQuery, state, emails);
+
+  if (resolved.status === "ambiguous") {
+    const options = resolved.candidates
+      .map((c) => (c.name ? `${c.name} (${c.email})` : c.email))
+      .join(", ");
+    return {
+      success: false,
+      needsClarify: true,
+      script: `I found more than one match for ${resolved.query}: ${options}. Which email should I use?`,
+    };
+  }
+
+  if (resolved.status === "missing") {
+    return {
+      success: false,
+      needsClarify: true,
+      script: `I couldn't find an email for ${resolved.query}. Say the full email address, like name@company.com.`,
+    };
+  }
+
+  const topic =
+    hints?.topic?.trim() ||
+    hints?.body?.trim() ||
+    parseComposeTopic(message) ||
+    "";
+
+  if (!topic && !hints?.body?.trim()) {
+    if (message && !composeEmailHasBody(message)) {
+      const label = resolved.name || resolved.email;
+      return {
+        success: false,
+        needsClarify: true,
+        script: `I can draft an email to ${label}. What should the message say?`,
+      };
+    }
+  }
+
+  const signer = {
+    name: state.user?.name || "Kash Valliani",
+    role: state.user?.role || "Founder & President",
+    company: state.user?.company || "Valliani Jewelers",
+  };
+
+  let subject = hints?.subject?.trim() || "";
+  let body = hints?.body?.trim() || "";
+
+  if (!body) {
+    const generated = await generateComposeEmail(signer, {
+      to: resolved.email,
+      toName: hints?.toName || resolved.name,
+      topic: topic || "following up",
+    });
+    subject = subject || generated.subject;
+    body = generated.body;
+  } else if (!subject) {
+    subject = topic ? topic.charAt(0).toUpperCase() + topic.slice(1) : "Quick note";
+  }
+
+  const toName = hints?.toName || resolved.name;
+  const displayTo = toName ? `${toName} <${resolved.email}>` : resolved.email;
+
+  const pending = createPendingAction({
+    type: "email",
+    title: `Email to ${toName || resolved.email}`,
+    summary: `New email to ${toName || resolved.email}: "${subject}"`,
+    preview: body,
+    payload: {
+      to: resolved.email,
+      subject,
+      body,
+      to_name: toName || resolved.email,
+      openCompose: true,
+      mode: "compose",
+    },
+    toolName: "send_email_reply",
+    source,
+    riskLevel: "confirmation_required",
+    confirmText: "Send email",
+  });
+  savePendingAction(pending);
+
+  const who = toName || resolved.email;
+  return {
+    success: true,
+    script: `I've drafted an email to ${who} with subject "${subject}". Review it on Email, then say send or tap Send when you're ready.`,
+    compose: {
+      to: displayTo,
+      subject,
+      body,
+      toName: toName,
+    },
+    pendingAction: pending,
+  };
 }
 

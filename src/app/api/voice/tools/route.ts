@@ -31,28 +31,45 @@ export async function POST(req: NextRequest) {
         channel: "voice",
         idempotencyKey: callId ? `voice-call:${callId}` : undefined,
       });
+      const data =
+        typeof result.data === "object" && result.data
+          ? (result.data as Record<string, unknown>)
+          : {};
+      const compose = data.compose;
+      const route = result.uiAction?.route;
       return NextResponse.json({
         output: JSON.stringify({
           success: result.ok,
           spokenAnswer: result.spokenAnswer,
           textAnswer: result.textAnswer,
-          ...(typeof result.data === "object" && result.data ? result.data : {}),
+          ...data,
         }),
-        uiAction: result.uiAction?.route
-          ? { type: "navigate", path: result.uiAction.route }
+        uiAction: route
+          ? {
+              type: "navigate",
+              path: route,
+              ...(compose && typeof compose === "object" ? { compose } : {}),
+            }
           : undefined,
         alexaResult: result,
       });
     }
 
     const result = await executeTool(name, args, { source: "voice" });
+    const compose = result.data?.compose;
     return NextResponse.json({
       output: JSON.stringify({
         success: result.ok,
         spokenAnswer: result.spokenAnswer,
         ...result.data,
       }),
-      uiAction: result.navigateTo ? { type: "navigate", path: result.navigateTo } : undefined,
+      uiAction: result.navigateTo
+        ? {
+            type: "navigate",
+            path: result.navigateTo,
+            ...(compose && typeof compose === "object" ? { compose } : {}),
+          }
+        : undefined,
     });
   } catch (err) {
     console.error("Voice tool error:", err);
