@@ -1,21 +1,55 @@
 import type { Email } from "@/types";
 
 /**
- * True when the body talks about attaching a file but none may be present.
- * Used to block Send (same idea as requiring a subject).
+ * True when the body talks about attaching a *file* (not “attached to someone”).
+ * Used to block Send when no file is attached.
  */
 export function bodyMentionsAttachment(body: string): boolean {
-  const t = body.replace(/\s+/g, " ").trim();
+  let t = body.replace(/\s+/g, " ").trim();
   if (!t) return false;
-  return (
-    /\b(attach(ed|ment|ing)?s?|enclos(ed|ing)|p\.?\s*f\.?\s*a\.?)\b/i.test(t) ||
-    /\b(please\s+find|pls\s+find|see|find)\b.{0,24}\b(attach|enclos|doc|sheet|file|pdf|csv|xlsx|spreadsheet)\b/i.test(
-      t
-    ) ||
-    /\b(doc(ument)?s?|sheet|spreadsheet|pdf|csv|xlsx|file)\b.{0,20}\b(attach|enclos|review|as below|as bellow)\b/i.test(
+
+  // Figurative / relationship: "I am attached to her" — not a file
+  t = t.replace(
+    /\b((?:i\s+)?(?:am|'m)|is|are|was|were|feel(?:ing)?|very|so)\s+attached\s+to\b/gi,
+    " "
+  );
+  t = t.replace(
+    /\battached\s+to\s+(her|him|me|you|them|us|someone|somebody|people)\b/gi,
+    " "
+  );
+
+  if (/\battachments?\b/i.test(t)) return true;
+  if (/\bp\.?\s*f\.?\s*a\.?\b/i.test(t)) return true;
+  if (/\benclos(ed|ing)\b/i.test(t)) return true;
+  if (/\b(please|pls)\s+find\b.{0,28}\b(attach|enclos)/i.test(t)) return true;
+  if (/\b(see|find)\s+(the\s+)?attach(ed|ment)/i.test(t)) return true;
+  if (/\b(i(?:'ve|\s+have)?|we(?:'ve|\s+have)?)\s+attach(ed|ing)\b/i.test(t)) {
+    return true;
+  }
+  if (
+    /\battach(ed|ing)\s+(a|an|the|this|my|our|here|below|above|as)\b/i.test(t)
+  ) {
+    return true;
+  }
+  if (
+    /\battach(ed|ing)\s+(file|doc|document|pdf|sheet|spreadsheet|csv|xlsx|zip|image|photo|report)\b/i.test(
       t
     )
-  );
+  ) {
+    return true;
+  }
+  if (
+    /\b(file|doc(?:ument)?s?|sheet|spreadsheet|pdf|csv|xlsx)\b.{0,28}\b(attach|enclos|as below|as bellow)\b/i.test(
+      t
+    )
+  ) {
+    return true;
+  }
+  if (/\battach\s+(a\s+|the\s+)?(file|doc|document|pdf|sheet)\b/i.test(t)) {
+    return true;
+  }
+
+  return false;
 }
 
 /** Newest threads first (Gmail-style). Used for inbox, sent, drafts, and triage buckets. */
