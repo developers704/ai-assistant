@@ -23,8 +23,7 @@ import {
 } from "@/lib/email-buckets";
 import { Link2, Loader2, Menu, PenSquare, Search, X } from "lucide-react";
 
-const MOBILE_HEIGHT =
-  "max-lg:h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-1.5rem)]";
+const MOBILE_HEIGHT = "h-full max-h-full";
 
 function dedupeEmails(emails: Email[]): Email[] {
   const seen = new Set<string>();
@@ -65,7 +64,8 @@ function composeHasContent(c: ComposeState): boolean {
     c.cc?.trim() ||
     c.bcc?.trim() ||
     c.subject.trim() ||
-    c.body.trim()
+    c.body.trim() ||
+    (c.attachments && c.attachments.length > 0)
   );
 }
 
@@ -384,6 +384,11 @@ export default function EmailPage() {
           draftId: c.draftId,
           inReplyTo: c.inReplyTo,
           references: c.references,
+          attachments: (c.attachments ?? []).map((a) => ({
+            filename: a.name,
+            mimeType: a.mimeType,
+            dataBase64: a.dataBase64,
+          })),
         }),
       });
       const data = await res.json();
@@ -497,6 +502,11 @@ export default function EmailPage() {
           inReplyTo: compose.inReplyTo,
           references: compose.references,
           draftId: compose.draftId,
+          attachments: (compose.attachments ?? []).map((a) => ({
+            filename: a.name,
+            mimeType: a.mimeType,
+            dataBase64: a.dataBase64,
+          })),
         }),
       });
       const data = await res.json();
@@ -619,10 +629,15 @@ export default function EmailPage() {
   if (!state) return null;
 
   return (
-    <div className={cn("flex flex-col flex-1 min-h-0", MOBILE_HEIGHT)}>
-      <div className="glass-panel-strong rounded-none sm:rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10 relative">
-        {/* Top bar — compact on desktop (sidebar already shows Mail title) */}
-        <div className="px-3 sm:px-5 py-2 sm:py-2.5 border-b border-white/10 shrink-0 flex items-center gap-2 safe-area-top">
+    <div className={cn("flex flex-col flex-1 min-h-0 h-0", MOBILE_HEIGHT)}>
+      <div className="glass-panel-strong rounded-none sm:rounded-2xl flex flex-col flex-1 min-h-0 h-0 overflow-hidden ring-1 ring-white/10 relative">
+        {/* Top bar — hide on phone while reading (reading pane has Back) */}
+        <div
+          className={cn(
+            "px-3 sm:px-5 py-2 sm:py-2.5 border-b border-white/10 shrink-0 flex items-center gap-2 safe-area-top",
+            mobileReading && "hidden lg:flex"
+          )}
+        >
           {!mobileReading && (
             <button
               type="button"
@@ -774,7 +789,7 @@ export default function EmailPage() {
           </div>
         )}
 
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0 h-0">
           <EmailSidebar
             active={nav}
             counts={counts}
@@ -790,7 +805,7 @@ export default function EmailPage() {
           {/* List column */}
           <div
             className={cn(
-              "w-full lg:w-[22rem] xl:w-[24rem] shrink-0 flex flex-col min-h-0 border-r border-white/[0.06] bg-[#0c1018]",
+              "w-full lg:w-[22rem] xl:w-[24rem] shrink-0 flex flex-col min-h-0 h-full border-r border-white/[0.06] bg-[#0c1018]",
               mobileReading && "hidden lg:flex"
             )}
           >
@@ -869,20 +884,22 @@ export default function EmailPage() {
           {/* Reading + compose */}
           <section
             className={cn(
-              "flex-1 min-w-0 flex flex-col min-h-0",
+              "flex-1 min-w-0 min-h-0 h-full flex flex-col overflow-hidden",
               !mobileReading && "hidden lg:flex"
             )}
           >
             {selected ? (
               <>
-                <EmailReadingPane
-                  email={selected}
-                  onClose={() => setSelectedId(null)}
-                  onReply={() => void openReply(selected)}
-                  onAction={(a) => void runThreadAction(selected, a)}
-                  busy={actionBusy}
-                  showTriage={showTriage}
-                />
+                <div className="flex-1 min-h-0 h-0 flex flex-col overflow-hidden">
+                  <EmailReadingPane
+                    email={selected}
+                    onClose={() => setSelectedId(null)}
+                    onReply={() => void openReply(selected)}
+                    onAction={(a) => void runThreadAction(selected, a)}
+                    busy={actionBusy}
+                    showTriage={showTriage}
+                  />
+                </div>
                 <ComposePanel
                   open={!!compose}
                   value={

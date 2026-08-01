@@ -6,6 +6,7 @@ import {
   modifyGmailThread,
   saveGmailDraft,
   sendGmailMessage,
+  type GmailAttachment,
   type GmailListQuery,
   type GmailThreadAction,
 } from "@/lib/google/gmail";
@@ -14,6 +15,24 @@ import { sortEmails } from "@/lib/email-utils";
 import { withInboxBucket } from "@/lib/email-buckets";
 
 const FOLDERS = ["inbox", "starred", "sent", "drafts"] as const;
+
+function parseAttachments(raw: unknown): GmailAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  const out: GmailAttachment[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const filename = String(o.filename ?? o.name ?? "").trim();
+    const dataBase64 = String(o.dataBase64 ?? "").replace(/\s+/g, "");
+    if (!filename || !dataBase64) continue;
+    out.push({
+      filename,
+      mimeType: String(o.mimeType ?? "application/octet-stream"),
+      dataBase64,
+    });
+  }
+  return out.slice(0, 8);
+}
 
 export async function GET(req: NextRequest) {
   if (!isGoogleConnected()) {
@@ -72,6 +91,7 @@ export async function POST(req: NextRequest) {
   const action = String(body.action ?? "");
 
   if (action === "save_draft") {
+    const attachments = parseAttachments(body.attachments);
     const result = await saveGmailDraft(client, {
       to: String(body.to ?? ""),
       cc: body.cc ? String(body.cc) : undefined,
@@ -82,6 +102,7 @@ export async function POST(req: NextRequest) {
       draftId: body.draftId ? String(body.draftId) : undefined,
       inReplyTo: body.inReplyTo ? String(body.inReplyTo) : undefined,
       references: body.references ? String(body.references) : undefined,
+      attachments,
     });
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
@@ -105,9 +126,10 @@ export async function POST(req: NextRequest) {
     const to = String(body.to ?? "").trim();
     const subject = String(body.subject ?? "").trim();
     const text = String(body.body ?? "").trim();
-    if (!to || !subject || !text) {
+    const attachments = parseAttachments(body.attachments);
+    if (!to || !subject || (!text && attachments.length === 0)) {
       return NextResponse.json(
-        { error: "to, subject, and body are required" },
+        { error: "to, subject, and body (or attachments) are required" },
         { status: 400 }
       );
     }
@@ -117,10 +139,11 @@ export async function POST(req: NextRequest) {
       cc: body.cc ? String(body.cc) : undefined,
       bcc: body.bcc ? String(body.bcc) : undefined,
       subject,
-      body: text,
+      body: text || " ",
       threadId: body.threadId ? String(body.threadId) : undefined,
       inReplyTo: body.inReplyTo ? String(body.inReplyTo) : undefined,
       references: body.references ? String(body.references) : undefined,
+      attachments,
     });
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });

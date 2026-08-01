@@ -70,7 +70,7 @@ export function EmailThreadList({
   }
 
   return (
-    <div className="overflow-y-auto min-h-0 flex-1">
+    <div className="overflow-y-auto min-h-0 flex-1 h-0 touch-pan-y">
       {emails.map((email) => {
         const active =
           selectedId === email.id || selectedId === email.threadId;

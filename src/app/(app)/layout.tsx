@@ -62,11 +62,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const shell = (
-    <div className="flex min-h-screen relative">
+    <div
+      className={cn(
+        "flex relative",
+        isEmailPage ? "h-dvh max-h-dvh overflow-hidden" : "min-h-screen"
+      )}
+    >
       <UiContextSync />
       <FuturisticBackground />
       {!isVoicePage && <Sidebar />}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {!isVoicePage && <MobileNav />}
         <main
           className={cn(
@@ -77,7 +82,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {isVoicePage ? (
             children
           ) : isEmailPage ? (
-            <div className="flex-1 min-h-0 flex flex-col px-2 sm:px-3 py-2 lg:py-3">
+            <div className="flex-1 min-h-0 h-0 flex flex-col px-0 sm:px-3 py-0 sm:py-2 lg:py-3">
               {children}
             </div>
           ) : (

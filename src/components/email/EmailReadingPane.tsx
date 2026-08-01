@@ -41,7 +41,7 @@ export function EmailReadingPane({
   const bucket = showTriage ? email.inboxBucket : undefined;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-[#0d121c]">
+    <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden bg-[#0d121c]">
       <header className="shrink-0 border-b border-white/[0.06] px-4 sm:px-6 py-3.5 bg-[#10161f]/95">
         <div className="flex items-start gap-3">
           {onClose ? (
@@ -164,7 +164,8 @@ export function EmailReadingPane({
 
       <div
         data-email-scroll
-        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain"
+        className="flex-1 min-h-0 h-0 overflow-y-auto overscroll-y-contain touch-pan-y"
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
         {conversation.map((msg, idx) => {
           const isYou =

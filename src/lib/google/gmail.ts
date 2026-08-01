@@ -391,6 +391,32 @@ export async function fetchGmailDrafts(
   return { emails, nextPageToken: list.data.nextPageToken ?? undefined };
 }
 
+export type GmailAttachment = {
+  filename: string;
+  mimeType: string;
+  /** Raw base64 (no data: URL prefix). */
+  dataBase64: string;
+};
+
+function encodeSubject(subject: string): string {
+  // Keep ASCII subjects plain; encode UTF-8 with RFC 2047 when needed
+  if (/^[\x20-\x7E]*$/.test(subject)) return subject;
+  const b64 = Buffer.from(subject, "utf8").toString("base64");
+  return `=?UTF-8?B?${b64}?=`;
+}
+
+function foldBase64(b64: string): string {
+  const lines: string[] = [];
+  for (let i = 0; i < b64.length; i += 76) {
+    lines.push(b64.slice(i, i + 76));
+  }
+  return lines.join("\r\n");
+}
+
+function sanitizeFilename(name: string): string {
+  return name.replace(/[\r\n"\\]/g, "_").slice(0, 180) || "attachment";
+}
+
 function buildRawMime(params: {
   to: string;
   cc?: string;
@@ -399,21 +425,51 @@ function buildRawMime(params: {
   body: string;
   inReplyTo?: string;
   references?: string;
+  attachments?: GmailAttachment[];
 }): string {
   const headers = [`To: ${params.to}`];
   if (params.cc?.trim()) headers.push(`Cc: ${params.cc.trim()}`);
   if (params.bcc?.trim()) headers.push(`Bcc: ${params.bcc.trim()}`);
-  headers.push(
-    `Subject: ${params.subject}`,
-    'Content-Type: text/plain; charset="UTF-8"',
-    "MIME-Version: 1.0"
-  );
+  headers.push(`Subject: ${encodeSubject(params.subject)}`, "MIME-Version: 1.0");
   if (params.inReplyTo) {
     headers.push(`In-Reply-To: ${params.inReplyTo}`);
     const refs = [params.references, params.inReplyTo].filter(Boolean).join(" ").trim();
     if (refs) headers.push(`References: ${refs}`);
   }
-  return [...headers, "", params.body].join("\r\n");
+
+  const attachments = params.attachments?.filter((a) => a.dataBase64) ?? [];
+  if (attachments.length === 0) {
+    headers.push('Content-Type: text/plain; charset="UTF-8"');
+    return [...headers, "", params.body].join("\r\n");
+  }
+
+  const boundary = `mixed_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+
+  const parts: string[] = [
+    ...headers,
+    "",
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: 7bit",
+    "",
+    params.body || " ",
+  ];
+
+  for (const att of attachments) {
+    const filename = sanitizeFilename(att.filename);
+    const mime = (att.mimeType || "application/octet-stream").replace(/[\r\n]/g, "");
+    parts.push(
+      `--${boundary}`,
+      `Content-Type: ${mime}; name="${filename}"`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="${filename}"`,
+      "",
+      foldBase64(att.dataBase64.replace(/\s+/g, ""))
+    );
+  }
+  parts.push(`--${boundary}--`, "");
+  return parts.join("\r\n");
 }
 
 export async function saveGmailDraft(
@@ -428,6 +484,7 @@ export async function saveGmailDraft(
     draftId?: string;
     inReplyTo?: string;
     references?: string;
+    attachments?: GmailAttachment[];
   }
 ): Promise<{ ok: boolean; draftId?: string; error?: string }> {
   const gmail = google.gmail({ version: "v1", auth: client });
@@ -440,6 +497,7 @@ export async function saveGmailDraft(
       body: params.body || "",
       inReplyTo: params.inReplyTo,
       references: params.references,
+      attachments: params.attachments,
     })
   );
   const message: gmail_v1.Schema$Message = {
@@ -504,6 +562,7 @@ export async function sendGmailMessage(params: {
   threadId?: string;
   inReplyTo?: string;
   references?: string;
+  attachments?: GmailAttachment[];
 }): Promise<{ ok: boolean; error?: string; messageId?: string }> {
   const client = await getAuthenticatedClient();
   if (!client) {
@@ -524,6 +583,7 @@ export async function sendGmailMessage(params: {
         body: params.body,
         inReplyTo: params.inReplyTo,
         references: params.references,
+        attachments: params.attachments,
       })
     );
 
