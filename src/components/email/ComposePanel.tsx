@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import {
   Loader2,
@@ -17,6 +17,11 @@ import {
   Forward,
   Reply,
 } from "lucide-react";
+import {
+  filterRecipientSuggestions,
+  formatRecipientChip,
+  type EmailRecipientSuggestion,
+} from "@/lib/email-recipients";
 
 export type ComposeAttachment = {
   id: string;
@@ -99,6 +104,7 @@ export function ComposePanel({
   sending,
   error,
   variant = "dock",
+  recipientSuggestions = [],
 }: {
   open: boolean;
   value: ComposeState;
@@ -112,6 +118,8 @@ export function ComposePanel({
   error?: string | null;
   /** dock = desktop bottom panel; fullscreen = Gmail-style mobile compose */
   variant?: "dock" | "fullscreen";
+  /** Known addresses from sent/received mail + contacts */
+  recipientSuggestions?: EmailRecipientSuggestion[];
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -259,6 +267,7 @@ export function ComposePanel({
                   onChange={(to) => onChange({ ...value, to })}
                   placeholder="Add recipient"
                   bare
+                  suggestions={recipientSuggestions}
                 />
               </div>
               <button
@@ -283,6 +292,7 @@ export function ComposePanel({
                     onChange={(cc) => onChange({ ...value, cc })}
                     placeholder="Add Cc"
                     bare
+                    suggestions={recipientSuggestions}
                   />
                 </div>
                 <div className="flex items-start gap-3 py-2 border-b border-white/[0.05]">
@@ -294,6 +304,7 @@ export function ComposePanel({
                     onChange={(bcc) => onChange({ ...value, bcc })}
                     placeholder="Add Bcc"
                     bare
+                    suggestions={recipientSuggestions}
                   />
                 </div>
               </>
@@ -470,6 +481,7 @@ export function ComposePanel({
                 value={value.to}
                 onChange={(to) => onChange({ ...value, to })}
                 placeholder="name@email.com, then Enter"
+                suggestions={recipientSuggestions}
               />
             </div>
             {!showCcBcc && (
@@ -490,12 +502,14 @@ export function ComposePanel({
                 value={value.cc ?? ""}
                 onChange={(cc) => onChange({ ...value, cc })}
                 placeholder="Add Cc · Enter"
+                suggestions={recipientSuggestions}
               />
               <RecipientChips
                 label="Bcc"
                 value={value.bcc ?? ""}
                 onChange={(bcc) => onChange({ ...value, bcc })}
                 placeholder="Add Bcc · Enter"
+                suggestions={recipientSuggestions}
               />
             </>
           )}
@@ -681,6 +695,7 @@ function RecipientChips({
   onChange,
   placeholder,
   bare,
+  suggestions = [],
 }: {
   label?: string;
   value: string;
@@ -688,10 +703,23 @@ function RecipientChips({
   placeholder?: string;
   /** No outer ring — for fullscreen rows */
   bare?: boolean;
+  suggestions?: EmailRecipientSuggestion[];
 }) {
   const [draft, setDraft] = useState("");
+  const [openMenu, setOpenMenu] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const chips = parseRecipients(value);
+
+  const matches = useMemo(
+    () => filterRecipientSuggestions(suggestions, draft, chips, 8),
+    [suggestions, draft, chips]
+  );
+
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [draft]);
 
   const commit = (raw: string) => {
     const parts = parseRecipients(raw);
@@ -703,6 +731,12 @@ function RecipientChips({
     }
     onChange(joinRecipients(next));
     setDraft("");
+    setOpenMenu(false);
+  };
+
+  const pickSuggestion = (s: EmailRecipientSuggestion) => {
+    commit(formatRecipientChip(s));
+    inputRef.current?.focus();
   };
 
   const removeAt = (idx: number) => {
@@ -710,11 +744,12 @@ function RecipientChips({
   };
 
   const shell = bare
-    ? "flex flex-wrap items-center gap-1.5 min-w-0 w-full py-0.5"
-    : "flex flex-wrap items-center gap-1.5 rounded-xl bg-black/25 ring-1 ring-white/10 px-3 py-1.5 min-h-[2.5rem]";
+    ? "relative flex flex-wrap items-center gap-1.5 min-w-0 w-full py-0.5"
+    : "relative flex flex-wrap items-center gap-1.5 rounded-xl bg-black/25 ring-1 ring-white/10 px-3 py-1.5 min-h-[2.5rem]";
 
   return (
     <div
+      ref={wrapRef}
       className={shell}
       onClick={() => inputRef.current?.focus()}
       role="group"
@@ -756,8 +791,35 @@ function RecipientChips({
       <input
         ref={inputRef}
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setOpenMenu(true);
+        }}
+        onFocus={() => setOpenMenu(true)}
         onKeyDown={(e) => {
+          if (openMenu && matches.length) {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setActiveIdx((i) => Math.min(i + 1, matches.length - 1));
+              return;
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setActiveIdx((i) => Math.max(i - 1, 0));
+              return;
+            }
+            if (e.key === "Enter" || e.key === "Tab") {
+              if (matches[activeIdx]) {
+                e.preventDefault();
+                pickSuggestion(matches[activeIdx]);
+                return;
+              }
+            }
+            if (e.key === "Escape") {
+              setOpenMenu(false);
+              return;
+            }
+          }
           if (e.key === "Enter" || e.key === "," || e.key === "Tab") {
             if (draft.trim()) {
               e.preventDefault();
@@ -768,7 +830,13 @@ function RecipientChips({
           }
         }}
         onBlur={() => {
-          if (draft.trim()) commit(draft);
+          // Allow suggestion mousedown to fire first
+          window.setTimeout(() => {
+            if (!wrapRef.current?.contains(document.activeElement)) {
+              if (draft.trim()) commit(draft);
+              setOpenMenu(false);
+            }
+          }, 120);
         }}
         onPaste={(e) => {
           const text = e.clipboardData.getData("text");
@@ -779,9 +847,44 @@ function RecipientChips({
         }}
         placeholder={chips.length ? "Add another…" : placeholder || "Add recipient"}
         className="flex-1 min-w-[8rem] bg-transparent text-sm text-white/90 placeholder:text-white/25 focus:outline-none py-1"
-        autoComplete="email"
+        autoComplete="off"
         inputMode="email"
+        role="combobox"
+        aria-expanded={openMenu && matches.length > 0}
+        aria-autocomplete="list"
       />
+
+      {openMenu && matches.length > 0 ? (
+        <ul
+          className="absolute left-0 right-0 top-full z-40 mt-1 max-h-52 overflow-y-auto rounded-xl bg-[#161c28] ring-1 ring-white/12 shadow-xl py-1"
+          role="listbox"
+        >
+          {matches.map((s, i) => (
+            <li key={s.email} role="option" aria-selected={i === activeIdx}>
+              <button
+                type="button"
+                className={
+                  i === activeIdx
+                    ? "w-full text-left px-3 py-2 bg-white/[0.08]"
+                    : "w-full text-left px-3 py-2 hover:bg-white/[0.06]"
+                }
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pickSuggestion(s);
+                }}
+                onMouseEnter={() => setActiveIdx(i)}
+              >
+                <p className="text-[13px] text-white/90 truncate">
+                  {s.name || s.email}
+                </p>
+                {s.name ? (
+                  <p className="text-[11px] text-white/40 truncate">{s.email}</p>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

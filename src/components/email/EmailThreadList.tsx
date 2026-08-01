@@ -22,6 +22,14 @@ function avatarTone(name: string): string {
   return AVATAR_TONES[h];
 }
 
+/** First recipient display name from a To: header. */
+function peerFromAddress(to: string): string {
+  const first = to.split(",")[0]?.trim() || to;
+  const named = first.match(/^(.+?)\s*<[^>]+>$/);
+  if (named?.[1]) return named[1].replace(/"/g, "").trim();
+  return first.replace(/[<>]/g, "").trim() || to;
+}
+
 function bucketPillClass(bucket: InboxBucket): string {
   switch (bucket) {
     case "to_respond":
@@ -77,6 +85,11 @@ export function EmailThreadList({
         const count = email.messageCount ?? email.threadMessages?.length ?? 1;
         const bucket = showTriage ? email.inboxBucket : undefined;
         const preview = email.preview ? toEmailPreview(email.preview) : "";
+        // Sent/Drafts: show who it's to, not ourselves
+        const peerLabel =
+          !showTriage && email.to?.trim()
+            ? peerFromAddress(email.to)
+            : email.from;
 
         return (
           <div
@@ -123,10 +136,10 @@ export function EmailThreadList({
                 <div
                   className={cn(
                     "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
-                    avatarTone(email.from)
+                    avatarTone(peerLabel)
                   )}
                 >
-                  {initials(email.from)}
+                  {initials(peerLabel)}
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -139,7 +152,7 @@ export function EmailThreadList({
                           : "font-medium text-white/70"
                       )}
                     >
-                      {email.from}
+                      {peerLabel}
                     </span>
                     {bucket ? (
                       <span

@@ -1,27 +1,17 @@
 import type { Email } from "@/types";
 
-/** Inbox sort: unread → urgent → important → needs reply → normal → promotional, newest first within each group. */
+/** Newest threads first (Gmail-style). Used for inbox, sent, drafts, and triage buckets. */
 export function sortEmails(emails: Email[]): Email[] {
-  const rank = (e: Email): number => {
-    if (!e.isRead) {
-      if (e.category === "urgent") return 0;
-      if (e.category === "important" || e.isImportant) return 1;
-      if (e.needsReply) return 2;
-      if (e.category === "promotional") return 5;
-      return 3;
-    }
-    if (e.category === "urgent") return 4;
-    if (e.category === "important" || e.isImportant) return 6;
-    if (e.needsReply) return 7;
-    if (e.category === "promotional") return 9;
-    return 8;
+  const ts = (e: Email) => {
+    const n = new Date(e.receivedAt).getTime();
+    return Number.isFinite(n) ? n : 0;
   };
+  return [...emails].sort((a, b) => ts(b) - ts(a));
+}
 
-  return [...emails].sort((a, b) => {
-    const rankDiff = rank(a) - rank(b);
-    if (rankDiff !== 0) return rankDiff;
-    return new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime();
-  });
+/** @deprecated alias — same as sortEmails (newest first). */
+export function sortEmailsByPriority(emails: Email[]): Email[] {
+  return sortEmails(emails);
 }
 
 export function findEmailByContext(

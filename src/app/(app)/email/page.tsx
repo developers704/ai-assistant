@@ -22,6 +22,13 @@ import {
   type MailFolder,
 } from "@/lib/email-buckets";
 import { Link2, Loader2, Menu, PenSquare, Search, X } from "lucide-react";
+import {
+  collectRecipientsFromContacts,
+  collectRecipientsFromEmails,
+  loadStoredRecipients,
+  mergeRecipientSuggestions,
+  rememberRecipients,
+} from "@/lib/email-recipients";
 
 const MOBILE_HEIGHT = "h-full max-h-full";
 
@@ -137,6 +144,28 @@ export default function EmailPage() {
     if (!state) return [];
     return sortEmails(dedupeEmails(state.emails.map(withInboxBucket)));
   }, [state]);
+
+  const recipientSuggestions = useMemo(() => {
+    const fromMail = collectRecipientsFromEmails([
+      ...inboxEmails,
+      ...folderEmails,
+    ]);
+    const fromContacts = collectRecipientsFromContacts(state?.contacts ?? []);
+    const stored =
+      typeof window !== "undefined" ? loadStoredRecipients() : [];
+    return mergeRecipientSuggestions(stored, fromMail, fromContacts);
+  }, [inboxEmails, folderEmails, state?.contacts]);
+
+  useEffect(() => {
+    const fromMail = collectRecipientsFromEmails([
+      ...inboxEmails,
+      ...folderEmails,
+    ]);
+    const fromContacts = collectRecipientsFromContacts(state?.contacts ?? []);
+    if (fromMail.length || fromContacts.length) {
+      rememberRecipients(mergeRecipientSuggestions(fromMail, fromContacts));
+    }
+  }, [inboxEmails, folderEmails, state?.contacts]);
 
   const loadFolder = useCallback(
     async (folder: MailFolder, pageToken?: string, append = false) => {
@@ -658,6 +687,27 @@ export default function EmailPage() {
       }
 
       const tid = snapshot.threadId || data.threadId;
+      rememberRecipients(
+        collectRecipientsFromEmails([
+          {
+            id: "sent-local",
+            threadId: tid || "sent-local",
+            from: "",
+            fromEmail: "",
+            to: snapshot.to,
+            cc: snapshot.cc,
+            bcc: snapshot.bcc,
+            subject: snapshot.subject,
+            preview: "",
+            body: "",
+            receivedAt: new Date().toISOString(),
+            isImportant: false,
+            isRead: true,
+            needsReply: false,
+            category: "normal",
+          },
+        ])
+      );
       setCompose(null);
 
       // Show the sent message in the thread immediately, then sync from Gmail
@@ -1118,6 +1168,7 @@ export default function EmailPage() {
                     drafting={drafting}
                     sending={sending}
                     error={composeError}
+                    recipientSuggestions={recipientSuggestions}
                   />
                 </div>
               </>
@@ -1135,6 +1186,7 @@ export default function EmailPage() {
                   drafting={drafting}
                   sending={sending}
                   error={composeError}
+                  recipientSuggestions={recipientSuggestions}
                 />
               </div>
             ) : (
@@ -1165,6 +1217,7 @@ export default function EmailPage() {
               drafting={drafting}
               sending={sending}
               error={composeError}
+              recipientSuggestions={recipientSuggestions}
             />
           </div>
         )}
