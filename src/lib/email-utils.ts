@@ -1,5 +1,23 @@
 import type { Email } from "@/types";
 
+/**
+ * True when the body talks about attaching a file but none may be present.
+ * Used to block Send (same idea as requiring a subject).
+ */
+export function bodyMentionsAttachment(body: string): boolean {
+  const t = body.replace(/\s+/g, " ").trim();
+  if (!t) return false;
+  return (
+    /\b(attach(ed|ment|ing)?s?|enclos(ed|ing)|p\.?\s*f\.?\s*a\.?)\b/i.test(t) ||
+    /\b(please\s+find|pls\s+find|see|find)\b.{0,24}\b(attach|enclos|doc|sheet|file|pdf|csv|xlsx|spreadsheet)\b/i.test(
+      t
+    ) ||
+    /\b(doc(ument)?s?|sheet|spreadsheet|pdf|csv|xlsx|file)\b.{0,20}\b(attach|enclos|review|as below|as bellow)\b/i.test(
+      t
+    )
+  );
+}
+
 /** Newest threads first (Gmail-style). Used for inbox, sent, drafts, and triage buckets. */
 export function sortEmails(emails: Email[]): Email[] {
   const ts = (e: Email) => {

@@ -30,7 +30,7 @@ export async function getVoiceEmails(): Promise<{
     };
   }
 
-  const cached = getGoogleCache();
+  const cached = getGoogleCache({ allowStale: true });
   if (cached?.emails?.length) {
     return {
       emails: sortEmails(cached.emails),

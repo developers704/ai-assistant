@@ -22,6 +22,7 @@ import {
   formatRecipientChip,
   type EmailRecipientSuggestion,
 } from "@/lib/email-recipients";
+import { bodyMentionsAttachment } from "@/lib/email-utils";
 
 export type ComposeAttachment = {
   id: string;
@@ -134,9 +135,19 @@ export function ComposePanel({
   const isNewMail = value.mode === "compose" || value.mode === "forward";
   const canAiDraft = true;
   const aiDraftNeedsBody = isNewMail;
+  const missingAttachment =
+    attachments.length === 0 && bodyMentionsAttachment(value.body);
+  const missingSubject = !value.subject.trim();
   const canSend =
     parseRecipients(value.to).length > 0 &&
+    !missingSubject &&
+    !missingAttachment &&
     (!!value.body.trim() || attachments.length > 0);
+  const sendBlockReason = missingSubject
+    ? "Add a subject before sending."
+    : missingAttachment
+      ? "You mentioned an attachment — attach a file before sending."
+      : null;
 
   useEffect(() => {
     if (!open) return;
@@ -240,6 +251,7 @@ export function ComposePanel({
             onClick={onSend}
             className="p-2.5 rounded-full text-[#c4b5e0] hover:bg-white/10 disabled:opacity-35"
             aria-label="Send"
+            title={sendBlockReason ?? "Send"}
           >
             {sending ? (
               <Loader2 size={20} className="animate-spin" />
@@ -375,8 +387,10 @@ export function ComposePanel({
               </ul>
             )}
 
-            {(error || attachError) && (
-              <p className="mt-2 text-xs text-rose-300">{error || attachError}</p>
+            {(error || attachError || sendBlockReason) && (
+              <p className="mt-2 text-xs text-rose-300">
+                {error || attachError || sendBlockReason}
+              </p>
             )}
 
             {canAiDraft && (
@@ -562,12 +576,19 @@ export function ComposePanel({
             </ul>
           )}
 
-          {(error || attachError) && (
-            <p className="text-xs text-rose-300">{error || attachError}</p>
+          {(error || attachError || sendBlockReason) && (
+            <p className="text-xs text-rose-300">
+              {error || attachError || sendBlockReason}
+            </p>
           )}
 
           <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <Button size="sm" disabled={sending || !canSend} onClick={onSend}>
+            <Button
+              size="sm"
+              disabled={sending || !canSend}
+              onClick={onSend}
+              title={sendBlockReason ?? "Send"}
+            >
               {sending ? (
                 <Loader2 size={14} className="animate-spin" />
               ) : (

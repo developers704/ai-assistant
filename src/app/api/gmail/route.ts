@@ -12,7 +12,7 @@ import {
   type GmailThreadAction,
 } from "@/lib/google/gmail";
 import { isGoogleConnected } from "@/lib/google/token-store";
-import { sortEmails } from "@/lib/email-utils";
+import { bodyMentionsAttachment, sortEmails } from "@/lib/email-utils";
 import { withInboxBucket } from "@/lib/email-buckets";
 
 const FOLDERS = ["inbox", "starred", "sent", "drafts"] as const;
@@ -146,6 +146,15 @@ export async function POST(req: NextRequest) {
     if (!to || !subject || (!text && attachments.length === 0)) {
       return NextResponse.json(
         { error: "to, subject, and body (or attachments) are required" },
+        { status: 400 }
+      );
+    }
+    if (attachments.length === 0 && bodyMentionsAttachment(text)) {
+      return NextResponse.json(
+        {
+          error:
+            "You mentioned an attachment — attach a file before sending.",
+        },
         { status: 400 }
       );
     }

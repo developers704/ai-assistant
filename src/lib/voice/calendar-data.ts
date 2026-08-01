@@ -43,7 +43,7 @@ export async function getVoiceCalendarEvents(): Promise<{
     return { events: demo, tz, todayKey, googleConnected: false, source: "demo" };
   }
 
-  const cached = getGoogleCache();
+  const cached = getGoogleCache({ allowStale: true });
   if (cached?.events?.length) {
     const events = filterCalendarEvents(cached.events).filter(
       (e) => e.status !== "cancelled" && isEventOnDate(e.start, todayKey, tz)

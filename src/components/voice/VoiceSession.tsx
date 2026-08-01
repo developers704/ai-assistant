@@ -209,11 +209,13 @@ export function VoiceSession() {
 
               {!hasTranscript && !error && (
                 <p className="text-[15px] text-ink-muted text-left min-h-[2.75rem] leading-relaxed">
-                  {isBusy
-                    ? "Thinking…"
-                    : isSpeaking
-                      ? "Alexa is speaking…"
-                      : "Listening for your voice…"}
+                  {status === "connecting"
+                    ? "Connecting to Alexa voice — allow microphone if asked…"
+                    : status === "thinking"
+                      ? "Thinking…"
+                      : isSpeaking
+                        ? "Alexa is speaking…"
+                        : "Listening for your voice…"}
                 </p>
               )}
 

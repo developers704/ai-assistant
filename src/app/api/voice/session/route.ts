@@ -8,13 +8,27 @@ import { buildDynamicContext } from "@/lib/ai/dynamic-context";
 import { getState } from "@/lib/store/server-store";
 import { loadVoiceInstructions } from "@/lib/prompts/loader";
 import { getVoiceOpenAITools } from "@/lib/tools/registry";
+import { withTimeout } from "@/lib/async-utils";
 
 export const runtime = "nodejs";
 
+/** Don't block mic connect on slow Gmail/calendar sync. */
+const CONTEXT_BUDGET_MS = 2500;
+
 async function buildSessionConfig(model: string) {
   const state = getState();
-  const dynamic = await buildDynamicContext(state);
-  const liveContext = dynamic.textBlock;
+  let liveContext =
+    "LIVE CONTEXT still loading — use tools for email, calendar, and sales. Do not invent numbers.";
+  try {
+    const dynamic = await withTimeout(
+      buildDynamicContext(state),
+      CONTEXT_BUDGET_MS,
+      "voice context"
+    );
+    liveContext = dynamic.textBlock;
+  } catch (err) {
+    console.warn("[voice/session] context skipped:", err);
+  }
   const instructions = `CRITICAL LANGUAGE & NOISE RULE: You must ONLY understand, transcribe, and respond in English and Urdu. Ignore background noise, static, breathing, or silence completely. Never transcribe them as words (especially not as Chinese, Portuguese, or other languages). If there is no clear human speech in English or Urdu, ignore the sound and do not respond.
 
 CRITICAL NAVIGATION RULE: If the user asks to open / go to / take me to / show a section ONLY (Sales Dashboard, News and Markets, AI Chat, Email, Calendar, Stores Map and Info, Price Calculator, Data Analyst, Image Generation, Social, Contacts, Settings), YOU MUST call \`show_detail_page\` ONLY.

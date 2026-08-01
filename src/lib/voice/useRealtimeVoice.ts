@@ -104,7 +104,6 @@ export function useRealtimeVoice(enabled: boolean) {
       }
       pendingResponseRef.current = false;
       clearResponseTimer();
-      processingResponseRef.current = true;
 
       const dc = dcRef.current;
       if (!dc) {
@@ -112,9 +111,11 @@ export function useRealtimeVoice(enabled: boolean) {
         return;
       }
 
-      if (status === "speaking" || status === "thinking" || processingResponseRef.current) {
+      // Cancel only if a prior response was already in flight (don't self-cancel)
+      if (processingResponseRef.current) {
         sendEvent(dc, { type: "response.cancel" });
       }
+      processingResponseRef.current = true;
 
       const normalized = normalizeVoiceTranscript(transcript);
 
@@ -713,7 +714,7 @@ export function useRealtimeVoice(enabled: boolean) {
           break;
         case "input_audio_buffer.speech_started":
           if (sessionActiveRef.current && dcRef.current) {
-            if (status === "speaking" || status === "thinking" || processingResponseRef.current) {
+            if (processingResponseRef.current) {
               sendEvent(dcRef.current, { type: "response.cancel" });
             }
             processingResponseRef.current = false;
@@ -799,7 +800,7 @@ export function useRealtimeVoice(enabled: boolean) {
     setError(null);
     setStatus("connecting");
 
-    try {
+    const run = async () => {
       const sessionRes = await fetch("/api/voice/session", { method: "POST" });
       const sessionData = await sessionRes.json();
       if (!sessionRes.ok) {
@@ -809,13 +810,20 @@ export function useRealtimeVoice(enabled: boolean) {
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
-      const mic = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      let mic: MediaStream;
+      try {
+        mic = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+      } catch {
+        throw new Error(
+          "Microphone permission denied. Allow mic access in the browser and try again."
+        );
+      }
       micStreamRef.current = mic;
       const track = mic.getAudioTracks()[0];
       track.enabled = false;
@@ -876,6 +884,23 @@ export function useRealtimeVoice(enabled: boolean) {
       } else {
         setStatus("ready");
       }
+    };
+
+    try {
+      await Promise.race([
+        run(),
+        new Promise<never>((_, reject) =>
+          window.setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "Voice connect timed out. Check OpenAI API key / Realtime access, allow the microphone, then tap Try again."
+                )
+              ),
+            25000
+          )
+        ),
+      ]);
     } catch (err) {
       endSessionWithError(err instanceof Error ? err.message : "Failed to connect");
     }

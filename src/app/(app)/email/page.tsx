@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { sortEmails } from "@/lib/email-utils";
+import { bodyMentionsAttachment, sortEmails } from "@/lib/email-utils";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
 import type { Email } from "@/types";
 import { EmailSidebar, type EmailNavId } from "@/components/email/EmailSidebar";
@@ -651,6 +651,19 @@ export default function EmailPage() {
   const sendCompose = async () => {
     if (!compose) return;
     const snapshot = compose;
+    if (!snapshot.subject.trim()) {
+      setComposeError("Add a subject before sending.");
+      return;
+    }
+    if (
+      !(snapshot.attachments ?? []).length &&
+      bodyMentionsAttachment(snapshot.body)
+    ) {
+      setComposeError(
+        "You mentioned an attachment — attach a file before sending."
+      );
+      return;
+    }
     setSending(true);
     setComposeError(null);
     try {
