@@ -81,6 +81,8 @@ export interface Email {
   fromEmail: string;
   /** Optional To: header for reply-all. */
   to?: string;
+  cc?: string;
+  bcc?: string;
   subject: string;
   preview: string;
   body: string;

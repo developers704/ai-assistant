@@ -77,6 +77,8 @@ function parseGmailMessage(msg: gmail_v1.Schema$Message): Email | null {
   const headers = msg.payload?.headers;
   const fromRaw = getHeader(headers, "From");
   const toRaw = getHeader(headers, "To");
+  const ccRaw = getHeader(headers, "Cc");
+  const bccRaw = getHeader(headers, "Bcc");
   const { name, email } = parseFrom(fromRaw);
   const subject = getHeader(headers, "Subject") || "(No subject)";
   const { plain, html } = extractEmailParts(msg.payload as MimePart | undefined);
@@ -105,6 +107,8 @@ function parseGmailMessage(msg: gmail_v1.Schema$Message): Email | null {
     from: name,
     fromEmail: email,
     to: toRaw || undefined,
+    cc: ccRaw || undefined,
+    bcc: bccRaw || undefined,
     subject,
     preview,
     body: body || msg.snippet || "",
@@ -389,17 +393,21 @@ export async function fetchGmailDrafts(
 
 function buildRawMime(params: {
   to: string;
+  cc?: string;
+  bcc?: string;
   subject: string;
   body: string;
   inReplyTo?: string;
   references?: string;
 }): string {
-  const headers = [
-    `To: ${params.to}`,
+  const headers = [`To: ${params.to}`];
+  if (params.cc?.trim()) headers.push(`Cc: ${params.cc.trim()}`);
+  if (params.bcc?.trim()) headers.push(`Bcc: ${params.bcc.trim()}`);
+  headers.push(
     `Subject: ${params.subject}`,
     'Content-Type: text/plain; charset="UTF-8"',
-    "MIME-Version: 1.0",
-  ];
+    "MIME-Version: 1.0"
+  );
   if (params.inReplyTo) {
     headers.push(`In-Reply-To: ${params.inReplyTo}`);
     const refs = [params.references, params.inReplyTo].filter(Boolean).join(" ").trim();
@@ -412,6 +420,8 @@ export async function saveGmailDraft(
   client: GoogleOAuth2Client,
   params: {
     to: string;
+    cc?: string;
+    bcc?: string;
     subject: string;
     body: string;
     threadId?: string;
@@ -424,6 +434,8 @@ export async function saveGmailDraft(
   const raw = encodeRawMessage(
     buildRawMime({
       to: params.to || "",
+      cc: params.cc,
+      bcc: params.bcc,
       subject: params.subject || "(No subject)",
       body: params.body || "",
       inReplyTo: params.inReplyTo,
@@ -485,6 +497,8 @@ function encodeRawMessage(raw: string): string {
 
 export async function sendGmailMessage(params: {
   to: string;
+  cc?: string;
+  bcc?: string;
   subject: string;
   body: string;
   threadId?: string;
@@ -504,6 +518,8 @@ export async function sendGmailMessage(params: {
     const raw = encodeRawMessage(
       buildRawMime({
         to: params.to,
+        cc: params.cc,
+        bcc: params.bcc,
         subject: params.subject,
         body: params.body,
         inReplyTo: params.inReplyTo,

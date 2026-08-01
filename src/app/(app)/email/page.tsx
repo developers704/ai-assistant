@@ -17,13 +17,14 @@ import {
 } from "@/components/email/ComposePanel";
 import {
   withInboxBucket,
+  bucketLabel,
   type InboxBucket,
   type MailFolder,
 } from "@/lib/email-buckets";
-import { Link2, Loader2, Search } from "lucide-react";
+import { Link2, Loader2, Menu, MessageSquare, PenSquare, Search, X } from "lucide-react";
 
 const MOBILE_HEIGHT =
-  "max-lg:h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-4rem)]";
+  "max-lg:h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-1.5rem)]";
 
 function dedupeEmails(emails: Email[]): Email[] {
   const seen = new Set<string>();
@@ -49,8 +50,23 @@ function isBucket(id: EmailNavId): id is InboxBucket {
   );
 }
 
+function navTitle(id: EmailNavId): string {
+  if (isFolder(id)) {
+    return (
+      { inbox: "Inbox", starred: "Starred", sent: "Sent", drafts: "Drafts" } as const
+    )[id];
+  }
+  return bucketLabel(id);
+}
+
 function composeHasContent(c: ComposeState): boolean {
-  return !!(c.to.trim() || c.subject.trim() || c.body.trim());
+  return !!(
+    c.to.trim() ||
+    c.cc?.trim() ||
+    c.bcc?.trim() ||
+    c.subject.trim() ||
+    c.body.trim()
+  );
 }
 
 const LOCAL_DRAFTS_KEY = "alexa-email-local-drafts";
@@ -98,6 +114,7 @@ export default function EmailPage() {
   const { state } = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [nav, setNav] = useState<EmailNavId>("inbox");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [folderEmails, setFolderEmails] = useState<Email[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>();
@@ -263,6 +280,8 @@ export default function EmailPage() {
     setCompose({
       mode,
       to: latest.fromEmail || email.fromEmail,
+      cc: "",
+      bcc: "",
       subject,
       body: "",
       threadId: email.threadId,
@@ -310,6 +329,8 @@ export default function EmailPage() {
     setCompose({
       mode: "compose",
       to: "",
+      cc: "",
+      bcc: "",
       subject: "",
       body: "",
     });
@@ -347,6 +368,8 @@ export default function EmailPage() {
         body: JSON.stringify({
           action: "save_draft",
           to: c.to,
+          cc: c.cc,
+          bcc: c.bcc,
           subject: c.subject || "(No subject)",
           body: c.body,
           threadId: c.threadId,
@@ -374,6 +397,8 @@ export default function EmailPage() {
     setCompose({
       mode: email.threadId && email.inReplyTo ? "reply" : "compose",
       to: email.to || email.fromEmail || "",
+      cc: email.cc || "",
+      bcc: email.bcc || "",
       subject: email.subject.startsWith("Re:")
         ? email.subject
         : email.subject || "",
@@ -435,6 +460,8 @@ export default function EmailPage() {
         body: JSON.stringify({
           action: "send",
           to: compose.to,
+          cc: compose.cc,
+          bcc: compose.bcc,
           subject: compose.subject,
           body: compose.body,
           threadId: compose.threadId,
@@ -563,22 +590,36 @@ export default function EmailPage() {
   if (!state) return null;
 
   return (
-    <div
-      className={cn(
-        "flex flex-col max-lg:-mx-3 max-lg:-mt-1 max-lg:-mb-3 lg:mx-0",
-        MOBILE_HEIGHT
-      )}
-    >
-      <div className="glass-panel-strong rounded-2xl lg:rounded-3xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10">
-        {/* Top bar */}
-        <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-white/10 shrink-0 flex items-center gap-2 safe-area-top">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg sm:text-xl font-display font-bold text-gradient-title tracking-tight">
-              Mail
+    <div className={cn("flex flex-col flex-1 min-h-0", MOBILE_HEIGHT)}>
+      <div className="glass-panel-strong rounded-none sm:rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden ring-1 ring-white/10 relative">
+        {/* Top bar — compact on desktop (sidebar already shows Mail title) */}
+        <div className="px-3 sm:px-5 py-2 sm:py-2.5 border-b border-white/10 shrink-0 flex items-center gap-2 safe-area-top">
+          {!mobileReading && (
+            <button
+              type="button"
+              className="lg:hidden p-2 -ml-1 rounded-xl text-white/70 hover:bg-white/10"
+              aria-label="Open folders"
+              onClick={() => setMobileNavOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+          )}
+          <div className="min-w-0 flex-1 lg:hidden">
+            <h1 className="text-lg font-display font-bold text-white tracking-tight">
+              {mobileReading ? "Mail" : navTitle(nav)}
             </h1>
             <p className="text-[11px] text-white/40 truncate">
               {googleConnected ? "Gmail" : "Demo inbox"}
               {counts.to_respond ? ` · ${counts.to_respond} to respond` : ""}
+            </p>
+          </div>
+          <div className="hidden lg:block min-w-0 flex-1">
+            <p className="text-sm font-medium text-white/70 truncate">
+              {navTitle(nav)}
+              <span className="text-white/35 font-normal">
+                {" "}
+                · {listEmails.length} messages
+              </span>
             </p>
           </div>
           {!googleConnected && (
@@ -589,7 +630,17 @@ export default function EmailPage() {
               </Button>
             </Link>
           )}
-          <div className="relative w-full max-w-[220px] sm:max-w-xs hidden sm:block">
+          {!mobileReading && (
+            <button
+              type="button"
+              onClick={openComposeNew}
+              className="lg:hidden inline-flex items-center gap-1.5 rounded-xl bg-[#5b4a8a] px-3 py-2 text-xs font-semibold text-white shadow-md"
+            >
+              <PenSquare size={14} />
+              Compose
+            </button>
+          )}
+          <div className="relative w-full max-w-[280px] sm:max-w-sm hidden sm:block">
             <Search
               size={14}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
@@ -604,20 +655,95 @@ export default function EmailPage() {
           </div>
         </div>
 
-        <div className="sm:hidden px-3 py-2 border-b border-white/10">
-          <div className="relative">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
-            />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search mail"
-              className="w-full rounded-full bg-white/[0.04] ring-1 ring-white/10 pl-9 pr-3 py-2 text-sm text-ink placeholder:text-white/30 focus:outline-none focus:ring-violet-400/35"
-            />
+        {!mobileReading && (
+          <div className="sm:hidden px-3 py-2 border-b border-white/10 space-y-2">
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search mail"
+                className="w-full rounded-full bg-white/[0.04] ring-1 ring-white/10 pl-9 pr-3 py-2 text-sm text-ink placeholder:text-white/30 focus:outline-none focus:ring-violet-400/35"
+              />
+            </div>
+            {/* Quick triage chips — full-width list, no side rail */}
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-0.5 px-0.5 scrollbar-none">
+              {(
+                [
+                  "inbox",
+                  "to_respond",
+                  "fyi",
+                  "starred",
+                  "purchases",
+                  "marketing",
+                  "drafts",
+                ] as EmailNavId[]
+              ).map((id) => {
+                const count = counts[id as keyof typeof counts];
+                const active = nav === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setNav(id)}
+                    className={cn(
+                      "shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
+                      active
+                        ? "bg-sky-500/30 text-sky-100 ring-1 ring-sky-400/40"
+                        : "bg-white/[0.04] text-white/50 ring-1 ring-white/10"
+                    )}
+                  >
+                    {navTitle(id)}
+                    {count != null && count > 0 ? (
+                      <span className="ml-1 tabular-nums opacity-70">{count}</span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Mobile folder drawer */}
+        {mobileNavOpen && (
+          <div className="lg:hidden absolute inset-0 z-40 flex">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+              aria-label="Close folders"
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <div className="relative z-10 flex h-full w-[min(18rem,85vw)] flex-col bg-[#0f1520] ring-1 ring-white/10 shadow-2xl animate-in slide-in-from-left duration-200">
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10">
+                <p className="text-sm font-semibold text-ink">Folders</p>
+                <button
+                  type="button"
+                  className="p-2 rounded-lg text-white/50 hover:bg-white/10"
+                  aria-label="Close"
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <EmailSidebar
+                active={nav}
+                counts={counts}
+                onSelect={(id) => {
+                  setNav(id);
+                  setMobileNavOpen(false);
+                }}
+                onCompose={() => {
+                  setMobileNavOpen(false);
+                  openComposeNew();
+                }}
+                className="flex-1 border-r-0 w-full"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-1 min-h-0">
           <EmailSidebar
@@ -625,19 +751,59 @@ export default function EmailPage() {
             counts={counts}
             onSelect={setNav}
             onCompose={openComposeNew}
-            className={cn(
-              "w-[9.5rem] sm:w-44 shrink-0",
-              mobileReading && "hidden lg:flex"
-            )}
+            title="Mail"
+            subtitle={`${googleConnected ? "Gmail" : "Demo inbox"}${
+              counts.to_respond ? ` · ${counts.to_respond} to respond` : ""
+            }`}
+            className="hidden lg:flex w-52 xl:w-56 shrink-0"
           />
 
-          {/* List */}
+          {/* List — card column */}
           <div
             className={cn(
-              "w-full lg:w-[22rem] xl:w-[26rem] shrink-0 flex flex-col min-h-0 border-r border-white/10",
+              "w-full lg:w-[22rem] xl:w-[26rem] shrink-0 flex flex-col min-h-0 border-r border-white/10 bg-black/15",
               mobileReading && "hidden lg:flex"
             )}
           >
+            <div className="hidden lg:block shrink-0 px-4 pt-4 pb-2 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare size={16} className="text-violet-300/80" />
+                <h2 className="text-sm font-semibold text-white tracking-tight">
+                  {navTitle(nav)}
+                </h2>
+                <span className="text-[11px] text-white/35 ml-auto tabular-nums">
+                  {listEmails.length}
+                </span>
+              </div>
+              <div className="flex gap-1 p-0.5 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.06]">
+                {(
+                  [
+                    { id: "inbox" as EmailNavId, label: "All" },
+                    { id: "to_respond" as EmailNavId, label: "Active" },
+                    { id: "starred" as EmailNavId, label: "Starred" },
+                    { id: "fyi" as EmailNavId, label: "FYI" },
+                  ] as const
+                ).map(({ id, label }) => {
+                  const active = nav === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setNav(id)}
+                      className={cn(
+                        "flex-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                        active
+                          ? "bg-[#5b4a8a] text-white shadow-sm"
+                          : "text-white/45 hover:text-white/75"
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <EmailThreadList
               emails={listEmails}
               selectedId={selectedId}
@@ -658,7 +824,7 @@ export default function EmailPage() {
                 type="button"
                 disabled={loadingMore}
                 onClick={() => void loadFolder(nav, nextPageToken, true)}
-                className="m-2 py-2 rounded-xl text-xs font-medium text-violet-200 bg-violet-500/10 ring-1 ring-violet-400/25 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="m-2 py-2 rounded-xl text-xs font-medium text-sky-200 bg-sky-500/10 ring-1 ring-sky-400/25 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loadingMore ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -691,6 +857,8 @@ export default function EmailPage() {
                     compose ?? {
                       mode: "reply",
                       to: "",
+                      cc: "",
+                      bcc: "",
                       subject: "",
                       body: "",
                     }
@@ -725,39 +893,60 @@ export default function EmailPage() {
                   </div>
                 )}
               </>
+            ) : compose ? (
+              <div className="hidden lg:flex flex-1 min-h-0 flex-col">
+                <ComposePanel
+                  open
+                  value={compose}
+                  onChange={(v) => setCompose(v)}
+                  onClose={closeCompose}
+                  onSend={() => void sendCompose()}
+                  onAiDraft={() => void aiDraft()}
+                  onRewrite={(t) => void rewrite(t)}
+                  drafting={drafting}
+                  sending={sending}
+                  error={composeError}
+                />
+              </div>
             ) : (
-              <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center px-6">
-                <p className="text-ink font-medium">Select a conversation</p>
-                <p className="text-sm text-ink-muted mt-1 max-w-sm">
-                  Gmail-style inbox with AI drafts in your voice. Unfinished
-                  messages are saved under Drafts when you close compose.
+              <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center px-10 bg-gradient-to-br from-sky-500/[0.06] via-transparent to-violet-500/[0.04]">
+                <div className="h-16 w-16 rounded-2xl bg-sky-500/15 ring-1 ring-sky-400/25 flex items-center justify-center mb-4 shadow-lg shadow-sky-500/10">
+                  <MessageSquare size={26} className="text-sky-200/80" />
+                </div>
+                <p className="text-lg font-display font-semibold text-ink">
+                  Select a conversation
+                </p>
+                <p className="text-sm text-ink-muted mt-2 max-w-md leading-relaxed">
+                  Instant categorization and drafts in your voice — open a
+                  thread to read full-width and reply.
                 </p>
                 {selectedId === null && counts.to_respond ? (
-                  <p className="text-xs text-sky-200/70 mt-3">
-                    {counts.to_respond} need a response · last sync{" "}
-                    {formatRelativeTime(new Date().toISOString())}
+                  <p className="text-xs text-sky-200/80 mt-4 px-3 py-1.5 rounded-full bg-sky-500/10 ring-1 ring-sky-400/20">
+                    {counts.to_respond} need a response
                   </p>
                 ) : null}
               </div>
             )}
-
-            {/* Compose-only overlay when no selection (new mail) */}
-            {!selected && compose && (
-              <ComposePanel
-                open
-                value={compose}
-                onChange={(v) => setCompose(v)}
-                onClose={closeCompose}
-                onSend={() => void sendCompose()}
-                onAiDraft={() => void aiDraft()}
-                onRewrite={(t) => void rewrite(t)}
-                drafting={drafting}
-                sending={sending}
-                error={composeError}
-              />
-            )}
           </section>
         </div>
+
+        {/* New-mail compose on phone (reading pane is hidden without selection) */}
+        {!!compose && !selected && (
+          <div className="lg:hidden absolute inset-0 z-30 flex flex-col bg-[#0c1018]">
+            <ComposePanel
+              open
+              value={compose}
+              onChange={(v) => setCompose(v)}
+              onClose={closeCompose}
+              onSend={() => void sendCompose()}
+              onAiDraft={() => void aiDraft()}
+              onRewrite={(t) => void rewrite(t)}
+              drafting={drafting}
+              sending={sending}
+              error={composeError}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

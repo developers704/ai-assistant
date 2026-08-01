@@ -74,6 +74,8 @@ export async function POST(req: NextRequest) {
   if (action === "save_draft") {
     const result = await saveGmailDraft(client, {
       to: String(body.to ?? ""),
+      cc: body.cc ? String(body.cc) : undefined,
+      bcc: body.bcc ? String(body.bcc) : undefined,
       subject: String(body.subject ?? ""),
       body: String(body.body ?? ""),
       threadId: body.threadId ? String(body.threadId) : undefined,
@@ -112,6 +114,8 @@ export async function POST(req: NextRequest) {
     const draftId = body.draftId ? String(body.draftId) : "";
     const result = await sendGmailMessage({
       to,
+      cc: body.cc ? String(body.cc) : undefined,
+      bcc: body.bcc ? String(body.bcc) : undefined,
       subject,
       body: text,
       threadId: body.threadId ? String(body.threadId) : undefined,

@@ -27,6 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname !== "/analyst";
 
   const isVoicePage = pathname === "/voice";
+  const isEmailPage = pathname === "/email";
 
   useEffect(() => {
     if (loading) return;
@@ -67,11 +68,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {!isVoicePage && <Sidebar />}
       <div className="flex-1 flex flex-col min-w-0">
         {!isVoicePage && <MobileNav />}
-        <main className={cn("flex-1 overflow-x-hidden", isVoicePage && "overflow-hidden")}>
+        <main
+          className={cn(
+            "flex-1 overflow-x-hidden min-h-0",
+            (isVoicePage || isEmailPage) && "overflow-hidden flex flex-col"
+          )}
+        >
           {isVoicePage ? (
             children
+          ) : isEmailPage ? (
+            <div className="flex-1 min-h-0 flex flex-col px-2 sm:px-3 py-2 lg:py-3">
+              {children}
+            </div>
           ) : (
-            <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
+            <div className="max-w-[100rem] mx-auto px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
               {children}
             </div>
           )}

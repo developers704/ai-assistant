@@ -16,6 +16,8 @@ import {
 export type ComposeState = {
   mode: "reply" | "compose" | "followup";
   to: string;
+  cc?: string;
+  bcc?: string;
   subject: string;
   body: string;
   threadId?: string;
@@ -50,14 +52,18 @@ export function ComposePanel({
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [expanded, setExpanded] = useState(true);
+  const [showCcBcc, setShowCcBcc] = useState(
+    () => !!(value.cc?.trim() || value.bcc?.trim())
+  );
 
   useEffect(() => {
     if (open) {
       setExpanded(true);
+      if (value.cc?.trim() || value.bcc?.trim()) setShowCcBcc(true);
       const t = setTimeout(() => taRef.current?.focus(), 80);
       return () => clearTimeout(t);
     }
-  }, [open, value.threadId, value.mode]);
+  }, [open, value.threadId, value.mode, value.cc, value.bcc]);
 
   if (!open) return null;
 
@@ -97,12 +103,43 @@ export function ComposePanel({
       </div>
 
       {expanded && (
-        <div className="px-3 sm:px-4 py-3 space-y-2 max-h-[min(52vh,420px)] overflow-y-auto">
-          <Field
-            label="To"
-            value={value.to}
-            onChange={(to) => onChange({ ...value, to })}
-          />
+        <div className="px-3 sm:px-4 py-3 space-y-2 max-h-[min(56vh,480px)] overflow-y-auto">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <Field
+                label="To"
+                value={value.to}
+                onChange={(to) => onChange({ ...value, to })}
+              />
+            </div>
+            {!showCcBcc && (
+              <button
+                type="button"
+                onClick={() => setShowCcBcc(true)}
+                className="shrink-0 text-[11px] font-medium text-white/40 hover:text-violet-200 px-1.5 py-1"
+              >
+                Cc/Bcc
+              </button>
+            )}
+          </div>
+
+          {showCcBcc && (
+            <>
+              <Field
+                label="Cc"
+                value={value.cc ?? ""}
+                onChange={(cc) => onChange({ ...value, cc })}
+                placeholder="optional"
+              />
+              <Field
+                label="Bcc"
+                value={value.bcc ?? ""}
+                onChange={(bcc) => onChange({ ...value, bcc })}
+                placeholder="optional"
+              />
+            </>
+          )}
+
           <Field
             label="Subject"
             value={value.subject}
@@ -219,18 +256,23 @@ function Field({
   label,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  placeholder?: string;
 }) {
   return (
     <label className="flex items-center gap-2 rounded-xl bg-black/25 ring-1 ring-white/10 px-3 py-1.5">
-      <span className="text-[11px] text-white/40 w-14 shrink-0">{label}</span>
+      <span className="text-[11px] text-white/40 w-14 shrink-0 font-medium">
+        {label}
+      </span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="flex-1 min-w-0 bg-transparent text-sm text-ink focus:outline-none"
+        placeholder={placeholder}
+        className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-white placeholder:text-white/25 focus:outline-none"
       />
     </label>
   );

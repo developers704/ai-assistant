@@ -45,30 +45,46 @@ export function EmailSidebar({
   onSelect,
   onCompose,
   className,
+  title,
+  subtitle,
 }: {
   active: EmailNavId;
   counts: Counts;
   onSelect: (id: EmailNavId) => void;
   onCompose: () => void;
   className?: string;
+  /** Optional header shown above Compose (desktop). */
+  title?: string;
+  subtitle?: string;
 }) {
   return (
     <aside
       className={cn(
-        "flex flex-col gap-1 p-2 sm:p-3 border-r border-white/10 bg-black/20 min-h-0 overflow-y-auto",
+        "flex flex-col gap-0.5 p-3 border-r border-white/10 bg-[#0a0c10]/80 min-h-0 overflow-y-auto",
         className
       )}
     >
+      {(title || subtitle) && (
+        <div className="px-1 pb-3 pt-0.5">
+          {title ? (
+            <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
+          ) : null}
+          {subtitle ? (
+            <p className="text-[11px] text-white/40 mt-0.5 truncate">{subtitle}</p>
+          ) : null}
+        </div>
+      )}
+
       <button
         type="button"
         onClick={onCompose}
-        className="mb-2 flex items-center justify-center gap-2 rounded-2xl bg-violet-500/25 ring-1 ring-violet-400/35 px-3 py-2.5 text-sm font-semibold text-violet-100 hover:bg-violet-500/35 transition-colors"
+        className="mb-3 flex items-center justify-center gap-2 rounded-2xl bg-[#5b4a8a] hover:bg-[#6b59a0] px-3 py-2.5 text-sm font-semibold text-white transition-colors shadow-lg shadow-violet-900/30"
       >
         <PenSquare size={16} />
         Compose
       </button>
 
-      <p className="px-2 pt-1 text-[10px] uppercase tracking-wider text-white/35 font-semibold">
+      <p className="px-2.5 pt-1 pb-1 text-[10px] uppercase tracking-wider text-white/35 font-semibold">
         Mail
       </p>
       {FOLDERS.map(({ id, label, icon: Icon }) => (
@@ -77,12 +93,12 @@ export function EmailSidebar({
           active={active === id}
           label={label}
           count={counts[id]}
-          icon={<Icon size={15} />}
+          icon={<Icon size={16} strokeWidth={1.75} />}
           onClick={() => onSelect(id)}
         />
       ))}
 
-      <p className="px-2 pt-3 text-[10px] uppercase tracking-wider text-white/35 font-semibold">
+      <p className="px-2.5 pt-4 pb-1 text-[10px] uppercase tracking-wider text-white/35 font-semibold">
         AI triage
       </p>
       {TRIAGE.map(({ id, icon: Icon }) => (
@@ -91,12 +107,12 @@ export function EmailSidebar({
           active={active === id}
           label={bucketLabel(id)}
           count={counts[id]}
-          icon={<Icon size={15} />}
+          icon={<Icon size={16} strokeWidth={1.75} />}
           onClick={() => onSelect(id)}
         />
       ))}
 
-      <p className="px-2 pt-3 text-[10px] uppercase tracking-wider text-white/35 font-semibold flex items-center gap-1.5">
+      <p className="px-2.5 pt-4 pb-1 text-[10px] uppercase tracking-wider text-white/35 font-semibold flex items-center gap-1.5">
         <Tag size={11} className="opacity-70" />
         Categories
       </p>
@@ -106,9 +122,8 @@ export function EmailSidebar({
           active={active === id}
           label={bucketLabel(id)}
           count={counts[id]}
-          icon={<Icon size={15} />}
+          icon={<Icon size={16} strokeWidth={1.75} />}
           onClick={() => onSelect(id)}
-          indent
         />
       ))}
     </aside>
@@ -121,31 +136,37 @@ function NavBtn({
   count,
   icon,
   onClick,
-  indent,
 }: {
   active: boolean;
   label: string;
   count?: number;
   icon: React.ReactNode;
   onClick: () => void;
-  indent?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] transition-colors",
-        indent && "ml-2",
+        "flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] transition-colors",
         active
-          ? "bg-violet-500/20 text-violet-100 ring-1 ring-violet-400/30"
-          : "text-white/55 hover:bg-white/[0.05] hover:text-white/80"
+          ? "bg-[#5b4a8a] text-white shadow-md shadow-violet-900/25"
+          : "text-white/60 hover:bg-white/[0.05] hover:text-white/85"
       )}
     >
-      <span className="shrink-0 opacity-80">{icon}</span>
+      <span className={cn("shrink-0", active ? "opacity-100" : "opacity-80")}>
+        {icon}
+      </span>
       <span className="flex-1 truncate font-medium">{label}</span>
       {count != null && count > 0 ? (
-        <span className="tabular-nums text-[11px] text-white/40">{count}</span>
+        <span
+          className={cn(
+            "tabular-nums text-[11px] shrink-0",
+            active ? "text-white/70" : "text-white/40"
+          )}
+        >
+          {count}
+        </span>
       ) : null}
     </button>
   );
