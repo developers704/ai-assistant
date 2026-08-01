@@ -1,6 +1,6 @@
 import type { SalesSummary } from "@/types";
 import { filterExcludedSalesRows, isExcludedSalesRow, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
-import { resolveProductImageUrl } from "@/lib/reports/product-image";
+import { normalizeSalesImageDir, resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate, parseReportFilterDate, shiftIsoYears } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
@@ -71,7 +71,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   const deptCol = findCol(columns, [/^department$/]);
   const designCol = findCol(columns, [/^design$/]);
   const descCol = findCol(columns, [/^description$/]);
-  // Umair / POS variants: "Item  #", "SKU  #", or "SKU #"
+  // Daily Umair export: "Item  #" is the SKU (may also send "SKU #")
   const itemCol = findCol(columns, [/^item\s*#?$/, /^item number$/]);
   const skuCol = findCol(columns, [/^sku\s*#?$/]);
   const styleCol = findCol(columns, [/^style\s*#?$/]);
@@ -91,12 +91,11 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   const subClassCol = findCol(columns, [/sub-class/, /sub class/]);
   const discRateCol = findCol(columns, [/disc rate/, /discount rate/]);
   const vendorCol = findCol(columns, [/^vendor\s*name$/, /^vendor\s*#?$/, /^vendor$/]);
-  // Umair export uses "VendorModel1"; standard feeds use "Vendor Model"
-  const vendorModelCol = findCol(columns, [
-    /^vendor\s*model\s*1?$/,
-    /^vendormodel1?$/,
-    /^vendor\s*model$/,
-  ]);
+  // Daily format: VendorModel1; historical seed: Vendor Model — prefer non-empty
+  const vendorModelCols = [
+    findCol(columns, [/^vendormodel1$/, /^vendor\s*model\s*1$/]),
+    findCol(columns, [/^vendor\s*model$/]),
+  ].filter((c): c is string => Boolean(c));
   const imageDirCol = findCol(columns, [/^image\s*dir\.?$/, /^image\s*directory$/, /^image$/]);
   const salespersonsCol = findCol(columns, [/^sales\s*persons?$/]);
   const typeCol = findCol(columns, [/^type$/]);
@@ -119,6 +118,10 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
     // Either column is the product id — keep both fields populated for lookups / Top 20
     const sku = rawSku || rawItem;
     const itemNumber = rawItem || rawSku;
+    const vendorModel =
+      vendorModelCols
+        .map((c) => String(rec[c] ?? "").trim())
+        .find((v) => v.length > 0) ?? "";
     const margin = profitAmountCol
       ? parseNumber(rec[profitAmountCol])
       : net - inventoryCost;
@@ -141,7 +144,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       style: styleCol ? String(rec[styleCol] ?? "").trim() : "",
       description: descCol ? String(rec[descCol] ?? "").trim() || department : department,
       vendor: vendorCol ? String(rec[vendorCol] ?? "").trim().toUpperCase() : "",
-      vendorModel: vendorModelCol ? String(rec[vendorModelCol] ?? "").trim() : "",
+      vendorModel,
       productClass: classCol ? String(rec[classCol] ?? "").trim() : "",
       subClass: subClassCol ? String(rec[subClassCol] ?? "").trim() : "",
       quantity: qty === 0 || qty == null || Number.isNaN(qty) ? 1 : qty,
@@ -152,7 +155,9 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       netRevenue: netCol ? net : gross,
       margin,
       discountRate: discRateCol ? parseNumber(rec[discRateCol]) : 0,
-      imageDir: imageDirCol ? String(rec[imageDirCol] ?? "").trim() : "",
+      imageDir: normalizeSalesImageDir(
+        imageDirCol ? String(rec[imageDirCol] ?? "").trim() : ""
+      ),
       salespersons: salespersonsCol
         ? String(rec[salespersonsCol] ?? "").trim()
         : undefined,

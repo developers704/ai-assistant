@@ -6,6 +6,15 @@
  * Marketplace CDN stores WebP; sales CSVs often list .jpg/.png — we prefer .webp.
  */
 
+/** Force Image Dir. to webp (jpg/jpeg/png/gif → webp). Keeps path + leading slash style. */
+export function normalizeSalesImageDir(raw?: string | null): string {
+  if (raw == null) return "";
+  let s = String(raw).trim();
+  if (!s || s === "-" || s === ".") return "";
+  s = s.replace(/\.(jpe?g|png|gif)$/i, ".webp");
+  return s;
+}
+
 export function normalizeImageDirFilename(raw?: string | null): string | null {
   if (!raw) return null;
   const cleaned = String(raw)
@@ -15,8 +24,9 @@ export function normalizeImageDirFilename(raw?: string | null): string | null {
     .replace(/^\/+/, "");
   if (!cleaned || cleaned === "-" || cleaned === ".") return null;
   // Keep nested paths when present (e.g. RADO/R12161643-0.jpg)
-  if (!/\.(jpe?g|png|webp|gif)$/i.test(cleaned)) return null;
-  return cleaned
+  const asWebp = cleaned.replace(/\.(jpe?g|png|gif)$/i, ".webp");
+  if (!/\.(jpe?g|png|webp|gif)$/i.test(asWebp)) return null;
+  return asWebp
     .split("/")
     .map((part) => part.trim())
     .filter(Boolean)

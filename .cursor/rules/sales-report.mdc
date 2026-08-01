@@ -56,7 +56,32 @@ When adding exclusions, update `src/lib/utils.ts` only.
 
 - File: `data/reports/Sales-Report.csv`
 - Seeded via `src/lib/reports/store.ts`; app refreshes `.data/reports/` when the file changes
-- Current seed window: **2025-01-01 → 2026-07-30**
+- Current seed window: **2025-01-01 → 2026-07-31**
+
+## Daily append format (always)
+
+Going forward, daily sales files use the Umair / POS export shape. Treat this as the canonical daily append format on upload (`POST /api/reports`, Data Analyst, merge into live report).
+
+| Column in CSV | App field |
+|---|---|
+| `Item  #` | **SKU** (`sku` / `itemNumber`) — same as `SKU #` when present |
+| `VendorModel1` | **Vendor model** |
+| `Image Dir.` | Product image path — **always store/resolve as `.webp`** (replace `.jpg` / `.jpeg` / `.png` / `.gif`) |
+| `Profit Amount` | Row margin (see Profit / margin above) |
+| `Transaction Date` | Day key for append/replace-same-day merge |
+
+### Empty spacer columns
+
+Daily files often have blank header cells between fields (double commas). Always run `normalizeDailySalesCsv()` before parse/merge/save — collapse columns whose header is empty; do not invent names for blank headers.
+
+### Implementation
+
+- `src/lib/reports/normalize-daily-sales-csv.ts` — collapse empty columns + Image Dir → webp
+- `src/lib/reports/product-image.ts` — `normalizeSalesImageDir()` / `preferWebpFilename()`
+- `src/lib/reports/vendor-pos.ts` — maps `Item  #` → SKU, `VendorModel1` → vendor model (also accepts historical `SKU #` / `Vendor Model`; prefers non-empty); normalizes `imageDir` at parse
+- `src/lib/reports/merge-sales-csv.ts` — append by Transaction Date (same day replaces); copies `Item  #` → `SKU #` and `VendorModel1` → `Vendor Model` when merging into the live seed
+- Apply normalize on every sales upload path (`api/reports`, `summarizeCsvText`)
+- Self-check: `npx tsx scripts/check-daily-sales-csv.ts`
 
 ## Salespersons
 

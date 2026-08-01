@@ -1,5 +1,7 @@
 import Papa from "papaparse";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
+import { normalizeDailySalesCsv } from "@/lib/reports/normalize-daily-sales-csv";
+import { normalizeSalesImageDir } from "@/lib/reports/product-image";
 
 function normalizeRowDate(raw: unknown): string | null {
   if (raw == null || raw === "") return null;
@@ -18,25 +20,41 @@ function normalizeRowDate(raw: unknown): string | null {
 
 function findDateColumn(fields: string[]): string | null {
   return (
-    fields.find((f) => /transaction\s*date/i.test(f)) ??
+    fields.find((f) => /transaction\s*date/i.test(f.trim())) ??
     fields.find((f) => /^date$/i.test(f.trim())) ??
     null
   );
+}
+
+function findImageDirColumn(fields: string[]): string | null {
+  return fields.find((f) => /^image\s*dir\.?$/i.test(f.trim())) ?? null;
 }
 
 function parseCsvRows(csvText: string): {
   fields: string[];
   rows: Record<string, string>[];
 } {
-  const parsed = Papa.parse<Record<string, string>>(csvText, {
+  // Drop spacer empty columns + force Image Dir. → webp before header parse
+  const normalized = normalizeDailySalesCsv(csvText);
+  const parsed = Papa.parse<Record<string, string>>(normalized, {
     header: true,
     skipEmptyLines: "greedy",
     transformHeader: (h) => h.trim(),
   });
-  return {
-    fields: parsed.meta.fields ?? [],
-    rows: parsed.data.filter((r) => Object.values(r).some((v) => String(v ?? "").trim())),
-  };
+  const fields = (parsed.meta.fields ?? []).filter((f) => String(f ?? "").trim());
+  const imageCol = findImageDirColumn(fields);
+  const rows = parsed.data
+    .filter((r) => Object.values(r).some((v) => String(v ?? "").trim()))
+    .map((r) => {
+      const out: Record<string, string> = {};
+      for (const f of fields) {
+        let v = String(r[f] ?? "");
+        if (imageCol && f === imageCol) v = normalizeSalesImageDir(v);
+        out[f] = v;
+      }
+      return out;
+    });
+  return { fields, rows };
 }
 
 function shortLabel(iso: string): string {
@@ -115,9 +133,32 @@ export function mergeSalesCsvAppend(
   if (!fieldSet.has(nextDateCol) && nextDateCol) fieldSet.add(nextDateCol);
   const fields = Array.from(fieldSet);
 
+  const skuField =
+    fields.find((f) => /^sku\s*#?$/i.test(f.trim())) ?? null;
+  const itemField =
+    fields.find((f) => /^item\s*#?$/i.test(f.trim())) ?? null;
+  const vendorModelField =
+    fields.find((f) => /^vendor\s*model$/i.test(f.trim())) ?? null;
+  const vendorModel1Field =
+    fields.find((f) => /^vendormodel1$/i.test(f.trim()) || /^vendor\s*model\s*1$/i.test(f.trim())) ??
+    null;
+
   const normalizeRow = (row: Record<string, string>): Record<string, string> => {
     const out: Record<string, string> = {};
     for (const f of fields) out[f] = row[f] ?? "";
+    // Daily format → canonical columns used by the historical seed
+    if (skuField && itemField) {
+      const sku = out[skuField]?.trim();
+      const item = out[itemField]?.trim();
+      if (!sku && item) out[skuField] = item;
+      if (!item && sku) out[itemField] = sku;
+    }
+    if (vendorModelField && vendorModel1Field) {
+      const vm = out[vendorModelField]?.trim();
+      const vm1 = out[vendorModel1Field]?.trim();
+      if (!vm && vm1) out[vendorModelField] = vm1;
+      if (!vm1 && vm) out[vendorModel1Field] = vm;
+    }
     return out;
   };
 

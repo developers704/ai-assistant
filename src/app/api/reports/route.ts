@@ -59,9 +59,16 @@ export async function POST(req: NextRequest) {
       shouldAppendSalesUpload,
       mergeSalesCsvAppend,
     } = await import("@/lib/reports/merge-sales-csv");
+    const { normalizeDailySalesCsv } = await import(
+      "@/lib/reports/normalize-daily-sales-csv"
+    );
 
     const wantsSales =
       !reportCategory || reportCategory === "sales";
+    // Normalize spacer empty columns + Image Dir. → webp before append/save
+    if (wantsSales) {
+      csvText = normalizeDailySalesCsv(csvText);
+    }
     const append =
       wantsSales &&
       shouldAppendSalesUpload({

@@ -10,6 +10,7 @@ import type { ReportCategory, ReportPeriod, ReportSummary } from "./types";
 import { isFinancingReportFormat, parseFinancingRows, summarizeFinancing } from "./financing-report";
 import { isStoreSalesFormat } from "./detect-report";
 import { isStoreSalesCsv, isVendorPosFormat, parseVendorPosRows, summarizeVendorPos } from "./vendor-pos";
+import { normalizeDailySalesCsv } from "./normalize-daily-sales-csv";
 
 function parseNumber(raw: unknown): number {
   if (raw == null || raw === "") return 0;
@@ -307,7 +308,9 @@ export function summarizeCsvText(
   schema: "generic" | "vendor_pos" | "store_sales" | "financing";
   dateRange?: { from: string; to: string };
 } {
-  const parsed = Papa.parse<Record<string, unknown>>(csvText, {
+  // Daily Umair exports: drop empty spacer columns; Image Dir. → webp
+  const normalizedText = normalizeDailySalesCsv(csvText);
+  const parsed = Papa.parse<Record<string, unknown>>(normalizedText, {
     header: true,
     skipEmptyLines: true,
     dynamicTyping: false,
