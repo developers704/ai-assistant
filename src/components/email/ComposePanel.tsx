@@ -70,12 +70,11 @@ export function ComposePanel({
   return (
     <div
       className={cn(
-        "shrink-0 border-t border-violet-400/25 bg-[#0c1220]/98 backdrop-blur-md shadow-[0_-12px_40px_rgba(0,0,0,0.45)]",
-        "safe-area-bottom"
+        "shrink-0 border-t border-white/[0.08] bg-[#0e1420] safe-area-bottom"
       )}
     >
-      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-white/10">
-        <p className="text-xs font-semibold text-violet-200/90 uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-white/[0.06]">
+        <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">
           {value.mode === "compose"
             ? "New message"
             : value.mode === "followup"
@@ -158,7 +157,7 @@ export function ComposePanel({
             }}
             rows={8}
             placeholder="Write your message… (⌘/Ctrl+Enter to send)"
-            className="w-full rounded-xl bg-black/30 ring-1 ring-white/10 px-3 py-2.5 text-sm text-ink placeholder:text-white/25 focus:outline-none focus:ring-violet-400/40 resize-y min-h-[140px]"
+            className="w-full rounded-xl bg-black/25 ring-1 ring-white/10 px-3 py-2.5 text-sm text-white/85 placeholder:text-white/25 focus:outline-none focus:ring-[#5b4a8a]/50 resize-y min-h-[140px]"
           />
 
           {error ? <p className="text-xs text-rose-300">{error}</p> : null}
@@ -272,7 +271,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-white placeholder:text-white/25 focus:outline-none"
+        className="flex-1 min-w-0 bg-transparent text-sm font-medium text-white/90 placeholder:text-white/25 focus:outline-none"
       />
     </label>
   );

@@ -12,9 +12,7 @@ import {
   Mail,
   Reply,
   X,
-  Flag,
   MoreHorizontal,
-  CheckCircle2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -24,6 +22,7 @@ export function EmailReadingPane({
   onReply,
   onAction,
   busy,
+  showTriage = true,
 }: {
   email: Email;
   onClose?: () => void;
@@ -32,23 +31,24 @@ export function EmailReadingPane({
     action: "star" | "unstar" | "archive" | "trash" | "mark_read" | "mark_unread"
   ) => void;
   busy?: boolean;
+  showTriage?: boolean;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const conversation =
     email.threadMessages && email.threadMessages.length > 0
       ? email.threadMessages
       : [email];
-  const bucket = email.inboxBucket;
+  const bucket = showTriage ? email.inboxBucket : undefined;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-[#0b1018]">
-      <div className="shrink-0 sticky top-0 z-10 border-b border-white/10 px-4 sm:px-6 py-4 bg-[#0f1520]/92 backdrop-blur-md">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-[#0d121c]">
+      <header className="shrink-0 border-b border-white/[0.06] px-4 sm:px-6 py-3.5 bg-[#10161f]/95">
         <div className="flex items-start gap-3">
           {onClose ? (
             <button
               type="button"
               onClick={onClose}
-              className="lg:hidden mt-1 p-1.5 rounded-lg text-white/50 hover:bg-white/10"
+              className="lg:hidden mt-0.5 p-1.5 rounded-lg text-white/45 hover:bg-white/10"
               aria-label="Back"
             >
               <X size={18} />
@@ -56,168 +56,161 @@ export function EmailReadingPane({
           ) : null}
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg sm:text-2xl font-semibold text-white leading-snug break-words tracking-tight">
+            <h2 className="text-base sm:text-xl font-semibold text-white/95 leading-snug break-words tracking-tight">
               {email.subject || "(no subject)"}
             </h2>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="mt-1 text-[12px] text-white/40">
               {bucket ? (
-                <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium text-white/65 ring-1 ring-white/10">
-                  <Flag size={11} className="text-sky-300/80" />
-                  {bucketLabel(bucket)}
-                </span>
+                <>
+                  <span className="text-white/55">{bucketLabel(bucket)}</span>
+                  <span className="mx-1.5 text-white/20">·</span>
+                </>
               ) : null}
-              <span className="text-[11px] text-white/40">
-                {conversation.length} message
-                {conversation.length === 1 ? "" : "s"} ·{" "}
-                {formatRelativeTime(email.receivedAt)}
-              </span>
-            </div>
+              {conversation.length} message
+              {conversation.length === 1 ? "" : "s"}
+              <span className="mx-1.5 text-white/20">·</span>
+              {formatRelativeTime(email.receivedAt)}
+            </p>
           </div>
 
-          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
+          <div className="hidden sm:flex items-center gap-1 shrink-0">
+            <IconAction
+              label="Reply"
               disabled={busy}
               onClick={onReply}
-              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 disabled:opacity-40 shadow-md shadow-sky-500/20"
-            >
-              <Reply size={15} />
-              Reply
-            </button>
-            <button
-              type="button"
+              primary
+              icon={<Reply size={15} />}
+            />
+            <IconAction
+              label="Archive"
               disabled={busy}
               onClick={() => onAction("archive")}
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-white/[0.06] text-white/75 text-sm font-medium ring-1 ring-white/10 hover:bg-white/10 disabled:opacity-40"
-            >
-              <CheckCircle2 size={15} />
-              Archive
-            </button>
+              icon={<Archive size={15} />}
+            />
             <div className="relative">
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => setMoreOpen((v) => !v)}
-                className="h-9 w-9 inline-flex items-center justify-center rounded-xl bg-white/[0.06] text-white/60 ring-1 ring-white/10 hover:bg-white/10"
-                aria-label="More actions"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white/80 disabled:opacity-40"
+                aria-label="More"
               >
                 <MoreHorizontal size={16} />
               </button>
               {moreOpen && (
-                <div className="absolute right-0 top-full mt-1.5 z-20 w-44 rounded-xl bg-[#151d2e] ring-1 ring-white/15 shadow-xl py-1 overflow-hidden">
-                  <MoreItem
-                    label={email.isStarred ? "Unstar" : "Star"}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      onAction(email.isStarred ? "unstar" : "star");
-                    }}
-                    icon={
-                      <Star
-                        size={14}
-                        className={
-                          email.isStarred
-                            ? "fill-amber-300 text-amber-300"
-                            : undefined
-                        }
-                      />
-                    }
+                <>
+                  <button
+                    type="button"
+                    className="fixed inset-0 z-10 cursor-default"
+                    aria-label="Close menu"
+                    onClick={() => setMoreOpen(false)}
                   />
-                  <MoreItem
-                    label={email.isRead ? "Mark unread" : "Mark read"}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      onAction(email.isRead ? "mark_unread" : "mark_read");
-                    }}
-                    icon={email.isRead ? <Mail size={14} /> : <MailOpen size={14} />}
-                  />
-                  <MoreItem
-                    label="Delete"
-                    danger
-                    onClick={() => {
-                      setMoreOpen(false);
-                      onAction("trash");
-                    }}
-                    icon={<Trash2 size={14} />}
-                  />
-                </div>
+                  <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-xl bg-[#161c28] ring-1 ring-white/10 shadow-xl py-1 overflow-hidden">
+                    <MoreItem
+                      label={email.isStarred ? "Unstar" : "Star"}
+                      onClick={() => {
+                        setMoreOpen(false);
+                        onAction(email.isStarred ? "unstar" : "star");
+                      }}
+                      icon={
+                        <Star
+                          size={14}
+                          className={
+                            email.isStarred
+                              ? "fill-amber-300 text-amber-300"
+                              : undefined
+                          }
+                        />
+                      }
+                    />
+                    <MoreItem
+                      label={email.isRead ? "Mark unread" : "Mark read"}
+                      onClick={() => {
+                        setMoreOpen(false);
+                        onAction(email.isRead ? "mark_unread" : "mark_read");
+                      }}
+                      icon={
+                        email.isRead ? <Mail size={14} /> : <MailOpen size={14} />
+                      }
+                    />
+                    <MoreItem
+                      label="Delete"
+                      danger
+                      onClick={() => {
+                        setMoreOpen(false);
+                        onAction("trash");
+                      }}
+                      icon={<Trash2 size={14} />}
+                    />
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
 
-        {/* Mobile action row */}
-        <div className="mt-3 flex sm:hidden flex-wrap gap-1.5">
-          <ToolBtn label="Reply" onClick={onReply} disabled={busy} icon={<Reply size={14} />} primary />
-          <ToolBtn
-            label="Archive"
-            onClick={() => onAction("archive")}
-            disabled={busy}
-            icon={<Archive size={14} />}
-          />
-          <ToolBtn
-            label={email.isStarred ? "Unstar" : "Star"}
-            onClick={() => onAction(email.isStarred ? "unstar" : "star")}
-            disabled={busy}
-            icon={
-              <Star
-                size={14}
-                className={email.isStarred ? "fill-amber-300 text-amber-300" : undefined}
-              />
-            }
-          />
-          <ToolBtn
+        <div className="mt-2.5 flex sm:hidden gap-1.5">
+          <IconAction label="Reply" onClick={onReply} disabled={busy} primary icon={<Reply size={14} />} />
+          <IconAction label="Archive" onClick={() => onAction("archive")} disabled={busy} icon={<Archive size={14} />} />
+          <IconAction
             label="Delete"
             onClick={() => onAction("trash")}
             disabled={busy}
-            icon={<Trash2 size={14} />}
             danger
+            icon={<Trash2 size={14} />}
           />
         </div>
-      </div>
+      </header>
 
       <div
         data-email-scroll
-        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-4 space-y-4"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain"
       >
         {conversation.map((msg, idx) => {
           const isYou =
             /valliani|kash@/i.test(msg.fromEmail) || /kash/i.test(msg.from);
           return (
-            <article
+            <section
               key={msg.id}
               className={cn(
-                "rounded-2xl overflow-hidden ring-1 shadow-sm",
-                isYou
-                  ? "ring-cyan-400/20 bg-cyan-500/[0.06]"
-                  : "ring-white/[0.08] bg-white/[0.03]"
+                "border-b border-white/[0.04] last:border-b-0",
+                idx > 0 && "mt-0"
               )}
             >
-              <div className="flex items-start gap-3 px-4 sm:px-5 py-3 border-b border-white/[0.06]">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500/25 text-sky-100 text-[11px] font-semibold">
+              <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
+                <div
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
+                    isYou
+                      ? "bg-[#2a4a55] text-cyan-100"
+                      : "bg-[#2a3548] text-white/80"
+                  )}
+                >
                   {initials(msg.from)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white truncate">
+                  <p className="text-[13px] font-medium text-white/90 truncate">
                     {msg.from}
-                    {isYou && (
-                      <span className="ml-1.5 text-[10px] font-medium text-cyan-300/80">
-                        You
+                    {isYou ? (
+                      <span className="ml-1.5 text-[10px] font-normal text-cyan-300/70">
+                        you
                       </span>
-                    )}
+                    ) : null}
                   </p>
-                  <p className="text-[11px] text-white/40 truncate">{msg.fromEmail}</p>
+                  <p className="text-[11px] text-white/35 truncate">{msg.fromEmail}</p>
                 </div>
-                <p className="text-[10px] text-white/40 shrink-0 tabular-nums pt-1">
+                <p className="text-[11px] text-white/35 shrink-0 tabular-nums">
                   {formatRelativeTime(msg.receivedAt)}
                 </p>
               </div>
-              <EmailBody body={msg.body} bodyHtml={msg.bodyHtml} preview={msg.preview} />
-              {idx < conversation.length - 1 && (
-                <p className="px-4 py-2 text-[10px] text-white/35 border-t border-white/[0.05]">
-                  Continued in thread
-                </p>
-              )}
-            </article>
+              <div className="px-4 sm:px-6 pb-5">
+                <EmailBody
+                  body={msg.body}
+                  bodyHtml={msg.bodyHtml}
+                  preview={msg.preview}
+                />
+              </div>
+            </section>
           );
         })}
       </div>
@@ -225,35 +218,7 @@ export function EmailReadingPane({
   );
 }
 
-function MoreItem({
-  label,
-  icon,
-  onClick,
-  danger,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors",
-        danger
-          ? "text-rose-300 hover:bg-rose-500/10"
-          : "text-white/75 hover:bg-white/[0.06]"
-      )}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-function ToolBtn({
+function IconAction({
   label,
   icon,
   onClick,
@@ -277,14 +242,42 @@ function ToolBtn({
       className={cn(
         "inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40",
         primary
-          ? "bg-sky-500 text-white hover:bg-sky-400"
+          ? "bg-[#5b4a8a] text-white hover:bg-[#6b59a0]"
           : danger
-            ? "text-rose-300 hover:bg-rose-500/10"
-            : "text-white/65 hover:bg-white/[0.07]"
+            ? "text-rose-300/90 hover:bg-rose-500/10"
+            : "text-white/55 hover:bg-white/[0.06] hover:text-white/85"
       )}
     >
       {icon}
-      <span>{label}</span>
+      <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+}
+
+function MoreItem({
+  label,
+  icon,
+  onClick,
+  danger,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-2 px-3 py-2 text-left text-[13px] transition-colors",
+        danger
+          ? "text-rose-300 hover:bg-rose-500/10"
+          : "text-white/70 hover:bg-white/[0.05]"
+      )}
+    >
+      {icon}
+      {label}
     </button>
   );
 }

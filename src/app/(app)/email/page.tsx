@@ -21,7 +21,7 @@ import {
   type InboxBucket,
   type MailFolder,
 } from "@/lib/email-buckets";
-import { Link2, Loader2, Menu, MessageSquare, PenSquare, Search, X } from "lucide-react";
+import { Link2, Loader2, Menu, PenSquare, Search, X } from "lucide-react";
 
 const MOBILE_HEIGHT =
   "max-lg:h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-1.5rem)]";
@@ -214,7 +214,13 @@ export default function EmailPage() {
       );
     }
     return sortEmails(
-      list.map((e) => (nav === "drafts" ? e : withInboxBucket(e)))
+      list.map((e) => {
+        // Sent / drafts shouldn't show AI triage tags
+        if (nav === "sent" || nav === "drafts") {
+          return { ...e, inboxBucket: undefined, needsReply: false };
+        }
+        return withInboxBucket(e);
+      })
     );
   }, [nav, inboxEmails, folderEmails, query, googleConnected]);
 
@@ -242,7 +248,8 @@ export default function EmailPage() {
     listEmails.find((e) => e.id === selectedId || e.threadId === selectedId) ??
     null;
 
-  const mobileReading = !!selectedId;
+  const showTriage = nav === "inbox" || isBucket(nav);
+  const showFilterTabs = nav === "inbox" || isBucket(nav);
 
   // Mark read when opening
   useEffect(() => {
@@ -779,55 +786,57 @@ export default function EmailPage() {
             className="hidden lg:flex w-52 xl:w-56 shrink-0"
           />
 
-          {/* List — card column */}
+          {/* List column */}
           <div
             className={cn(
-              "w-full lg:w-[22rem] xl:w-[26rem] shrink-0 flex flex-col min-h-0 border-r border-white/10 bg-black/15",
+              "w-full lg:w-[22rem] xl:w-[24rem] shrink-0 flex flex-col min-h-0 border-r border-white/[0.06] bg-[#0c1018]",
               mobileReading && "hidden lg:flex"
             )}
           >
-            <div className="hidden lg:block shrink-0 px-4 pt-4 pb-2 border-b border-white/[0.06]">
-              <div className="flex items-center gap-2 mb-3">
-                <MessageSquare size={16} className="text-violet-300/80" />
-                <h2 className="text-sm font-semibold text-white tracking-tight">
+            <div className="hidden lg:block shrink-0 px-4 py-3 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[13px] font-semibold text-white/90 tracking-tight">
                   {navTitle(nav)}
                 </h2>
-                <span className="text-[11px] text-white/35 ml-auto tabular-nums">
+                <span className="text-[11px] text-white/30 tabular-nums">
                   {listEmails.length}
                 </span>
               </div>
-              <div className="flex gap-1 p-0.5 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.06]">
-                {(
-                  [
-                    { id: "inbox" as EmailNavId, label: "All" },
-                    { id: "to_respond" as EmailNavId, label: "Active" },
-                    { id: "starred" as EmailNavId, label: "Starred" },
-                    { id: "fyi" as EmailNavId, label: "FYI" },
-                  ] as const
-                ).map(({ id, label }) => {
-                  const active = nav === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setNav(id)}
-                      className={cn(
-                        "flex-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors",
-                        active
-                          ? "bg-[#5b4a8a] text-white shadow-sm"
-                          : "text-white/45 hover:text-white/75"
-                      )}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+              {showFilterTabs ? (
+                <div className="mt-2.5 flex gap-1">
+                  {(
+                    [
+                      { id: "inbox" as EmailNavId, label: "All" },
+                      { id: "to_respond" as EmailNavId, label: "Active" },
+                      { id: "starred" as EmailNavId, label: "Starred" },
+                      { id: "fyi" as EmailNavId, label: "FYI" },
+                    ] as const
+                  ).map(({ id, label }) => {
+                    const active = nav === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setNav(id)}
+                        className={cn(
+                          "rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
+                          active
+                            ? "bg-[#5b4a8a] text-white"
+                            : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
 
             <EmailThreadList
               emails={listEmails}
               selectedId={selectedId}
+              showTriage={showTriage}
               loading={loadingList && isFolder(nav) && nav !== "inbox"}
               onSelect={(e) => {
                 if (nav === "drafts" || e.draftId) {
@@ -845,7 +854,7 @@ export default function EmailPage() {
                 type="button"
                 disabled={loadingMore}
                 onClick={() => void loadFolder(nav, nextPageToken, true)}
-                className="m-2 py-2 rounded-xl text-xs font-medium text-sky-200 bg-sky-500/10 ring-1 ring-sky-400/25 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="m-2 py-2 rounded-lg text-xs font-medium text-white/50 bg-white/[0.04] ring-1 ring-white/[0.06] disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-white/[0.06]"
               >
                 {loadingMore ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -871,6 +880,7 @@ export default function EmailPage() {
                   onReply={() => void openReply(selected)}
                   onAction={(a) => void runThreadAction(selected, a)}
                   busy={actionBusy}
+                  showTriage={showTriage}
                 />
                 <ComposePanel
                   open={!!compose}
@@ -930,22 +940,13 @@ export default function EmailPage() {
                 />
               </div>
             ) : (
-              <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center px-10 bg-gradient-to-br from-sky-500/[0.06] via-transparent to-violet-500/[0.04]">
-                <div className="h-16 w-16 rounded-2xl bg-sky-500/15 ring-1 ring-sky-400/25 flex items-center justify-center mb-4 shadow-lg shadow-sky-500/10">
-                  <MessageSquare size={26} className="text-sky-200/80" />
-                </div>
-                <p className="text-lg font-display font-semibold text-ink">
+              <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center px-10">
+                <p className="text-[15px] font-medium text-white/55">
                   Select a conversation
                 </p>
-                <p className="text-sm text-ink-muted mt-2 max-w-md leading-relaxed">
-                  Instant categorization and drafts in your voice — open a
-                  thread to read full-width and reply.
+                <p className="text-[13px] text-white/30 mt-1.5 max-w-xs leading-relaxed">
+                  Choose a thread from the list to read and reply.
                 </p>
-                {selectedId === null && counts.to_respond ? (
-                  <p className="text-xs text-sky-200/80 mt-4 px-3 py-1.5 rounded-full bg-sky-500/10 ring-1 ring-sky-400/20">
-                    {counts.to_respond} need a response
-                  </p>
-                ) : null}
               </div>
             )}
           </section>

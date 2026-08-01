@@ -12,7 +12,7 @@ interface EmailBodyProps {
 export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
   const plain = toPlainText(body) || toPlainText(preview ?? "");
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [iframeHeight, setIframeHeight] = useState(200);
+  const [iframeHeight, setIframeHeight] = useState(160);
 
   const resizeIframe = useCallback(() => {
     const iframe = iframeRef.current;
@@ -21,9 +21,9 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
     const height = Math.max(
       doc.documentElement.scrollHeight,
       doc.body.scrollHeight,
-      120
+      80
     );
-    setIframeHeight(height + 8);
+    setIframeHeight(height + 4);
   }, []);
 
   useEffect(() => {
@@ -61,12 +61,18 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
     };
   }, [bodyHtml, resizeIframe]);
 
-  if (bodyHtml && bodyHtml.trim()) {
+  // Prefer plain text when HTML is empty noise; dark UI for plain
+  const htmlLooksUseful =
+    !!bodyHtml?.trim() &&
+    !/^\s*<[^>]+>\s*$/i.test(bodyHtml.trim()) &&
+    bodyHtml.replace(/<[^>]+>/g, "").trim().length > 0;
+
+  if (htmlLooksUseful && bodyHtml) {
     const doc = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="referrer" content="no-referrer" />
 <base target="_blank" rel="noopener noreferrer" />
 <style>
@@ -74,32 +80,23 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
     margin: 0;
     padding: 0;
     overflow: hidden !important;
-    -webkit-text-size-adjust: 100%;
+    background: #f4f5f7;
   }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 15px;
-    line-height: 1.55;
-    padding: 20px 28px 28px;
-    color: #1e293b;
-    background: #ffffff;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 14.5px;
+    line-height: 1.6;
+    padding: 18px 20px;
+    color: #1a1f2c;
     word-wrap: break-word;
     overflow-wrap: anywhere;
   }
-  img {
-    max-width: 100% !important;
-    height: auto !important;
-    display: block;
-  }
-  body > table,
-  body > center > table,
-  body > div > table {
-    width: 100% !important;
-    max-width: 100% !important;
+  img { max-width: 100% !important; height: auto !important; }
+  body > table, body > center > table, body > div > table {
+    width: 100% !important; max-width: 100% !important;
   }
   table { max-width: 100% !important; }
-  td, th { word-break: break-word; }
-  a { color: #2563eb; word-break: break-all; }
+  a { color: #3b5bdb; }
   pre, code { white-space: pre-wrap; word-break: break-word; }
   * { box-sizing: border-box; }
 </style>
@@ -108,7 +105,7 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
 </html>`;
 
     return (
-      <div className="min-w-0 w-full">
+      <div className="min-w-0 w-full rounded-xl overflow-hidden ring-1 ring-white/[0.08] bg-[#f4f5f7]">
         <iframe
           ref={iframeRef}
           title="Email content"
@@ -117,24 +114,14 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
           onLoad={resizeIframe}
           scrolling="no"
           style={{ height: iframeHeight }}
-          className="w-full max-w-full block border-0 bg-white"
+          className="w-full max-w-full block border-0"
         />
-        {plain && (
-          <details className="text-xs text-ink-muted px-4 sm:px-6 py-2 bg-[#0c1018]">
-            <summary className="cursor-pointer hover:text-ink-secondary py-1">
-              View plain text
-            </summary>
-            <pre className="mt-1 text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed rounded-xl bg-black/25 p-3 ring-1 ring-white/5 max-h-48 overflow-y-auto">
-              {plain}
-            </pre>
-          </details>
-        )}
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap break-words px-6 sm:px-8 py-6 sm:py-7">
+    <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06] px-4 sm:px-5 py-4 text-[14px] text-white/75 leading-relaxed whitespace-pre-wrap break-words">
       {plain || "No content."}
     </div>
   );
