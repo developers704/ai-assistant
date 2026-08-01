@@ -380,7 +380,28 @@ export default function EmailPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setComposeError(data.error || "Could not save draft");
+        const msg = String(data.error || "");
+        // Old Google tokens lack gmail.compose — fall back to local Drafts so Close still works
+        if (/insufficient.*(auth|scope)/i.test(msg) || /scope/i.test(msg)) {
+          const id = c.draftId || `local-${Date.now()}`;
+          const next: LocalDraft = {
+            ...c,
+            id,
+            draftId: id,
+            updatedAt: new Date().toISOString(),
+          };
+          const others = readLocalDrafts().filter((d) => d.id !== id);
+          writeLocalDrafts([next, ...others]);
+          setCompose(null);
+          setComposeError(null);
+          if (nav === "drafts") {
+            setFolderEmails(readLocalDrafts().map(localDraftToEmail));
+          }
+          return;
+        }
+        setComposeError(
+          msg || "Could not save draft. Reconnect Google in Settings if this persists."
+        );
         return;
       }
       setCompose(null);

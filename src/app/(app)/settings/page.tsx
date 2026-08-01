@@ -726,9 +726,19 @@ function SettingsContent() {
 
                       <p className="text-xs text-ink-muted flex-1 min-w-[200px]">
 
-                        Connected as {googleEmail ?? "your Google account"}
+                        Connected as {googleEmail ?? "your Google account"}. Reconnect if Close/Drafts or Send asks for more permissions.
 
                       </p>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          window.location.href = "/api/auth/google";
+                        }}
+                      >
+                        <Link2 size={14} /> Reconnect
+                      </Button>
 
                       <Button size="sm" variant="outline" onClick={handleDisconnectGoogle} disabled={disconnecting}>
 

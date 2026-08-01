@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toPlainText } from "@/lib/email-html";
 
 interface EmailBodyProps {
@@ -12,16 +12,54 @@ interface EmailBodyProps {
 export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
   const plain = toPlainText(body) || toPlainText(preview ?? "");
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [iframeHeight, setIframeHeight] = useState(420);
+  const [iframeHeight, setIframeHeight] = useState(200);
 
   const resizeIframe = useCallback(() => {
-    const doc = iframeRef.current?.contentDocument;
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
     if (!doc?.body) return;
-    const height =
-      Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight) + 24;
-    // Keep short emails from looking like a postage stamp in a wide pane
-    setIframeHeight(Math.max(height, 360));
+    const height = Math.max(
+      doc.documentElement.scrollHeight,
+      doc.body.scrollHeight,
+      120
+    );
+    setIframeHeight(height + 8);
   }, []);
+
+  useEffect(() => {
+    if (!bodyHtml?.trim()) return;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    let removeWheel: (() => void) | undefined;
+
+    const attach = () => {
+      resizeIframe();
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+
+      doc.querySelectorAll("img").forEach((img) => {
+        if (!img.complete) img.addEventListener("load", resizeIframe, { once: true });
+      });
+
+      const onWheel = (e: WheelEvent) => {
+        const parent = iframe.closest("[data-email-scroll]") as HTMLElement | null;
+        if (!parent) return;
+        e.preventDefault();
+        parent.scrollTop += e.deltaY;
+      };
+      doc.addEventListener("wheel", onWheel, { passive: false });
+      removeWheel = () => doc.removeEventListener("wheel", onWheel);
+    };
+
+    iframe.addEventListener("load", attach);
+    if (iframe.contentDocument?.body) attach();
+
+    return () => {
+      iframe.removeEventListener("load", attach);
+      removeWheel?.();
+    };
+  }, [bodyHtml, resizeIframe]);
 
   if (bodyHtml && bodyHtml.trim()) {
     const doc = `<!DOCTYPE html>
@@ -32,17 +70,13 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
 <meta name="referrer" content="no-referrer" />
 <base target="_blank" rel="noopener noreferrer" />
 <style>
-  html {
-    height: 100%;
-  }
   html, body {
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
+    overflow: hidden !important;
     -webkit-text-size-adjust: 100%;
   }
   body {
-    min-height: 100%;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 15px;
     line-height: 1.55;
@@ -57,7 +91,6 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
     height: auto !important;
     display: block;
   }
-  /* Expand common marketing wrappers to the reading pane */
   body > table,
   body > center > table,
   body > div > table {
@@ -82,11 +115,9 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
           sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
           srcDoc={doc}
           onLoad={resizeIframe}
-          style={{
-            height: iframeHeight,
-            minHeight: "min(60vh, 520px)",
-          }}
-          className="w-full max-w-full block border-0 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+          scrolling="no"
+          style={{ height: iframeHeight }}
+          className="w-full max-w-full block border-0 bg-white"
         />
         {plain && (
           <details className="text-xs text-ink-muted px-4 sm:px-6 py-2 bg-[#0c1018]">
@@ -103,7 +134,7 @@ export function EmailBody({ body, bodyHtml, preview }: EmailBodyProps) {
   }
 
   return (
-    <div className="min-h-[min(60vh,520px)] w-full bg-white text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap break-words px-6 sm:px-8 py-6 sm:py-7">
+    <div className="w-full bg-white text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap break-words px-6 sm:px-8 py-6 sm:py-7">
       {plain || "No content."}
     </div>
   );

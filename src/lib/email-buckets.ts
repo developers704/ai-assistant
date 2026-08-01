@@ -6,13 +6,17 @@ export type MailFolder = "inbox" | "starred" | "sent" | "drafts";
 const ASK_RE =
   /\?|\b(please|kindly|can you|could you|would you|let me know|need you to|looking for|confirm|asap|by eod|by end of)\b/i;
 
+function textOf(from: string, subject: string, body = ""): string {
+  return `${from} ${subject} ${body}`.toLowerCase();
+}
+
 /** Calendar / Zoom / Meet / Zoho Meeting style invites & reminders → FYI (not Marketing). */
 export function isMeetingOrCalendarMail(
   from: string,
   subject: string,
   body = ""
 ): boolean {
-  const text = `${from} ${subject} ${body}`.toLowerCase();
+  const text = textOf(from, subject, body);
   return (
     /\b(meeting|calendar|invite|invitation|webinar|zoom|google meet|teams meeting|zohomeeting|zoho meeting|webex|gotomeeting)\b/.test(
       text
@@ -24,39 +28,60 @@ export function isMeetingOrCalendarMail(
   );
 }
 
-/** Online orders, receipts, shipping — boss shops a lot. */
-export function isPurchasesMail(from: string, subject: string, body = ""): boolean {
-  const text = `${from} ${subject} ${body}`.toLowerCase();
+/** Clear ecommerce / order / receipt signals (beats weak travel keywords like "arrival"). */
+export function isStrongPurchaseMail(
+  from: string,
+  subject: string,
+  body = ""
+): boolean {
+  const text = textOf(from, subject, body);
   return (
-    /\b(order|ordered|purchase|purchased|receipt|invoice|shipped|shipping|delivered|delivery|tracking|parcel|package|refund|payment received|your order|order confirmation|order #|out for delivery)\b/.test(
+    /\b(order\s*#?\s*\d+|order\s+\d+|order confirmed|order confirmation|your order|order summary|view your order|purchase confirmed|payment received|shipping confirmation|out for delivery|tracking number|track (your )?(order|package|shipment))\b/.test(
       text
     ) ||
-    /\b(amazon|ebay|etsy|shopify|walmart|target|best buy|apple\.com|store\.|checkout|cart)\b/.test(
+    /\b(invoice|receipt|refunded|refund|shipped|parcel|package)\b/.test(text) ||
+    /\b(amazon|ebay|etsy|shopify|nemix|newegg|best buy|walmart|target)\b/.test(text) ||
+    /@(amazon|ebay|etsy|shopify|stripe|paypal|square|nemix)\./.test(text)
+  );
+}
+
+/** Online orders, receipts, shipping — boss shops a lot. */
+export function isPurchasesMail(from: string, subject: string, body = ""): boolean {
+  if (isStrongPurchaseMail(from, subject, body)) return true;
+  const text = textOf(from, subject, body);
+  return (
+    /\b(order|ordered|purchase|purchased|receipt|invoice|shipped|shipping|delivered|delivery|tracking|parcel|package|refund|payment received|checkout|cart)\b/.test(
+      text
+    ) ||
+    /\b(amazon|ebay|etsy|shopify|walmart|target|best buy|apple\.com|store\.)\b/.test(
       text
     ) ||
     /@(amazon|ebay|etsy|shopify|stripe|paypal|square)\./.test(text)
   );
 }
 
-/** Flights, hotels, bookings — boss travels. */
+/** True travel: flights, hotels, car rental — not shipping “arrival”. */
 export function isTravelMail(from: string, subject: string, body = ""): boolean {
-  if (isMeetingOrCalendarMail(from, subject, body) && !/\b(flight|hotel|itinerary|boarding)\b/i.test(textOf(from, subject, body))) {
+  if (isStrongPurchaseMail(from, subject, body)) return false;
+  if (
+    isMeetingOrCalendarMail(from, subject, body) &&
+    !/\b(flight|hotel|itinerary|boarding)\b/i.test(textOf(from, subject, body))
+  ) {
     return false;
   }
   const text = textOf(from, subject, body);
   return (
-    /\b(flight|flights|airline|boarding pass|itinerary|hotel|booking|reservation|check-in|check in|departure|arrival|airport|airfare|trip|travel|vacation|cruise|rental car|car hire|uber|lyft)\b/.test(
+    /\b(flight|flights|airline|boarding pass|itinerary|hotel|booking\.com|airbnb|check-in flight|departure gate|airfare|vacation|cruise|rental car|car hire)\b/.test(
       text
     ) ||
-    /\b(expedia|booking\.com|airbnb|hotels\.com|kayak|skyscanner|marriott|hilton|delta|united|american airlines|emirates|qatar|etihad|southwest)\b/.test(
+    /\b(expedia|kayak|skyscanner|marriott|hilton|delta airlines|united airlines|american airlines|emirates|qatar|etihad|southwest airlines)\b/.test(
       text
     ) ||
+    // Soft travel — only if not a retail order email
+    (/\b(travel itinerary|trip itinerary|hotel reservation|flight reservation)\b/.test(text) &&
+      !isPurchasesMail(from, subject, body)) ||
     /@(expedia|booking|airbnb|tripadvisor|hilton|marriott|delta|united|aa\.com)\./.test(text)
   );
-}
-
-function textOf(from: string, subject: string, body = ""): string {
-  return `${from} ${subject} ${body}`.toLowerCase();
 }
 
 export function isLikelyAutomatedMail(from: string, subject: string): boolean {
@@ -91,7 +116,9 @@ function latestBody(email: Email): string {
 /**
  * Triage priority:
  * meeting → FYI
- * purchases / travel → Categories
+ * strong purchases → Purchases (before travel — shipping “arrival” must not win)
+ * travel → Travel
+ * purchases → Purchases
  * marketing → Marketing
  * needs reply → To Respond
  * else FYI
@@ -104,7 +131,11 @@ export function deriveInboxBucket(email: Email): InboxBucket {
     return "fyi";
   }
 
-  // Travel before purchases when both match (e.g. hotel receipt) — travel wins for trips.
+  // Order / receipt emails first (NEMIX, Amazon, “Order confirmed”, etc.)
+  if (isStrongPurchaseMail(fromBlob, email.subject, body)) {
+    return "purchases";
+  }
+
   if (isTravelMail(fromBlob, email.subject, body)) {
     return "travel";
   }

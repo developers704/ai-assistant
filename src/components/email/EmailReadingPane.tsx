@@ -175,7 +175,10 @@ export function EmailReadingPane({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-4 space-y-4">
+      <div
+        data-email-scroll
+        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-4 space-y-4"
+      >
         {conversation.map((msg, idx) => {
           const isYou =
             /valliani|kash@/i.test(msg.fromEmail) || /kash/i.test(msg.from);
