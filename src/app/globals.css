@@ -1076,3 +1076,73 @@
   }
 }
 
+/* ============ Email mobile — Gmail layout + Alexa navy/cyan ============ */
+.email-alexa {
+  --em-bg: #0a1628;
+  --em-surface: #0e1a2e;
+  --em-elevated: #132338;
+  --em-search: #152840;
+  --em-line: rgba(148, 163, 184, 0.12);
+  --em-text: #f1f5f9;
+  --em-muted: #8b9cb3;
+  --em-accent: #5eb3f0;
+  --em-accent-soft: #9fd4f5;
+  --em-fab: #6ec8f5;
+  --em-fab-ink: #0a1628;
+  --em-tag: #7ee0c3;
+  --em-tag-ink: #0a1628;
+  --em-unread: #5eb3f0;
+  font-family: var(--font-inter), "Google Sans", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  background: var(--em-bg);
+  color: var(--em-text);
+}
+
+@media (max-width: 1023px) {
+  .email-alexa .email-mobile-shell {
+    background: var(--em-bg) !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .email-alexa .em-search-pill {
+    background: var(--em-search);
+    color: var(--em-text);
+  }
+  .email-alexa .em-search-pill::placeholder {
+    color: var(--em-muted);
+  }
+
+  .email-alexa .em-drawer {
+    background: var(--em-surface);
+  }
+  .email-alexa .em-nav-active {
+    background: var(--em-accent-soft);
+    color: #0b1220;
+  }
+  .email-alexa .em-nav-active span,
+  .email-alexa .em-nav-active svg {
+    color: #0b1220 !important;
+    opacity: 1 !important;
+  }
+
+  .email-alexa .em-fab {
+    background: var(--em-fab);
+    color: var(--em-fab-ink);
+    box-shadow: 0 6px 20px rgba(94, 179, 240, 0.35);
+  }
+
+  .email-alexa .em-row-unread {
+    background: rgba(94, 179, 240, 0.04);
+  }
+  .email-alexa .em-tag {
+    background: var(--em-tag);
+    color: var(--em-tag-ink);
+  }
+  .email-alexa .em-reply-pill {
+    background: var(--em-accent-soft);
+    color: #0b1220;
+  }
+}
+

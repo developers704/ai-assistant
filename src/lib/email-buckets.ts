@@ -6,31 +6,93 @@ export type MailFolder = "inbox" | "starred" | "sent" | "drafts";
 const ASK_RE =
   /\?|\b(please|kindly|can you|could you|would you|let me know|need you to|looking for|confirm|asap|by eod|by end of)\b/i;
 
+const WEEKDAY_RE =
+  /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today)\b/i;
+
 function textOf(from: string, subject: string, body = ""): string {
   return `${from} ${subject} ${body}`.toLowerCase();
 }
 
-/** Calendar / Zoom / Meet / Zoho Meeting style invites & reminders → Meeting bucket. */
+function attachmentNamesOf(email: Email): string[] {
+  const names: string[] = [];
+  for (const a of email.attachments ?? []) {
+    if (a.filename) names.push(a.filename);
+  }
+  for (const m of email.threadMessages ?? []) {
+    for (const a of m.attachments ?? []) {
+      if (a.filename) names.push(a.filename);
+    }
+  }
+  return names;
+}
+
+/** Full thread text for meeting detection (invite often not in the latest reply). */
+function threadTextForMeeting(email: Email): string {
+  const msgs = email.threadMessages?.length ? email.threadMessages : [email];
+  return msgs
+    .map((m) => `${m.from} ${m.fromEmail} ${m.subject} ${m.preview} ${m.body}`)
+    .join("\n")
+    .slice(0, 10_000);
+}
+
+/**
+ * Calendar / Zoom / Meet / Zoho invites → Meeting.
+ * Tight signals only — bare "invite"/"meeting" in marketing must not match.
+ */
 export function isMeetingOrCalendarMail(
   from: string,
   subject: string,
   body = "",
   attachmentNames: string[] = []
 ): boolean {
-  const text = textOf(from, subject, body);
   const files = attachmentNames.join(" ").toLowerCase();
-  if (/\.ics\b/.test(files) || /\binvite\.ics\b/.test(files)) return true;
-  return (
-    /\b(meeting|calendar|invite|invitation|webinar|zoom|google meet|teams meeting|zohomeeting|zoho meeting|webex|gotomeeting)\b/.test(
-      text
+  if (/\.ics\b/.test(files)) return true;
+
+  const fromL = from.toLowerCase();
+  const subjectL = subject.toLowerCase();
+  const blob = textOf(from, subject, body);
+
+  // Known calendar / conferencing senders
+  if (
+    /zohomeeting|mailer\.zohomeeting|calendar-notification@|calendar\.google|invite\.ics/.test(
+      blob
     ) ||
-    /\b(join meeting|starts in \d+\s*mins?|meeting id|meeting password|add to calendar|\.ics)\b/.test(
-      text
+    /@(zoom\.us|gotomeeting\.com|webex\.com|teams\.microsoft\.com)/.test(fromL) ||
+    /\b(zoho meeting|zoom\.us|google meet|microsoft teams|webex)\b/.test(fromL)
+  ) {
+    return true;
+  }
+
+  // Subject patterns used by Zoho / Google / Outlook
+  if (
+    /^\s*(invitation|invite|reminder)\s*[-–:]/i.test(subject) ||
+    /\b(meeting invitation|calendar invite|invited you to (a )?meeting|join (the )?meeting|meeting starts in)\b/i.test(
+      subject
     ) ||
-    /calendar-notification|noreply@.*meeting|mailer\.zohomeeting|calendar\.google|invite\.ics/.test(
-      text
-    )
-  );
+    (/\bmeeting\b/i.test(subject) &&
+      (WEEKDAY_RE.test(subject) ||
+        /\b\d{1,2}:\d{2}\b/.test(subject) ||
+        /\b(am|pm)\b/i.test(subject)))
+  ) {
+    return true;
+  }
+
+  // Strong body cues (conferencing UI copy)
+  if (
+    /\b(join meeting|meeting id\b|meeting password|add to calendar|starts in \d+\s*mins?)\b/i.test(
+      body
+    ) ||
+    /\b(join zoom|join with google meet|join microsoft teams)\b/i.test(body)
+  ) {
+    return true;
+  }
+
+  // Subject mentions Zoom/Meet/Teams explicitly
+  if (/\b(zoom|google meet|microsoft teams|webex|zoho meeting|gotomeeting)\b/i.test(subjectL)) {
+    return true;
+  }
+
+  return false;
 }
 
 /** Clear ecommerce / order / receipt signals (beats weak travel keywords like "arrival"). */
@@ -82,7 +144,6 @@ export function isTravelMail(from: string, subject: string, body = ""): boolean 
     /\b(expedia|kayak|skyscanner|marriott|hilton|delta airlines|united airlines|american airlines|emirates|qatar|etihad|southwest airlines)\b/.test(
       text
     ) ||
-    // Soft travel — only if not a retail order email
     (/\b(travel itinerary|trip itinerary|hotel reservation|flight reservation)\b/.test(text) &&
       !isPurchasesMail(from, subject, body)) ||
     /@(expedia|booking|airbnb|tripadvisor|hilton|marriott|delta|united|aa\.com)\./.test(text)
@@ -118,23 +179,10 @@ function latestBody(email: Email): string {
   return `${last?.subject ?? ""} ${last?.preview ?? ""} ${last?.body ?? ""}`;
 }
 
-function attachmentNamesOf(email: Email): string[] {
-  const names: string[] = [];
-  for (const a of email.attachments ?? []) {
-    if (a.filename) names.push(a.filename);
-  }
-  for (const m of email.threadMessages ?? []) {
-    for (const a of m.attachments ?? []) {
-      if (a.filename) names.push(a.filename);
-    }
-  }
-  return names;
-}
-
 /**
  * Triage priority:
  * meeting → Meeting
- * strong purchases → Purchases (before travel — shipping “arrival” must not win)
+ * strong purchases → Purchases
  * travel → Travel
  * purchases → Purchases
  * marketing → Marketing
@@ -145,12 +193,12 @@ export function deriveInboxBucket(email: Email): InboxBucket {
   const fromBlob = `${email.from} ${email.fromEmail}`;
   const body = latestBody(email);
   const files = attachmentNamesOf(email);
+  const meetingCorpus = threadTextForMeeting(email);
 
-  if (isMeetingOrCalendarMail(fromBlob, email.subject, body, files)) {
+  if (isMeetingOrCalendarMail(fromBlob, email.subject, meetingCorpus, files)) {
     return "meeting";
   }
 
-  // Order / receipt emails first (NEMIX, Amazon, “Order confirmed”, etc.)
   if (isStrongPurchaseMail(fromBlob, email.subject, body)) {
     return "purchases";
   }

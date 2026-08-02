@@ -48,9 +48,9 @@ export function EmailReadingPane({
   const latest = conversation[conversation.length - 1] ?? email;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden bg-[#0d121c]">
+    <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden bg-[#0d121c] max-lg:bg-[var(--em-bg,#0a1628)]">
       {/* Mobile Gmail-style top actions */}
-      <div className="lg:hidden shrink-0 flex items-center gap-0.5 px-1.5 py-1.5 border-b border-white/[0.06] bg-[#10161f] safe-area-top">
+      <div className="lg:hidden shrink-0 flex items-center gap-0.5 px-1.5 py-1.5 border-b border-white/[0.06] bg-[var(--em-surface,#0e1a2e)] safe-area-top">
         {onClose ? (
           <button
             type="button"
@@ -365,25 +365,25 @@ export function EmailReadingPane({
         <div className="h-24 lg:hidden" aria-hidden />
       </div>
 
-      {/* Mobile Gmail-style Reply / Forward bar */}
-      <div className="lg:hidden shrink-0 border-t border-white/[0.06] bg-[#10161f]/95 backdrop-blur-md px-4 py-3 safe-area-bottom">
+      {/* Mobile Gmail-style Reply / Forward bar — Alexa cyan pills */}
+      <div className="lg:hidden shrink-0 border-t border-white/[0.06] bg-[var(--em-surface,#0e1a2e)]/95 backdrop-blur-md px-4 py-3 safe-area-bottom">
         <div className="flex items-center gap-2.5">
           <button
             type="button"
             disabled={busy}
             onClick={onReply}
-            className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-white/[0.08] ring-1 ring-white/[0.12] text-[14px] font-medium text-white/90 hover:bg-white/[0.12] active:scale-[0.98] transition disabled:opacity-40"
+            className="em-reply-pill flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full text-[14px] font-semibold active:scale-[0.98] transition disabled:opacity-40"
           >
-            <Reply size={18} className="text-[#c4b5e0]" />
+            <Reply size={18} />
             Reply
           </button>
           <button
             type="button"
             disabled={busy || !onForward}
             onClick={onForward}
-            className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-white/[0.08] ring-1 ring-white/[0.12] text-[14px] font-medium text-white/90 hover:bg-white/[0.12] active:scale-[0.98] transition disabled:opacity-40"
+            className="em-reply-pill flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full text-[14px] font-semibold active:scale-[0.98] transition disabled:opacity-40"
           >
-            <Forward size={18} className="text-[#c4b5e0]" />
+            <Forward size={18} />
             Forward
           </button>
         </div>

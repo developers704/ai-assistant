@@ -216,9 +216,9 @@ export function ComposePanel({
 
   if (variant === "fullscreen") {
     return (
-      <div className="flex flex-col flex-1 min-h-0 h-full bg-[#121018] safe-area-bottom">
-        {/* Gmail mobile compose top bar */}
-        <div className="shrink-0 flex items-center gap-0.5 px-1.5 py-1.5 border-b border-white/[0.07] safe-area-top">
+      <div className="flex flex-col flex-1 min-h-0 h-full bg-[var(--em-bg,#0a1628)] safe-area-bottom">
+        {/* Gmail mobile compose top bar — Alexa navy */}
+        <div className="shrink-0 flex items-center gap-0.5 px-1.5 py-1.5 border-b border-white/[0.07] bg-[var(--em-surface,#0e1a2e)] safe-area-top">
           <button
             type="button"
             onClick={onClose}
@@ -249,7 +249,7 @@ export function ComposePanel({
             type="button"
             disabled={sending || !canSend}
             onClick={onSend}
-            className="p-2.5 rounded-full text-[#c4b5e0] hover:bg-white/10 disabled:opacity-35"
+            className="p-2.5 rounded-full text-[#5eb3f0] hover:bg-white/10 disabled:opacity-35"
             aria-label="Send"
             title={sendBlockReason ?? "Send"}
           >

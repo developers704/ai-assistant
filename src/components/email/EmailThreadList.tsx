@@ -8,12 +8,12 @@ import type { InboxBucket } from "@/lib/email-buckets";
 import { Star, MessagesSquare } from "lucide-react";
 
 const AVATAR_TONES = [
-  "bg-[#3d4f6f] text-sky-100",
-  "bg-[#4a3d6f] text-violet-100",
-  "bg-[#5c4a32] text-amber-100",
-  "bg-[#2f4f45] text-emerald-100",
-  "bg-[#5c3545] text-rose-100",
-  "bg-[#2f4a55] text-cyan-100",
+  "bg-[#3d5a80] text-sky-100",
+  "bg-[#3d4f7a] text-cyan-100",
+  "bg-[#2f5a6a] text-teal-100",
+  "bg-[#4a5a8a] text-indigo-100",
+  "bg-[#2f4f5c] text-sky-100",
+  "bg-[#355a70] text-cyan-50",
 ];
 
 function avatarTone(name: string): string {
@@ -22,7 +22,6 @@ function avatarTone(name: string): string {
   return AVATAR_TONES[h];
 }
 
-/** First recipient display name from a To: header. */
 function peerFromAddress(to: string): string {
   const first = to.split(",")[0]?.trim() || to;
   const named = first.match(/^(.+?)\s*<[^>]+>$/);
@@ -30,7 +29,23 @@ function peerFromAddress(to: string): string {
   return first.replace(/[<>]/g, "").trim() || to;
 }
 
-function bucketPillClass(bucket: InboxBucket): string {
+function bucketPillClass(bucket: InboxBucket, mobile?: boolean): string {
+  if (mobile) {
+    switch (bucket) {
+      case "to_respond":
+        return "em-tag";
+      case "meeting":
+        return "bg-[#5eb3f0]/25 text-[#9fd4f5]";
+      case "purchases":
+        return "em-tag";
+      case "marketing":
+        return "bg-white/10 text-white/55";
+      case "travel":
+        return "bg-cyan-500/20 text-cyan-100";
+      default:
+        return "bg-white/10 text-white/50";
+    }
+  }
   switch (bucket) {
     case "to_respond":
       return "bg-orange-500/15 text-orange-200/90";
@@ -62,7 +77,6 @@ export function EmailThreadList({
   onSelect: (email: Email) => void;
   onToggleStar: (email: Email) => void;
   loading?: boolean;
-  /** Hide AI triage tags/draft hints (Sent / Drafts). */
   showTriage?: boolean;
 }) {
   if (loading) {
@@ -87,7 +101,6 @@ export function EmailThreadList({
         const count = email.messageCount ?? email.threadMessages?.length ?? 1;
         const bucket = showTriage ? email.inboxBucket : undefined;
         const preview = email.preview ? toEmailPreview(email.preview) : "";
-        // Sent/Drafts: show who it's to, not ourselves
         const peerLabel =
           !showTriage && email.to?.trim()
             ? peerFromAddress(email.to)
@@ -97,24 +110,30 @@ export function EmailThreadList({
           <div
             key={email.threadId || email.id}
             className={cn(
-              "group relative flex border-b border-white/[0.04] transition-colors",
+              "group relative flex transition-colors",
+              // Desktop
+              "lg:border-b lg:border-white/[0.04]",
               active
-                ? "bg-[#1a2235]"
+                ? "lg:bg-[#1a2235]"
                 : !email.isRead
-                  ? "bg-white/[0.025]"
-                  : "hover:bg-white/[0.03]"
+                  ? "lg:bg-white/[0.025]"
+                  : "lg:hover:bg-white/[0.03]",
+              // Mobile Gmail-like rows
+              "max-lg:px-3 max-lg:py-3 max-lg:gap-3",
+              !email.isRead && "max-lg:em-row-unread"
             )}
           >
             {active ? (
               <span
                 aria-hidden
-                className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#7c6bb5]"
+                className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#5eb3f0] hidden lg:block"
               />
             ) : null}
 
+            {/* Desktop star (left) */}
             <button
               type="button"
-              className="px-2.5 self-start pt-3.5 text-white/20 hover:text-amber-200"
+              className="hidden lg:block px-2.5 self-start pt-3.5 text-white/20 hover:text-amber-200"
               aria-label={email.isStarred ? "Unstar" : "Star"}
               onClick={(e) => {
                 e.stopPropagation();
@@ -131,13 +150,14 @@ export function EmailThreadList({
 
             <button
               type="button"
-              className="flex-1 min-w-0 text-left py-3 pr-3"
+              className="flex-1 min-w-0 text-left lg:py-3 lg:pr-3"
               onClick={() => onSelect(email)}
             >
-              <div className="flex items-start gap-2.5">
+              <div className="flex items-start gap-3 lg:gap-2.5">
                 <div
                   className={cn(
-                    "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
+                    "mt-0.5 flex shrink-0 items-center justify-center rounded-full font-semibold",
+                    "h-10 w-10 text-[13px] lg:h-9 lg:w-9 lg:text-[11px]",
                     avatarTone(peerLabel)
                   )}
                 >
@@ -148,10 +168,10 @@ export function EmailThreadList({
                   <div className="flex items-baseline gap-2 min-w-0">
                     <span
                       className={cn(
-                        "text-[13px] truncate",
+                        "truncate max-lg:text-[15px] lg:text-[13px]",
                         !email.isRead
                           ? "font-semibold text-white"
-                          : "font-medium text-white/70"
+                          : "font-medium text-white/75 max-lg:text-white/90"
                       )}
                     >
                       {peerLabel}
@@ -159,7 +179,7 @@ export function EmailThreadList({
                     {bucket ? (
                       <span
                         className={cn(
-                          "shrink-0 rounded px-1.5 py-px text-[10px] font-medium",
+                          "shrink-0 rounded px-1.5 py-px text-[10px] font-medium max-lg:hidden",
                           bucketPillClass(bucket)
                         )}
                       >
@@ -167,30 +187,69 @@ export function EmailThreadList({
                       </span>
                     ) : null}
                     {count > 1 && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-white/35 shrink-0">
+                      <span className="inline-flex items-center gap-0.5 text-[10px] text-white/35 shrink-0 max-lg:hidden">
                         <MessagesSquare size={10} />
                         {count}
                       </span>
                     )}
-                    <span className="ml-auto text-[11px] text-white/35 shrink-0 tabular-nums">
+                    <span className="ml-auto shrink-0 tabular-nums flex items-center gap-1.5 max-lg:text-[12px] lg:text-[11px] text-white/40">
                       {formatRelativeTime(email.receivedAt)}
+                      {!email.isRead ? (
+                        <span
+                          className="max-lg:inline-block hidden h-2 w-2 rounded-full bg-[var(--em-unread,#5eb3f0)]"
+                          aria-label="Unread"
+                        />
+                      ) : null}
                     </span>
                   </div>
 
                   <p
                     className={cn(
-                      "mt-0.5 text-[13px] line-clamp-1 leading-snug",
-                      !email.isRead ? "text-white/85" : "text-white/55"
+                      "mt-0.5 line-clamp-1 leading-snug max-lg:text-[14px] lg:text-[13px]",
+                      !email.isRead ? "text-white/90 font-medium" : "text-white/60"
                     )}
                   >
                     {email.subject || "(no subject)"}
                   </p>
 
-                  {preview ? (
-                    <p className="mt-0.5 text-[12px] text-white/35 line-clamp-1 leading-relaxed">
-                      {preview}
-                    </p>
-                  ) : null}
+                  <div className="mt-0.5 flex items-center gap-2 min-w-0">
+                    {preview ? (
+                      <p className="min-w-0 flex-1 text-[13px] lg:text-[12px] text-[var(--em-muted,#8b9cb3)] line-clamp-1 leading-relaxed">
+                        {preview}
+                      </p>
+                    ) : (
+                      <span className="flex-1" />
+                    )}
+                    {bucket ? (
+                      <span
+                        className={cn(
+                          "lg:hidden shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
+                          bucketPillClass(bucket, true)
+                        )}
+                      >
+                        {bucketLabel(bucket)}
+                      </span>
+                    ) : null}
+                    {/* Mobile star on the right like Gmail */}
+                    <button
+                      type="button"
+                      className="lg:hidden shrink-0 p-1 text-white/35"
+                      aria-label={email.isStarred ? "Unstar" : "Star"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleStar(email);
+                      }}
+                    >
+                      <Star
+                        size={18}
+                        className={
+                          email.isStarred
+                            ? "fill-amber-300 text-amber-300"
+                            : undefined
+                        }
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             </button>

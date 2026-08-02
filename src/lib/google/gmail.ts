@@ -305,8 +305,9 @@ export async function fetchGmailInbox(
     return { emails: [], nextPageToken: list.data.nextPageToken ?? undefined };
   }
 
-  // Cap parallel Gmail thread fetches — unbounded Promise.all was starving the VPS
-  const CONCURRENCY = 4;
+  // List view: metadata + snippet is enough for triage; open thread fetches full HTML.
+  // Higher concurrency OK — payloads are much smaller than format=full.
+  const CONCURRENCY = 8;
   const threads: (gmail_v1.Schema$Thread | null)[] = [];
   for (let i = 0; i < threadRefs.length; i += CONCURRENCY) {
     const batch = threadRefs.slice(i, i + CONCURRENCY);
@@ -316,7 +317,19 @@ export async function fetchGmailInbox(
         const { data: thread } = await gmail.users.threads.get({
           userId: "me",
           id: item.id,
-          format: "full",
+          format: "metadata",
+          metadataHeaders: [
+            "From",
+            "To",
+            "Cc",
+            "Bcc",
+            "Subject",
+            "Date",
+            "Message-ID",
+            "Message-Id",
+            "In-Reply-To",
+            "References",
+          ],
         });
         return thread;
       })

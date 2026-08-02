@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
+import { cn, getDisplayFirstName } from "@/lib/utils";
 import { bodyMentionsAttachment, sortEmails } from "@/lib/email-utils";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
 import type { Email } from "@/types";
@@ -21,7 +21,7 @@ import {
   type InboxBucket,
   type MailFolder,
 } from "@/lib/email-buckets";
-import { Link2, Loader2, Menu, PenSquare, Search, X } from "lucide-react";
+import { Link2, Loader2, Menu, PenSquare, Search } from "lucide-react";
 import {
   collectRecipientsFromContacts,
   collectRecipientsFromEmails,
@@ -130,6 +130,8 @@ export default function EmailPage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [folderEmails, setFolderEmails] = useState<Email[]>([]);
+  /** Last loaded Inbox page — triage buckets filter this (not the tiny /api/state sync). */
+  const [inboxCache, setInboxCache] = useState<Email[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>();
   const [loadingList, setLoadingList] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -203,6 +205,11 @@ export default function EmailPage() {
         setFolderEmails((prev) =>
           append ? dedupeEmails([...prev, ...list]) : list
         );
+        if (folder === "inbox") {
+          setInboxCache((prev) =>
+            append ? dedupeEmails([...prev, ...list]) : list
+          );
+        }
         setNextPageToken(data.nextPageToken ?? undefined);
       } finally {
         setLoadingList(false);
@@ -222,9 +229,14 @@ export default function EmailPage() {
       }
       void loadFolder(nav);
       setSelectedId(null);
-    } else {
-      setFolderEmails([]);
-      setNextPageToken(undefined);
+      return;
+    }
+    if (isBucket(nav)) {
+      // Keep inbox cache — do NOT clear. Load inbox once if triage has nothing yet.
+      setSelectedId(null);
+      if (googleConnected && inboxCache.length === 0) {
+        void loadFolder("inbox");
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on nav change
   }, [nav, loadFolder]);
@@ -233,10 +245,21 @@ export default function EmailPage() {
     void syncUiSelection({ selectedEmailId: selectedId ?? undefined });
   }, [selectedId]);
 
+  /** Inbox source for triage + counts (prefer live Gmail page over state sync). */
+  const triageSource = useMemo(() => {
+    const raw =
+      inboxCache.length > 0
+        ? inboxCache
+        : folderEmails.length > 0 && (nav === "inbox" || isBucket(nav))
+          ? folderEmails
+          : inboxEmails;
+    return dedupeEmails(raw.map((e) => withInboxBucket(e)));
+  }, [inboxCache, folderEmails, inboxEmails, nav]);
+
   const listEmails = useMemo(() => {
     let list: Email[];
     if (isBucket(nav)) {
-      list = inboxEmails.filter((e) => e.inboxBucket === nav);
+      list = triageSource.filter((e) => e.inboxBucket === nav);
     } else if (nav === "inbox") {
       list =
         googleConnected && folderEmails.length > 0 ? folderEmails : inboxEmails;
@@ -264,28 +287,39 @@ export default function EmailPage() {
         return withInboxBucket(base);
       })
     );
-  }, [nav, inboxEmails, folderEmails, query, googleConnected, threadOverrides]);
+  }, [
+    nav,
+    inboxEmails,
+    folderEmails,
+    triageSource,
+    query,
+    googleConnected,
+    threadOverrides,
+  ]);
 
   const counts = useMemo(() => {
+    const triage = triageSource;
     return {
-      inbox: inboxEmails.length,
+      inbox:
+        inboxCache.length > 0
+          ? inboxCache.length
+          : nav === "inbox" && folderEmails.length > 0
+            ? folderEmails.length
+            : inboxEmails.length,
       starred:
         nav === "starred"
           ? folderEmails.length
-          : inboxEmails.filter((e) => e.isStarred).length,
+          : triage.filter((e) => e.isStarred).length,
       sent: nav === "sent" ? folderEmails.length : undefined,
       drafts: nav === "drafts" ? folderEmails.length : undefined,
-      to_respond: inboxEmails.filter((e) => e.inboxBucket === "to_respond")
-        .length,
-      fyi: inboxEmails.filter((e) => e.inboxBucket === "fyi").length,
-      meeting: inboxEmails.filter((e) => e.inboxBucket === "meeting").length,
-      marketing: inboxEmails.filter((e) => e.inboxBucket === "marketing")
-        .length,
-      purchases: inboxEmails.filter((e) => e.inboxBucket === "purchases")
-        .length,
-      travel: inboxEmails.filter((e) => e.inboxBucket === "travel").length,
+      to_respond: triage.filter((e) => e.inboxBucket === "to_respond").length,
+      fyi: triage.filter((e) => e.inboxBucket === "fyi").length,
+      meeting: triage.filter((e) => e.inboxBucket === "meeting").length,
+      marketing: triage.filter((e) => e.inboxBucket === "marketing").length,
+      purchases: triage.filter((e) => e.inboxBucket === "purchases").length,
+      travel: triage.filter((e) => e.inboxBucket === "travel").length,
     };
-  }, [inboxEmails, folderEmails, nav]);
+  }, [triageSource, inboxCache, folderEmails, inboxEmails, nav]);
 
   const selected =
     listEmails.find((e) => e.id === selectedId || e.threadId === selectedId) ??
@@ -297,6 +331,13 @@ export default function EmailPage() {
   const mobileReading = !!selectedId;
   const showTriage = nav === "inbox" || isBucket(nav);
   const showFilterTabs = nav === "inbox" || isBucket(nav);
+
+  // List uses lightweight metadata — load full HTML body when opening a thread
+  useEffect(() => {
+    if (!selected?.threadId || !googleConnected) return;
+    void refreshThread(selected.threadId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open only
+  }, [selected?.threadId, googleConnected]);
 
   // Mark read when opening
   useEffect(() => {
@@ -310,11 +351,10 @@ export default function EmailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "mark_read", threadId: tid }),
     });
-    setFolderEmails((prev) =>
-      prev.map((e) =>
-        e.threadId === tid ? { ...e, isRead: true } : e
-      )
-    );
+    const mark = (prev: Email[]) =>
+      prev.map((e) => (e.threadId === tid ? { ...e, isRead: true } : e));
+    setFolderEmails(mark);
+    setInboxCache(mark);
   }, [selected, googleConnected, markedRead]);
 
   // Auto AI draft when opening To Respond
@@ -578,7 +618,12 @@ export default function EmailPage() {
       });
       if (!res.ok) return;
       if (action === "archive" || action === "trash") {
-        setFolderEmails((prev) => prev.filter((e) => e.threadId !== email.threadId));
+        setFolderEmails((prev) =>
+          prev.filter((e) => e.threadId !== email.threadId)
+        );
+        setInboxCache((prev) =>
+          prev.filter((e) => e.threadId !== email.threadId)
+        );
         setSelectedId(null);
         setCompose(null);
         return;
@@ -600,14 +645,17 @@ export default function EmailPage() {
 
   const applyThreadUpdate = useCallback((email: Email) => {
     const tid = email.threadId;
-    setThreadOverrides((prev) => ({ ...prev, [tid]: email }));
-    setFolderEmails((prev) => {
+    const patched = withInboxBucket(email);
+    setThreadOverrides((prev) => ({ ...prev, [tid]: patched }));
+    const patchList = (prev: Email[]) => {
       const idx = prev.findIndex((e) => e.threadId === tid);
-      if (idx < 0) return [email, ...prev];
+      if (idx < 0) return prev;
       const next = [...prev];
-      next[idx] = email;
+      next[idx] = patched;
       return next;
-    });
+    };
+    setFolderEmails(patchList);
+    setInboxCache(patchList);
   }, []);
 
   const appendOptimisticSent = useCallback(
@@ -937,36 +985,24 @@ export default function EmailPage() {
 
   if (!state) return null;
 
+  const userInitial =
+    (getDisplayFirstName(state.user?.name) || "U").charAt(0).toUpperCase();
+
   return (
-    <div className={cn("flex flex-col flex-1 min-h-0 h-0", MOBILE_HEIGHT)}>
-      <div className="glass-panel-strong rounded-none sm:rounded-2xl flex flex-col flex-1 min-h-0 h-0 overflow-hidden ring-1 ring-white/10 relative">
-        {/* Top bar — hide on phone while reading (reading pane has Back) */}
+    <div
+      className={cn(
+        "email-alexa flex flex-col flex-1 min-h-0 h-0",
+        MOBILE_HEIGHT
+      )}
+    >
+      <div className="email-mobile-shell glass-panel-strong rounded-none sm:rounded-2xl flex flex-col flex-1 min-h-0 h-0 overflow-hidden ring-1 ring-white/10 relative max-lg:ring-0">
+        {/* Desktop top bar */}
         <div
           className={cn(
-            "px-3 sm:px-5 py-2 sm:py-2.5 border-b border-white/10 shrink-0 flex items-center gap-2 safe-area-top",
-            mobileReading && "hidden lg:flex"
+            "hidden lg:flex px-5 py-2.5 border-b border-white/10 shrink-0 items-center gap-2"
           )}
         >
-          {!mobileReading && (
-            <button
-              type="button"
-              className="lg:hidden p-2 -ml-1 rounded-xl text-white/70 hover:bg-white/10"
-              aria-label="Open folders"
-              onClick={() => setMobileNavOpen(true)}
-            >
-              <Menu size={20} />
-            </button>
-          )}
-          <div className="min-w-0 flex-1 lg:hidden">
-            <h1 className="text-lg font-display font-bold text-white tracking-tight">
-              {mobileReading ? "Mail" : navTitle(nav)}
-            </h1>
-            <p className="text-[11px] text-white/40 truncate">
-              {googleConnected ? "Gmail" : "Demo inbox"}
-              {counts.to_respond ? ` · ${counts.to_respond} to respond` : ""}
-            </p>
-          </div>
-          <div className="hidden lg:block min-w-0 flex-1">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-white/70 truncate">
               {navTitle(nav)}
               <span className="text-white/35 font-normal">
@@ -979,22 +1015,12 @@ export default function EmailPage() {
             <Link href="/settings">
               <Button size="sm" variant="outline">
                 <Link2 size={14} />
-                <span className="ml-1 hidden sm:inline">Connect Gmail</span>
+                <span className="ml-1">Connect Gmail</span>
               </Button>
             </Link>
           )}
-          {!mobileReading && (
-            <button
-              type="button"
-              onClick={openComposeNew}
-              className="lg:hidden inline-flex items-center gap-1.5 rounded-xl bg-[#5b4a8a] px-3 py-2 text-xs font-semibold text-white shadow-md"
-            >
-              <PenSquare size={14} />
-              Compose
-            </button>
-          )}
           <RealtimeVoiceButton variant="inline" />
-          <div className="relative w-full max-w-[280px] sm:max-w-sm hidden sm:block">
+          <div className="relative w-full max-w-sm">
             <Search
               size={14}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
@@ -1004,86 +1030,53 @@ export default function EmailPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search mail"
-              className="w-full rounded-full bg-white/[0.04] ring-1 ring-white/10 pl-9 pr-3 py-1.5 text-sm text-ink placeholder:text-white/30 focus:outline-none focus:ring-violet-400/35"
+              className="w-full rounded-full bg-white/[0.04] ring-1 ring-white/10 pl-9 pr-3 py-1.5 text-sm text-ink placeholder:text-white/30 focus:outline-none focus:ring-sky-400/35"
             />
           </div>
         </div>
 
+        {/* Mobile Gmail-style search bar */}
         {!mobileReading && (
-          <div className="sm:hidden px-3 py-2 border-b border-white/10 space-y-2">
-            <div className="relative">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
-              />
+          <div className="lg:hidden shrink-0 px-3 pt-2 pb-1 safe-area-top">
+            <div className="em-search-pill flex items-center gap-2 rounded-full h-12 px-2.5 shadow-md shadow-black/20">
+              <button
+                type="button"
+                className="p-2 rounded-full text-white/80 hover:bg-white/10"
+                aria-label="Open folders"
+                onClick={() => setMobileNavOpen(true)}
+              >
+                <Menu size={22} strokeWidth={1.75} />
+              </button>
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search mail"
-                className="w-full rounded-full bg-white/[0.04] ring-1 ring-white/10 pl-9 pr-3 py-2 text-sm text-ink placeholder:text-white/30 focus:outline-none focus:ring-violet-400/35"
+                placeholder="Search in emails"
+                className="em-search-pill flex-1 min-w-0 bg-transparent border-0 outline-none text-[15px] placeholder:text-[var(--em-muted)]"
               />
-            </div>
-            {/* Quick triage chips — full-width list, no side rail */}
-            <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-0.5 px-0.5 scrollbar-none">
-              {(
-                [
-                  "inbox",
-                  "to_respond",
-                  "fyi",
-                  "meeting",
-                  "starred",
-                  "purchases",
-                  "marketing",
-                  "drafts",
-                ] as EmailNavId[]
-              ).map((id) => {
-                const count = counts[id as keyof typeof counts];
-                const active = nav === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setNav(id)}
-                    className={cn(
-                      "shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
-                      active
-                        ? "bg-sky-500/30 text-sky-100 ring-1 ring-sky-400/40"
-                        : "bg-white/[0.04] text-white/50 ring-1 ring-white/10"
-                    )}
-                  >
-                    {navTitle(id)}
-                    {count != null && count > 0 ? (
-                      <span className="ml-1 tabular-nums opacity-70">{count}</span>
-                    ) : null}
-                  </button>
-                );
-              })}
+              <RealtimeVoiceButton variant="inline" />
+              <Link
+                href="/settings"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3d6a9a] text-[13px] font-semibold text-white"
+                aria-label="Profile"
+              >
+                {userInitial}
+              </Link>
             </div>
           </div>
         )}
 
-        {/* Mobile folder drawer */}
+        {/* Mobile folder drawer — Gmail style */}
         {mobileNavOpen && (
           <div className="lg:hidden absolute inset-0 z-40 flex">
             <button
               type="button"
-              className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-black/50"
               aria-label="Close folders"
               onClick={() => setMobileNavOpen(false)}
             />
-            <div className="relative z-10 flex h-full w-[min(18rem,85vw)] flex-col bg-[#0f1520] ring-1 ring-white/10 shadow-2xl animate-in slide-in-from-left duration-200">
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10">
-                <p className="text-sm font-semibold text-ink">Folders</p>
-                <button
-                  type="button"
-                  className="p-2 rounded-lg text-white/50 hover:bg-white/10"
-                  aria-label="Close"
-                  onClick={() => setMobileNavOpen(false)}
-                >
-                  <X size={18} />
-                </button>
-              </div>
+            <div className="em-drawer relative z-10 flex h-full w-[min(20rem,86vw)] flex-col shadow-2xl safe-area-top">
               <EmailSidebar
+                variant="drawer"
                 active={nav}
                 counts={counts}
                 onSelect={(id) => {
@@ -1116,7 +1109,7 @@ export default function EmailPage() {
           {/* List column */}
           <div
             className={cn(
-              "w-full lg:w-[22rem] xl:w-[24rem] shrink-0 flex flex-col min-h-0 h-full border-r border-white/[0.06] bg-[#0c1018]",
+              "w-full lg:w-[22rem] xl:w-[24rem] shrink-0 flex flex-col min-h-0 h-full border-r border-white/[0.06] bg-[#0c1018] max-lg:bg-[var(--em-bg)] max-lg:border-r-0",
               mobileReading && "hidden lg:flex"
             )}
           >
@@ -1277,9 +1270,22 @@ export default function EmailPage() {
           </section>
         </div>
 
+        {/* Mobile Compose FAB — Gmail-style, Alexa cyan */}
+        {!mobileReading && !compose && (
+          <button
+            type="button"
+            onClick={openComposeNew}
+            className="em-fab lg:hidden absolute right-4 bottom-5 z-20 flex h-14 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold safe-area-bottom active:scale-[0.97] transition"
+            aria-label="Compose"
+          >
+            <PenSquare size={20} strokeWidth={2} />
+            Compose
+          </button>
+        )}
+
         {/* Mobile: full-screen compose (reply / forward / new) — Gmail style */}
         {!!compose && (
-          <div className="lg:hidden absolute inset-0 z-30 flex flex-col bg-[#121018]">
+          <div className="lg:hidden absolute inset-0 z-30 flex flex-col bg-[var(--em-bg,#0a1628)]">
             <ComposePanel
               open
               variant="fullscreen"
