@@ -33,6 +33,7 @@ import {
   VOICE_COMPOSE_STORAGE_KEY,
   type VoiceComposePayload,
 } from "@/lib/ai/email-compose";
+import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
 
 const MOBILE_HEIGHT = "h-full max-h-full";
 
@@ -990,6 +991,7 @@ export default function EmailPage() {
               Compose
             </button>
           )}
+          <RealtimeVoiceButton variant="inline" />
           <div className="relative w-full max-w-[280px] sm:max-w-sm hidden sm:block">
             <Search
               size={14}

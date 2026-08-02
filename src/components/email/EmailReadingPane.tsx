@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { useState } from "react";
+import { RealtimeVoiceButton } from "@/components/voice/RealtimeVoiceButton";
 
 export function EmailReadingPane({
   email,
@@ -61,6 +62,7 @@ export function EmailReadingPane({
           </button>
         ) : null}
         <div className="flex-1" />
+        <RealtimeVoiceButton variant="inline" className="mr-0.5" />
         <IconBtn
           label="Archive"
           disabled={busy}
