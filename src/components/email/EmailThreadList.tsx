@@ -111,8 +111,8 @@ export function EmailThreadList({
             key={email.threadId || email.id}
             className={cn(
               "group relative flex transition-colors",
-              // Desktop
-              "lg:border-b lg:border-white/[0.04]",
+              // Separators between emails (mobile + desktop)
+              "border-b border-[var(--em-line,rgba(148,163,184,0.22))]",
               active
                 ? "lg:bg-[#1a2235]"
                 : !email.isRead

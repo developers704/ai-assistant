@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { Button } from "@/components/ui/Button";
-import { cn, getDisplayFirstName } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { bodyMentionsAttachment, sortEmails } from "@/lib/email-utils";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
 import type { Email } from "@/types";
@@ -21,7 +21,7 @@ import {
   type InboxBucket,
   type MailFolder,
 } from "@/lib/email-buckets";
-import { Link2, Loader2, Menu, PenSquare, Search } from "lucide-react";
+import { Link2, Loader2, PanelLeft, Pencil, Search } from "lucide-react";
 import {
   collectRecipientsFromContacts,
   collectRecipientsFromEmails,
@@ -985,9 +985,6 @@ export default function EmailPage() {
 
   if (!state) return null;
 
-  const userInitial =
-    (getDisplayFirstName(state.user?.name) || "U").charAt(0).toUpperCase();
-
   return (
     <div
       className={cn(
@@ -1042,10 +1039,12 @@ export default function EmailPage() {
               <button
                 type="button"
                 className="p-2 rounded-full text-white/80 hover:bg-white/10"
-                aria-label="Open folders"
+                aria-label="Open mail folders"
+                title="Mail folders"
                 onClick={() => setMobileNavOpen(true)}
               >
-                <Menu size={22} strokeWidth={1.75} />
+                {/* Panel icon — different from app nav hamburger (☰) */}
+                <PanelLeft size={22} strokeWidth={1.75} />
               </button>
               <input
                 value={query}
@@ -1054,13 +1053,6 @@ export default function EmailPage() {
                 className="em-search-pill flex-1 min-w-0 bg-transparent border-0 outline-none text-[15px] placeholder:text-[var(--em-muted)]"
               />
               <RealtimeVoiceButton variant="inline" />
-              <Link
-                href="/settings"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3d6a9a] text-[13px] font-semibold text-white"
-                aria-label="Profile"
-              >
-                {userInitial}
-              </Link>
             </div>
           </div>
         )}
@@ -1270,16 +1262,16 @@ export default function EmailPage() {
           </section>
         </div>
 
-        {/* Mobile Compose FAB — Gmail-style, Alexa cyan */}
+        {/* Mobile Compose FAB — pen only */}
         {!mobileReading && !compose && (
           <button
             type="button"
             onClick={openComposeNew}
-            className="em-fab lg:hidden absolute right-4 bottom-5 z-20 flex h-14 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold safe-area-bottom active:scale-[0.97] transition"
+            className="em-fab lg:hidden absolute right-4 bottom-5 z-20 flex h-14 w-14 items-center justify-center rounded-2xl safe-area-bottom active:scale-[0.97] transition"
             aria-label="Compose"
+            title="Compose"
           >
-            <PenSquare size={20} strokeWidth={2} />
-            Compose
+            <Pencil size={22} strokeWidth={2.25} />
           </button>
         )}
 
