@@ -10,21 +10,26 @@ function textOf(from: string, subject: string, body = ""): string {
   return `${from} ${subject} ${body}`.toLowerCase();
 }
 
-/** Calendar / Zoom / Meet / Zoho Meeting style invites & reminders → FYI (not Marketing). */
+/** Calendar / Zoom / Meet / Zoho Meeting style invites & reminders → Meeting bucket. */
 export function isMeetingOrCalendarMail(
   from: string,
   subject: string,
-  body = ""
+  body = "",
+  attachmentNames: string[] = []
 ): boolean {
   const text = textOf(from, subject, body);
+  const files = attachmentNames.join(" ").toLowerCase();
+  if (/\.ics\b/.test(files) || /\binvite\.ics\b/.test(files)) return true;
   return (
     /\b(meeting|calendar|invite|invitation|webinar|zoom|google meet|teams meeting|zohomeeting|zoho meeting|webex|gotomeeting)\b/.test(
       text
     ) ||
-    /\b(join meeting|starts in \d+\s*mins?|meeting id|meeting password|add to calendar|ics)\b/.test(
+    /\b(join meeting|starts in \d+\s*mins?|meeting id|meeting password|add to calendar|\.ics)\b/.test(
       text
     ) ||
-    /calendar-notification|noreply@.*meeting|mailer\.zohomeeting|calendar\.google/.test(text)
+    /calendar-notification|noreply@.*meeting|mailer\.zohomeeting|calendar\.google|invite\.ics/.test(
+      text
+    )
   );
 }
 
@@ -113,9 +118,22 @@ function latestBody(email: Email): string {
   return `${last?.subject ?? ""} ${last?.preview ?? ""} ${last?.body ?? ""}`;
 }
 
+function attachmentNamesOf(email: Email): string[] {
+  const names: string[] = [];
+  for (const a of email.attachments ?? []) {
+    if (a.filename) names.push(a.filename);
+  }
+  for (const m of email.threadMessages ?? []) {
+    for (const a of m.attachments ?? []) {
+      if (a.filename) names.push(a.filename);
+    }
+  }
+  return names;
+}
+
 /**
  * Triage priority:
- * meeting → FYI
+ * meeting → Meeting
  * strong purchases → Purchases (before travel — shipping “arrival” must not win)
  * travel → Travel
  * purchases → Purchases
@@ -126,9 +144,10 @@ function latestBody(email: Email): string {
 export function deriveInboxBucket(email: Email): InboxBucket {
   const fromBlob = `${email.from} ${email.fromEmail}`;
   const body = latestBody(email);
+  const files = attachmentNamesOf(email);
 
-  if (isMeetingOrCalendarMail(fromBlob, email.subject, body)) {
-    return "fyi";
+  if (isMeetingOrCalendarMail(fromBlob, email.subject, body, files)) {
+    return "meeting";
   }
 
   // Order / receipt emails first (NEMIX, Amazon, “Order confirmed”, etc.)
@@ -174,6 +193,8 @@ export function bucketLabel(bucket: InboxBucket): string {
       return "To Respond";
     case "fyi":
       return "FYI";
+    case "meeting":
+      return "Meeting";
     case "marketing":
       return "Marketing";
     case "purchases":

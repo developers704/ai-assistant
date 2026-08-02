@@ -36,6 +36,8 @@ function bucketPillClass(bucket: InboxBucket): string {
       return "bg-orange-500/15 text-orange-200/90";
     case "fyi":
       return "bg-white/[0.06] text-white/50";
+    case "meeting":
+      return "bg-violet-500/15 text-violet-200/90";
     case "marketing":
       return "bg-white/[0.04] text-white/40";
     case "purchases":

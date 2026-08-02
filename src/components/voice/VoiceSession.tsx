@@ -37,11 +37,14 @@ export function VoiceSession() {
     closePanel,
   } = useVoice();
 
+  const llmConfigured = state?.integrations?.llm?.configured ?? true;
+
   useEffect(() => {
     if (!supported || !voiceEnabled || startedRef.current || sessionActive) return;
+    if (!llmConfigured) return;
     startedRef.current = true;
     void startSession();
-  }, [supported, voiceEnabled, sessionActive, startSession]);
+  }, [supported, voiceEnabled, sessionActive, startSession, llmConfigured]);
 
   const handleEnd = () => {
     closePanel();
@@ -67,6 +70,26 @@ export function VoiceSession() {
     return (
       <div className="flex min-h-full flex-col items-center justify-center gap-4 text-center px-6">
         <p className="text-ink-secondary">Voice is disabled in Settings.</p>
+        <button
+          type="button"
+          onClick={() => router.push("/settings")}
+          className="px-6 py-2.5 rounded-full bg-white/10 text-white text-sm ring-1 ring-white/20"
+        >
+          Open Settings
+        </button>
+      </div>
+    );
+  }
+
+  if (!llmConfigured) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center gap-4 text-center px-6 max-w-md mx-auto">
+        <p className="text-lg font-medium text-white">OpenAI key not connected</p>
+        <p className="text-sm text-ink-secondary leading-relaxed">
+          Add <code className="text-violet-200">OPENAI_API_KEY</code> to{" "}
+          <code className="text-violet-200">.env.local</code> (or the VPS env), then
+          restart the server. Voice needs Realtime API access on that key.
+        </p>
         <button
           type="button"
           onClick={() => router.push("/settings")}

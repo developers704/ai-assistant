@@ -104,14 +104,14 @@ export function sanitizeEmailHtmlForPreview(html: string): string {
     .replace(/<img\b[^>]*src=["']#["'][^>]*>/gi, "")
     .replace(/(<br\s*\/?>\s*){3,}/gi, "<br/><br/>")
     .replace(/(<p[^>]*>\s*(&nbsp;|\s|<br\s*\/?>)*<\/p>\s*){2,}/gi, "<p><br/></p>")
-    // Dark-on-dark: rewrite near-black inline colors so signatures stay readable
+    // Light paper preview: near-white text on white cards is invisible — darken it
     .replace(
-      /((?:^|[;\s])color\s*:\s*)(#[0-4][0-9a-f]{5}\b|#000\b|#111\b|#222\b|#333\b|black|rgb\(\s*\d{1,2}\s*,\s*\d{1,2}\s*,\s*\d{1,2}\s*\)|rgba\(\s*\d{1,2}\s*,\s*\d{1,2}\s*,\s*\d{1,2}\s*,[^)]+\))/gi,
-      "$1#e8eaef"
+      /((?:^|[;\s])color\s*:\s*)(#[ef][0-9a-fA-F]{5}\b|#fff(?:fff)?\b|#eee\b|#fafafa\b|#f5f5f5\b|white|rgb\(\s*2[0-5]\d\s*,\s*2[0-5]\d\s*,\s*2[0-5]\d\s*\)|rgba\(\s*2[0-5]\d\s*,\s*2[0-5]\d\s*,\s*2[0-5]\d\s*,[^)]+\))/gi,
+      "$1#1c1e24"
     )
     .replace(
-      /(<font\b[^>]*\bcolor\s*=\s*["']?)(#[0-4][0-9a-f]{5}|#000|#111|#222|#333|black)(["']?)/gi,
-      "$1#e8eaef$3"
+      /(<font\b[^>]*\bcolor\s*=\s*["']?)(#[ef][0-9a-fA-F]{5}|#fff(?:fff)?|#eee|white)(["']?)/gi,
+      "$1#1c1e24$3"
     );
 }
 

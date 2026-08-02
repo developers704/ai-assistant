@@ -55,6 +55,7 @@ function isBucket(id: EmailNavId): id is InboxBucket {
   return (
     id === "to_respond" ||
     id === "fyi" ||
+    id === "meeting" ||
     id === "marketing" ||
     id === "purchases" ||
     id === "travel"
@@ -277,6 +278,7 @@ export default function EmailPage() {
       to_respond: inboxEmails.filter((e) => e.inboxBucket === "to_respond")
         .length,
       fyi: inboxEmails.filter((e) => e.inboxBucket === "fyi").length,
+      meeting: inboxEmails.filter((e) => e.inboxBucket === "meeting").length,
       marketing: inboxEmails.filter((e) => e.inboxBucket === "marketing")
         .length,
       purchases: inboxEmails.filter((e) => e.inboxBucket === "purchases")
@@ -1028,6 +1030,7 @@ export default function EmailPage() {
                   "inbox",
                   "to_respond",
                   "fyi",
+                  "meeting",
                   "starred",
                   "purchases",
                   "marketing",

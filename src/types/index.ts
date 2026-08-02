@@ -71,7 +71,13 @@ export interface CalendarEvent {
   reminders?: number[];
 }
 
-export type InboxBucket = "to_respond" | "fyi" | "marketing" | "purchases" | "travel";
+export type InboxBucket =
+  | "to_respond"
+  | "fyi"
+  | "meeting"
+  | "marketing"
+  | "purchases"
+  | "travel";
 
 export interface Email {
   id: string;

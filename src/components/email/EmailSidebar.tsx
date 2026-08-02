@@ -14,6 +14,7 @@ import {
   FileEdit,
   ShoppingBag,
   Briefcase,
+  Calendar,
   Tag,
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ const FOLDERS: { id: MailFolder; label: string; icon: typeof Inbox }[] = [
 const TRIAGE: { id: InboxBucket; icon: typeof Eye }[] = [
   { id: "to_respond", icon: MessageSquareWarning },
   { id: "fyi", icon: Eye },
+  { id: "meeting", icon: Calendar },
   { id: "marketing", icon: Megaphone },
 ];
 

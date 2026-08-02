@@ -112,21 +112,19 @@ export function EmailBody({ body, bodyHtml, preview, attachments }: EmailBodyPro
     overflow: hidden !important;
     background: transparent;
   }
+  /* Light paper — marketing HTML (Shopify/GitHub/Zoho) ships white cards;
+     forcing light text on that made body unreadable. */
   body {
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     font-size: 14.5px;
     line-height: 1.55;
     padding: 16px 18px 18px;
-    color: #e8eaef;
-    background: #141a24;
+    color: #1c1e24;
+    background: #ffffff;
     word-wrap: break-word;
     overflow-wrap: anywhere;
   }
-  /* Signatures often ship with color:#000 — force readable text on dark pane */
-  body, body *:not(a):not(a *) {
-    color: #e8eaef !important;
-  }
-  a, a * { color: #8ab4ff !important; }
+  a { color: #1a56db; }
   img {
     max-width: 100% !important;
     height: auto !important;
@@ -137,7 +135,7 @@ export function EmailBody({ body, bodyHtml, preview, attachments }: EmailBodyPro
   }
   hr {
     border: 0;
-    border-top: 1px solid rgba(255,255,255,0.18);
+    border-top: 1px solid rgba(0,0,0,0.12);
     margin: 14px 0;
   }
   table { max-width: 100% !important; }
@@ -154,7 +152,7 @@ export function EmailBody({ body, bodyHtml, preview, attachments }: EmailBodyPro
 
     return (
       <div className="min-w-0 w-full space-y-2">
-        <div className="rounded-xl overflow-hidden ring-1 ring-white/[0.08] bg-[#141a24]">
+        <div className="rounded-xl overflow-hidden ring-1 ring-white/[0.1] bg-white">
           <iframe
             ref={iframeRef}
             title="Email content"
@@ -163,7 +161,7 @@ export function EmailBody({ body, bodyHtml, preview, attachments }: EmailBodyPro
             onLoad={resizeIframe}
             scrolling="no"
             style={{ height: iframeHeight }}
-            className="w-full max-w-full block border-0 bg-transparent"
+            className="w-full max-w-full block border-0 bg-white"
           />
         </div>
         {attachmentPanel}
