@@ -2,16 +2,16 @@
  * Fill blank Whole Cost from sales guidelines, write downloadable CSV.
  *
  * Rules (only when Whole Cost is blank):
- * - Design PLAT JEWL | SILVER JEW → Sales Amount / 4
  * - Sub-Class BIRTHSTONE → Sales Amount / 8.8
- * - Department GOLD BANDS | GOLD ID | GOLD HOOPS | GOLD PNDTS | GOLD RINGS → / 4
- *   (GOLF PNDTS treated as GOLD PNDTS)
+ * - Gold + UV / Ultimate Value (Class UV, or description UV / Ultimate Value)
+ *   → Sales Amount / 1.3  (takes priority over gold ÷4)
+ * - Design PLAT JEWL | SILVER JEW → Sales Amount / 4
+ * - Gold dept / GOLD JEWL design → Sales Amount / 4
  *
  * Usage:
  *   npx tsx scripts/fill-whole-cost.ts [input.csv] [output.csv]
  */
 import fs from "fs";
-import path from "path";
 import Papa from "papaparse";
 
 const DEFAULT_IN =
@@ -24,6 +24,7 @@ const outputPath = process.argv[3] ?? DEFAULT_OUT;
 
 const GOLD_DEPTS = new Set([
   "GOLD BANDS",
+  "GOLD CHAIN",
   "GOLD ID",
   "GOLD HOOPS",
   "GOLD PNDTS",
@@ -49,15 +50,31 @@ function formatWholeCost(n: number): string {
   return rounded.toFixed(2);
 }
 
+function isGoldRow(row: Record<string, string>): boolean {
+  const dept = norm(row.Department);
+  const design = norm(row.Design);
+  if (GOLD_DEPTS.has(dept)) return true;
+  if (design === "GOLD JEWL") return true;
+  if (dept.includes("GOLD")) return true;
+  return false;
+}
+
+function hasUvOrUltimate(row: Record<string, string>): boolean {
+  if (norm(row.Class) === "UV") return true;
+  const desc = String(row.Description ?? row["Item Description"] ?? "");
+  return /\buv\b/i.test(desc) || /ultimate\s*value/i.test(desc);
+}
+
 function wholeCostDivisor(row: Record<string, string>): number | null {
   const design = norm(row.Design);
   const sub = norm(row["Sub-Class"]);
-  const dept = norm(row.Department);
 
   // More specific first
   if (sub === "BIRTHSTONE") return 8.8;
+  // Gold + UV/Ultimate → ÷1.3 (not gold ÷4)
+  if (isGoldRow(row) && hasUvOrUltimate(row)) return 1.3;
   if (design === "PLAT JEWL" || design === "SILVER JEW") return 4;
-  if (GOLD_DEPTS.has(dept)) return 4;
+  if (isGoldRow(row)) return 4;
   return null;
 }
 
@@ -86,7 +103,13 @@ const stats = {
   wasBlank: 0,
   filled: 0,
   stillBlank: 0,
-  byRule: { birthstone: 0, platJewl: 0, silverJew: 0, goldDept: 0 },
+  byRule: {
+    birthstone: 0,
+    goldUvUltimate: 0,
+    platJewl: 0,
+    silverJew: 0,
+    goldDept: 0,
+  },
 };
 
 const rows = parsed.data.map((row) => {
@@ -103,11 +126,11 @@ const rows = parsed.data.map((row) => {
 
   const design = norm(out.Design);
   const sub = norm(out["Sub-Class"]);
-  const dept = norm(out.Department);
   if (sub === "BIRTHSTONE") stats.byRule.birthstone++;
+  else if (isGoldRow(out) && hasUvOrUltimate(out)) stats.byRule.goldUvUltimate++;
   else if (design === "PLAT JEWL") stats.byRule.platJewl++;
   else if (design === "SILVER JEW") stats.byRule.silverJew++;
-  else if (GOLD_DEPTS.has(dept)) stats.byRule.goldDept++;
+  else if (isGoldRow(out)) stats.byRule.goldDept++;
 
   out["Whole Cost"] = formatWholeCost(sales / div);
   stats.filled++;

@@ -187,14 +187,26 @@ function isGemstone(item: InventoryItem): boolean {
 }
 
 function hasUvOrUltimateValue(item: InventoryItem): boolean {
+  if (/^UV$/i.test(item.class.trim())) return true;
   const desc = item.description ?? "";
   return /\buv\b/i.test(desc) || /ultimate\s*value/i.test(desc);
 }
 
+/**
+ * DM Cost Price: Whole Cost normally.
+ * Gold + UV / Ultimate Value (class or description) → Tag Price ÷ 1.3
+ * (not gold ÷4, and not Whole÷1.3 which double-counts a ÷4 Whole Cost).
+ */
 export function getVisibleDmCostPrice(item: InventoryItem): number {
-  const base = Number(item.wholesaleCost) > 0 ? Number(item.wholesaleCost) : Number(item.costPrice) || 0;
-  if (!base) return 0;
-  return isGold(item) && hasUvOrUltimateValue(item) ? base / 1.3 : base;
+  if (isGold(item) && hasUvOrUltimateValue(item)) {
+    const tag = Number(item.tagPrice) || 0;
+    if (tag > 0) return tag / 1.3;
+  }
+  const base =
+    Number(item.wholesaleCost) > 0
+      ? Number(item.wholesaleCost)
+      : Number(item.costPrice) || 0;
+  return base;
 }
 
 function isUvGoldJewelZeroDiscount(item: InventoryItem): boolean {
