@@ -5,7 +5,7 @@ import {
   saveInventoryCsv,
 } from "@/lib/inventory/store";
 import { readSessionFromCookies } from "@/lib/auth/session";
-import { calculatePricing } from "@/lib/inventory/pricing";
+import { calculatePricing, getVisibleDmCostPrice } from "@/lib/inventory/pricing";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { hidesVendorInfo } from "@/lib/auth/users";
 import { saveOnhandCsv, invalidateOnhandCache } from "@/lib/inventory/onhand";
@@ -98,13 +98,14 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Kash (admin) → Individual Cost Value. DMs → Whole Cost (fallback Individual Cost).
+  // Kash (admin) → Individual Cost Value. DMs use the visible wholesale cost,
+  // with the gold + UV/Ultimate Value exception divided by 1.3.
   let item = { ...result.item };
   let pricing = result.pricing;
   if (session.role === "dm") {
-    const wholesale = Number(item.wholesaleCost) || 0;
-    if (wholesale > 0) {
-      item = { ...item, costPrice: wholesale };
+    const visibleCost = getVisibleDmCostPrice(item);
+    if (visibleCost > 0) {
+      item = { ...item, costPrice: visibleCost };
       pricing = calculatePricing(item);
     }
   }

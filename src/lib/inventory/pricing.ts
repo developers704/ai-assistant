@@ -191,6 +191,12 @@ function hasUvOrUltimateValue(item: InventoryItem): boolean {
   return /\buv\b/i.test(desc) || /ultimate\s*value/i.test(desc);
 }
 
+export function getVisibleDmCostPrice(item: InventoryItem): number {
+  const base = Number(item.wholesaleCost) > 0 ? Number(item.wholesaleCost) : Number(item.costPrice) || 0;
+  if (!base) return 0;
+  return isGold(item) && hasUvOrUltimateValue(item) ? base / 1.3 : base;
+}
+
 function isUvGoldJewelZeroDiscount(item: InventoryItem): boolean {
   return (
     /^UV$/i.test(item.class.trim()) && /^GOLD JEWL$/i.test(item.design.trim())
