@@ -646,7 +646,6 @@ function SettingsContent() {
                         <option value="shaun">Shaun</option>
                         <option value="adeel">Adeel</option>
                         <option value="rozina">Rozina</option>
-                        <option value="ross">Ross</option>
                       </select>
                     </div>
 
