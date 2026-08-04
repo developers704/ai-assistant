@@ -640,12 +640,12 @@ function SettingsContent() {
                       <select
                         value={permissionUser}
                         onChange={(e) => setPermissionUser(e.target.value)}
-                        className={fieldClass}
+                        className={`${fieldClass} bg-[#0f172a] text-white border-slate-600/80`}
                       >
-                        <option value="aj">AJ</option>
-                        <option value="shaun">Shaun</option>
-                        <option value="adeel">Adeel</option>
-                        <option value="rozina">Rozina</option>
+                        <option value="aj" className="bg-slate-900 text-white">AJ</option>
+                        <option value="shaun" className="bg-slate-900 text-white">Shaun</option>
+                        <option value="adeel" className="bg-slate-900 text-white">Adeel</option>
+                        <option value="rozina" className="bg-slate-900 text-white">Rozina</option>
                       </select>
                     </div>
 
