@@ -164,7 +164,11 @@ export function setPermissionMapForUser(
   return getPermissionMapForUser(username, role);
 }
 
-export function canUserAccessSection(username?: string | null, role?: string | null, section: UserPermissionKey): boolean {
+export function canUserAccessSection(
+  section: UserPermissionKey,
+  username?: string | null,
+  role?: string | null
+): boolean {
   const map = getPermissionMapForUser(username, role);
   return Boolean(map[section]);
 }
