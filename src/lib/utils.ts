@@ -39,6 +39,8 @@ const TOP_MODEL_HIDDEN_VENDOR_MODELS = new Set([
   "WG2787",
   "WG670", // Threaded earring post — findings accessory
   "2200-2218", // Screwback earring back / pad — findings accessory
+  "YG2068",
+  "YG2847",
 ]);
 
 function normalizeSalesModelKey(value?: string | null): string {

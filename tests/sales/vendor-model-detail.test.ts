@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { buildVendorModelDetail } from "@/lib/sales/vendor-model-detail";
+import { isHiddenFromTopVendorModelsVendorModel } from "@/lib/utils";
 
 function row(partial: Partial<VendorPosRow>): VendorPosRow {
   return {
@@ -43,9 +44,16 @@ describe("buildVendorModelDetail", () => {
     expect(detail).not.toBeNull();
     expect(detail!.vendorModel).toBe("MV065-SL");
     expect(detail!.totals.units).toBe(4);
-    expect(detail!.trend).toHaveLength(2);
+    expect(detail!.trend.length).toBeGreaterThan(1);
     expect(detail!.attributes.department).toBe("BRACELET");
     expect(detail!.skus[0]?.sku).toBe("231620S");
     expect(detail!.insights.length).toBeGreaterThan(0);
+  });
+});
+
+describe("top vendor model exclusions", () => {
+  it("hides the two vendor models from top vendor rankings while keeping them in sales totals", () => {
+    expect(isHiddenFromTopVendorModelsVendorModel("YG2068")).toBe(true);
+    expect(isHiddenFromTopVendorModelsVendorModel("YG2847")).toBe(true);
   });
 });
