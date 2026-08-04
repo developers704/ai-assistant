@@ -4,6 +4,7 @@
  */
 import type { AsyncDuckDB, AsyncDuckDBConnection } from "@duckdb/duckdb-wasm";
 import Papa from "papaparse";
+import { normalizeDailySalesCsv } from "@/lib/reports/normalize-daily-sales-csv";
 import type { ColumnInfo, ColumnKind, QueryResult, TableSchema } from "./types";
 
 let dbPromise: Promise<AsyncDuckDB> | null = null;
@@ -180,13 +181,14 @@ async function autoCleanColumns(
  * Load CSV text into DuckDB table `data` and profile it.
  */
 export async function loadCSVFromText(fileName: string, text: string): Promise<TableSchema> {
-  const parsed = Papa.parse<string[]>(text, { skipEmptyLines: true, preview: 5 });
+  const normalizedText = normalizeDailySalesCsv(text);
+  const parsed = Papa.parse<string[]>(normalizedText, { skipEmptyLines: true, preview: 5 });
   if (parsed.data.length < 2) {
     throw new Error("This CSV appears to be empty or has no data rows.");
   }
 
   const db = await getDB();
-  await db.registerFileText("upload.csv", text);
+  await db.registerFileText("upload.csv", normalizedText);
 
   return withConnection(async (conn) => {
     await conn.query("DROP TABLE IF EXISTS data");

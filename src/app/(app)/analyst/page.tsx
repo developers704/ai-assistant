@@ -222,12 +222,36 @@ export default function AnalystPage() {
     let cancelled = false;
     (async () => {
       try {
-        await refreshReportList();
-        const res = await fetch("/api/reports/latest");
-        const data = await res.json();
-        if (!cancelled && data.csv && data.report) {
-          const s = await loadCSVFromText(data.report.fileName, data.csv);
-          applySchema(s, false, data.report.id);
+        const listRes = await fetch("/api/reports");
+        const listData = await listRes.json();
+        if (!cancelled) setSavedReports(listData.reports ?? []);
+
+        const latestReport = listData.latest ?? null;
+        if (!latestReport || !latestReport.id) {
+          return;
+        }
+
+        const loadLatest = async () => {
+          try {
+            const res = await fetch(`/api/reports/latest?id=${encodeURIComponent(latestReport.id)}`);
+            const data = await res.json();
+            if (!cancelled && data.csv && data.report) {
+              const s = await loadCSVFromText(data.report.fileName, data.csv);
+              applySchema(s, false, data.report.id);
+            }
+          } catch {
+            // no saved reports yet
+          }
+        };
+
+        if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+          window.requestIdleCallback(() => {
+            if (!cancelled) void loadLatest();
+          });
+        } else {
+          setTimeout(() => {
+            if (!cancelled) void loadLatest();
+          }, 150);
         }
       } catch {
         // no saved reports yet

@@ -15,12 +15,14 @@ assert.equal(normalizeSalesImageDir(""), "");
 
 const raw = `Transaction  #,Transaction Date,,Item  #,,VendorModel1,,Total,,Store,,Department,,Image Dir.,,Profit Amount,,,
 HE-1,7/31/2026,,SKU1,,VM1,,100,,VJ-HEND,,WATCHES,,\\123.jpg,,40,,,
+HE-2,7/31/2026,,SKU2,,VM2,,0,,VJ-HEND,,WATCHES,,\\456.jpg,,0,,,
 `;
 
 const cleaned = normalizeDailySalesCsv(raw);
 assert.ok(!cleaned.includes(",,"), "spacer empty columns should be collapsed");
 assert.ok(cleaned.includes(".webp"), "Image Dir should become webp");
 assert.ok(!/\.jpg/i.test(cleaned), "jpg should be gone");
+assert.ok(!cleaned.includes("SKU2"), "zero-total rows should be removed");
 
 const parsed = Papa.parse<Record<string, unknown>>(cleaned, {
   header: true,
@@ -32,5 +34,12 @@ assert.equal(rows[0].sku, "SKU1");
 assert.equal(rows[0].itemNumber, "SKU1");
 assert.equal(rows[0].vendorModel, "VM1");
 assert.ok(rows[0].imageDir.endsWith(".webp"));
+
+const aliasRaw = `Transaction Date,Item #,VendorModel1,Total,Store,Department,Image Dir.
+7/31/2026,AAAA1,VMX,25,VJ-HEND,WATCHES,\\111.jpg
+`;
+const aliasCleaned = normalizeDailySalesCsv(aliasRaw);
+assert.ok(aliasCleaned.includes("SKU #") || aliasCleaned.includes("Item #"), "SKU/item alias should remain parseable");
+assert.ok(aliasCleaned.includes("Vendor Model") || aliasCleaned.includes("VendorModel1"), "vendor model alias should remain parseable");
 
 console.log("check-daily-sales-csv: ok");
