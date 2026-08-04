@@ -1,7 +1,7 @@
 import type { SalesSummary } from "@/types";
 import { filterExcludedSalesRows, isExcludedSalesRow, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import { normalizeSalesImageDir, resolveProductImageUrl } from "@/lib/reports/product-image";
-import { isValidIsoDate, parseReportFilterDate, shiftIsoYears } from "@/lib/reports/date-utils";
+import { isValidIsoDate, parseReportFilterDate, shiftIsoToSameWeekdayLastYear, shiftIsoYears } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
