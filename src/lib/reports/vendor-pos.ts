@@ -330,20 +330,20 @@ export function summarizeVendorPos(
     const from = rangeFrom <= rangeTo ? rangeFrom : rangeTo;
     const to = rangeFrom <= rangeTo ? rangeTo : rangeFrom;
     periodRows = periodRows.filter((r) => r.date && r.date >= from && r.date <= to);
-    // Same calendar window last year (YoY)
-    const lyFrom = shiftIsoYears(from, -1);
-    const lyTo = shiftIsoYears(to, -1);
+    // Same weekday pattern last year (Mon vs Mon), not same calendar date.
+    const lyFrom = shiftIsoToSameWeekdayLastYear(from);
+    const lyTo = shiftIsoToSameWeekdayLastYear(to);
     compareRows = filterExcludedSalesRows(rows).filter(
       (r) => r.date && r.date >= lyFrom && r.date <= lyTo
     );
   } else if (opts.filterDate) {
     periodRows = periodRows.filter((r) => r.date === opts.filterDate);
-    const lyDate = shiftIsoYears(opts.filterDate, -1);
+    const lyDate = shiftIsoToSameWeekdayLastYear(opts.filterDate);
     compareRows = filterExcludedSalesRows(rows).filter((r) => r.date === lyDate);
   } else if (opts.period === "daily" && dates.length === 1) {
     periodRows = periodRows.filter((r) => r.date === dateTo);
     if (dateTo) {
-      const lyDate = shiftIsoYears(dateTo, -1);
+      const lyDate = shiftIsoToSameWeekdayLastYear(dateTo);
       compareRows = filterExcludedSalesRows(rows).filter((r) => r.date === lyDate);
     }
   }

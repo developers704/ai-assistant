@@ -188,6 +188,24 @@ export function shiftIsoYears(iso: string, years: number): string {
   return `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * Map a date to the prior year with the same weekday pattern.
+ * Example: 2026-08-03 (Mon) → 2025-08-04 (Mon), not 2025-08-03.
+ */
+export function shiftIsoToSameWeekdayLastYear(iso: string): string {
+  if (!isValidIsoDate(iso)) return iso;
+  const current = new Date(`${iso}T12:00:00`);
+  const priorSameDate = shiftIsoYears(iso, -1);
+  const prior = new Date(`${priorSameDate}T12:00:00`);
+  const weekdayDelta = (current.getDay() - prior.getDay() + 7) % 7;
+  const aligned = new Date(prior);
+  aligned.setDate(aligned.getDate() + weekdayDelta);
+  const y = aligned.getFullYear();
+  const m = String(aligned.getMonth() + 1).padStart(2, "0");
+  const d = String(aligned.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 /** ISO YYYY-MM-DD → M/D/YYYY for CSV Transaction Date cells */
 export function isoToUsDate(iso: string): string {
   const [y, m, d] = iso.split("-");

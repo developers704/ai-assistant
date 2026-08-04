@@ -9,7 +9,7 @@ import type { StoredReportMeta } from "@/lib/reports/types";
 import {
   isValidIsoDate,
   parseReportFilterDate,
-  shiftIsoYears,
+  shiftIsoToSameWeekdayLastYear,
 } from "@/lib/reports/date-utils";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import { querySales } from "@/lib/sales/query-sales";
@@ -234,13 +234,13 @@ export async function GET(req: NextRequest) {
       };
       const result = await queryDashboardSlice({ ...slice, mode: "dashboard" });
 
-      // Net sales + store % = same calendar date(s) last year (YoY).
+      // Net sales + store % = same weekday pattern last year (day vs day), not same month/day.
       let previousDay: SalesQueryResult | null = null;
       let previousWeek: SalesQueryResult | null = null;
 
       if (filterDateFrom && filterDateTo) {
-        const lyFrom = shiftIsoYears(filterDateFrom, -1);
-        const lyTo = shiftIsoYears(filterDateTo, -1);
+        const lyFrom = shiftIsoToSameWeekdayLastYear(filterDateFrom);
+        const lyTo = shiftIsoToSameWeekdayLastYear(filterDateTo);
         previousDay = await queryDashboardSlice({
           ...slice,
           date: undefined,
@@ -249,7 +249,7 @@ export async function GET(req: NextRequest) {
           mode: "comparison",
         });
       } else if (filterDate) {
-        const lyDate = shiftIsoYears(filterDate, -1);
+        const lyDate = shiftIsoToSameWeekdayLastYear(filterDate);
         previousDay = await queryDashboardSlice({
           ...slice,
           date: lyDate,

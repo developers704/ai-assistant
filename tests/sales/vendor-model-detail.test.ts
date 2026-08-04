@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { buildVendorModelDetail } from "@/lib/sales/vendor-model-detail";
+import { shiftIsoToSameWeekdayLastYear } from "@/lib/reports/date-utils";
 import { isHiddenFromTopVendorModelsVendorModel } from "@/lib/utils";
 
 function row(partial: Partial<VendorPosRow>): VendorPosRow {
@@ -55,5 +56,11 @@ describe("top vendor model exclusions", () => {
   it("hides the two vendor models from top vendor rankings while keeping them in sales totals", () => {
     expect(isHiddenFromTopVendorModelsVendorModel("YG2068")).toBe(true);
     expect(isHiddenFromTopVendorModelsVendorModel("YG2847")).toBe(true);
+  });
+});
+
+describe("same weekday prior-year comparison", () => {
+  it("maps a Monday to the matching Monday in the prior year, not the same calendar date", () => {
+    expect(shiftIsoToSameWeekdayLastYear("2026-08-03")).toBe("2025-08-04");
   });
 });

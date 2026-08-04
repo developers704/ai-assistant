@@ -426,8 +426,8 @@ export default function SalesPage() {
   const maxStoreRevenue = Math.max(...storePerformance.map((s) => s.revenue), 1);
   const yoyCompareLabel =
     dateRange && dateRange.from !== dateRange.to
-      ? "vs last year"
-      : "vs same day last year";
+      ? "vs same weekday last year"
+      : "vs same weekday last year";
 
   const openRank = (dimension: RankDimension, value: string) => {
     setRankDetail({ dimension, value });
