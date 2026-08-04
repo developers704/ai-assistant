@@ -18,7 +18,8 @@ import { Input } from "@/components/ui/Input";
 
 import { Badge } from "@/components/ui/Badge";
 
-import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug } from "lucide-react";
+import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug, Check, X } from "lucide-react";
+import { USER_PERMISSION_SECTIONS, getPermissionMapForUser, setPermissionMapForUser, type UserPermissionKey } from "@/lib/auth/user-permissions";
 
 
 
@@ -146,6 +147,22 @@ function SettingsContent() {
 
   });
 
+  const [permissionUser, setPermissionUser] = useState<string>("aj");
+  const [permissionDraft, setPermissionDraft] = useState<Record<UserPermissionKey, boolean>>({
+    sales_dashboard: true,
+    stores_map: true,
+    price_calculator: true,
+    news_markets: false,
+    email: false,
+    calendar: false,
+    contacts: false,
+    ai_chat: false,
+    data_analyst: false,
+    image_generation: false,
+    social: false,
+    vendor_info: true,
+  });
+
 
 
   useEffect(() => {
@@ -180,9 +197,18 @@ function SettingsContent() {
 
       });
 
+      if (state.user.authRole === "admin") {
+        setPermissionUser((prev) => prev || "aj");
+      }
+
     }
 
   }, [state?.user]);
+
+  useEffect(() => {
+    if (state?.user?.authRole !== "admin") return;
+    setPermissionDraft(getPermissionMapForUser(permissionUser, "dm"));
+  }, [permissionUser, state?.user?.authRole]);
 
 
 
@@ -456,6 +482,12 @@ function SettingsContent() {
 
   };
 
+  const handlePermissionSave = () => {
+    if (state?.user?.authRole !== "admin") return;
+    const next = setPermissionMapForUser(permissionUser, permissionDraft);
+    setPermissionDraft(next);
+  };
+
 
 
   return (
@@ -599,6 +631,65 @@ function SettingsContent() {
                 </div>
 
               </SectionCard>
+
+              {state?.user?.authRole === "admin" && (
+                <SectionCard title="Permissions Dashboard" icon={Shield}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-ink-secondary mb-1.5">User / DM</label>
+                      <select
+                        value={permissionUser}
+                        onChange={(e) => setPermissionUser(e.target.value)}
+                        className={fieldClass}
+                      >
+                        <option value="aj">AJ</option>
+                        <option value="shaun">Shaun</option>
+                        <option value="adeel">Adeel</option>
+                        <option value="rozina">Rozina</option>
+                        <option value="ross">Ross</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {USER_PERMISSION_SECTIONS.map((section) => (
+                        <label
+                          key={section.key}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-sm text-ink-secondary">{section.label}</div>
+                            <div className="text-[10px] text-ink-muted">{section.description}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPermissionDraft((prev) => ({
+                                ...prev,
+                                [section.key]: !prev[section.key],
+                              }))
+                            }
+                            className={
+                              "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors " +
+                              (permissionDraft[section.key]
+                                ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                                : "border-white/10 bg-white/5 text-ink-muted")
+                            }
+                            aria-label={`${section.label} ${permissionDraft[section.key] ? "enabled" : "disabled"}`}
+                          >
+                            {permissionDraft[section.key] ? <Check size={15} /> : <X size={15} />}
+                          </button>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button size="sm" onClick={handlePermissionSave}>
+                        <Shield size={14} /> Save permissions
+                      </Button>
+                    </div>
+                  </div>
+                </SectionCard>
+              )}
 
 
 

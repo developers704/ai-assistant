@@ -24,6 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useApp } from "@/lib/store/app-context";
+import { getPermissionMapForUser, type UserPermissionKey } from "@/lib/auth/user-permissions";
 import { Avatar } from "@/components/ui/Avatar";
 import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 import { GlassIconTile, type GlassPalette } from "@/components/ui/GlassIconTile";
@@ -50,15 +51,52 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/settings", label: "Settings", icon: Settings, palette: "slate" },
 ];
 
-const DM_NAV: NavItem[] = [
-  { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
-  { href: "/stores", label: "Stores Map & Info", icon: MapPinned, palette: "violet" },
-  { href: "/calculator", label: "Price Calculator", icon: Calculator, palette: "amber" },
-];
+const ALL_NAV_ITEMS: Record<string, NavItem> = {
+  "/sales": { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
+  "/stores": { href: "/stores", label: "Stores Map & Info", icon: MapPinned, palette: "violet" },
+  "/calculator": { href: "/calculator", label: "Price Calculator", icon: Calculator, palette: "amber" },
+  "/chat": { href: "/chat", label: "AI Chat", icon: MessageSquare, palette: "violet" },
+  "/news": { href: "/news", label: "News & Markets", icon: Newspaper, palette: "sky" },
+  "/email": { href: "/email", label: "Email", icon: Mail, palette: "indigo" },
+  "/calendar": { href: "/calendar", label: "Calendar & Tasks", icon: Calendar, palette: "rose" },
+  "/contacts": { href: "/contacts", label: "Contacts", icon: Users, palette: "indigo" },
+  "/analyst": { href: "/analyst", label: "Data Analyst", icon: Database, palette: "cyan" },
+  "/images": { href: "/images", label: "Image Generation", icon: Wand2, palette: "fuchsia" },
+  "/social": { href: "/social", label: "Social", icon: Instagram, palette: "rose" },
+  "/settings": { href: "/settings", label: "Settings", icon: Settings, palette: "slate" },
+};
+
+const DM_PAGE_TO_PERMISSION: Record<string, UserPermissionKey> = {
+  "/sales": "sales_dashboard",
+  "/stores": "stores_map",
+  "/calculator": "price_calculator",
+  "/chat": "ai_chat",
+  "/news": "news_markets",
+  "/email": "email",
+  "/calendar": "calendar",
+  "/contacts": "contacts",
+  "/analyst": "data_analyst",
+  "/images": "image_generation",
+  "/social": "social",
+};
 
 function useNavItems(): NavItem[] {
   const { state } = useApp();
-  return state?.user?.authRole === "admin" ? ADMIN_NAV : DM_NAV;
+  if (state?.user?.authRole === "admin") {
+    if (state.user.username === "ross") return ADMIN_NAV;
+    return ADMIN_NAV;
+  }
+
+  const permissions = getPermissionMapForUser(state?.user?.username, state?.user?.authRole);
+  const allowed = Object.entries(ALL_NAV_ITEMS)
+    .filter(([href]) => {
+      if (href === "/settings") return true;
+      if (href === "/sales" || href === "/stores" || href === "/calculator") return true;
+      return permissions[DM_PAGE_TO_PERMISSION[href] ?? "sales_dashboard"];
+    })
+    .map(([, item]) => item);
+
+  return allowed.length ? allowed : [ALL_NAV_ITEMS["/sales"]!, ALL_NAV_ITEMS["/stores"]!, ALL_NAV_ITEMS["/calculator"]!];
 }
 
 function isActivePath(pathname: string, href: string) {

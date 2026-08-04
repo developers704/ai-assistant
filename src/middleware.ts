@@ -5,6 +5,7 @@ import {
   isDmAllowedAppPath,
   isPublicPath,
 } from "@/lib/auth/routes";
+import { PERMISSION_COOKIE_NAME, getPermissionMapForUserFromCookie } from "@/lib/auth/user-permissions";
 
 /**
  * Kash / admin → full Alexa.
@@ -42,8 +43,15 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  const cookiePermissions = req.cookies.get(PERMISSION_COOKIE_NAME)?.value;
+  const permissionMap = getPermissionMapForUserFromCookie(
+    session.username,
+    session.role,
+    cookiePermissions
+  );
+
   if (pathname.startsWith("/api/")) {
-    if (!isDmAllowedApiPath(pathname)) {
+    if (!isDmAllowedApiPath(pathname, session.username, session.role, permissionMap)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     return NextResponse.next();
@@ -53,7 +61,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/sales", req.url));
   }
 
-  if (!isDmAllowedAppPath(pathname)) {
+  if (!isDmAllowedAppPath(pathname, session.username, session.role, permissionMap)) {
     return NextResponse.redirect(new URL("/sales", req.url));
   }
 
