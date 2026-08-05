@@ -10,6 +10,7 @@ import {
   processMessage,
   executeSideEffects,
   shouldUseRuleEngine,
+  isTrivialChatMessage,
 } from "@/lib/ai/assistant-engine";
 
 import { isLLMChatConfigured, processMessageWithLLM } from "@/lib/ai/llm-chat";
@@ -33,6 +34,11 @@ async function resolveResponse(
   response: AIResponse;
   engine: "rules" | "llm" | "llm-fallback" | "router" | "orchestrator";
 }> {
+  // Instant path — never burn 30–60s on greetings / "ai" / "ok"
+  if (isTrivialChatMessage(message) || shouldUseRuleEngine(message, state)) {
+    return { response: processMessage(message, state), engine: "rules" };
+  }
+
   // Unified orchestrator path (feature-flagged)
   if (AlexaFlags.unifiedOrchestrator()) {
     const turn = await processAlexaTurn({
@@ -74,10 +80,6 @@ async function resolveResponse(
 
   if (isImageGenerateRequest(message)) {
     return { response: await processImageGenerate(message), engine: "rules" };
-  }
-
-  if (shouldUseRuleEngine(message, state)) {
-    return { response: processMessage(message, state), engine: "rules" };
   }
 
   if (isLLMChatConfigured()) {

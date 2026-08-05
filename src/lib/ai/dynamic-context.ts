@@ -7,11 +7,16 @@ import { buildTasksVoiceScript } from "@/lib/voice/tool-helpers";
 import { retrieveRelevantMemories } from "@/lib/memory/retrieve";
 import { loadConversationSummaries } from "@/lib/memory/store";
 import { getUiContext } from "@/lib/store/ui-context";
-import { userTimezone } from "@/lib/calendar-dates";
+import { userTimezone, dateKeyInTimezone, isEventOnDate } from "@/lib/calendar-dates";
 import { buildSectionContextBlock, buildSectionRuntimeContext } from "@/lib/ai/section-context";
 import { getLatestReportWithSummary } from "@/lib/reports/store";
 import { buildStoreDistanceMatrixContext } from "@/lib/stores/store-distances";
 import { isStoreDirectoryAvailable } from "@/lib/stores/store-directory";
+import { withTimeout } from "@/lib/async-utils";
+import { filterCalendarEvents } from "@/lib/calendar-utils";
+import { sortEmails } from "@/lib/email-utils";
+
+const CONTEXT_FETCH_MS = 1500;
 
 /** Compact catalog so voice can pass real filter names into sales tools. */
 function buildSalesFilterCatalogLine(): string {
@@ -59,6 +64,23 @@ export interface CompactDynamicContext {
   textBlock: string;
 }
 
+function fallbackCalendar(state: AppState) {
+  const tz = userTimezone(state);
+  const todayKey = dateKeyInTimezone(new Date(), tz);
+  const events = filterCalendarEvents(state.events).filter(
+    (e) => e.status !== "cancelled" && isEventOnDate(e.start, todayKey, tz)
+  );
+  return { events, tz, todayKey, googleConnected: false, source: "demo" as const };
+}
+
+function fallbackInbox(state: AppState) {
+  return {
+    emails: sortEmails(state.emails),
+    googleConnected: false,
+    source: "demo" as const,
+  };
+}
+
 /**
  * Shared compact context for Voice + Chat.
  * Keep short — full detail via tools, not prompt injection.
@@ -71,9 +93,14 @@ export async function buildDynamicContext(
   const tz = userTimezone(state);
   const now = new Date();
 
+  // Cap Google refreshes so chat never stalls ~10–20s waiting on Gmail/Calendar.
   const [calendar, inbox] = await Promise.all([
-    getVoiceCalendarEvents(),
-    getVoiceEmails(),
+    withTimeout(getVoiceCalendarEvents(), CONTEXT_FETCH_MS, "calendar-context").catch(() =>
+      fallbackCalendar(state)
+    ),
+    withTimeout(getVoiceEmails(), CONTEXT_FETCH_MS, "email-context").catch(() =>
+      fallbackInbox(state)
+    ),
   ]);
 
   const salesBundle = getAssistantSalesSummary();

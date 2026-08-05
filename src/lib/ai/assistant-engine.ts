@@ -879,11 +879,22 @@ export function shouldUseRuleEngine(message: string, state?: { pendingActions?: 
     return !!(state?.pendingActions?.length);
   }
   return (
+    intent === "greeting" ||
+    intent === "help" ||
     intent === "acknowledgment" ||
     intent === "sales_report" ||
     intent === "calendar_today" ||
     intent === "email_summary" ||
     intent === "reminder_list" ||
     intent === "date_query"
+  );
+}
+
+/** Tiny chatters that must never wait on LLM / sales CSV / Google. */
+export function isTrivialChatMessage(message: string): boolean {
+  const t = message.trim().toLowerCase();
+  if (!t) return true;
+  return /^(hi+|hello|hey|yo|sup|thanks|thank you|thx|ok+|okay|k|cool|great|good|gm|gn|morning|evening|night|ai|alexa|bye|goodbye|test)([\s!.?,]*)$/i.test(
+    t
   );
 }

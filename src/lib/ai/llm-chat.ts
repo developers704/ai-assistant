@@ -21,7 +21,7 @@ import {
 import { executeTool } from "@/lib/tools/registry";
 import { loadChatSystemPrompt } from "@/lib/prompts/loader";
 import { buildDynamicContext } from "./dynamic-context";
-import { OPENAI_CHAT_MODEL, chatCompletionLimits } from "@/lib/openai/config";
+import { OPENAI_CHAT_MODEL, OPENAI_FAST_MODEL, chatCompletionLimits } from "@/lib/openai/config";
 import { synthesizeToolResponse } from "@/lib/ai/response-synthesizer";
 import { savePendingAction } from "@/lib/actions/confirmation";
 import { buildAppMapPromptBlock } from "@/lib/ai/app-intelligence";
@@ -269,11 +269,18 @@ This question is not a Valliani company-knowledge lookup. Answer normally from w
     { role: "user", content: message },
   ];
 
+  const shortTurn =
+    message.trim().length < 80 &&
+    !/\b(sales|report|email|inbox|calendar|schedule|vendor|store|margin|revenue|top\s+\d+)\b/i.test(
+      message
+    );
+  const model = shortTurn ? OPENAI_FAST_MODEL : OPENAI_CHAT_MODEL;
+
   const completion = await client.chat.completions.create({
-    model: OPENAI_CHAT_MODEL,
-    ...chatCompletionLimits(OPENAI_CHAT_MODEL, {
+    model,
+    ...chatCompletionLimits(model, {
       temperature: 0.35,
-      maxTokens: 1200,
+      maxTokens: shortTurn ? 400 : 1200,
     }),
     messages,
     tools: ASSISTANT_CHAT_TOOLS,

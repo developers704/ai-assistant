@@ -10,6 +10,67 @@ import type { ReportSummary, StoredReportMeta } from "./types";
 const REPORTS_DIR = path.join(process.cwd(), ".data", "reports");
 const INDEX_FILE = path.join(REPORTS_DIR, "index.json");
 
+type LatestReportBundle = {
+  meta: StoredReportMeta;
+  summary: ReportSummary;
+  csv: string;
+  availableDates: string[];
+  availableStores: string[];
+  availableDepartments: string[];
+  availableDesigns: string[];
+  availableClasses: string[];
+  availableVendors: string[];
+};
+
+/** Avoid re-parsing the full sales CSV on every chat/voice turn. */
+let latestReportSummaryCache: { key: string; value: LatestReportBundle } | null = null;
+
+function clearLatestReportSummaryCache() {
+  latestReportSummaryCache = null;
+}
+
+function salesFilterCacheKey(options?: {
+  filterDate?: string;
+  filterDateFrom?: string;
+  filterDateTo?: string;
+  filterStore?: string;
+  filterStores?: string[];
+  filterDepartment?: string;
+  filterDepartments?: string[];
+  filterDesign?: string;
+  filterDesigns?: string[];
+  filterClass?: string;
+  filterClasses?: string[];
+  filterVendor?: string;
+  filterVendors?: string[];
+}): string {
+  if (!options) return "";
+  const parts: string[] = [];
+  const push = (k: string, v: string | string[] | undefined) => {
+    if (v == null || v === "") return;
+    if (Array.isArray(v)) {
+      if (!v.length) return;
+      parts.push(`${k}=${[...v].map(String).sort().join(",")}`);
+    } else {
+      parts.push(`${k}=${v}`);
+    }
+  };
+  push("d", options.filterDate);
+  push("from", options.filterDateFrom);
+  push("to", options.filterDateTo);
+  push("store", options.filterStore);
+  push("stores", options.filterStores);
+  push("dept", options.filterDepartment);
+  push("depts", options.filterDepartments);
+  push("design", options.filterDesign);
+  push("designs", options.filterDesigns);
+  push("class", options.filterClass);
+  push("classes", options.filterClasses);
+  push("vendor", options.filterVendor);
+  push("vendors", options.filterVendors);
+  return parts.sort().join("|");
+}
+
 const SEED_CANDIDATES: {
   fileName: string;
   path: string;
@@ -221,6 +282,7 @@ export function saveReport(
   const reports = readIndex();
   reports.unshift(meta);
   writeIndex(reports);
+  clearLatestReportSummaryCache();
 
   return { meta, summary };
 }
@@ -233,6 +295,7 @@ export function deleteReport(id: string): boolean {
   writeIndex(reports);
   const file = csvPath(id);
   if (fs.existsSync(file)) fs.unlinkSync(file);
+  clearLatestReportSummaryCache();
   return true;
 }
 
@@ -245,6 +308,7 @@ export function clearAllReports(): number {
     if (fs.existsSync(file)) fs.unlinkSync(file);
   }
   if (fs.existsSync(INDEX_FILE)) fs.unlinkSync(INDEX_FILE);
+  clearLatestReportSummaryCache();
   return reports.length;
 }
 
@@ -262,20 +326,16 @@ export function getLatestReportWithSummary(options?: {
   filterClasses?: string[];
   filterVendor?: string;
   filterVendors?: string[];
-}): {
-  meta: StoredReportMeta;
-  summary: ReportSummary;
-  csv: string;
-  availableDates: string[];
-  availableStores: string[];
-  availableDepartments: string[];
-  availableDesigns: string[];
-  availableClasses: string[];
-  availableVendors: string[];
-} | null {
+}): LatestReportBundle | null {
   ensureSeedReport();
   const meta = getLatestReportMeta();
   if (!meta) return null;
+
+  const cacheKey = `${meta.id}:${meta.contentHash ?? meta.uploadedAt}:${salesFilterCacheKey(options)}`;
+  if (latestReportSummaryCache?.key === cacheKey) {
+    return latestReportSummaryCache.value;
+  }
+
   const csv = readReportCsv(meta.id);
   if (!csv) return null;
   const dims = extractReportDimensions(csv);
@@ -305,7 +365,7 @@ export function getLatestReportWithSummary(options?: {
     filterVendor: options?.filterVendor,
     filterVendors: options?.filterVendors,
   });
-  return {
+  const value: LatestReportBundle = {
     meta,
     summary,
     csv,
@@ -316,6 +376,8 @@ export function getLatestReportWithSummary(options?: {
     availableClasses: dims.classes,
     availableVendors: dims.vendors,
   };
+  latestReportSummaryCache = { key: cacheKey, value };
+  return value;
 }
 
 export function getReportSummaryForSales(): ReportSummary | null {
