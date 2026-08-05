@@ -57,9 +57,11 @@ function detectIntent(message: string): IntentType {
 
   if (/^(yes|confirm|go ahead|send it|proceed|approved?|do it)\b/.test(lower)) return "confirm_action";
   if (/^(no|cancel|reject|don't|stop|nevermind|never mind)\b/.test(lower)) return "reject_action";
-  if (/help|what can you do|capabilities/.test(lower)) return "help";
+  if (/\bhelp\b|what can you do|capabilities/.test(lower)) return "help";
   if (
-    /good morning|hello|hi\b|hey\b|greetings|how\s+(?:r\s+u|are\s+you|you\s+doing|going)/.test(lower)
+    /^(good morning|hello|hi+|hey+|greetings)\b|how\s+(?:r\s+u|are\s+you|you\s+doing|going)/.test(
+      lower
+    )
   ) {
     return "greeting";
   }
@@ -289,7 +291,8 @@ Try: "What do I need to focus on today?" or "Summarize my inbox."`,
     default:
       return {
         intent: "general",
-        message: `I understand you're asking about "${message}". I can help with emails, calendar, reminders, sales reports, documents, and messaging. Could you provide more details about what you'd like me to do?`,
+        message:
+          "I couldn't reach the language model just now. Try again — or ask about sales, email, calendar, or Valliani company info.",
         speak: true,
       };
   }
@@ -873,28 +876,55 @@ export function getMessageIntent(message: string): IntentType {
   return detectIntent(message);
 }
 
+/**
+ * Structured app intents answered by the deterministic rule engine.
+ * Greetings / help / general knowledge → LLM (ChatGPT-style + Valliani RAG).
+ */
 export function shouldUseRuleEngine(message: string, state?: { pendingActions?: unknown[] }): boolean {
   const intent = detectIntent(message);
   if (intent === "confirm_action" || intent === "reject_action") {
     return !!(state?.pendingActions?.length);
   }
   return (
-    intent === "greeting" ||
-    intent === "help" ||
-    intent === "acknowledgment" ||
     intent === "sales_report" ||
     intent === "calendar_today" ||
     intent === "email_summary" ||
     intent === "reminder_list" ||
-    intent === "date_query"
+    intent === "date_query" ||
+    intent === "store_list"
   );
 }
 
-/** Tiny chatters that must never wait on LLM / sales CSV / Google. */
+/** Tiny ack-only lines (not full greetings) — still allowed for ultra-fast path if needed. */
 export function isTrivialChatMessage(message: string): boolean {
   const t = message.trim().toLowerCase();
   if (!t) return true;
-  return /^(hi+|hello|hey|yo|sup|thanks|thank you|thx|ok+|okay|k|cool|great|good|gm|gn|morning|evening|night|ai|alexa|bye|goodbye|test)([\s!.?,]*)$/i.test(
+  return /^(thanks|thank you|thx|ok+|okay|k|cool|great|got it|bye|goodbye)([\s!.?,]*)$/i.test(t);
+}
+
+/**
+ * World-knowledge / chitchat questions that must go to the LLM —
+ * never the canned rule-engine redirect.
+ */
+export function isGeneralKnowledgeChatQuery(message: string): boolean {
+  const t = message.trim();
+  if (!t) return false;
+  if (shouldUseRuleEngine(t)) return false;
+  // Valliani / RAG still uses LLM, but with tools+RAG — not "general world"
+  if (
+    /\b(valliani|villiani|valiani|vallani|jewelers?)\b/i.test(t) ||
+    /\b(polic(?:y|ies)|privacy|return|shipping|founder|warranty|layaway|financing)\b/i.test(t)
+  ) {
+    return false;
+  }
+  if (
+    /\b(sales|revenue|inbox|email|calendar|meeting|reminder|task|whatsapp|dashboard)\b/i.test(t)
+  ) {
+    return false;
+  }
+  if (/how\s+(?:r\s+u|are\s+you|you\s+doing|going)/i.test(t)) return true;
+  if (/\b(who|what)\s+(is|are|was|were)\b/i.test(t)) return true;
+  return /^(who|what|when|where|why|how|which|is|are|can|could|do|does|did|explain|define|tell\s+me|hi+|hello|hey+|good\s+(morning|afternoon|evening))\b/i.test(
     t
   );
 }

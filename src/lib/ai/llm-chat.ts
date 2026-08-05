@@ -26,6 +26,7 @@ import { synthesizeToolResponse } from "@/lib/ai/response-synthesizer";
 import { savePendingAction } from "@/lib/actions/confirmation";
 import { buildAppMapPromptBlock } from "@/lib/ai/app-intelligence";
 import { looksLikeCompanyKnowledgeQuery } from "@/lib/voice/company-knowledge-format";
+import { isGeneralKnowledgeChatQuery } from "@/lib/ai/assistant-engine";
 
 export function isLLMChatConfigured(): boolean {
   const key = process.env.OPENAI_API_KEY;
@@ -236,8 +237,10 @@ export async function processMessageWithLLM(
 
   const context = buildAssistantContext(state);
   const dynamic = await buildDynamicContext(state, message);
+  const companyQ = looksLikeCompanyKnowledgeQuery(message);
+  const generalQ = isGeneralKnowledgeChatQuery(message);
   const ragSection =
-    isRagAvailable() && looksLikeCompanyKnowledgeQuery(message)
+    isRagAvailable() && companyQ
       ? (() => {
           const retrieved = retrieveKnowledge(message);
           const guardrails = getRagGuardrails();
@@ -248,12 +251,24 @@ Answer style: ${getRagAnswerStyle()}
 Accuracy guardrails:
 ${guardrails.map((g) => `- ${g}`).join("\n")}
 
-${formatRetrievedContext(retrieved)}`;
-        })()
-      : `
+${formatRetrievedContext(retrieved)}
 
-## GENERAL KNOWLEDGE
-This question is not a Valliani company-knowledge lookup. Answer normally from world knowledge when appropriate. Do NOT call search_company_knowledge unless the user clearly asks about Valliani policies, brands, founder, or company facts. Do NOT say you couldn't find it in company knowledge for non-company topics.`;
+Answer using the retrieved company knowledge above. If it does not cover the ask, say what is missing — do not invent Valliani policies or facts.`;
+        })()
+      : generalQ
+        ? `
+
+## GENERAL KNOWLEDGE (ChatGPT-style)
+Answer this like a helpful general assistant using your world knowledge.
+Be direct and accurate. Do NOT redirect to email/calendar/sales unless the user asks about those.
+Do NOT call tools. Do NOT mention company knowledge or Valliani unless the user asked about them.`
+        : `
+
+## GENERAL / APP MIX
+Answer from world knowledge when appropriate.
+Use tools for live email, calendar, sales, and tasks.
+Do NOT call search_company_knowledge unless the user clearly asks about Valliani policies, brands, founder, or company facts.
+Do NOT say you couldn't find it in company knowledge for non-company topics.`;
 
   const history = state.chatHistory.slice(-10).map((m) => ({
     role: m.role as "user" | "assistant" | "system",
@@ -269,22 +284,25 @@ This question is not a Valliani company-knowledge lookup. Answer normally from w
     { role: "user", content: message },
   ];
 
-  const shortTurn =
-    message.trim().length < 80 &&
-    !/\b(sales|report|email|inbox|calendar|schedule|vendor|store|margin|revenue|top\s+\d+)\b/i.test(
-      message
-    );
-  const model = shortTurn ? OPENAI_FAST_MODEL : OPENAI_CHAT_MODEL;
+  // World trivia / chitchat → main chat model, no tools (must answer like GPT).
+  const model =
+    generalQ || companyQ
+      ? OPENAI_CHAT_MODEL
+      : message.trim().length < 80
+        ? OPENAI_FAST_MODEL
+        : OPENAI_CHAT_MODEL;
+  const maxTokens = generalQ ? 900 : 1200;
 
   const completion = await client.chat.completions.create({
     model,
     ...chatCompletionLimits(model, {
-      temperature: 0.35,
-      maxTokens: shortTurn ? 400 : 1200,
+      temperature: generalQ ? 0.5 : 0.35,
+      maxTokens,
     }),
     messages,
-    tools: ASSISTANT_CHAT_TOOLS,
-    tool_choice: "auto",
+    ...(generalQ
+      ? {}
+      : { tools: ASSISTANT_CHAT_TOOLS, tool_choice: "auto" as const }),
   });
 
   const choice = completion.choices[0]?.message;

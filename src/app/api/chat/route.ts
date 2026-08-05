@@ -10,7 +10,7 @@ import {
   processMessage,
   executeSideEffects,
   shouldUseRuleEngine,
-  isTrivialChatMessage,
+  isGeneralKnowledgeChatQuery,
 } from "@/lib/ai/assistant-engine";
 
 import { isLLMChatConfigured, processMessageWithLLM } from "@/lib/ai/llm-chat";
@@ -34,13 +34,17 @@ async function resolveResponse(
   response: AIResponse;
   engine: "rules" | "llm" | "llm-fallback" | "router" | "orchestrator";
 }> {
-  // Instant path — never burn 30–60s on greetings / "ai" / "ok"
-  if (isTrivialChatMessage(message) || shouldUseRuleEngine(message, state)) {
+  // Hybrid: clear app intents stay on rules (fast + accurate numbers).
+  // General knowledge / chitchat skip router so they always hit the LLM.
+  if (shouldUseRuleEngine(message, state)) {
     return { response: processMessage(message, state), engine: "rules" };
   }
 
-  // Unified orchestrator path (feature-flagged)
-  if (AlexaFlags.unifiedOrchestrator()) {
+  const preferLlm =
+    isLLMChatConfigured() && isGeneralKnowledgeChatQuery(message);
+
+  // Unified orchestrator path (feature-flagged) — skip for world-knowledge Qs
+  if (!preferLlm && AlexaFlags.unifiedOrchestrator()) {
     const turn = await processAlexaTurn({
       channel: "chat",
       conversationId: "chat-main",
@@ -70,12 +74,13 @@ async function resolveResponse(
         engine: "orchestrator",
       };
     }
-    // deferToLegacy → continue into legacy chain once
   }
 
-  const routed = await processAlexaMessage(message, state);
-  if (routed) {
-    return { response: routed, engine: "router" };
+  if (!preferLlm) {
+    const routed = await processAlexaMessage(message, state);
+    if (routed) {
+      return { response: routed, engine: "router" };
+    }
   }
 
   if (isImageGenerateRequest(message)) {
@@ -89,9 +94,15 @@ async function resolveResponse(
         engine: "llm",
       };
     } catch (err) {
-      console.error("LLM chat failed, falling back to rule engine:", err);
+      console.error("LLM chat failed:", err);
+      // Never dump the old "I can help with emails…" canned line for Q&A.
       return {
-        response: processMessage(message, state),
+        response: {
+          intent: "general",
+          message:
+            "I hit a temporary issue answering that. Please try again in a moment.",
+          speak: true,
+        },
         engine: "llm-fallback",
       };
     }
@@ -100,46 +111,27 @@ async function resolveResponse(
   return { response: processMessage(message, state), engine: "rules" };
 }
 
-
-
 export async function POST(req: NextRequest) {
-
   const { message } = await req.json();
 
   if (!message?.trim()) {
-
     return NextResponse.json({ error: "Message required" }, { status: 400 });
-
   }
-
-
 
   const trimmed = message.trim();
 
   // Quick enrich — never block chat on a cold Google sync
   const state = await getEnrichedState({ quick: true });
 
-
-
   const userMessage: ChatMessage = {
-
     id: uuidv4(),
-
     role: "user",
-
     content: trimmed,
-
     timestamp: new Date().toISOString(),
-
   };
 
-
-
   const { response, engine } = await resolveResponse(trimmed, state);
-
   const sideEffects = executeSideEffects(response, state);
-
-
 
   const assistantMessage: ChatMessage = {
     id: uuidv4(),
@@ -152,8 +144,6 @@ export async function POST(req: NextRequest) {
         ? response.data.generatedImage
         : undefined,
   };
-
-
 
   setState((s) => ({
     ...s,
@@ -170,41 +160,22 @@ export async function POST(req: NextRequest) {
     appendConversationSummary(recent);
   }
 
-
-
   const finalState = await clientAppState(getState());
 
   return NextResponse.json({
-
     message: assistantMessage,
-
     state: finalState,
-
     speak: response.speak,
-
     engine,
-
   });
-
 }
-
-
 
 export async function GET() {
-
   const state = await getEnrichedState();
-
   return NextResponse.json({ history: state.chatHistory });
-
 }
-
-
 
 export async function DELETE() {
-
   clearChatHistory();
-
   return NextResponse.json({ ok: true });
-
 }
-
