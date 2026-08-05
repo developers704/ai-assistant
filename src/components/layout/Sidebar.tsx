@@ -90,18 +90,19 @@ function useNavItems(): NavItem[] {
     | Partial<Record<UserPermissionKey, boolean>>
     | undefined;
 
-  // Until /api/state hydrates permissions, show DM defaults.
+  // Until /api/state hydrates permissions, show DM defaults + Settings.
   if (!permissions) {
     return [
       ALL_NAV_ITEMS["/sales"]!,
       ALL_NAV_ITEMS["/stores"]!,
       ALL_NAV_ITEMS["/calculator"]!,
+      ALL_NAV_ITEMS["/settings"]!,
     ];
   }
 
   return Object.entries(ALL_NAV_ITEMS)
     .filter(([href]) => {
-      if (href === "/settings") return false;
+      if (href === "/settings") return true;
       const key = DM_PAGE_TO_PERMISSION[href];
       if (!key) return false;
       return Boolean(permissions[key]);

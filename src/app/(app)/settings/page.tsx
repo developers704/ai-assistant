@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/Input";
 
 import { Badge } from "@/components/ui/Badge";
 
-import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug, Check, X } from "lucide-react";
+import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug, Check, X, KeyRound, RefreshCw, Copy } from "lucide-react";
 import {
   USER_PERMISSION_SECTIONS,
   canManageDmPermissions,
@@ -160,6 +160,27 @@ function SettingsContent() {
   const [permissionSaving, setPermissionSaving] = useState(false);
   const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
   const canEditPermissions = canManageDmPermissions(state?.user?.username);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [issuedPassword, setIssuedPassword] = useState<string | null>(null);
+  const [adminTarget, setAdminTarget] = useState("aj");
+  const [adminReveals, setAdminReveals] = useState<
+    Array<{
+      username: string;
+      name: string;
+      role: string;
+      title: string;
+      password: string | null;
+      updatedAt: string | null;
+      updatedBy: string | null;
+      source: string | null;
+    }>
+  >([]);
 
 
 
@@ -527,6 +548,99 @@ function SettingsContent() {
     }
   };
 
+  const refreshAdminReveals = async () => {
+    if (!canManageDmPermissions(state?.user?.username)) return;
+    try {
+      const res = await fetch("/api/auth/password");
+      if (!res.ok) return;
+      const data = await res.json();
+      setAdminReveals(data.users ?? []);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    if (canManageDmPermissions(state?.user?.username)) {
+      void refreshAdminReveals();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.user?.username]);
+
+  const runPasswordAction = async (payload: Record<string, string>) => {
+    setPasswordBusy(true);
+    setPasswordError(null);
+    setPasswordNotice(null);
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPasswordError(data.error || "Password update failed");
+        return;
+      }
+      setIssuedPassword(data.password ?? null);
+      setPasswordNotice(data.message || "Password updated");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      if (canManageDmPermissions(state?.user?.username)) {
+        void refreshAdminReveals();
+      }
+    } catch {
+      setPasswordError("Password update failed");
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const handleChangeOwnPassword = () => {
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirmation do not match");
+      return;
+    }
+    void runPasswordAction({
+      action: "change",
+      currentPassword,
+      newPassword,
+    });
+  };
+
+  const handleRegenerateOwnPassword = () => {
+    if (
+      !window.confirm(
+        "Generate a new password? Your current password will stop working immediately."
+      )
+    ) {
+      return;
+    }
+    void runPasswordAction({ action: "regenerate" });
+  };
+
+  const handleKashRegenerate = () => {
+    if (
+      !window.confirm(
+        `Generate a new password for ${adminTarget}? They will need the new password to sign in.`
+      )
+    ) {
+      return;
+    }
+    void runPasswordAction({ action: "regenerate", username: adminTarget });
+  };
+
+  const copyIssued = async () => {
+    if (!issuedPassword) return;
+    try {
+      await navigator.clipboard.writeText(issuedPassword);
+      setPasswordNotice("Copied to clipboard");
+    } catch {
+      setPasswordError("Could not copy — select the password manually");
+    }
+  };
+
 
 
   return (
@@ -671,6 +785,149 @@ function SettingsContent() {
 
               </SectionCard>
 
+              <SectionCard title="Password Portal" icon={KeyRound}>
+                <div className="space-y-4">
+                  <p className="text-xs text-ink-muted">
+                    Change your password, or regenerate a new one if you forgot it. Copy any generated password now — login uses the latest value.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+                        Current password (for change)
+                      </label>
+                      <input
+                        type="password"
+                        autoComplete="current-password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+                        New password
+                      </label>
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+                        Confirm new password
+                      </label>
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className={fieldClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={handleChangeOwnPassword} disabled={passwordBusy}>
+                      {passwordBusy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+                      Change password
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRegenerateOwnPassword}
+                      disabled={passwordBusy}
+                    >
+                      <RefreshCw size={14} /> Forget / regenerate
+                    </Button>
+                  </div>
+
+                  {issuedPassword && (
+                    <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5">
+                      <p className="text-xs text-emerald-100/90 mb-1">Issued password (copy now)</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-sm text-white break-all">{issuedPassword}</code>
+                        <Button size="sm" variant="outline" onClick={() => void copyIssued()}>
+                          <Copy size={14} /> Copy
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {passwordError && (
+                    <p className="text-sm text-rose-200">{passwordError}</p>
+                  )}
+                  {passwordNotice && !passwordError && (
+                    <p className="text-sm text-emerald-200/90">{passwordNotice}</p>
+                  )}
+
+                  {canEditPermissions && (
+                    <div className="pt-4 mt-2 border-t border-white/10 space-y-3">
+                      <p className="text-sm font-medium text-ink">Kash — all users</p>
+                      <p className="text-xs text-ink-muted">
+                        You can regenerate any account and see the last password issued from this portal (not recoverable from old bcrypt hashes).
+                      </p>
+                      <div className="flex flex-wrap items-end gap-2">
+                        <div className="min-w-[160px] flex-1">
+                          <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+                            User
+                          </label>
+                          <select
+                            value={adminTarget}
+                            onChange={(e) => setAdminTarget(e.target.value)}
+                            className={`${fieldClass} bg-[#0f172a] text-white border-slate-600/80`}
+                          >
+                            {["kash", "ross", "aj", "shaun", "adeel", "rozina"].map((u) => (
+                              <option key={u} value={u} className="bg-slate-900 text-white">
+                                {u}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <Button size="sm" onClick={handleKashRegenerate} disabled={passwordBusy}>
+                          <RefreshCw size={14} /> Regenerate for user
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void refreshAdminReveals()}
+                          disabled={passwordBusy}
+                        >
+                          Refresh list
+                        </Button>
+                      </div>
+
+                      <div className="rounded-xl border border-white/10 overflow-hidden divide-y divide-white/10">
+                        {adminReveals.map((row) => (
+                          <div
+                            key={row.username}
+                            className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 px-3 py-2.5 bg-white/[0.02]"
+                          >
+                            <div className="min-w-[120px]">
+                              <div className="text-sm text-ink-secondary">{row.name}</div>
+                              <div className="text-[10px] text-ink-muted">
+                                {row.username} · {row.title}
+                              </div>
+                            </div>
+                            <code className="flex-1 text-xs text-white/90 break-all">
+                              {row.password ?? "(no portal password yet — still using built-in)"}
+                            </code>
+                            <div className="text-[10px] text-ink-muted sm:text-right">
+                              {row.updatedAt
+                                ? `${row.source} · ${new Date(row.updatedAt).toLocaleString()}`
+                                : ""}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+
               {canEditPermissions && (
                 <SectionCard title="Permissions Dashboard" icon={Shield}>
                   <div className="space-y-4">
@@ -788,6 +1045,7 @@ function SettingsContent() {
 
 
 
+              {canEditPermissions && (
               <SectionCard title="Integration Status" icon={Plug}>
 
                 {googleNotice && (
@@ -960,6 +1218,7 @@ function SettingsContent() {
                 </p>
 
               </SectionCard>
+              )}
 
             </div>
 

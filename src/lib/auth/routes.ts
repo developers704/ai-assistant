@@ -79,9 +79,9 @@ export function isDmAllowedAppPath(
   permissions?: UserPermissionMap
 ): boolean {
   if (pathname === "/" || pathname === "") return true;
-  // Settings is admin-only (Kash/Ross). DMs never get Settings.
+  // Settings (password portal) is available to every signed-in user.
   if (pathname === "/settings" || pathname.startsWith("/settings/")) {
-    return false;
+    return true;
   }
 
   const permissionMap =
@@ -109,8 +109,9 @@ export function isDmAllowedApiPath(
   if (pathname.startsWith("/api/auth/")) return true;
   if (pathname.startsWith("/api/state")) return true;
   if (pathname.startsWith("/api/ui-context")) return true;
-  // Profile self-update: allow for all authenticated DMs (limited fields)
+  // Profile + password portal: all authenticated users
   if (pathname.startsWith("/api/profile")) return true;
+  if (pathname.startsWith("/api/permissions")) return true;
 
   const permissionMap =
     permissions ?? getPermissionMapForUserFromCookie(username, role);

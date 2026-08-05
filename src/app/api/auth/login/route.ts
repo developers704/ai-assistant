@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { findAuthUser, getAllowedStoreCodes } from "@/lib/auth/users";
 import {
   applySessionCookie,
   createSessionToken,
 } from "@/lib/auth/session";
 import { syncPermissionsCookie } from "@/lib/auth/user-permissions-store";
+import { verifyUserPassword } from "@/lib/auth/password-store";
 
 export async function POST(req: NextRequest) {
   let body: { username?: string; email?: string; password?: string };
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   }
 
   const user = findAuthUser(username);
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  if (!user || !(await verifyUserPassword(user.username, password))) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
