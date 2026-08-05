@@ -23,7 +23,6 @@ import {
   USER_PERMISSION_SECTIONS,
   canManageDmPermissions,
   getDefaultPermissionMapForRole,
-  type UserPermissionKey,
   type UserPermissionMap,
 } from "@/lib/auth/user-permissions";
 
@@ -319,7 +318,23 @@ function SettingsContent() {
 
   }, []);
 
-
+  useEffect(() => {
+    if (!canManageDmPermissions(state?.user?.username)) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/password");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setAdminReveals(data.users ?? []);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state?.user?.username]);
 
   if (!state?.user) return null;
 
@@ -559,13 +574,6 @@ function SettingsContent() {
       // ignore
     }
   };
-
-  useEffect(() => {
-    if (canManageDmPermissions(state?.user?.username)) {
-      void refreshAdminReveals();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.user?.username]);
 
   const runPasswordAction = async (payload: Record<string, string>) => {
     setPasswordBusy(true);
