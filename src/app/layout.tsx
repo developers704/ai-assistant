@@ -1,15 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/store/app-context";
 import { SplashOverlay } from "@/components/layout/SplashOverlay";
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-  weight: ["400", "500", "600", "700", "800"],
-});
+/**
+ * Avoid next/font/google — VPS builds often time out fetching Google Fonts
+ * (ETIMEDOUT on Inter). System UI stack keeps offline/CI builds reliable.
+ */
 
 export const metadata: Metadata = {
   title: "Alexa — executive assistance",
@@ -37,8 +34,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="futuristic" className={inter.variable}>
-      <body className={inter.className}>
+    <html lang="en" data-theme="futuristic">
+      <body className="font-sans antialiased">
         <AppProvider>
           <SplashOverlay />
           {children}
