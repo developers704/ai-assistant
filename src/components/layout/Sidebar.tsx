@@ -24,7 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useApp } from "@/lib/store/app-context";
-import { getPermissionMapForUser, type UserPermissionKey } from "@/lib/auth/user-permissions";
+import type { UserPermissionKey } from "@/lib/auth/user-permissions";
 import { Avatar } from "@/components/ui/Avatar";
 import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 import { GlassIconTile, type GlassPalette } from "@/components/ui/GlassIconTile";
@@ -83,20 +83,30 @@ const DM_PAGE_TO_PERMISSION: Record<string, UserPermissionKey> = {
 function useNavItems(): NavItem[] {
   const { state } = useApp();
   if (state?.user?.authRole === "admin") {
-    if (state.user.username === "ross") return ADMIN_NAV;
     return ADMIN_NAV;
   }
 
-  const permissions = getPermissionMapForUser(state?.user?.username, state?.user?.authRole);
-  const allowed = Object.entries(ALL_NAV_ITEMS)
+  const permissions = state?.user?.permissions as
+    | Partial<Record<UserPermissionKey, boolean>>
+    | undefined;
+
+  // Until /api/state hydrates permissions, show DM defaults.
+  if (!permissions) {
+    return [
+      ALL_NAV_ITEMS["/sales"]!,
+      ALL_NAV_ITEMS["/stores"]!,
+      ALL_NAV_ITEMS["/calculator"]!,
+    ];
+  }
+
+  return Object.entries(ALL_NAV_ITEMS)
     .filter(([href]) => {
-      if (href === "/settings") return true;
-      if (href === "/sales" || href === "/stores" || href === "/calculator") return true;
-      return permissions[DM_PAGE_TO_PERMISSION[href] ?? "sales_dashboard"];
+      if (href === "/settings") return false;
+      const key = DM_PAGE_TO_PERMISSION[href];
+      if (!key) return false;
+      return Boolean(permissions[key]);
     })
     .map(([, item]) => item);
-
-  return allowed.length ? allowed : [ALL_NAV_ITEMS["/sales"]!, ALL_NAV_ITEMS["/stores"]!, ALL_NAV_ITEMS["/calculator"]!];
 }
 
 function isActivePath(pathname: string, href: string) {

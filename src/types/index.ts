@@ -9,6 +9,8 @@ export interface UserProfile {
   authRole?: "admin" | "dm";
   /** null/undefined = all stores (admin); DM = POS store codes */
   storeCodes?: string[] | null;
+  /** Resolved section access (from defaults + Kash overrides) */
+  permissions?: Record<string, boolean>;
   company: string;
   companyDescription: string;
   timezone: string;

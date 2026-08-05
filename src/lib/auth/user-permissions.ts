@@ -1,3 +1,5 @@
+import type { NextResponse } from "next/server";
+
 export type UserPermissionKey =
   | "sales_dashboard"
   | "stores_map"
@@ -12,9 +14,21 @@ export type UserPermissionKey =
   | "social"
   | "vendor_info";
 
+export type UserPermissionMap = Record<UserPermissionKey, boolean>;
+export type PermissionOverrides = Record<string, Partial<UserPermissionMap>>;
+
 export const PERMISSION_COOKIE_NAME = "alexa-user-permissions-v1";
 
-export const USER_PERMISSION_SECTIONS: Array<{ key: UserPermissionKey; label: string; description: string }> = [
+/** Only Kash edits the DM permission matrix (Ross is admin but excluded). */
+export function canManageDmPermissions(username?: string | null): boolean {
+  return normalizeUsername(username) === "kash";
+}
+
+export const USER_PERMISSION_SECTIONS: Array<{
+  key: UserPermissionKey;
+  label: string;
+  description: string;
+}> = [
   { key: "sales_dashboard", label: "Sales Dashboard", description: "Net sales, stores, and revenue dashboard" },
   { key: "stores_map", label: "Stores Map & Info", description: "Store locations and details" },
   { key: "price_calculator", label: "Price Calculator", description: "Pricing and wholesale cost tools" },
@@ -29,24 +43,19 @@ export const USER_PERMISSION_SECTIONS: Array<{ key: UserPermissionKey; label: st
   { key: "vendor_info", label: "Vendor Info", description: "Vendor names and vendor-level detail" },
 ];
 
-export function getDefaultPermissionMapForRole(role?: string | null): Record<UserPermissionKey, boolean> {
-  const base: Record<UserPermissionKey, boolean> = {
-    sales_dashboard: false,
-    stores_map: false,
-    price_calculator: false,
-    news_markets: false,
-    email: false,
-    calendar: false,
-    contacts: false,
-    ai_chat: false,
-    data_analyst: false,
-    image_generation: false,
-    social: false,
-    vendor_info: true,
-  };
+export const DM_USERNAMES = ["aj", "shaun", "adeel", "rozina"] as const;
 
+export function normalizeUsername(value?: string | null): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+export function getDefaultPermissionMapForRole(
+  role?: string | null
+): UserPermissionMap {
   if (role === "admin") {
-    return Object.fromEntries(USER_PERMISSION_SECTIONS.map((section) => [section.key, true])) as Record<UserPermissionKey, boolean>;
+    return Object.fromEntries(
+      USER_PERMISSION_SECTIONS.map((s) => [s.key, true])
+    ) as UserPermissionMap;
   }
 
   if (role === "dm") {
@@ -66,50 +75,64 @@ export function getDefaultPermissionMapForRole(role?: string | null): Record<Use
     };
   }
 
-  return base;
+  return {
+    sales_dashboard: false,
+    stores_map: false,
+    price_calculator: false,
+    news_markets: false,
+    email: false,
+    calendar: false,
+    contacts: false,
+    ai_chat: false,
+    data_analyst: false,
+    image_generation: false,
+    social: false,
+    vendor_info: true,
+  };
 }
 
-function normalizeUsername(value?: string | null): string {
-  return (value ?? "").trim().toLowerCase();
+/** Built-in overrides applied after user/file overrides (Rozina default: no vendor). */
+function applyBuiltInFixes(
+  username: string | null | undefined,
+  map: UserPermissionMap,
+  vendorInfoExplicitlySet: boolean
+): UserPermissionMap {
+  const key = normalizeUsername(username);
+  const next = { ...map };
+  if (key === "rozina" && !vendorInfoExplicitlySet) {
+    next.vendor_info = false;
+  }
+  return next;
 }
 
-function getStorageKey(): string {
-  return PERMISSION_COOKIE_NAME;
+export function mergePermissionMap(
+  username?: string | null,
+  role?: string | null,
+  overrides?: PermissionOverrides | null
+): UserPermissionMap {
+  const base = getDefaultPermissionMapForRole(role);
+  const key = normalizeUsername(username);
+  if (!key) return base;
+
+  const override = overrides?.[key] ?? {};
+  const merged = { ...base, ...override };
+  const vendorExplicit = Object.prototype.hasOwnProperty.call(
+    override,
+    "vendor_info"
+  );
+  return applyBuiltInFixes(username, merged, vendorExplicit);
 }
 
-export function readPermissionOverridesFromCookieValue(value?: string | null): Record<string, Partial<Record<UserPermissionKey, boolean>>> {
+export function readPermissionOverridesFromCookieValue(
+  value?: string | null
+): PermissionOverrides {
   if (!value) return {};
   try {
     const raw = decodeURIComponent(value);
-    const parsed = JSON.parse(raw) as Record<string, Partial<Record<UserPermissionKey, boolean>>>;
+    const parsed = JSON.parse(raw) as PermissionOverrides;
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
-  }
-}
-
-function readStoredPermissions(): Record<string, Partial<Record<UserPermissionKey, boolean>>> {
-  if (typeof window === "undefined") {
-    return {};
-  }
-  try {
-    const raw = window.localStorage.getItem(getStorageKey());
-    if (!raw) return readPermissionOverridesFromCookieValue(document.cookie.split(`${getStorageKey()}=`)[1]?.split(";")[0]);
-    const parsed = JSON.parse(raw) as Record<string, Partial<Record<UserPermissionKey, boolean>>>;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeStoredPermissions(data: Record<string, Partial<Record<UserPermissionKey, boolean>>>) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(getStorageKey(), JSON.stringify(data));
-    const encoded = encodeURIComponent(JSON.stringify(data));
-    document.cookie = `${getStorageKey()}=${encoded}; Path=/; Max-Age=31536000; SameSite=Lax`;
-  } catch {
-    // Ignore storage failures silently.
   }
 }
 
@@ -117,62 +140,48 @@ export function getPermissionMapForUserFromCookie(
   username?: string | null,
   role?: string | null,
   rawCookieValue?: string | null
-): Record<UserPermissionKey, boolean> {
-  const base = getDefaultPermissionMapForRole(role);
-  const key = normalizeUsername(username);
-  if (!key) return base;
-
-  const stored = readPermissionOverridesFromCookieValue(rawCookieValue ?? undefined);
-  const override = stored[key] ?? {};
-  const merged = { ...base, ...override };
-
-  if (normalizeUsername(username) === "rozina") {
-    merged.vendor_info = false;
-  }
-
-  return merged;
+): UserPermissionMap {
+  const stored = readPermissionOverridesFromCookieValue(rawCookieValue);
+  return mergePermissionMap(username, role, stored);
 }
 
-export function getPermissionMapForUser(username?: string | null, role?: string | null): Record<UserPermissionKey, boolean> {
-  const base = getDefaultPermissionMapForRole(role);
-  const key = normalizeUsername(username);
-  if (!key) return base;
-
-  const stored = readStoredPermissions();
-  const override = stored[key] ?? {};
-  const merged = { ...base, ...override };
-
-  if (normalizeUsername(username) === "rozina") {
-    merged.vendor_info = false;
-  }
-
-  return merged;
+/** Encode overrides for the sync cookie middleware reads. */
+export function encodePermissionOverridesCookie(data: PermissionOverrides): string {
+  return encodeURIComponent(JSON.stringify(data));
 }
 
-export function setPermissionMapForUser(
-  username: string,
-  updates: Partial<Record<UserPermissionKey, boolean>>
-): Record<UserPermissionKey, boolean> {
-  const key = normalizeUsername(username);
-  const stored = readStoredPermissions();
-  const current = stored[key] ?? {};
-  const updated = { ...current, ...updates };
-  stored[key] = updated;
-  writeStoredPermissions(stored);
-
-  const role = "dm";
-  return getPermissionMapForUser(username, role);
+export function applyPermissionsCookie(
+  res: NextResponse,
+  overrides: PermissionOverrides
+): void {
+  res.cookies.set({
+    name: PERMISSION_COOKIE_NAME,
+    value: encodePermissionOverridesCookie(overrides),
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  });
 }
 
 export function canUserAccessSection(
   section: UserPermissionKey,
-  username?: string | null,
-  role?: string | null
+  map: UserPermissionMap
 ): boolean {
-  const map = getPermissionMapForUser(username, role);
   return Boolean(map[section]);
 }
 
-export function getDmPermissionChecklist(username?: string | null): Record<UserPermissionKey, boolean> {
-  return getPermissionMapForUser(username, "dm");
+/** Client/server UI helper: hide vendor when permissions say so. */
+export function userHidesVendorInfo(user: {
+  authRole?: string | null;
+  username?: string | null;
+  permissions?: Record<string, boolean> | null;
+} | null | undefined): boolean {
+  if (!user) return false;
+  if (user.authRole === "admin") return false;
+  if (user.permissions && typeof user.permissions.vendor_info === "boolean") {
+    return !user.permissions.vendor_info;
+  }
+  return normalizeUsername(user.username) === "rozina";
 }

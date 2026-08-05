@@ -8,7 +8,7 @@ import {
   filterAvailableStores,
   scopeStoresForUser,
 } from "@/lib/auth/scope-stores";
-import { hidesVendorInfo } from "@/lib/auth/users";
+import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
 
 export async function GET(req: NextRequest) {
   const session = await readSessionFromCookies();
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   const single = sp.get("store")?.trim();
   if (single && !requested.length) requested.push(single);
   const { stores } = scopeStoresForUser(session, requested);
-  const hideVendors = hidesVendorInfo(session.username);
+  const hideVendors = hidesVendorInfoFromPermissions(session.username);
 
   const payload = buildSalesVisualizations({
     date: dateFrom && dateTo && dateFrom === dateTo ? dateFrom : undefined,

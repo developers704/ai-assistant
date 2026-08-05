@@ -145,7 +145,7 @@ export function getAllowedStoreCodes(user: AuthUserRecord): string[] | null {
   return user.storeCodes;
 }
 
-/** Rozina: no vendor filter / Top vendors / vendor charts (POS vendor names). */
+/** Rozina default / client fallback — server APIs use hidesVendorInfoFromPermissions. */
 export function hidesVendorInfo(username: string | null | undefined): boolean {
   return (username ?? "").trim().toLowerCase() === "rozina";
 }

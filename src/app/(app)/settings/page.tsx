@@ -19,7 +19,13 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 
 import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug, Check, X } from "lucide-react";
-import { USER_PERMISSION_SECTIONS, getPermissionMapForUser, setPermissionMapForUser, type UserPermissionKey } from "@/lib/auth/user-permissions";
+import {
+  USER_PERMISSION_SECTIONS,
+  canManageDmPermissions,
+  getDefaultPermissionMapForRole,
+  type UserPermissionKey,
+  type UserPermissionMap,
+} from "@/lib/auth/user-permissions";
 
 
 
@@ -148,20 +154,12 @@ function SettingsContent() {
   });
 
   const [permissionUser, setPermissionUser] = useState<string>("aj");
-  const [permissionDraft, setPermissionDraft] = useState<Record<UserPermissionKey, boolean>>({
-    sales_dashboard: true,
-    stores_map: true,
-    price_calculator: true,
-    news_markets: false,
-    email: false,
-    calendar: false,
-    contacts: false,
-    ai_chat: false,
-    data_analyst: false,
-    image_generation: false,
-    social: false,
-    vendor_info: true,
-  });
+  const [permissionDraft, setPermissionDraft] = useState<UserPermissionMap>(
+    getDefaultPermissionMapForRole("dm")
+  );
+  const [permissionSaving, setPermissionSaving] = useState(false);
+  const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
+  const canEditPermissions = canManageDmPermissions(state?.user?.username);
 
 
 
@@ -197,7 +195,7 @@ function SettingsContent() {
 
       });
 
-      if (state.user.authRole === "admin") {
+      if (canManageDmPermissions(state.user.username)) {
         setPermissionUser((prev) => prev || "aj");
       }
 
@@ -206,9 +204,27 @@ function SettingsContent() {
   }, [state?.user]);
 
   useEffect(() => {
-    if (state?.user?.authRole !== "admin") return;
-    setPermissionDraft(getPermissionMapForUser(permissionUser, "dm"));
-  }, [permissionUser, state?.user?.authRole]);
+    if (!canManageDmPermissions(state?.user?.username)) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/permissions");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          users?: Array<{ username: string; permissions: UserPermissionMap }>;
+        };
+        const row = data.users?.find((u) => u.username === permissionUser);
+        if (!cancelled && row?.permissions) {
+          setPermissionDraft(row.permissions);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [permissionUser, state?.user?.username]);
 
 
 
@@ -482,10 +498,33 @@ function SettingsContent() {
 
   };
 
-  const handlePermissionSave = () => {
-    if (state?.user?.authRole !== "admin") return;
-    const next = setPermissionMapForUser(permissionUser, permissionDraft);
-    setPermissionDraft(next);
+  const handlePermissionSave = async () => {
+    if (!canManageDmPermissions(state?.user?.username)) return;
+    setPermissionSaving(true);
+    setPermissionNotice(null);
+    try {
+      const res = await fetch("/api/permissions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: permissionUser,
+          permissions: permissionDraft,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPermissionNotice(data.error || "Could not save permissions");
+        return;
+      }
+      if (data.permissions) setPermissionDraft(data.permissions);
+      setPermissionNotice(`Saved permissions for ${permissionUser}`);
+      await refresh();
+    } catch {
+      setPermissionNotice("Could not save permissions");
+    } finally {
+      setPermissionSaving(false);
+      setTimeout(() => setPermissionNotice(null), 2500);
+    }
   };
 
 
@@ -632,9 +671,12 @@ function SettingsContent() {
 
               </SectionCard>
 
-              {state?.user?.authRole === "admin" && (
+              {canEditPermissions && (
                 <SectionCard title="Permissions Dashboard" icon={Shield}>
                   <div className="space-y-4">
+                    <p className="text-xs text-ink-muted">
+                      Grant or remove section access for DMs. Ross cannot edit this matrix. Defaults: Sales, Stores, Calculator (wholesale cost). Rozina has Vendor Info off unless you enable it.
+                    </p>
                     <div>
                       <label className="block text-sm font-medium text-ink-secondary mb-1.5">User / DM</label>
                       <select
@@ -681,9 +723,15 @@ function SettingsContent() {
                       ))}
                     </div>
 
-                    <div className="flex justify-end">
-                      <Button size="sm" onClick={handlePermissionSave}>
-                        <Shield size={14} /> Save permissions
+                    <div className="flex items-center justify-between gap-3">
+                      {permissionNotice ? (
+                        <p className="text-xs text-emerald-200/90">{permissionNotice}</p>
+                      ) : (
+                        <span />
+                      )}
+                      <Button size="sm" onClick={() => void handlePermissionSave()} disabled={permissionSaving}>
+                        {permissionSaving ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
+                        {permissionSaving ? "Saving…" : "Save permissions"}
                       </Button>
                     </div>
                   </div>

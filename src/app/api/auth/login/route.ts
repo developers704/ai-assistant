@@ -5,6 +5,7 @@ import {
   applySessionCookie,
   createSessionToken,
 } from "@/lib/auth/session";
+import { syncPermissionsCookie } from "@/lib/auth/user-permissions-store";
 
 export async function POST(req: NextRequest) {
   let body: { username?: string; email?: string; password?: string };
@@ -48,5 +49,6 @@ export async function POST(req: NextRequest) {
     },
   });
   applySessionCookie(res, token);
+  syncPermissionsCookie(res);
   return res;
 }

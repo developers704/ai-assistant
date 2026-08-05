@@ -7,7 +7,7 @@ import {
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { calculatePricing, getVisibleDmCostPrice } from "@/lib/inventory/pricing";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { hidesVendorInfo } from "@/lib/auth/users";
+import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
 import { saveOnhandCsv, invalidateOnhandCache } from "@/lib/inventory/onhand";
 
 export const runtime = "nodejs";
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const hideVendor = hidesVendorInfo(session.username);
+  const hideVendor = hidesVendorInfoFromPermissions(session.username);
 
   return NextResponse.json({
     item: hideVendor ? { ...item, vendor: "" } : item,

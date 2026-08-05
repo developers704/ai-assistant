@@ -5,11 +5,14 @@ import {
   isDmAllowedAppPath,
   isPublicPath,
 } from "@/lib/auth/routes";
-import { PERMISSION_COOKIE_NAME, getPermissionMapForUserFromCookie } from "@/lib/auth/user-permissions";
+import {
+  PERMISSION_COOKIE_NAME,
+  getPermissionMapForUserFromCookie,
+} from "@/lib/auth/user-permissions";
 
 /**
  * Kash / admin → full Alexa.
- * DMs → Sales + Calculator + Stores only (no voice/chat/etc.).
+ * DMs → section access from server-synced permission cookie (defaults + Kash overrides).
  */
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -51,7 +54,14 @@ export async function middleware(req: NextRequest) {
   );
 
   if (pathname.startsWith("/api/")) {
-    if (!isDmAllowedApiPath(pathname, session.username, session.role, permissionMap)) {
+    if (
+      !isDmAllowedApiPath(
+        pathname,
+        session.username,
+        session.role,
+        permissionMap
+      )
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     return NextResponse.next();
@@ -61,7 +71,14 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/sales", req.url));
   }
 
-  if (!isDmAllowedAppPath(pathname, session.username, session.role, permissionMap)) {
+  if (
+    !isDmAllowedAppPath(
+      pathname,
+      session.username,
+      session.role,
+      permissionMap
+    )
+  ) {
     return NextResponse.redirect(new URL("/sales", req.url));
   }
 

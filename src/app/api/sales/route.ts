@@ -30,7 +30,7 @@ import {
   filterAvailableStores,
   scopeStoresForUser,
 } from "@/lib/auth/scope-stores";
-import { hidesVendorInfo } from "@/lib/auth/users";
+import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -175,7 +175,7 @@ export async function GET(req: NextRequest) {
   const filterStores = scoped.stores ?? [];
   const filterDepartments = parseMultiParam(sp, "department", "departments");
   const filterDesigns = parseMultiParam(sp, "design", "designs");
-  const hideVendors = hidesVendorInfo(session.username);
+  const hideVendors = hidesVendorInfoFromPermissions(session.username);
   const filterVendors = hideVendors
     ? []
     : parseMultiParam(sp, "vendor", "vendors");

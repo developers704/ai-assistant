@@ -1,6 +1,10 @@
 /** DM-restricted allowlists. Admin (`role=admin`) bypasses these. */
 
-import { getPermissionMapForUserFromCookie, type UserPermissionKey } from "@/lib/auth/user-permissions";
+import {
+  getPermissionMapForUserFromCookie,
+  type UserPermissionKey,
+  type UserPermissionMap,
+} from "@/lib/auth/user-permissions";
 
 export const DM_ALLOWED_APP_PREFIXES = [
   "/sales",
@@ -29,12 +33,21 @@ const DM_API_TO_PERMISSION: Array<{ prefix: string; permission: UserPermissionKe
   { prefix: "/api/inventory", permission: "price_calculator" },
   { prefix: "/api/products", permission: "price_calculator" },
   { prefix: "/api/email", permission: "email" },
+  { prefix: "/api/gmail", permission: "email" },
   { prefix: "/api/calendar", permission: "calendar" },
+  { prefix: "/api/reminders", permission: "calendar" },
   { prefix: "/api/contacts", permission: "contacts" },
   { prefix: "/api/chat", permission: "ai_chat" },
+  { prefix: "/api/pending-action", permission: "ai_chat" },
   { prefix: "/api/analyst", permission: "data_analyst" },
+  { prefix: "/api/documents", permission: "data_analyst" },
   { prefix: "/api/images", permission: "image_generation" },
+  { prefix: "/api/generate-image", permission: "image_generation" },
+  { prefix: "/api/compose-image", permission: "image_generation" },
+  { prefix: "/api/enhance-image", permission: "image_generation" },
   { prefix: "/api/social", permission: "social" },
+  { prefix: "/api/markets", permission: "news_markets" },
+  { prefix: "/api/news", permission: "news_markets" },
 ];
 
 export function isPublicPath(pathname: string): boolean {
@@ -46,6 +59,8 @@ export function isPublicPath(pathname: string): boolean {
   ) {
     return true;
   }
+  // Instagram webhooks must stay public
+  if (pathname.startsWith("/api/social/instagram/webhook")) return true;
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/icon") ||
@@ -61,10 +76,13 @@ export function isDmAllowedAppPath(
   pathname: string,
   username?: string | null,
   role?: string | null,
-  permissions?: Record<UserPermissionKey, boolean>
+  permissions?: UserPermissionMap
 ): boolean {
   if (pathname === "/" || pathname === "") return true;
-  if (pathname === "/settings") return true;
+  // Settings is admin-only (Kash/Ross). DMs never get Settings.
+  if (pathname === "/settings" || pathname.startsWith("/settings/")) {
+    return false;
+  }
 
   const permissionMap =
     permissions ?? getPermissionMapForUserFromCookie(username, role);
@@ -86,11 +104,13 @@ export function isDmAllowedApiPath(
   pathname: string,
   username?: string | null,
   role?: string | null,
-  permissions?: Record<UserPermissionKey, boolean>
+  permissions?: UserPermissionMap
 ): boolean {
   if (pathname.startsWith("/api/auth/")) return true;
   if (pathname.startsWith("/api/state")) return true;
   if (pathname.startsWith("/api/ui-context")) return true;
+  // Profile self-update: allow for all authenticated DMs (limited fields)
+  if (pathname.startsWith("/api/profile")) return true;
 
   const permissionMap =
     permissions ?? getPermissionMapForUserFromCookie(username, role);

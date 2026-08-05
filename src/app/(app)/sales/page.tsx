@@ -39,7 +39,7 @@ import {
 } from "@/lib/sales/filter-params";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { useApp } from "@/lib/store/app-context";
-import { hidesVendorInfo } from "@/lib/auth/users";
+import { userHidesVendorInfo } from "@/lib/auth/user-permissions";
 import { TrendingUp, TrendingDown, Package, Store, LineChart, GitCompareArrows, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -88,7 +88,7 @@ export default function SalesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { state } = useApp();
-  const hideVendors = hidesVendorInfo(state?.user?.username);
+  const hideVendors = userHidesVendorInfo(state?.user);
   const detailTypeFromUrl = searchParams.get("detail");
   const detailValueFromUrl = searchParams.get("detailValue");
   const [summary, setSummary] = useState<SalesSummary | null>(null);

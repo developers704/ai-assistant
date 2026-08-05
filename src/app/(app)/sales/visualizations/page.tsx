@@ -28,7 +28,7 @@ import {
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { ArrowLeft, LineChart, Sparkles } from "lucide-react";
 import { useApp } from "@/lib/store/app-context";
-import { hidesVendorInfo } from "@/lib/auth/users";
+import { userHidesVendorInfo } from "@/lib/auth/user-permissions";
 
 const selectClass =
   "select-dark h-9 px-3 rounded-xl text-sm backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-cyan-400/30 focus:border-cyan-400/40 min-w-[8.5rem]";
@@ -75,7 +75,7 @@ function SalesVisualizationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { state } = useApp();
-  const hideVendors = hidesVendorInfo(state?.user?.username);
+  const hideVendors = userHidesVendorInfo(state?.user);
 
   const [data, setData] = useState<SalesVisualizationPayload | null>(null);
   const [loading, setLoading] = useState(true);
