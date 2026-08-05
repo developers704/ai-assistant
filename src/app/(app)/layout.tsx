@@ -36,11 +36,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [loading, state?.isAuthenticated, router]);
 
-  if (loading || !state?.isAuthenticated) {
+  if (loading) {
     return (
       <div className="min-h-screen relative flex items-center justify-center">
         <FuturisticBackground />
         <p className="relative text-sm text-ink-muted animate-pulse">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!state?.isAuthenticated) {
+    return (
+      <div className="min-h-screen relative flex items-center justify-center">
+        <FuturisticBackground />
+        <p className="relative text-sm text-ink-muted animate-pulse">Redirecting…</p>
       </div>
     );
   }

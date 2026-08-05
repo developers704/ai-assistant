@@ -3,7 +3,8 @@ import {
   clearPendingActions,
   updatePendingEmailDraft,
 } from "@/lib/actions/confirmation";
-import { applyGoogleCacheToState, getEnrichedState, getIntegrationsMeta } from "@/lib/google/sync";
+import { getEnrichedState } from "@/lib/google/sync";
+import { clientAppState } from "@/lib/auth/client-state";
 
 export async function DELETE() {
   clearPendingActions();
@@ -24,17 +25,10 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "No email draft to edit" }, { status: 404 });
   }
 
-  const cached = applyGoogleCacheToState(await getEnrichedState({ quick: true }));
-  const meta = getIntegrationsMeta();
+  const state = await clientAppState(await getEnrichedState({ quick: true }));
 
   return NextResponse.json({
     pending: updated,
-    state: {
-      ...cached,
-      integrations: {
-        ...meta,
-        google: cached.integrations?.google ?? meta!.google,
-      },
-    },
+    state,
   });
 }

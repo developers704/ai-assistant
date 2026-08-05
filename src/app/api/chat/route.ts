@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { getState, setState, clearChatHistory } from "@/lib/store/server-store";
 
-import { getEnrichedState, applyGoogleCacheToState, getIntegrationsMeta } from "@/lib/google/sync";
+import { getEnrichedState } from "@/lib/google/sync";
 
 import {
   processMessage,
@@ -20,6 +20,7 @@ import { processAlexaMessage } from "@/lib/ai/process-message";
 import { processAlexaTurn } from "@/lib/alexa/orchestrator";
 import { AlexaFlags } from "@/lib/alexa/flags";
 import { appendConversationSummary } from "@/lib/memory/store";
+import { clientAppState } from "@/lib/auth/client-state";
 import type { AIResponse, ChatMessage } from "@/types";
 
 export const runtime = "nodejs";
@@ -113,7 +114,8 @@ export async function POST(req: NextRequest) {
 
   const trimmed = message.trim();
 
-  const state = await getEnrichedState();
+  // Quick enrich — never block chat on a cold Google sync
+  const state = await getEnrichedState({ quick: true });
 
 
 
@@ -168,17 +170,7 @@ export async function POST(req: NextRequest) {
 
 
 
-  const cached = applyGoogleCacheToState(getState());
-  const meta = getIntegrationsMeta();
-  const finalState = {
-    ...cached,
-    integrations: {
-      ...meta,
-      google: cached.integrations?.google ?? meta!.google,
-    },
-  };
-
-
+  const finalState = await clientAppState(getState());
 
   return NextResponse.json({
 

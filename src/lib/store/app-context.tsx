@@ -108,7 +108,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     if (res.ok) {
       const data = await res.json();
-      setState(data.state);
+      const next = data.state as AppState | undefined;
+      if (next) {
+        setState((prev) => {
+          // Never let a server payload drop the signed-in session mid-chat
+          if (prev?.isAuthenticated && !next.isAuthenticated) {
+            return {
+              ...next,
+              user: prev.user,
+              isAuthenticated: true,
+            };
+          }
+          return next;
+        });
+      }
       return data.message;
     }
     return null;
