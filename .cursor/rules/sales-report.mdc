@@ -56,7 +56,7 @@ When adding exclusions, update `src/lib/utils.ts` only.
 
 - File: `data/reports/Sales-Report.csv`
 - Seeded via `src/lib/reports/store.ts`; app refreshes `.data/reports/` when the file changes
-- Current seed window: **2025-01-01 → 2026-07-31**
+- Current seed window: **2025-01-01 → 2026-08-05**
 
 ## Daily append format (always)
 
