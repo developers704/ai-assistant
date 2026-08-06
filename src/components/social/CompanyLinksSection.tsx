@@ -85,6 +85,9 @@ export function CompanyLinksSection() {
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ring-1 ${link.accent}`}
               >
+
+
+              
                 <Icon size={18} strokeWidth={1.85} />
               </span>
               <div className="min-w-0 flex-1">
