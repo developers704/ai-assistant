@@ -35,7 +35,7 @@ export const COMPANY_LINKS: CompanyLink[] = [
     id: "instagram",
     label: "Instagram",
     description: "@vallianijewelers",
-    href: "https://www.instagram.com/vallianijewelers/",
+    href: "https://vallianimarketplace.com/en",
     displayUrl: "instagram.com/vallianijewelers",
     icon: Instagram,
     accent: "from-fuchsia-500/20 to-rose-500/5 text-fuchsia-200 ring-fuchsia-400/25",
