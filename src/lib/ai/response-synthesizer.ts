@@ -3,7 +3,7 @@ import type { ToolResult } from "@/lib/tools/types";
 import type { RoutedIntent } from "@/lib/ai/intent-router";
 import { detectSalesFocus } from "@/lib/ai/sales-focus";
 import { formatSalesByFocus } from "@/lib/assistant/sales-data";
-import type { OfferTarget } from "@/lib/actions/pending-offer";
+import { offerPath, type OfferTarget } from "@/lib/actions/pending-offer";
 import { recordOfferedAction } from "@/lib/memory/working-memory";
 import { buildComposeEmailPrompt, isComposeEmailToPerson } from "@/lib/ai/email-compose";
 import { getState } from "@/lib/store/server-store";
@@ -213,18 +213,8 @@ export function synthesizeOfferExecution(
       navigateTo: toolResult.navigateTo,
     };
   }
-  const paths: Record<OfferTarget, string> = {
-    news: "/news",
-    sales: "/sales",
-    email: "/email",
-    calendar: "/calendar",
-    analyst: "/analyst",
-    images: "/images",
-    contacts: "/contacts",
-    social: "/social",
-  };
   return {
     message: `Opening **${target}** for you.`,
-    navigateTo: paths[target],
+    navigateTo: offerPath(target),
   };
 }

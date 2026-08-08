@@ -88,6 +88,7 @@ const PAGE_PATHS: Record<string, string> = {
   stores: "/stores",
   settings: "/settings",
   social: "/social",
+  discounting: "/discounting",
 };
 
 /** Prefer canonical APP_SECTIONS routes when available. */
