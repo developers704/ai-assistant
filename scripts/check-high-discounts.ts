@@ -1,0 +1,87 @@
+/**
+ * Self-check: high-discount pay codes, APP parse, overage logic.
+ * Run: npx tsx scripts/check-high-discounts.ts
+ */
+import assert from "node:assert/strict";
+import { normalizePayCode } from "../src/lib/discounting/pay-codes";
+import { parseApprovalFromDescriptions } from "../src/lib/discounting/parse-approval";
+import {
+  loadApprovers,
+  pickApproverForV1,
+  resolveApprover,
+} from "../src/lib/discounting/approvers";
+import { getAllowedDiscountPercent } from "../src/lib/inventory/pricing";
+import type { InventoryItem } from "../src/lib/inventory/types";
+
+assert.equal(normalizePayCode("CASH"), "cash");
+assert.equal(normalizePayCode("cc"), "credit_card");
+assert.equal(normalizePayCode("PROG"), "lease");
+assert.equal(normalizePayCode("ACIMA"), "lease");
+assert.equal(normalizePayCode("UOWN"), "lease");
+assert.equal(normalizePayCode("KAFE"), "lease");
+assert.equal(normalizePayCode("AFFIRM"), "affirm");
+assert.equal(normalizePayCode("AFF"), "affirm");
+assert.equal(normalizePayCode("WELLS"), "financing");
+assert.equal(normalizePayCode("IDDEAL"), "financing");
+assert.equal(normalizePayCode("SYCHY"), "financing");
+assert.equal(normalizePayCode("FLEX PAY"), "financing");
+// Store-prefix / spaced hyphen (daily POS Pay Codes)
+assert.equal(normalizePayCode("VJO-CASH"), "cash");
+assert.equal(normalizePayCode("VJO-IDDEAL"), "financing");
+assert.equal(normalizePayCode("BB - CC"), "credit_card");
+assert.equal(normalizePayCode("BB - CC,"), "credit_card");
+assert.equal(normalizePayCode("VJRE-KAFE,"), "lease");
+assert.equal(normalizePayCode("VJSL-SYNCY,"), "financing");
+assert.equal(normalizePayCode("VJM-FLEX"), "financing");
+assert.equal(normalizePayCode("VJLV-SYNCHRONY"), "financing");
+// Multi-tender / unknown financing — ignore in v1
+assert.equal(normalizePayCode("VJF-CASH,VJF-CC"), "unknown");
+assert.equal(normalizePayCode("VJO-CASH,VJO-IDDEAL"), "unknown");
+assert.equal(normalizePayCode("VJF-GE"), "unknown");
+assert.equal(normalizePayCode("VJF-GE,"), "unknown");
+
+const app1 = parseApprovalFromDescriptions(["APP AJ IDDEAL 36/0"]);
+assert.ok(app1.approverCodes.includes("AJ"));
+assert.equal(app1.financingMonths, 36);
+
+const app2 = parseApprovalFromDescriptions(["APP RM7/SM2"]);
+assert.ok(app2.approverCodes.includes("SM2"));
+assert.ok(app2.approverCodes.includes("RM7"));
+
+const app3 = parseApprovalFromDescriptions(["APP/TL1", "FIN/WELLSFARGO/6/0"]);
+assert.ok(app3.approverCodes.includes("TL1"));
+assert.equal(app3.financingMonths, 6);
+
+const approvers = loadApprovers(true);
+assert.ok(approvers.has("SM2"));
+assert.ok(approvers.has("AJ"));
+assert.equal(resolveApprover("AJ-MOD")?.role, "dm");
+assert.equal(pickApproverForV1(["RM7", "SM2"])?.code, "SM2");
+assert.equal(pickApproverForV1(["TL1"]), null); // TL1 not in v1 CSV as cm
+
+const diamondish: InventoryItem = {
+  sku: "TEST1",
+  description: "Lab diamond ring",
+  vendorModel: "X",
+  vendor: "V",
+  tagPrice: 1000,
+  costPrice: 200,
+  wholesaleCost: 200,
+  store: "VJ-FRE",
+  onHand: 1,
+  department: "LADYS RING",
+  design: "NOVELLO",
+  class: "14KT",
+  subClass: "",
+  avgWeight: 0,
+  brand: "",
+};
+const dmPct = getAllowedDiscountPercent(diamondish, "dm");
+assert.ok(dmPct > 0, "calculator must return allowed %");
+
+const salesAmount = 1000;
+const discAmt = salesAmount * ((dmPct + 5) / 100);
+const givenPct = (discAmt / salesAmount) * 100;
+assert.ok(givenPct > dmPct + 0.05, "overage fixture");
+
+console.log("check-high-discounts: ok", { dmPct, givenPct: givenPct.toFixed(2) });

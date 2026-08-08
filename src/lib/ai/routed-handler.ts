@@ -42,6 +42,7 @@ const FAST_READ_TOOLS = new Set([
   "get_sales_entity_details",
   "get_top_vendor_models",
   "apply_sales_dashboard_filters",
+  "get_high_discounts",
   "list_tasks",
   "list_contacts",
   "get_metal_rates",

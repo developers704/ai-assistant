@@ -4,6 +4,7 @@ export type UserPermissionKey =
   | "sales_dashboard"
   | "stores_map"
   | "price_calculator"
+  | "discounting"
   | "news_markets"
   | "email"
   | "calendar"
@@ -32,6 +33,7 @@ export const USER_PERMISSION_SECTIONS: Array<{
   { key: "sales_dashboard", label: "Sales Dashboard", description: "Net sales, stores, and revenue dashboard" },
   { key: "stores_map", label: "Stores Map & Info", description: "Store locations and details" },
   { key: "price_calculator", label: "Price Calculator", description: "Pricing and wholesale cost tools" },
+  { key: "discounting", label: "Discounting", description: "High discounts vs manager calculator limits" },
   { key: "news_markets", label: "News & Markets", description: "Business news dashboard" },
   { key: "email", label: "Email", description: "Inbox and email workflows" },
   { key: "calendar", label: "Calendar & Tasks", description: "Calendar and scheduling tools" },
@@ -63,6 +65,7 @@ export function getDefaultPermissionMapForRole(
       sales_dashboard: true,
       stores_map: true,
       price_calculator: true,
+      discounting: false,
       news_markets: false,
       email: false,
       calendar: false,
@@ -79,6 +82,7 @@ export function getDefaultPermissionMapForRole(
     sales_dashboard: false,
     stores_map: false,
     price_calculator: false,
+    discounting: false,
     news_markets: false,
     email: false,
     calendar: false,

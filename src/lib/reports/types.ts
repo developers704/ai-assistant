@@ -40,6 +40,8 @@ export interface VendorPosRow {
   imageDir: string;
   /** Raw Salespersons cell (e.g. `SN/65% - SP/35% -`). */
   salespersons?: string;
+  /** Pay Code / financing program token when present on the sales export. */
+  payCode?: string;
 }
 
 export interface StoredReportMeta {

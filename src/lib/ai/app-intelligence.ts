@@ -47,6 +47,7 @@ const TOOL_ANSWER_INTENTS = new Set<RoutedIntent>([
   "sales.read",
   "sales.top_store",
   "sales.analysis",
+  "discounting.high",
   "contacts.search",
   "task.create",
   "task.delete",

@@ -98,6 +98,11 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   ].filter((c): c is string => Boolean(c));
   const imageDirCol = findCol(columns, [/^image\s*dir\.?$/, /^image\s*directory$/, /^image$/]);
   const salespersonsCol = findCol(columns, [/^sales\s*persons?$/]);
+  const payCodeCol = findCol(columns, [
+    /^pay\s*codes?\.?$/,
+    /^paycode$/,
+    /^payment\s*code$/,
+  ]);
   const typeCol = findCol(columns, [/^type$/]);
 
   const rows: VendorPosRow[] = [];
@@ -161,6 +166,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       salespersons: salespersonsCol
         ? String(rec[salespersonsCol] ?? "").trim()
         : undefined,
+      payCode: payCodeCol ? String(rec[payCodeCol] ?? "").trim() : undefined,
     });
   }
 

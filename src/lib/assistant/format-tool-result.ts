@@ -16,6 +16,7 @@ export function intentForTool(name: string): IntentType {
     get_calendar_today: "calendar_today",
     get_email_summary: "email_summary",
     get_today_sales: "sales_report",
+    get_high_discounts: "sales_report",
     query_sales: "sales_report",
     compare_sales: "sales_report",
     get_sales_entity_details: "sales_report",

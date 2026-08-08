@@ -10,6 +10,7 @@ export type RoutedIntent =
   | "sales.query"
   | "sales.compare"
   | "sales.analysis"
+  | "discounting.high"
   | "contacts.search"
   | "task.create"
   | "task.delete"
@@ -242,6 +243,10 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     return "sales.query";
   }
 
+  if (/\b(high\s+discounts?|discounting|excessive\s+discounts?|over[\s-]?limit\s+discounts?)\b/i.test(lower)) {
+    return "discounting.high";
+  }
+
   if (/\b(gold|silver|metal)\b.*\b(price|rate)\b/i.test(lower) || /\bkitne ka gold\b/i.test(lower)) {
     return "news.gold";
   }
@@ -384,6 +389,7 @@ export function intentToTool(intent: RoutedIntent): string | null {
     "sales.query": "query_sales",
     "sales.compare": "compare_sales",
     "sales.analysis": "open_data_analyst",
+    "discounting.high": "get_high_discounts",
     "contacts.search": "list_contacts",
     "task.create": "add_task",
     "task.delete": "delete_task",

@@ -83,6 +83,7 @@ export const READ_TOOL_NAMES = new Set([
   "get_calendar_today",
   "get_email_summary",
   "get_today_sales",
+  "get_high_discounts",
   "query_sales",
   "compare_sales",
   "get_sales_entity_details",

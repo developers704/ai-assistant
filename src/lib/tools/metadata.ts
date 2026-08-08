@@ -50,6 +50,39 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
+    name: "get_high_discounts",
+    description:
+      "List high discounts where Disc Amt % of Sales Amount exceeds Price Calculator allowed % for DM approvers (SM2 / AJ). Opens Discounting section.",
+    category: "sales",
+    riskLevel: "safe",
+    requiresConfirmation: false,
+    allowedInVoice: true,
+    allowedInChat: true,
+    opensPage: "/discounting",
+    whenToUse:
+      "User asks about high discounts, excessive discounts, discounting exceptions, or manager over-limit discounts.",
+    whenNotToUse: "Normal sales totals → get_today_sales / query_sales. Price for one SKU → estimate_jewellery_price / calculator.",
+    examplePhrases: [
+      "high discounts today",
+      "show high discount",
+      "any excessive discounts",
+      "discounting SM2",
+    ],
+    costNotes: "No LLM — scans local sales + calculator rules.",
+    parameters: {
+      type: "object",
+      properties: {
+        date: {
+          type: "string",
+          description: "Optional ISO date YYYY-MM-DD (defaults to latest day in report)",
+        },
+        store: { type: "string", description: "Optional store filter" },
+        user_message: { type: "string", description: "Original user question" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "query_sales",
     description:
       "Universal Sales Intelligence. Filtered summaries, rankings, breakdowns by store/department/design/vendor/class, dates, and follow-up context. Prefer this over guessing. Pass user_message for NL parsing.",

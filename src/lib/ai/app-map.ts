@@ -10,6 +10,7 @@ export type AppSectionId =
   | "sales"
   | "stores"
   | "calculator"
+  | "discounting"
   | "analyst"
   | "images"
   | "contacts"
@@ -310,6 +311,41 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
         "Here I can quote live gold/silver rates and estimate a piece (e.g. *10 grams 22K gold chain*). For full controls, open the calculator page.",
     },
     aliases: ["calculator", "price calculator", "pricing", "gold price", "estimate"],
+  }),
+
+  discounting: section({
+    id: "discounting",
+    label: "Discounting",
+    route: "/discounting",
+    purpose:
+      "Flag high discounts where Disc Amt % exceeds Price Calculator allowed % for District Manager approvers (SM2 / AJ).",
+    availableData: [
+      "Live sales Disc Amt vs Sales Amount",
+      "APP / FIN description approver codes",
+      "Pay Code channel (cash / CC / financing / lease / Affirm)",
+      "Calculator DM/CM/M allowed % by SKU rules",
+    ],
+    relatedTools: ["get_high_discounts"],
+    commonQuestions: [
+      "High discounts today",
+      "Any excessive discounts?",
+      "Show discounting exceptions",
+    ],
+    whenToNavigate: "When user wants the high-discount table / filters.",
+    whenToClarify: "When date is unclear — default to latest sales day.",
+    whenToUseLiveTool: "Call get_high_discounts for the list; open /discounting.",
+    exampleResponses: {
+      explain:
+        "**Discounting** compares each sale’s discount % to the Price Calculator limit for the approving District Manager (SM2 / AJ). Over-limit lines appear here and in chat.",
+      capabilities:
+        "Ask *high discounts today* and I’ll list overages, or open **Discounting** for the full table.",
+    },
+    aliases: [
+      "discounting",
+      "high discounts",
+      "excessive discounts",
+      "discount exceptions",
+    ],
   }),
 
   analyst: section({

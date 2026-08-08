@@ -174,6 +174,37 @@ export async function executeVoiceTool(
   args: Record<string, unknown>
 ): Promise<VoiceToolResult> {
   switch (name) {
+    case "get_high_discounts": {
+      const {
+        detectHighDiscounts,
+        formatHighDiscountsMarkdown,
+      } = await import("@/lib/discounting/detect-high-discounts");
+      const dateArg =
+        typeof args.date === "string" && args.date.trim() ? args.date.trim() : undefined;
+      const storeArg =
+        typeof args.store === "string" && args.store.trim() ? args.store.trim() : undefined;
+      const result = detectHighDiscounts({
+        filterDate: dateArg,
+        filterStore: storeArg,
+        roles: ["dm"],
+      });
+      const markdown = formatHighDiscountsMarkdown(result);
+      const q = dateArg ? `?date=${encodeURIComponent(dateArg)}` : "";
+      return {
+        output: JSON.stringify({
+          success: true,
+          markdown,
+          spokenAnswer:
+            result.hits.length === 0
+              ? "No high discounts for district manager approvers on that day."
+              : `Found ${result.hits.length} high discount${result.hits.length === 1 ? "" : "s"}. Opening Discounting.`,
+          count: result.hits.length,
+          filterDate: result.filterDate,
+          navigateTo: `/discounting${q}`,
+        }),
+        uiAction: { type: "navigate", path: `/discounting${q}` },
+      };
+    }
     case "get_today_sales": {
       const focusArg = String(args.focus ?? "summary");
       const userMessage = args.user_message ? String(args.user_message) : "";

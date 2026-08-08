@@ -423,6 +423,15 @@ export function calculatePricing(item: InventoryItem): PricingResult {
   };
 }
 
+/** Allowed off-tag % for a manager tier (single source: same rules as calculator). */
+export function getAllowedDiscountPercent(
+  item: InventoryItem,
+  tier: ManagerTier
+): number {
+  const pricing = calculatePricing(item);
+  return pricing.tiers.find((t) => t.tier === tier)?.discountPercent ?? 0;
+}
+
 export const CREDIT_CARD_SURCHARGE_PERCENT = 3.5;
 
 export const FINANCING_PLAN_SURCHARGES: Record<FinancingPlan, number> = {

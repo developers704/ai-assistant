@@ -4,6 +4,7 @@ import { createPendingAction, savePendingAction } from "@/lib/actions/confirmati
 export type OfferTarget =
   | "news"
   | "sales"
+  | "discounting"
   | "email"
   | "calendar"
   | "analyst"
@@ -14,6 +15,7 @@ export type OfferTarget =
 const OFFER_PATHS: Record<OfferTarget, string> = {
   news: "/news",
   sales: "/sales",
+  discounting: "/discounting",
   email: "/email",
   calendar: "/calendar",
   analyst: "/analyst",
@@ -25,6 +27,7 @@ const OFFER_PATHS: Record<OfferTarget, string> = {
 const OFFER_LABELS: Record<OfferTarget, string> = {
   news: "News & Markets",
   sales: "Sales Dashboard",
+  discounting: "Discounting",
   email: "Email",
   calendar: "Calendar & Tasks",
   analyst: "Data Analyst",
@@ -75,6 +78,7 @@ export function saveAssistantOffer(offer: PendingAction): void {
 export function resolveOpenTargetFromMessage(message: string): OfferTarget | null {
   const lower = message.toLowerCase();
   if (/\bnews\b|\bmarket\b/i.test(lower)) return "news";
+  if (/\b(discounting|high\s+discounts?)\b/i.test(lower)) return "discounting";
   if (/\bsales\b|\brevenue\b/i.test(lower)) return "sales";
   if (/\bemail\b|\binbox\b|\bmail\b/i.test(lower)) return "email";
   if (/\bcalendar\b|\bmeeting\b|\bschedule\b/i.test(lower)) return "calendar";
