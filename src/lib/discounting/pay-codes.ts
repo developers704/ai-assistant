@@ -6,7 +6,7 @@ export type PayChannel = PaymentMethod | "unknown";
 export const PAY_CHANNEL_LABELS: Record<PayChannel, string> = {
   cash: "Cash",
   credit_card: "Credit Card",
-  financing: "Financing",
+  financing: "Financing (Synchrony / Wells / IdDeal / Flex)",
   lease: "Lease (Progressive / Acima / UOwn / Kafene)",
   affirm: "Affirm",
   unknown: "Unknown",
@@ -56,6 +56,8 @@ const EXACT: Record<string, PayChannel> = {
   SYNCHRONY: "financing",
   SYNCY: "financing",
   SYNY: "financing",
+  // POS short code for Synchrony (e.g. GM-GE, VJF-GE)
+  GE: "financing",
   FLEX: "financing",
   "FLEX PAY": "financing",
   FLEXPAY: "financing",
@@ -91,7 +93,7 @@ function mapToken(token: string): PayChannel {
   if (compact.startsWith("KAFE")) return "lease";
   if (compact.startsWith("ACIM")) return "lease";
   if (compact === "UOWN" || compact.startsWith("UOWN")) return "lease";
-  // GE, CORP-CHK leftovers, etc. — unknown until a later plan
+  // CORP-CHK leftovers, etc. — unknown until a later plan
   return "unknown";
 }
 
@@ -101,7 +103,7 @@ function mapToken(token: string): PayChannel {
  * V1 rules:
  * - Single code: take token after hyphen (`VJO-CASH` → cash, `BB - CC` → credit_card)
  * - Multiple codes (`VJF-CASH,VJF-CC`): ignore → unknown (split plan later)
- * - Unknown suffixes (`GE`, etc.): unknown
+ * - `GE` / `STORE-GE` → Synchrony financing
  */
 export function normalizePayCode(raw?: string | null): PayChannel {
   if (!raw?.trim()) return "unknown";

@@ -34,11 +34,14 @@ assert.equal(normalizePayCode("VJRE-KAFE,"), "lease");
 assert.equal(normalizePayCode("VJSL-SYNCY,"), "financing");
 assert.equal(normalizePayCode("VJM-FLEX"), "financing");
 assert.equal(normalizePayCode("VJLV-SYNCHRONY"), "financing");
-// Multi-tender / unknown financing — ignore in v1
+assert.equal(normalizePayCode("GE"), "financing");
+assert.equal(normalizePayCode("GM-GE,"), "financing");
+assert.equal(normalizePayCode("VJF-GE"), "financing");
+assert.equal(normalizePayCode("VJF-GE,"), "financing");
+// Multi-tender — ignore in v1
 assert.equal(normalizePayCode("VJF-CASH,VJF-CC"), "unknown");
 assert.equal(normalizePayCode("VJO-CASH,VJO-IDDEAL"), "unknown");
-assert.equal(normalizePayCode("VJF-GE"), "unknown");
-assert.equal(normalizePayCode("VJF-GE,"), "unknown");
+assert.equal(normalizePayCode("VJF-CASH,VJF-GE"), "unknown");
 
 const app1 = parseApprovalFromDescriptions(["APP AJ IDDEAL 36/0"]);
 assert.ok(app1.approverCodes.includes("AJ"));
