@@ -10,11 +10,28 @@ function parseZeroAwareTotal(raw: unknown): number | null {
   return Number.isFinite(num) ? num : null;
 }
 
+/** $0 Total APP/FINANCE/ITEM siblings — keep for Discounting package join. */
+function isDiscountingMemoRow(
+  fields: string[],
+  keepIdx: number[],
+  row: string[]
+): boolean {
+  const itemIdx = fields.findIndex(
+    (f) => /^item\s*#?$/i.test(f) || /^sku\s*#?$/i.test(f)
+  );
+  const descIdx = fields.findIndex((f) => /^description$/i.test(f));
+  const item =
+    itemIdx >= 0 ? String(row[keepIdx[itemIdx]] ?? "").trim().toUpperCase() : "";
+  const desc = descIdx >= 0 ? String(row[keepIdx[descIdx]] ?? "").trim() : "";
+  if (item === "ITEM") return true;
+  return /\bAPP\b|\bFIN\b|\bFINANCE\b|^APP\/|^FIN\//i.test(desc);
+}
+
 /**
  * Daily Umair sales export often has spacer empty columns between every field
  * (double commas in the header). Collapse those so Papa + merge work reliably.
- * Remove zero-total rows, force Image Dir. values to .webp, and keep the
- * canonical daily-sales shape for upload + append operations.
+ * Drop zero-total product rows, but keep $0 ITEM / APP / FINANCE memo lines for
+ * Discounting (same Transaction # package). Force Image Dir. → .webp.
  */
 export function normalizeDailySalesCsv(csvText: string): string {
   const parsed = Papa.parse<string[]>(csvText, {
@@ -38,11 +55,15 @@ export function normalizeDailySalesCsv(csvText: string): string {
     (f) => /^total$/i.test(f) || /^net\s*sales?$/i.test(f) || /^net\s*amt$/i.test(f)
   );
 
-  const data = table.slice(1)
+  const data = table
+    .slice(1)
     .filter((row) => {
       if (totalIdx < 0) return true;
       const total = parseZeroAwareTotal(row[keepIdx[totalIdx]]);
-      return total == null || total !== 0;
+      if (total == null) return true;
+      if (total !== 0) return true;
+      // Total === 0: only keep discounting package memos (not empty junk)
+      return isDiscountingMemoRow(fields, keepIdx, row);
     })
     .map((row) =>
       keepIdx.map((i, col) => {

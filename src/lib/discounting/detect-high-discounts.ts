@@ -5,6 +5,7 @@ import type { VendorPosRow } from "@/lib/reports/types";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { parseApprovalFromDescriptions } from "@/lib/discounting/parse-approval";
 import { pickApproverForV1, DEFAULT_DISCOUNTING_ROLES, type ApproverEntry } from "@/lib/discounting/approvers";
+import { loadTxnPackageMemos } from "@/lib/discounting/load-txn-memos";
 import {
   normalizePayCode,
   PAY_CHANNEL_LABELS,
@@ -122,7 +123,7 @@ export function detectHighDiscounts(options?: {
     return true;
   });
 
-  // All descriptions by transaction (approval text may sit on sibling lines)
+  // Product lines from filtered sales; ITEM APP/FIN memos reattached by Transaction #
   const descByTxn = new Map<string, string[]>();
   const payByTxn = new Map<string, string>();
   for (const r of scoped) {
@@ -134,6 +135,20 @@ export function detectHighDiscounts(options?: {
     if (r.payCode?.trim() && !payByTxn.has(tid)) {
       payByTxn.set(tid, r.payCode.trim());
     }
+  }
+  const memos = loadTxnPackageMemos({
+    filterDate: effectiveDate,
+    filterStore,
+  });
+  for (const [tid, memosDesc] of memos.descByTxn) {
+    const list = descByTxn.get(tid) ?? [];
+    for (const d of memosDesc) {
+      if (!list.includes(d)) list.push(d);
+    }
+    descByTxn.set(tid, list);
+  }
+  for (const [tid, pay] of memos.payByTxn) {
+    if (!payByTxn.has(tid)) payByTxn.set(tid, pay);
   }
 
   const hits: HighDiscountHit[] = [];

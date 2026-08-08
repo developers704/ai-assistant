@@ -22,7 +22,19 @@ const cleaned = normalizeDailySalesCsv(raw);
 assert.ok(!cleaned.includes(",,"), "spacer empty columns should be collapsed");
 assert.ok(cleaned.includes(".webp"), "Image Dir should become webp");
 assert.ok(!/\.jpg/i.test(cleaned), "jpg should be gone");
-assert.ok(!cleaned.includes("SKU2"), "zero-total rows should be removed");
+assert.ok(!cleaned.includes("SKU2"), "zero-total product rows should be removed");
+
+const memoRaw = `Transaction  #,Transaction Date,,Item  #,,Total,,Store,,Department,,Description,,
+GM-1,8/7/2026,,ITEM,,0,,VJ-GM,,WATCHES,,FINANCE SYNCHRONY 36/0,,
+GM-1,8/7/2026,,ITEM,,0,,VJ-GM,,WATCHES,,APP/EG,,
+GM-1,8/7/2026,,225287,,5000,,VJ-GM,,WATCHES,,BRIDAL SET,,
+GM-2,8/7/2026,,ZZZERO,,0,,VJ-GM,,WATCHES,,random zero junk,,
+`;
+const memoCleaned = normalizeDailySalesCsv(memoRaw);
+assert.ok(memoCleaned.includes("APP/EG"), "APP memo $0 Total kept for discounting");
+assert.ok(memoCleaned.includes("FINANCE SYNCHRONY"), "FINANCE memo $0 Total kept");
+assert.ok(memoCleaned.includes("225287"), "product line kept");
+assert.ok(!memoCleaned.includes("ZZZERO"), "non-memo $0 Total still dropped");
 
 const parsed = Papa.parse<Record<string, unknown>>(cleaned, {
   header: true,

@@ -52,6 +52,15 @@ const app3 = parseApprovalFromDescriptions(["APP/TL1", "FIN/WELLSFARGO/6/0"]);
 assert.ok(app3.approverCodes.includes("TL1"));
 assert.equal(app3.financingMonths, 6);
 
+// Same Transaction # package: ITEM memos
+const appPkg = parseApprovalFromDescriptions([
+  "FINANCE SYNCHRONY 36/0",
+  "APP/EG",
+  "14KT NOVELLO BRIDAL SET",
+]);
+assert.ok(appPkg.approverCodes.includes("EG"));
+assert.equal(appPkg.financingMonths, 36);
+
 const approvers = loadApprovers(true);
 assert.ok(approvers.has("SM2"));
 assert.ok(approvers.has("AJ"));
