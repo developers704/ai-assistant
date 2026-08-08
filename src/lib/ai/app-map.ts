@@ -549,6 +549,7 @@ export const SECTION_OPEN_SPOKEN: Record<AppSectionId, string> = {
   social: "Opening Social.",
   contacts: "Opening Contacts.",
   settings: "Opening Settings.",
+  discounting: "Opening Discounting.",
 };
 
 export function openingSpokenForSection(sectionId: string): string {
