@@ -55,10 +55,20 @@ assert.equal(app3.financingMonths, 6);
 const approvers = loadApprovers(true);
 assert.ok(approvers.has("SM2"));
 assert.ok(approvers.has("AJ"));
+assert.ok(approvers.has("RM7"));
+assert.ok(approvers.has("AS-GM"));
+assert.ok(approvers.has("TL-ARDEN"));
+assert.ok(approvers.has("EG"));
 assert.equal(resolveApprover("AJ-MOD")?.role, "dm");
-assert.equal(pickApproverForV1(["RM7", "SM2"])?.code, "SM2");
-assert.equal(pickApproverForV1(["TL1"]), null); // TL1 not in v1 CSV as cm
-
+assert.equal(resolveApprover("AJ-MOD")?.name, "Akber Jivani");
+assert.equal(resolveApprover("AS-GM")?.role, "cm");
+assert.equal(resolveApprover("AS-GM")?.name, "Adnan / Adi");
+assert.equal(resolveApprover("AS")?.role, "m"); // Aurellia — not Adnan
+assert.equal(resolveApprover("SHAUN-NORTH")?.role, "dm");
+assert.equal(pickApproverForV1(["RM7", "SM2"])?.code, "SM2"); // prefer dm
+assert.equal(pickApproverForV1(["TL-ARDEN"])?.role, "cm");
+assert.equal(pickApproverForV1(["EG"])?.role, "m");
+assert.equal(pickApproverForV1(["XX99"]), null);
 const diamondish: InventoryItem = {
   sku: "TEST1",
   description: "Lab diamond ring",

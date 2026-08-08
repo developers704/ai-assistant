@@ -318,7 +318,7 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
     label: "Discounting",
     route: "/discounting",
     purpose:
-      "Flag high discounts where Disc Amt % exceeds Price Calculator allowed % for District Manager approvers (SM2 / AJ).",
+      "Flag high discounts where Disc Amt % exceeds Price Calculator allowed % for Manager, Corporate Manager, and District Manager approvers.",
     availableData: [
       "Live sales Disc Amt vs Sales Amount",
       "APP / FIN description approver codes",
@@ -336,7 +336,7 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
     whenToUseLiveTool: "Call get_high_discounts for the list; open /discounting.",
     exampleResponses: {
       explain:
-        "**Discounting** compares each sale’s discount % to the Price Calculator limit for the approving District Manager (SM2 / AJ). Over-limit lines appear here and in chat.",
+        "**Discounting** compares each sale’s discount % to the Price Calculator limit for the approving Manager / CM / DM. Over-limit lines appear here and in chat.",
       capabilities:
         "Ask *high discounts today* and I’ll list overages, or open **Discounting** for the full table.",
     },

@@ -3,6 +3,7 @@ import {
   detectHighDiscounts,
   formatHighDiscountsMarkdown,
 } from "@/lib/discounting/detect-high-discounts";
+import { DEFAULT_DISCOUNTING_ROLES } from "@/lib/discounting/approvers";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 import { readSessionFromCookies } from "@/lib/auth/session";
 
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
     const result = detectHighDiscounts({
       filterDate: dateParam,
       filterStore: storeParam,
-      roles: ["dm"],
+      roles: DEFAULT_DISCOUNTING_ROLES,
     });
 
     if (format === "markdown") {

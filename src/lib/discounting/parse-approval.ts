@@ -42,7 +42,7 @@ function extractMonths(text: string): number | null {
 /** Codes that look like salesperson/approver tokens, not program names. */
 function looksLikeApproverCode(tok: string): boolean {
   const t = tok.toUpperCase();
-  if (!t || t.length > 12) return false;
+  if (!t || t.length > 20) return false;
   // Reject known pay programs
   if (
     /^(WELLS|WELLSFARGO|IDDEAL|IDEAL|IDEA|SYNCHRONY|SYNC|SYCHY|FLEX|FLEXPAY|PROG|PROGRESSIVE|ACIMA|ACIM|UOWN|KAFENE|KAFE|AFFIRM|AFF|CASH|CC)$/i.test(
@@ -51,8 +51,8 @@ function looksLikeApproverCode(tok: string): boolean {
   ) {
     return false;
   }
-  // Typical POS codes: letters + optional digits (AJ, SM2, TL1, RM7, AJ-MOD)
-  return /^[A-Z]{1,4}\d{0,3}(-\w+)?$/i.test(t);
+  // AJ, SM2, TL1, RM7, AJ-MOD, SHAUN-NORTH, SA-CON, AD-EAST
+  return /^[A-Z]{1,10}\d{0,3}(-[A-Z0-9]+)?$/i.test(t);
 }
 
 /**

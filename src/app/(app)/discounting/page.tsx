@@ -83,7 +83,7 @@ export default function DiscountingPage() {
       <PageShellHeader>
         <PageHeader
           title="Discounting"
-          subtitle="High discounts vs Price Calculator limits — DM approvers (SM2 / AJ)"
+          subtitle="High discounts vs Price Calculator limits — Managers, Corporate Managers, District Managers"
         />
       </PageShellHeader>
       <PageShellBody>
@@ -155,7 +155,7 @@ export default function DiscountingPage() {
           </div>
         ) : !data?.hits?.length ? (
           <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/10 px-6 py-10 text-center text-sm text-white/45">
-            No high discounts for DM approvers on this day.
+            No high discounts for Manager / CM / DM approvers on this day.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl ring-1 ring-white/10">
@@ -226,8 +226,8 @@ export default function DiscountingPage() {
 
         <p className={cn("mt-4 text-[11px] text-white/30 max-w-3xl")}>
           Flags when Disc Amt ÷ Sales Amount exceeds Price Calculator allowed % for the APP
-          approver’s tier. v1 matches District Managers <strong>SM2</strong> (Shaun) and{" "}
-          <strong>AJ</strong> only. Pay Code spellings are normalized for display context.
+          approver’s tier (Manager / Corporate Manager / District Manager). Codes come from{" "}
+          <code className="text-white/40">data/discounting/approvers.csv</code>.
         </p>
       </PageShellBody>
     </PageShell>

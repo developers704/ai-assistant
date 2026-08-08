@@ -187,7 +187,6 @@ export async function executeVoiceTool(
       const result = detectHighDiscounts({
         filterDate: dateArg,
         filterStore: storeArg,
-        roles: ["dm"],
       });
       const markdown = formatHighDiscountsMarkdown(result);
       const q = dateArg ? `?date=${encodeURIComponent(dateArg)}` : "";

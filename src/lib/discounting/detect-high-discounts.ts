@@ -4,7 +4,7 @@ import { lookupInventory } from "@/lib/inventory/store";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { parseApprovalFromDescriptions } from "@/lib/discounting/parse-approval";
-import { pickApproverForV1, type ApproverEntry } from "@/lib/discounting/approvers";
+import { pickApproverForV1, DEFAULT_DISCOUNTING_ROLES, type ApproverEntry } from "@/lib/discounting/approvers";
 import {
   normalizePayCode,
   PAY_CHANNEL_LABELS,
@@ -101,11 +101,13 @@ function isProductDiscountLine(row: VendorPosRow): boolean {
 export function detectHighDiscounts(options?: {
   filterDate?: string | null;
   filterStore?: string | null;
-  /** Only flag these roles (v1: dm). */
+  /** Roles to flag (default: dm + cm + m). */
   roles?: ManagerTier[];
 }): DetectHighDiscountsResult {
   const rows = loadRankRows() ?? [];
-  const roles = new Set(options?.roles?.length ? options.roles : (["dm"] as ManagerTier[]));
+  const roles = new Set(
+    options?.roles?.length ? options.roles : DEFAULT_DISCOUNTING_ROLES
+  );
   const filterDate = options?.filterDate?.trim() || null;
   const filterStore = options?.filterStore?.trim().toUpperCase() || null;
 
@@ -221,7 +223,7 @@ export function formatHighDiscountsMarkdown(
 ): string {
   const dateLabel = result.filterDate ?? "all dates";
   if (!result.hits.length) {
-    return `**High discounts** (${dateLabel}): none found above calculator limits for DM approvers (SM2 / AJ).`;
+    return `**High discounts** (${dateLabel}): none found above calculator limits for Manager / CM / DM approvers.`;
   }
   const lines = [
     `**High discounts** — ${dateLabel} (${result.hits.length} flag${result.hits.length === 1 ? "" : "s"})`,

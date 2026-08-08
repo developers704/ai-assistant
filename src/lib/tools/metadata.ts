@@ -52,7 +52,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: "get_high_discounts",
     description:
-      "List high discounts where Disc Amt % of Sales Amount exceeds Price Calculator allowed % for DM approvers (SM2 / AJ). Opens Discounting section.",
+      "List high discounts where Disc Amt % of Sales Amount exceeds Price Calculator allowed % for Manager / CM / DM approvers. Opens Discounting section.",
     category: "sales",
     riskLevel: "safe",
     requiresConfirmation: false,
