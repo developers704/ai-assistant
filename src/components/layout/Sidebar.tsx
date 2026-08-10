@@ -38,6 +38,12 @@ type NavItem = {
   palette: GlassPalette;
 };
 
+/**
+ * Gmail Email nav — kept in backup, hidden for all users.
+ * Restore: set `SHOW_GMAIL_EMAIL_NAV` to `true`.
+ */
+const SHOW_GMAIL_EMAIL_NAV = false;
+
 const ADMIN_NAV: NavItem[] = [
   { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
   { href: "/chat", label: "AI Chat", icon: MessageSquare, palette: "violet" },
@@ -93,10 +99,15 @@ const DM_PAGE_TO_PERMISSION: Record<string, UserPermissionKey> = {
   "/social": "social",
 };
 
+function withoutHiddenNav(items: NavItem[]): NavItem[] {
+  if (SHOW_GMAIL_EMAIL_NAV) return items;
+  return items.filter((item) => item.href !== "/email");
+}
+
 function useNavItems(): NavItem[] {
   const { state } = useApp();
   if (state?.user?.authRole === "admin") {
-    return ADMIN_NAV;
+    return withoutHiddenNav(ADMIN_NAV);
   }
 
   const permissions = state?.user?.permissions as
@@ -105,22 +116,24 @@ function useNavItems(): NavItem[] {
 
   // Until /api/state hydrates permissions, show DM defaults + Settings.
   if (!permissions) {
-    return [
+    return withoutHiddenNav([
       ALL_NAV_ITEMS["/sales"]!,
       ALL_NAV_ITEMS["/stores"]!,
       ALL_NAV_ITEMS["/calculator"]!,
       ALL_NAV_ITEMS["/settings"]!,
-    ];
+    ]);
   }
 
-  return Object.entries(ALL_NAV_ITEMS)
-    .filter(([href]) => {
-      if (href === "/settings") return true;
-      const key = DM_PAGE_TO_PERMISSION[href];
-      if (!key) return false;
-      return Boolean(permissions[key]);
-    })
-    .map(([, item]) => item);
+  return withoutHiddenNav(
+    Object.entries(ALL_NAV_ITEMS)
+      .filter(([href]) => {
+        if (href === "/settings") return true;
+        const key = DM_PAGE_TO_PERMISSION[href];
+        if (!key) return false;
+        return Boolean(permissions[key]);
+      })
+      .map(([, item]) => item)
+  );
 }
 
 function isActivePath(pathname: string, href: string) {
