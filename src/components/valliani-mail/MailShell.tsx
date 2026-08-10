@@ -10,6 +10,7 @@ import {
 } from "@/components/valliani-mail/ReadingPane";
 import {
   ComposePanel,
+  splitRecipientList,
   type ComposeDraft,
 } from "@/components/valliani-mail/ComposePanel";
 import {
@@ -61,10 +62,7 @@ function emptyCompose(): ComposeDraft {
 }
 
 function splitRecipients(raw: string): string[] {
-  return raw
-    .split(/[,;]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return splitRecipientList(raw);
 }
 
 function sourceFolderOf(message: MailMessage, fallback: string): string {

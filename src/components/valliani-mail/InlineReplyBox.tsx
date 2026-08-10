@@ -12,7 +12,10 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ComposeDraft } from "@/components/valliani-mail/ComposePanel";
+import {
+  RecipientField,
+  type ComposeDraft,
+} from "@/components/valliani-mail/ComposePanel";
 import {
   filesToMailAttachments,
   formatAttachmentBytes,
@@ -131,13 +134,14 @@ export function InlineReplyBox({
               </>
             ) : null}
           </div>
-          <input
-            value={draft.to}
-            onChange={(e) => onChange({ ...draft, to: e.target.value })}
-            className="flex-1 min-w-0 bg-transparent text-[13px] text-white/85 outline-none truncate"
-            placeholder="recipient@valliani.app"
-            aria-label="To"
-          />
+          <div className="flex-1 min-w-0">
+            <RecipientField
+              value={draft.to}
+              onChange={(to) => onChange({ ...draft, to })}
+              placeholder="Add recipients…"
+              compact
+            />
+          </div>
           {onExpand ? (
             <button
               type="button"
