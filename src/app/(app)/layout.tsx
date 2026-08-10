@@ -22,12 +22,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname !== "/chat" &&
     pathname !== "/voice" &&
     pathname !== "/email" &&
+    pathname !== "/valliani-mail" &&
     pathname !== "/contacts" &&
     pathname !== "/images" &&
     pathname !== "/analyst";
 
   const isVoicePage = pathname === "/voice";
-  const isEmailPage = pathname === "/email";
+  const isEmailPage = pathname === "/email" || pathname === "/valliani-mail";
 
   useEffect(() => {
     if (loading) return;
