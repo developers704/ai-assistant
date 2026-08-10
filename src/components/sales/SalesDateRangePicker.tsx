@@ -280,24 +280,87 @@ export function SalesDateRangePicker({
     return set;
   }, [sortedAvail, view.y]);
 
+  const displayFrom = openField ? draftFrom : value?.from ?? null;
+  const displayTo = openField ? draftTo : value?.to ?? null;
+
   return (
     <div ref={rootRef} className={cn("relative", className)}>
-      <button
-        type="button"
-        onClick={() => {
-          if (openField) setOpenField(null);
-          else openCalendar("from");
-        }}
+      {/* ERP-style: Date From: [____][📅]  To: [____][📅] */}
+      <div
         className={cn(
-          "select-dark inline-flex h-9 items-center gap-2 px-3 rounded-xl text-sm whitespace-nowrap",
-          "backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-sky-400/30 focus:border-sky-400/40"
+          "select-dark inline-flex h-9 items-center gap-2 sm:gap-3 px-2.5 sm:px-3 rounded-xl text-sm whitespace-nowrap",
+          "backdrop-blur-md"
         )}
-        aria-label="Filter by date"
-        aria-expanded={openField != null}
+        aria-label={triggerLabel}
       >
-        <CalendarDays size={15} className="text-ink-muted shrink-0" />
-        <span className="text-left font-medium tabular-nums">{triggerLabel}</span>
-      </button>
+        <label className="inline-flex items-center gap-1.5 min-w-0">
+          <span className="text-[12px] text-ink-muted shrink-0">Date From:</span>
+          <span
+            className={cn(
+              "inline-flex h-7 items-stretch overflow-hidden rounded-md ring-1 bg-white/[0.04]",
+              openField === "from"
+                ? "ring-sky-400/55 bg-sky-500/15"
+                : "ring-white/15"
+            )}
+          >
+            <button
+              type="button"
+              onClick={() =>
+                openField === "from" ? setOpenField(null) : openCalendar("from")
+              }
+              className="min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums text-white/90 hover:bg-white/[0.06]"
+              aria-label="Date from"
+              aria-expanded={openField === "from"}
+            >
+              {displayFrom ? usDate(displayFrom) : ""}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                openField === "from" ? setOpenField(null) : openCalendar("from")
+              }
+              className="flex w-7 items-center justify-center border-l border-white/12 text-sky-300/90 hover:bg-white/10"
+              aria-label="Open from calendar"
+            >
+              <CalendarDays size={14} />
+            </button>
+          </span>
+        </label>
+
+        <label className="inline-flex items-center gap-1.5 min-w-0">
+          <span className="text-[12px] text-ink-muted shrink-0">To:</span>
+          <span
+            className={cn(
+              "inline-flex h-7 items-stretch overflow-hidden rounded-md ring-1 bg-white/[0.04]",
+              openField === "to"
+                ? "ring-sky-400/55 bg-sky-500/15"
+                : "ring-white/15"
+            )}
+          >
+            <button
+              type="button"
+              onClick={() =>
+                openField === "to" ? setOpenField(null) : openCalendar("to")
+              }
+              className="min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums text-white/90 hover:bg-white/[0.06]"
+              aria-label="Date to"
+              aria-expanded={openField === "to"}
+            >
+              {displayTo ? usDate(displayTo) : ""}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                openField === "to" ? setOpenField(null) : openCalendar("to")
+              }
+              className="flex w-7 items-center justify-center border-l border-white/12 text-sky-300/90 hover:bg-white/10"
+              aria-label="Open to calendar"
+            >
+              <CalendarDays size={14} />
+            </button>
+          </span>
+        </label>
+      </div>
 
       {openField != null && (
         <div
@@ -311,45 +374,12 @@ export function SalesDateRangePicker({
             <p className="text-[13px] font-medium text-sky-100/90 tabular-nums">
               {headerIso ? longWeekdayDate(headerIso) : "Select a date"}
             </p>
+            <p className="mt-0.5 text-[10px] uppercase tracking-wide text-white/40">
+              {openField === "from" ? "Date From" : "To"}
+            </p>
           </div>
 
           <div className="p-3">
-            {/* Separate From / To — each opens its own calendar context */}
-            <div className="mb-3 space-y-2">
-              <div className="grid grid-cols-[4.5rem_1fr] items-center gap-2">
-                <span className="text-[11px] text-white/55">Date From:</span>
-                <button
-                  type="button"
-                  onClick={() => openCalendar("from")}
-                  className={cn(
-                    "flex h-8 items-center justify-between rounded-md px-2 text-left text-sm tabular-nums ring-1 transition-colors",
-                    openField === "from"
-                      ? "bg-sky-500/20 ring-sky-400/50 text-white"
-                      : "bg-white/[0.04] ring-white/12 text-white/85 hover:bg-white/[0.07]"
-                  )}
-                >
-                  <span>{draftFrom ? usDate(draftFrom) : "—"}</span>
-                  <CalendarDays size={13} className="text-sky-300/80" />
-                </button>
-              </div>
-              <div className="grid grid-cols-[4.5rem_1fr] items-center gap-2">
-                <span className="text-[11px] text-white/55">To:</span>
-                <button
-                  type="button"
-                  onClick={() => openCalendar("to")}
-                  className={cn(
-                    "flex h-8 items-center justify-between rounded-md px-2 text-left text-sm tabular-nums ring-1 transition-colors",
-                    openField === "to"
-                      ? "bg-sky-500/20 ring-sky-400/50 text-white"
-                      : "bg-white/[0.04] ring-white/12 text-white/85 hover:bg-white/[0.07]"
-                  )}
-                >
-                  <span>{draftTo ? usDate(draftTo) : "—"}</span>
-                  <CalendarDays size={13} className="text-sky-300/80" />
-                </button>
-              </div>
-            </div>
-
             {panelMode === "days" ? (
               <>
                 {/* Month nav — click label for year/month grid */}
