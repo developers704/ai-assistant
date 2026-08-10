@@ -107,23 +107,35 @@ export function FolderSidebar({
               className={cn(
                 "w-full flex items-center gap-3 lg:gap-2.5 rounded-xl px-3 lg:px-2.5 py-3 lg:py-2 text-[16px] lg:text-[13px] transition-colors",
                 active
-                  ? "bg-white/12 text-white font-semibold"
+                  ? "bg-sky-500/25 text-sky-100 font-semibold ring-1 ring-sky-400/40"
                   : "text-white/75 hover:bg-white/5 hover:text-white"
               )}
+              aria-current={active ? "page" : undefined}
             >
               <Icon
                 size={20}
-                strokeWidth={1.75}
-                className="shrink-0 opacity-90 lg:hidden"
+                strokeWidth={active ? 2.25 : 1.75}
+                className={cn(
+                  "shrink-0 lg:hidden",
+                  active ? "text-sky-300" : "opacity-90"
+                )}
               />
               <Icon
                 size={16}
-                strokeWidth={1.75}
-                className="shrink-0 opacity-80 hidden lg:block"
+                strokeWidth={active ? 2.25 : 1.75}
+                className={cn(
+                  "shrink-0 hidden lg:block",
+                  active ? "text-sky-300" : "opacity-80"
+                )}
               />
               <span className="flex-1 text-left truncate">{folder.name}</span>
               {unread ? (
-                <span className="text-[13px] lg:text-[11px] font-semibold text-sky-300 tabular-nums">
+                <span
+                  className={cn(
+                    "text-[13px] lg:text-[11px] font-semibold tabular-nums",
+                    active ? "text-sky-200" : "text-sky-300"
+                  )}
+                >
                   {unread}
                 </span>
               ) : null}
