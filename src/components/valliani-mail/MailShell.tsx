@@ -772,36 +772,25 @@ export function MailShell({
   );
 
   return (
-    <div className="h-full min-h-0 flex flex-col rounded-none sm:rounded-3xl overflow-hidden glass-panel-strong ring-1 ring-white/10">
+    <div className="h-full min-h-0 flex flex-col rounded-none sm:rounded-3xl overflow-hidden bg-[#0b0f16] sm:glass-panel-strong ring-1 ring-white/10">
       {error ? (
         <div className="shrink-0 px-4 py-2 text-xs text-rose-200 bg-rose-500/15 border-b border-rose-400/20">
           {error}
         </div>
       ) : null}
 
-      <div className="lg:hidden shrink-0 flex items-center gap-2 px-2 py-2 border-b border-white/10">
+      <div className="lg:hidden shrink-0 flex items-center gap-2 px-3 py-2.5 border-b border-white/10 bg-[#0b0f16]">
         <button
           type="button"
-          className="p-2 rounded-full text-white/70 hover:bg-white/10"
+          className="p-2.5 rounded-xl text-white/80 hover:bg-white/10 active:bg-white/15"
           onClick={() => setDrawerOpen(true)}
           aria-label="Folders"
         >
-          <Menu size={20} />
+          <Menu size={22} />
         </button>
-        <span className="flex-1 text-sm font-semibold text-white truncate">
+        <span className="flex-1 text-[17px] font-semibold text-white truncate tracking-tight">
           {folderTitle}
         </span>
-        <button
-          type="button"
-          className="p-2 rounded-full text-white/70 hover:bg-white/10"
-          onClick={() => {
-            setCompose(emptyCompose());
-            setComposeError("");
-          }}
-          aria-label="Compose"
-        >
-          <PenSquare size={18} />
-        </button>
       </div>
 
       <div className="flex-1 min-h-0 flex relative">
@@ -840,11 +829,39 @@ export function MailShell({
             />
             <button
               type="button"
-              className="flex-1 bg-black/50"
+              className="flex-1 bg-black/55 backdrop-blur-[2px]"
               aria-label="Close folders"
               onClick={() => setDrawerOpen(false)}
             />
           </div>
+        ) : null}
+
+        {/* Gmail-style compose FAB — mobile list only */}
+        {mobileView === "list" &&
+        !(
+          compose &&
+          (compose.forceModal ||
+            compose.mode === "new" ||
+            compose.mode === "forward" ||
+            !compose.mode)
+        ) ? (
+          <button
+            type="button"
+            className={cn(
+              "lg:hidden absolute z-40 flex h-14 w-14 items-center justify-center",
+              "rounded-2xl bg-sky-500 text-white",
+              "shadow-[0_8px_28px_-4px_rgba(14,165,233,0.55)] ring-1 ring-sky-300/35",
+              "active:scale-95 transition-transform",
+              "bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-4"
+            )}
+            onClick={() => {
+              setCompose(emptyCompose());
+              setComposeError("");
+            }}
+            aria-label="Compose"
+          >
+            <PenSquare size={24} strokeWidth={2} />
+          </button>
         ) : null}
 
         <div

@@ -71,26 +71,29 @@ export function FolderSidebar({
         className
       )}
     >
-      <div className="px-1 pb-3">
-        <h2 className="text-xl font-bold text-white tracking-tight">
+      <div className="px-1.5 pb-3">
+        <h2 className="text-[22px] lg:text-xl font-bold text-white tracking-tight">
           Valliani Mail
         </h2>
-        <p className="text-[11px] text-white/40 mt-0.5 truncate">{userEmail}</p>
+        <p className="text-[13px] lg:text-[11px] text-white/50 mt-1 truncate">
+          {userEmail}
+        </p>
       </div>
 
+      {/* Desktop compose — mobile uses bottom-right FAB */}
       <button
         type="button"
         onClick={onCompose}
-        className="mb-3 flex items-center justify-center gap-2 rounded-2xl bg-sky-700/90 hover:bg-sky-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors"
+        className="mb-3 hidden lg:flex items-center justify-center gap-2 rounded-2xl bg-sky-700/90 hover:bg-sky-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors"
       >
         <PenSquare size={16} />
         Compose
       </button>
 
-      <p className="px-2 pb-1 text-[10px] uppercase tracking-wider text-white/35 font-semibold">
+      <p className="px-2.5 pb-1.5 text-[11px] lg:text-[10px] uppercase tracking-wider text-white/40 font-semibold">
         Folders
       </p>
-      <div className="space-y-0.5 flex-1">
+      <div className="space-y-1 lg:space-y-0.5 flex-1">
         {folders.map((folder) => {
           const Icon = folderIcon(folder.path);
           const active =
@@ -102,16 +105,25 @@ export function FolderSidebar({
               type="button"
               onClick={() => onSelect(folder.path)}
               className={cn(
-                "w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] transition-colors",
+                "w-full flex items-center gap-3 lg:gap-2.5 rounded-xl px-3 lg:px-2.5 py-3 lg:py-2 text-[16px] lg:text-[13px] transition-colors",
                 active
-                  ? "bg-white/10 text-white font-semibold"
-                  : "text-white/65 hover:bg-white/5 hover:text-white"
+                  ? "bg-white/12 text-white font-semibold"
+                  : "text-white/75 hover:bg-white/5 hover:text-white"
               )}
             >
-              <Icon size={16} strokeWidth={1.75} className="shrink-0 opacity-80" />
+              <Icon
+                size={20}
+                strokeWidth={1.75}
+                className="shrink-0 opacity-90 lg:hidden"
+              />
+              <Icon
+                size={16}
+                strokeWidth={1.75}
+                className="shrink-0 opacity-80 hidden lg:block"
+              />
               <span className="flex-1 text-left truncate">{folder.name}</span>
               {unread ? (
-                <span className="text-[11px] font-semibold text-sky-300 tabular-nums">
+                <span className="text-[13px] lg:text-[11px] font-semibold text-sky-300 tabular-nums">
                   {unread}
                 </span>
               ) : null}
@@ -123,9 +135,10 @@ export function FolderSidebar({
       <button
         type="button"
         onClick={onLogout}
-        className="mt-3 flex items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] text-white/45 hover:text-rose-300 hover:bg-white/5"
+        className="mt-3 flex items-center gap-2.5 rounded-xl px-3 lg:px-2.5 py-3 lg:py-2 text-[15px] lg:text-[13px] text-white/50 hover:text-rose-300 hover:bg-white/5"
       >
-        <LogOut size={15} />
+        <LogOut size={17} className="lg:hidden" />
+        <LogOut size={15} className="hidden lg:block" />
         Sign out of mailbox
       </button>
     </aside>

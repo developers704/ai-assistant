@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Bold,
   Italic,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isComposeBodyEmpty } from "@/lib/valliani-mail/compose-html";
+import { suggestComposeContinuation } from "@/lib/valliani-mail/smart-compose";
 
 const EMOJIS = [
   "😀",
@@ -35,6 +36,46 @@ const EMOJIS = [
   "😎",
 ];
 
+function textBeforeCaret(root: HTMLElement): string | null {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return null;
+  const range = sel.getRangeAt(0);
+  if (!root.contains(range.endContainer)) return null;
+  const pre = range.cloneRange();
+  pre.selectNodeContents(root);
+  pre.setEnd(range.endContainer, range.endOffset);
+  return pre.toString().replace(/\u00a0/g, " ");
+}
+
+function caretAtEnd(root: HTMLElement, before: string): boolean {
+  const all = (root.innerText || "").replace(/\u00a0/g, " ").replace(/\n$/, "");
+  return before.replace(/\n$/, "") === all;
+}
+
+function caretGhostPosition(
+  root: HTMLElement,
+  container: HTMLElement
+): { left: number; top: number } | null {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return null;
+  const range = sel.getRangeAt(0);
+  if (!root.contains(range.endContainer)) return null;
+  let rect = range.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0) {
+    const marker = document.createTextNode("\u200b");
+    range.insertNode(marker);
+    rect = range.getBoundingClientRect();
+    marker.parentNode?.removeChild(marker);
+    // restore caret
+    sel.collapse(range.endContainer, range.endOffset);
+  }
+  const box = container.getBoundingClientRect();
+  return {
+    left: Math.max(0, rect.left - box.left),
+    top: Math.max(0, rect.top - box.top),
+  };
+}
+
 export function ComposeBodyEditor({
   value,
   onChange,
@@ -49,8 +90,46 @@ export function ComposeBodyEditor({
   minHeightClass?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const skipSync = useRef(false);
+  const dismissedFor = useRef("");
+  const [suggestion, setSuggestion] = useState("");
+  const [ghostPos, setGhostPos] = useState<{ left: number; top: number } | null>(
+    null
+  );
   const showPlaceholder = isComposeBodyEmpty(value);
+
+  const refreshSuggestion = useCallback(() => {
+    const el = ref.current;
+    const wrap = wrapRef.current;
+    if (!el || !wrap) {
+      setSuggestion("");
+      setGhostPos(null);
+      return;
+    }
+    const before = textBeforeCaret(el);
+    if (before == null || !caretAtEnd(el, before)) {
+      setSuggestion("");
+      setGhostPos(null);
+      return;
+    }
+    if (dismissedFor.current === before) {
+      setSuggestion("");
+      setGhostPos(null);
+      return;
+    }
+    if (dismissedFor.current && before !== dismissedFor.current) {
+      dismissedFor.current = "";
+    }
+    const next = suggestComposeContinuation(before);
+    if (!next) {
+      setSuggestion("");
+      setGhostPos(null);
+      return;
+    }
+    setSuggestion(next);
+    setGhostPos(caretGhostPosition(el, wrap));
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
@@ -61,13 +140,48 @@ export function ComposeBodyEditor({
     if (el.innerHTML !== value) {
       el.innerHTML = value || "";
     }
-  }, [value]);
+    refreshSuggestion();
+  }, [value, refreshSuggestion]);
+
+  function acceptSuggestion() {
+    const el = ref.current;
+    if (!el || !suggestion) return;
+    el.focus();
+    document.execCommand("insertText", false, suggestion);
+    skipSync.current = true;
+    onChange(el.innerHTML);
+    setSuggestion("");
+    setGhostPos(null);
+    dismissedFor.current = "";
+  }
+
+  function dismissSuggestion() {
+    const el = ref.current;
+    if (el) {
+      const before = textBeforeCaret(el);
+      if (before != null) dismissedFor.current = before;
+    }
+    setSuggestion("");
+    setGhostPos(null);
+  }
 
   return (
-    <div className={cn("relative", minHeightClass)}>
+    <div ref={wrapRef} className={cn("relative", minHeightClass)}>
       {showPlaceholder ? (
         <div className="pointer-events-none absolute inset-0 text-sm text-white/35 leading-relaxed">
           {placeholder || "Write your message…"}
+        </div>
+      ) : null}
+      {suggestion && ghostPos ? (
+        <div
+          className="pointer-events-none absolute z-[1] text-sm leading-relaxed text-white/35 whitespace-pre"
+          style={{ left: ghostPos.left, top: ghostPos.top }}
+          aria-hidden
+        >
+          {suggestion}
+          <span className="ml-1.5 align-middle rounded border border-white/15 bg-white/[0.06] px-1 py-px text-[10px] font-medium tracking-wide text-white/45">
+            Tab
+          </span>
         </div>
       ) : null}
       <div
@@ -76,16 +190,35 @@ export function ComposeBodyEditor({
         role="textbox"
         aria-multiline
         aria-label={placeholder || "Message body"}
+        aria-autocomplete="inline"
         suppressContentEditableWarning
         className={cn(
-          "compose-body-editor relative w-full outline-none text-sm text-white leading-relaxed whitespace-pre-wrap break-words",
+          "compose-body-editor relative z-[2] w-full outline-none text-sm text-white leading-relaxed whitespace-pre-wrap break-words",
           "[&_a]:text-sky-300 [&_a]:underline",
+          // caret sits above ghost; ghost is behind via absolute sibling
+          "bg-transparent",
           minHeightClass,
           className
         )}
         onInput={() => {
           skipSync.current = true;
+          dismissedFor.current = "";
           onChange(ref.current?.innerHTML ?? "");
+          requestAnimationFrame(refreshSuggestion);
+        }}
+        onKeyUp={() => requestAnimationFrame(refreshSuggestion)}
+        onClick={() => requestAnimationFrame(refreshSuggestion)}
+        onKeyDown={(e) => {
+          if (!suggestion) return;
+          if (e.key === "Tab" || e.key === "ArrowRight") {
+            e.preventDefault();
+            acceptSuggestion();
+            return;
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            dismissSuggestion();
+          }
         }}
         onPaste={(e) => {
           e.preventDefault();
