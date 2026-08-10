@@ -811,7 +811,7 @@ export function MailShell({
         {drawerOpen ? (
           <div className="lg:hidden absolute inset-0 z-30 flex">
             <FolderSidebar
-              className="w-[280px] shrink-0 h-full"
+              className="w-[280px] shrink-0 h-full shadow-2xl shadow-black/50"
               folders={folders}
               summary={summary}
               selectedFolder={selectedFolder}
@@ -829,7 +829,7 @@ export function MailShell({
             />
             <button
               type="button"
-              className="flex-1 bg-black/55 backdrop-blur-[2px]"
+              className="flex-1 bg-black/65 backdrop-blur-md"
               aria-label="Close folders"
               onClick={() => setDrawerOpen(false)}
             />

@@ -67,7 +67,9 @@ export function FolderSidebar({
   return (
     <aside
       className={cn(
-        "flex flex-col min-h-0 overflow-y-auto p-3 border-r border-white/10 bg-[#0a0c10]/80",
+        // Solid on mobile drawer so inbox text never bleeds through; slight glass on desktop.
+        "flex flex-col min-h-0 overflow-y-auto p-3 border-r border-white/10",
+        "bg-[#0b0f16] lg:bg-[#0a0c10]/90 lg:backdrop-blur-xl",
         className
       )}
     >
