@@ -10,15 +10,51 @@ import { getSalesWorkingMemory } from "./sales-working-memory";
 const RESET =
   /\b(reset|start over|clear filters|clear sales|show all|sab dikhao|filters? hatao)\b/i;
 
-const FOLLOW_UP =
-  /\b(now by|by department|by store|by vendor|by design|by class|what about|same for|ab |hisaab|hisab se|top vendor models?|top models?|break it down|lowest five|top five|show more|open details|remove |clear )\b/i;
+/** Social "what about you / yourself" — never a sales pivot. */
+export function isPersonalAssistantChitchat(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    /\bwhat about (you|yourself|u)\b/i.test(lower) ||
+    /\bhow about (you|yourself|u)\b/i.test(lower) ||
+    /\band you\??\s*$/i.test(lower.trim())
+  );
+}
 
 export function isSalesReset(message: string): boolean {
   return RESET.test(message);
 }
 
 export function isSalesFollowUp(message: string): boolean {
-  return FOLLOW_UP.test(message);
+  if (isPersonalAssistantChitchat(message)) return false;
+  if (
+    /\b(now by|by department|by store|by vendor|by design|by class|same for|hisaab|hisab se|top vendor models?|top models?|break it down|lowest five|top five|show more|open details|remove |clear )\b/i.test(
+      message
+    )
+  ) {
+    return true;
+  }
+  // "what about X" only when X is a sales pivot (not social chitchat)
+  if (
+    /\bwhat about\b/i.test(message) &&
+    /\b(by\s+(?:store|department|vendor|design|class)|stores?|departments?|vendors?|designs?|class(?:es)?|sales|revenue|novell?o|ovani|same for)\b/i.test(
+      message
+    )
+  ) {
+    return true;
+  }
+  // Bare "what about <entity>" — entity token after what about (not you/yourself)
+  if (
+    /\bwhat about\s+(?!you\b|yourself\b|u\b)([a-z0-9][a-z0-9\s\-']{0,40}?)(?:\s*[.?!])?\s*$/i.test(
+      message
+    )
+  ) {
+    return true;
+  }
+  // Urdu/roman "Ab store ke hisaab…" — not the letters inside "about"
+  if (/(?:^|\s)ab\s+(?=store|department|vendor|design|class|hisaab|hisab)/i.test(message)) {
+    return true;
+  }
+  return /\b(?:class\s+ab|ab\s+class)\b/i.test(message);
 }
 
 /**

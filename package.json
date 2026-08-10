@@ -23,6 +23,7 @@
     "test:voice": "npx tsx scripts/test-voice-flow.ts",
     "test:sales-intelligence": "npx tsx scripts/test-sales-intelligence.ts",
     "test:sales-followups": "npx tsx scripts/test-sales-followups.ts",
+    "test:ai-chat-routing": "npx tsx scripts/check-ai-chat-routing.ts",
     "test:sales-voice": "npx tsx scripts/test-sales-voice.ts",
     "test:sales-dashboard-sync": "npx tsx scripts/test-sales-dashboard-sync.ts",
     "test:sales-unified": "vitest run tests/sales"

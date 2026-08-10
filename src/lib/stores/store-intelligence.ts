@@ -15,6 +15,7 @@ import type { StoreDirectoryEntry } from "@/lib/stores/types";
 
 export type StoreIntent =
   | "store.nearest"
+  | "store.distance"
   | "store.list_state"
   | "store.list_city"
   | "store.lookup"
@@ -28,6 +29,7 @@ const NEAREST_PATTERNS = [
 ];
 
 const DISTANCE_PATTERNS = [
+  /\bhow far is\b/i,
   /\b(?:how far|distance|miles?|kilometers?|km)\b[\s\S]{0,80}\b(?:between|from|to)\b/i,
   /\bfrom\b[\s\S]{0,40}\bto\b[\s\S]{0,40}\b(?:store|mall|miles?|km|far)\b/i,
 ];
@@ -101,6 +103,7 @@ export function classifyStoreIntent(message: string): StoreIntent | null {
   if (!isStoreIntelligenceQuery(message)) return null;
   const lower = message.toLowerCase();
 
+  if (DISTANCE_PATTERNS.some((p) => p.test(lower))) return "store.distance";
   if (NEAREST_PATTERNS.some((p) => p.test(lower))) return "store.nearest";
   if (CALL_PATTERNS.some((p) => p.test(lower))) return "store.call";
   if (LOOKUP_PATTERNS.some((p) => p.test(lower))) return "store.lookup";
@@ -141,6 +144,13 @@ export function answerStoreQuery(message: string): { markdown: string; intent: S
   const intent = classifyStoreIntent(message) ?? "store.list_all";
 
   switch (intent) {
+    case "store.distance": {
+      // Lazy import: store-distances imports findStore from this module
+      const { buildStoreDistanceToolResult } = require("@/lib/stores/store-distances") as typeof import("@/lib/stores/store-distances");
+      const result = buildStoreDistanceToolResult({ userMessage: message });
+      return { markdown: result.message, intent };
+    }
+
     case "store.nearest": {
       const phrase = extractStoreQueryPhrase(message);
       const result = findNearestStore({ storeName: phrase, limit: 3 });

@@ -16,6 +16,7 @@ import { synthesizeToolResponse } from "@/lib/ai/response-synthesizer";
 import type { AlexaChannel } from "@/lib/ai/response-synthesizer";
 import { formatResponseForChannel } from "@/lib/ai/response-synthesizer";
 import { resolveContextualAffirmative } from "@/lib/ai/contextual-affirmative";
+import { isSalesFollowUp } from "@/lib/sales/sales-context";
 
 const OPEN_FOLLOWUP =
   /\b(open it|show more|read more|tell me more|yes open|yes pls open|go there|take me there|open that|show me more)\b/i;
@@ -107,21 +108,20 @@ export async function resolveFollowUp(
     }
   }
 
-  // Sales Intelligence follow-ups — retain prior filters via query_sales memory
-  const SALES_FOLLOWUP =
-    /\b(now by|by department|by store|by vendor|by design|by class|by sku|what about|same for|ab |hisaab se|break it down|lowest five|top five|show more|open details|remove vendor|clear department|show all dates|reset sales)\b/i;
+  // Sales Intelligence follow-ups — retain prior filters via query_sales memory.
   // Fresh "top vendor models for X" is not a follow-up
   const freshVendorModels = /\btop\s+vendor\s+models?\b/i.test(lower) && /\bfor\b/i.test(lower);
   const { getSalesWorkingMemory } = await import("@/lib/sales/sales-working-memory");
   const salesMem = getSalesWorkingMemory();
   if (
     !freshVendorModels &&
-    SALES_FOLLOWUP.test(lower) &&
+    isSalesFollowUp(message) &&
     (salesMem.lastSalesQuery ||
       salesMem.lastDesigns?.length ||
       salesMem.lastDepartments?.length ||
       salesMem.lastStores?.length ||
-      salesMem.lastVendors?.length)
+      salesMem.lastVendors?.length ||
+      salesMem.lastClasses?.length)
   ) {
     const result = await executeTool(
       "query_sales",

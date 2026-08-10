@@ -147,12 +147,14 @@ export function buildStoreDistanceToolResult(input: {
 
   if ((!from || !to) && msg) {
     const between =
+      msg.match(/\bhow far is\s+(.+?)\s+from\s+(.+?)(?:\s*[.?!]|$)/i) ||
       msg.match(
-        /\b(?:distance|how far|miles?|km)\b[\s\S]{0,20}\b(?:between|from)\s+(.+?)\s+(?:and|to|→|->)\s+(.+?)(?:\s*[.?!]|$)/i
+        /\b(?:distance|how far|miles?|km)\b[\s\S]{0,40}\b(?:between|from)\s+(.+?)\s+(?:and|to|→|->)\s+(.+?)(?:\s*[.?!]|$)/i
       ) ||
-      msg.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?:\s*[.?!]|$)/i);
+      msg.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?:\s*[.?!]|$)/i) ||
+      msg.match(/\b(.+?)\s+(?:to|→|->)\s+(.+?)(?:\s*[.?!]|$)/i);
     if (between) {
-      from = from || between[1].replace(/\b(store|mall|the|our)\b/gi, "").trim();
+      from = from || between[1].replace(/\b(store|mall|the|our|is)\b/gi, "").trim();
       to = to || between[2].replace(/\b(store|mall|the|our)\b/gi, "").trim();
     }
   }

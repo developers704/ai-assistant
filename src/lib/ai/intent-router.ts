@@ -43,6 +43,7 @@ export type RoutedIntent =
   | "unknown";
 
 import { isComposeEmailToPerson } from "@/lib/ai/email-compose";
+import { isSalesFollowUp } from "@/lib/sales/sales-context";
 import { isStoreIntelligenceQuery } from "@/lib/stores/store-intelligence";
 
 export interface IntentRouteInput {
@@ -191,8 +192,7 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   // Sales Intelligence — filtered / compare / entity questions (before generic sales)
   const SALES_ENTITY =
     /\b(novell?o|ovani|ovanny|lads?\s+ring|ladys?\s+ring|ladies\s+ring|gents?\s+ring|gold\s+chain|earrings?|rolex|mhvr|kma|kgs|14\s*k(?:t|arat)?|10\s*k(?:t|arat)?|18\s*k(?:t|arat)?|great\s*mall|valley\s*fair|(?:vj[-\s]?)?mod|vj-\w+|dbc-\w+)\b/i;
-  const SALES_FOLLOWUP =
-    /\b(now by|by department|by store|by vendor|by design|by class|by sku|what about|same for|ab |hisaab|top vendor models?|top models?|break it down|lowest five|top five)\b/i;
+  const salesFollowUp = isSalesFollowUp(lower);
   const SALES_COMPARE =
     /\bcompare\b[\s\S]{0,80}\b(and|with|vs\.?|versus|aur)\b/i;
 
@@ -232,9 +232,9 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   }
 
   if (
-    (SALES_ENTITY.test(lower) || SALES_FOLLOWUP.test(lower)) &&
+    (SALES_ENTITY.test(lower) || salesFollowUp) &&
     (/\b(sales|revenue|margin|discount|units?|sold|batao|dikhao|show|kitni|kitna)\b/i.test(lower) ||
-      SALES_FOLLOWUP.test(lower) ||
+      salesFollowUp ||
       /\b(novell?o|ovani|ladys?\s+ring|mhvr)\b/i.test(lower))
   ) {
     if (/\b(correlation|correlated|forecast|anomaly|predict|trend model)\b/i.test(lower)) {
@@ -280,7 +280,7 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
     // Filtered / entity / date / mall / margin → query engine
     if (
       SALES_ENTITY.test(lower) ||
-      SALES_FOLLOWUP.test(lower) ||
+      salesFollowUp ||
       /\b(by department|by vendor|by design|by class|by sku|of\s+\w+\s+store|top\s+\d+\s+stores?|vendor models?)\b/i.test(
         lower
       ) ||

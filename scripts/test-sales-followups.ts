@@ -7,7 +7,12 @@ import {
   clearSalesWorkingMemory,
   getSalesWorkingMemory,
 } from "../src/lib/sales/sales-working-memory";
-import { detectGroupByFromMessage } from "../src/lib/sales/sales-context";
+import {
+  detectGroupByFromMessage,
+  isPersonalAssistantChitchat,
+  isSalesFollowUp,
+} from "../src/lib/sales/sales-context";
+import { getMessageIntent } from "../src/lib/ai/assistant-engine";
 
 let passed = 0;
 let failed = 0;
@@ -36,6 +41,22 @@ async function main() {
   assert(
     "detect store ke hisaab",
     detectGroupByFromMessage("Ab store ke hisaab se").includes("store")
+  );
+  assert(
+    "Ab store is sales follow-up",
+    isSalesFollowUp("Ab store ke hisaab se")
+  );
+  assert(
+    "what about yourself is NOT sales follow-up",
+    !isSalesFollowUp("nothinfg what about yourself")
+  );
+  assert(
+    "what about yourself is personal chitchat",
+    isPersonalAssistantChitchat("nothinfg what about yourself")
+  );
+  assert(
+    "what about yourself routes to greeting",
+    getMessageIntent("nothinfg what about yourself") === "greeting"
   );
 
   await querySalesFromMessage("Show Novello sales");

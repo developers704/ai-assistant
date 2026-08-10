@@ -21,6 +21,7 @@ import {
 } from "@/lib/stores/store-knowledge";
 import {
   answerStoreQuery,
+  classifyStoreIntent,
   isStoreIntelligenceQuery,
 } from "@/lib/stores/store-intelligence";
 import { isStoreDirectoryAvailable } from "@/lib/stores/store-directory";
@@ -28,6 +29,7 @@ import { resolveTaskTarget } from "@/lib/voice/tool-helpers";
 import { formatLongDate } from "@/lib/utils";
 import { getAssistantSalesSummary, formatSalesReportMarkdown } from "@/lib/assistant/sales-data";
 import { isComposeEmailToPerson } from "@/lib/ai/email-compose";
+import { isSalesFollowUp } from "@/lib/sales/sales-context";
 
 function isAcknowledgmentMessage(message: string): boolean {
   const normalized = message
@@ -62,19 +64,31 @@ function detectIntent(message: string): IntentType {
   if (
     /^(good morning|hello|hi+|hey+|greetings)\b|how\s+(?:r\s+u|are\s+you|you\s+doing|going)/.test(
       lower
-    )
+    ) ||
+    /\b(?:what|how) about (?:you|yourself|u)\b/.test(lower)
   ) {
     return "greeting";
   }
   if (/what('s| is|s)?\s*(today'?s?\s*)?date|what date|today'?s date|date today/.test(lower)) {
     return "date_query";
   }
+  // Coarse report only — entity / filter / follow-up sales go to query_sales via router
   if (
-    /sales report|today('s)? sales|yesterday('s)? sales|(?:what'?s|whats|what is|show|tell me)\s+(?:the\s+)?(?:today|yesterday)(?:'s)?\s+sales|sales\s+(?:for\s+)?(?:today|yesterday|aaj|kal)|store sales|revenue|sales across|sales data|forecast|show me.*sales/.test(
+    /^(?:sales report|show (?:me )?sales report)\b/.test(lower) ||
+    /(?:today|yesterday|aaj|kal)(?:'s)?\s+sales\b/.test(lower) ||
+    /\bsales\s+(?:for\s+)?(?:today|yesterday|aaj|kal)\b/.test(lower) ||
+    /(?:what'?s|whats|what is|show|tell me)\s+(?:the\s+)?(?:today|yesterday)(?:'s)?\s+sales\b/.test(
       lower
     )
   ) {
-    return "sales_report";
+    // Entity filters ("Novello today sales") belong on the query engine
+    if (
+      !/\b(novell?o|ovani|by\s+(?:store|department|vendor|design|class)|class\s+ab|department|vendor model)\b/i.test(
+        lower
+      )
+    ) {
+      return "sales_report";
+    }
   }
   if (
     /book|set up.*meeting|meeting with|meeting at|\bschedule\b[\s\S]{0,20}\b(?:a |an )?(?:meeting|appointment|call|with)\b/.test(
@@ -124,7 +138,22 @@ function detectIntent(message: string): IntentType {
   if (/summarize.*(pdf|document|doc|file|contract|report)|key points|analyze.*(excel|csv|data)/.test(lower)) return "document_summarize";
   if (/analyze.*(screenshot|image|photo|picture|dashboard)|what does this (show|dashboard)/.test(lower)) return "image_analyze";
   if (/call\s+\w+|phone call|dial/.test(lower)) return "call_prepare";
-  if (isStoreDirectoryAvailable() && isStoreIntelligenceQuery(message)) return "store_list";
+  if (isStoreDirectoryAvailable() && isStoreIntelligenceQuery(message)) {
+    const storeIntent = classifyStoreIntent(message);
+    // Distance answers via answerStoreQuery (rules) or router — keep on store_list rules path
+    // once distance is wired in classifyStoreIntent. List/lookup/nearest/call stay rules-fast.
+    if (
+      storeIntent === "store.list_all" ||
+      storeIntent === "store.list_state" ||
+      storeIntent === "store.list_city" ||
+      storeIntent === "store.lookup" ||
+      storeIntent === "store.nearest" ||
+      storeIntent === "store.call" ||
+      storeIntent === "store.distance"
+    ) {
+      return "store_list";
+    }
+  }
   if (isStoreLocationQuery(message)) return "store_list";
 
   return "general";
@@ -239,7 +268,9 @@ export function processMessage(message: string, state: AppState): AIResponse {
         (e) => isTodayInTimezone(e.start, tz) && e.status !== "cancelled"
       ).length;
       const tasks = state.reminders.filter((r) => !r.completed).length;
-      const casual = /how\s+(?:r\s+u|are\s+you|you\s+doing|going)/.test(message.toLowerCase());
+      const casual =
+        /how\s+(?:r\s+u|are\s+you|you\s+doing|going)/.test(message.toLowerCase()) ||
+        /\b(?:what|how) about (?:you|yourself|u)\b/.test(message.toLowerCase());
       return {
         intent: "greeting",
         message: casual
@@ -911,8 +942,9 @@ export function shouldUseRuleEngine(message: string, state?: { pendingActions?: 
   if (intent === "confirm_action" || intent === "reject_action") {
     return !!(state?.pendingActions?.length);
   }
+  // sales_report stays on rules for today/yesterday coarse summary only (detectIntent narrowed).
+  // Entity/filter sales are general → router → query_sales.
   return (
-    // Instant local replies — never wait on OpenAI for hi / thanks / help
     intent === "greeting" ||
     intent === "acknowledgment" ||
     intent === "help" ||
@@ -943,6 +975,18 @@ export function isGeneralKnowledgeChatQuery(message: string): boolean {
   const t = message.trim();
   if (!t) return false;
   if (shouldUseRuleEngine(t)) return false;
+  // Sales follow-ups / entities must hit router + query_sales (not tool-less LLM)
+  if (isSalesFollowUp(t)) return false;
+  if (
+    /\b(novell?o|ovani|by\s+(?:store|department|vendor|design|class)|class\s+ab|vendor models?|mhvr)\b/i.test(
+      t
+    )
+  ) {
+    return false;
+  }
+  // Store / distance → rules or router tools
+  if (isStoreDirectoryAvailable() && isStoreIntelligenceQuery(t)) return false;
+  if (isStoreLocationQuery(t)) return false;
   // Valliani / RAG still uses LLM, but with tools+RAG — not "general world"
   if (
     /\b(valliani|villiani|valiani|vallani|jewelers?)\b/i.test(t) ||

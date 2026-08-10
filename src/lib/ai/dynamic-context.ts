@@ -12,9 +12,28 @@ import { buildSectionContextBlock, buildSectionRuntimeContext } from "@/lib/ai/s
 import { getLatestReportWithSummary } from "@/lib/reports/store";
 import { buildStoreDistanceMatrixContext } from "@/lib/stores/store-distances";
 import { isStoreDirectoryAvailable } from "@/lib/stores/store-directory";
+import { getSalesWorkingMemory } from "@/lib/sales/sales-working-memory";
 import { withTimeout } from "@/lib/async-utils";
 import { filterCalendarEvents } from "@/lib/calendar-utils";
 import { sortEmails } from "@/lib/email-utils";
+
+/** Compact active sales filter stack for LLM / tool follow-ups. */
+function buildActiveSalesMemoryLine(): string {
+  const m = getSalesWorkingMemory();
+  const bits: string[] = [];
+  if (m.lastDateRange?.label) bits.push(`dates=${m.lastDateRange.label}`);
+  else if (m.lastDateRange?.startDate || m.lastDateRange?.endDate) {
+    bits.push(`dates=${m.lastDateRange.startDate ?? "?"}→${m.lastDateRange.endDate ?? "?"}`);
+  }
+  if (m.lastDesigns?.length) bits.push(`designs=${m.lastDesigns.join("|")}`);
+  if (m.lastDepartments?.length) bits.push(`departments=${m.lastDepartments.join("|")}`);
+  if (m.lastStores?.length) bits.push(`stores=${m.lastStores.join("|")}`);
+  if (m.lastVendors?.length) bits.push(`vendors=${m.lastVendors.join("|")}`);
+  if (m.lastClasses?.length) bits.push(`classes=${m.lastClasses.join("|")}`);
+  if (m.lastGroupBy?.length) bits.push(`groupBy=${m.lastGroupBy.join("|")}`);
+  if (!bits.length) return "ACTIVE SALES MEMORY: (none — fresh query)";
+  return `ACTIVE SALES MEMORY: ${bits.join("; ")} — for follow-ups call query_sales with the user message; do not invent filters.`;
+}
 
 const CONTEXT_FETCH_MS = 1500;
 
@@ -164,6 +183,7 @@ export async function buildDynamicContext(
     ctx.selectedContact ? `SELECTED CONTACT: ${ctx.selectedContact}` : "",
     ctx.pendingAction ? `PENDING: ${ctx.pendingAction}` : "",
     `SALES: ${ctx.latestSalesSummary}`,
+    buildActiveSalesMemoryLine(),
     buildSalesFilterCatalogLine(),
     isStoreDirectoryAvailable() ? buildStoreDistanceMatrixContext() : "",
     `CALENDAR (top): ${ctx.todayCalendarSummary}`,

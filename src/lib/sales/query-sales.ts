@@ -27,7 +27,14 @@ import {
   formatSalesSpokenAnswer,
   formatSalesTextAnswer,
 } from "./sales-response";
-import { mergeWithSalesMemory, detectGroupByFromMessage, detectRemoveFilters, isSalesReset, detectLimitFromMessage } from "./sales-context";
+import {
+  mergeWithSalesMemory,
+  detectGroupByFromMessage,
+  detectRemoveFilters,
+  isSalesReset,
+  isSalesFollowUp,
+  detectLimitFromMessage,
+} from "./sales-context";
 import { updateSalesWorkingMemory, clearSalesWorkingMemory } from "./sales-working-memory";
 import { applyAndPersistDashboardState, buildDashboardState } from "./sales-dashboard-state";
 import { isSalesUnifiedIntelligenceEnabled } from "./flags";
@@ -107,6 +114,8 @@ function inheritDashboardContext(input: SalesQueryInput): SalesQueryInput {
   if (input.resetContext) return input;
   // Compare queries must not inherit dashboard filters (would AND conflicting entities).
   if (input.comparison?.entities?.length) return input;
+  // Follow-ups merge via sales working memory — skip dashboard AND/overwrite.
+  if (input.userMessage && isSalesFollowUp(input.userMessage)) return input;
 
   const ctx = getActiveSalesContext();
   const hasEntity =
@@ -263,12 +272,16 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
   }
 
   // "what about X" — replace primary entity of same type if memory had one
+  // Note: do not use `{1,40?}?` — the trailing `?` makes the capture fail on "What about Ovani?"
   const whatAbout = msg.match(
-    /\b(?:what about|ab|isi date ka|same for)\s+([a-z0-9][a-z0-9\s\-']{1,40?}?)(?:\s*[.?!])?\s*$/i
+    /\b(?:what about|isi date ka|same for)\s+([a-z0-9][a-z0-9\s\-']{0,40})(?:\s*[.?!])?\s*$/i
   );
   if (whatAbout) {
     const name = whatAbout[1].trim();
-    if (!/^by\s+/i.test(name)) {
+    // Ignore social chitchat ("what about yourself") — not a sales entity
+    if (/^(you|yourself|u|me|myself|us)$/i.test(name)) {
+      // no-op
+    } else if (!/^by\s+/i.test(name)) {
       const asDesign = matchEntity(name, index.designs, "design");
       const asDept = matchEntity(name, index.departments, "department");
       const asVendor = matchEntity(name, index.vendors, "vendor");
@@ -285,6 +298,11 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
         extracted.vendors = [asVendor.value];
       } else if (asStore.status === "exact" || asStore.status === "fuzzy") {
         extracted.stores = [asStore.value];
+      } else {
+        // Entity switch intent — prefer spoken name as design (normalize may clarify)
+        extracted.designs = [name.toUpperCase()];
+        delete extracted.departments;
+        delete extracted.classes;
       }
     }
   }
@@ -323,6 +341,24 @@ function enrichInputFromMessage(input: SalesQueryInput, index: ReturnType<typeof
       extracted.vendors?.length ||
       extracted.classes?.length
   );
+
+  // Follow-ups patch only dimensions named this turn — mergeWithSalesMemory keeps the rest.
+  // (Previously preferSpokenEntities + resetContext wiped Novello on "what about by store?".)
+  if (isSalesFollowUp(msg)) {
+    return {
+      ...input,
+      ...(extracted.stores?.length ? { stores: extracted.stores } : {}),
+      ...(extracted.departments?.length ? { departments: extracted.departments } : {}),
+      ...(extracted.designs?.length ? { designs: extracted.designs } : {}),
+      ...(extracted.vendors?.length ? { vendors: extracted.vendors } : {}),
+      ...(extracted.classes?.length ? { classes: extracted.classes } : {}),
+      groupBy: groupBy?.length ? groupBy : input.groupBy,
+      limit: input.limit ?? limitFromMsg,
+      comparison,
+      display,
+      resetContext: false,
+    };
+  }
 
   // Utterance-named entities only — never AND extra LLM args on other dimensions
   // (e.g. "lady's ring" must not also filter class SOL RING).

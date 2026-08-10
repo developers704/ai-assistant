@@ -21,6 +21,15 @@ export function isBroadCompanyOverviewQuery(query: string): boolean {
 /** True when the utterance is about Valliani company knowledge (not world trivia). */
 export function looksLikeCompanyKnowledgeQuery(query: string): boolean {
   const q = query.toLowerCase();
+  // Sales questions about designs (Novello/Ovani revenue etc.) → query_sales, not RAG
+  if (
+    /\b(novell?o|ovani)\b/i.test(q) &&
+    /\b(sales|revenue|units?|sold|margin|discount|by\s+store|department|vendor|class|kitni|kitna|batao|dikhao)\b/i.test(
+      q
+    )
+  ) {
+    return false;
+  }
   if (isBroadCompanyOverviewQuery(query)) return true;
   if (detectPolicyFocus(query) !== null) return true;
   return /\b(valliani|villiani|valiani|vallani|jewelers?|polic(?:y|ies)|privacy|return|shipping|founder|brand|ovani|novello|warranty|layaway|financing|affirm|acima|progressive)\b/i.test(
