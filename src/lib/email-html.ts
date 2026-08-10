@@ -97,14 +97,20 @@ export function preferPlainEmailBody(html: string | undefined, plain: string): b
   return text.length < 6000 && !/<table\b[^>]{0,80}width\s*=\s*["']?(600|650|700)/i.test(html);
 }
 
-/** Strip cid images and collapse empty spacing for safer HTML preview. */
+/** Strip cid images, white “paper” boxes, and collapse empty spacing for safer HTML preview. */
 export function sanitizeEmailHtmlForPreview(html: string): string {
   return html
     .replace(/<img\b[^>]*src=["']cid:[^"']*["'][^>]*>/gi, "")
     .replace(/<img\b[^>]*src=["']#["'][^>]*>/gi, "")
     .replace(/(<br\s*\/?>\s*){3,}/gi, "<br/><br/>")
     .replace(/(<p[^>]*>\s*(&nbsp;|\s|<br\s*\/?>)*<\/p>\s*){2,}/gi, "<p><br/></p>")
-    // Light paper preview: near-white text on white cards is invisible — darken it
+    // Dark Valliani Mail pane: kill white/light background boxes from compose HTML
+    .replace(
+      /((?:^|[;\s])background(?:-color)?\s*:\s*)(#[ef][0-9a-fA-F]{5}\b|#fff(?:fff)?\b|#eee\b|#fafafa\b|#f5f5f5\b|#f8f8f8\b|#f0f0f0\b|white|rgb\(\s*2[0-5]\d\s*,\s*2[0-5]\d\s*,\s*2[0-5]\d\s*\)|rgba\(\s*2[0-5]\d\s*,\s*2[0-5]\d\s*,\s*2[0-5]\d\s*,[^)]+\))/gi,
+      "$1transparent"
+    )
+    .replace(/\sbgcolor\s*=\s*["']?(#[ef][0-9a-fA-F]{5}|#fff(?:fff)?|#eee|white)["']?/gi, "")
+    // Light paper preview (Gmail iframe): near-white text on white cards is invisible — darken it
     .replace(
       /((?:^|[;\s])color\s*:\s*)(#[ef][0-9a-fA-F]{5}\b|#fff(?:fff)?\b|#eee\b|#fafafa\b|#f5f5f5\b|white|rgb\(\s*2[0-5]\d\s*,\s*2[0-5]\d\s*,\s*2[0-5]\d\s*\)|rgba\(\s*2[0-5]\d\s*,\s*2[0-5]\d\s*,\s*2[0-5]\d\s*,[^)]+\))/gi,
       "$1#1c1e24"

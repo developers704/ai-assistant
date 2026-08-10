@@ -487,21 +487,72 @@ function messageIdSet(m: MailMessage): Set<string> {
   return new Set(ids);
 }
 
-/** True when two messages belong to the same conversation. */
+function addressKey(addr: MailAddress): string {
+  return (addr.address || addr.label || "").trim().toLowerCase();
+}
+
+/** From / To / Cc / Reply-To addresses for soft thread matching. */
+export function participantAddressSet(m: MailMessage): Set<string> {
+  const out = new Set<string>();
+  for (const list of [m.from, m.to, m.cc, m.replyTo]) {
+    for (const a of list) {
+      const k = addressKey(a);
+      if (k && k.includes("@")) out.add(k);
+    }
+  }
+  return out;
+}
+
+function participantsOverlap(a: MailMessage, b: MailMessage): boolean {
+  const aSet = participantAddressSet(a);
+  const bSet = participantAddressSet(b);
+  for (const addr of bSet) {
+    if (aSet.has(addr)) return true;
+  }
+  return false;
+}
+
+/**
+ * Generic subjects that collide across unrelated mail ("test mail", "hi").
+ * Never group these on subject alone — need Message-ID linkage.
+ */
+export function isWeakThreadSubject(subject: string): boolean {
+  const s = normalizeSubjectForThread(subject);
+  if (!s) return true;
+  if (s.length < 6) return true;
+  return /^(test|test mail|testing|hello|hi|hey|thanks|thank you|ok|okay|fyi|update|no subject)$/i.test(
+    s
+  );
+}
+
+/**
+ * True when two messages belong to the same conversation.
+ * Prefer Message-ID / In-Reply-To / References. Subject-only matching is
+ * intentionally NOT enough (avoids merging unrelated "test mail" threads).
+ */
 export function sameMailThread(a: MailMessage, b: MailMessage): boolean {
   if (a.uid === b.uid) {
     const af = (a.sourceFolder || "").toLowerCase();
     const bf = (b.sourceFolder || "").toLowerCase();
     if (!af || !bf || af === bf) return true;
   }
+
   const aIds = messageIdSet(a);
   const bIds = messageIdSet(b);
   for (const id of bIds) {
     if (aIds.has(id)) return true;
   }
+
+  // Both sides expose IDs but none overlap → different conversations
+  if (aIds.size > 0 && bIds.size > 0) return false;
+
   const subA = normalizeSubjectForThread(a.subject);
   const subB = normalizeSubjectForThread(b.subject);
-  return Boolean(subA && subA === subB);
+  if (!subA || subA !== subB) return false;
+  if (isWeakThreadSubject(subA)) return false;
+
+  // Soft fallback only when IDs are missing: same subject + shared people
+  return participantsOverlap(a, b);
 }
 
 /** List row for Gmail-style conversation view (one row per thread). */

@@ -18,7 +18,10 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import { sanitizeEmailHtmlForPreview } from "@/lib/email-html";
+import {
+  preferPlainEmailBody,
+  sanitizeEmailHtmlForPreview,
+} from "@/lib/email-html";
 import {
   cleanSubject,
   displayName,
@@ -342,10 +345,14 @@ function ThreadMessageCard({
     rawText.length > text.length ? rawText.slice(text.length).trim() : "";
   const [showQuote, setShowQuote] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const html =
-    !quoted && message.bodyHtml?.trim()
-      ? sanitizeEmailHtmlForPreview(message.bodyHtml)
-      : "";
+  // Simple replies → plain text (avoids white HTML “paper” boxes on dark UI)
+  const usePlain =
+    !!quoted ||
+    preferPlainEmailBody(message.bodyHtml, text) ||
+    !message.bodyHtml?.trim();
+  const html = usePlain
+    ? ""
+    : sanitizeEmailHtmlForPreview(message.bodyHtml);
   const folder = message.sourceFolder || "INBOX";
   const snippet = (
     stripQuotedTail(messageListPreview(message)) ||
@@ -496,7 +503,7 @@ function ThreadMessageCard({
           <div className="mt-4 text-[14px] sm:text-[15px] text-white/88 leading-[1.65]">
             {html ? (
               <div
-                className="mail-html prose prose-invert max-w-none prose-sm break-words prose-p:my-2"
+                className="mail-html prose prose-invert max-w-none prose-sm break-words prose-p:my-2 [&_*]:!bg-transparent [&_table]:!bg-transparent"
                 dangerouslySetInnerHTML={{ __html: html }}
               />
             ) : (

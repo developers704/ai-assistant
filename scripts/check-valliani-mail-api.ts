@@ -217,6 +217,46 @@ const b = parseMailMessage({
   flags: [],
 });
 assert.equal(sameMailThread(a, b), true);
+
+// Unrelated "test mail" with different Message-IDs must NOT merge
+const rozina = parseMailMessage({
+  uid: 100,
+  subject: "test mail",
+  messageId: "<rozina-new@valliani>",
+  from: [{ address: "rozina@valliani.app" }],
+  to: [{ address: "umairj@valliani.app" }],
+  flags: [],
+});
+const umairOld = parseMailMessage({
+  uid: 101,
+  subject: "test mail",
+  messageId: "<umair-old@valliani>",
+  from: [{ address: "umairj@valliani.app" }],
+  to: [
+    { address: "naveed@gmail.com" },
+    { address: "irtaza@arrakconsulting.com" },
+  ],
+  flags: [],
+});
+assert.equal(sameMailThread(rozina, umairOld), false);
+
+// Soft match: same subject + shared people when IDs missing (not weak subject)
+const softA = parseMailMessage({
+  uid: 200,
+  subject: "ADP api central question",
+  from: [{ address: "a@x.com" }],
+  to: [{ address: "b@x.com" }],
+  flags: [],
+});
+const softB = parseMailMessage({
+  uid: 201,
+  subject: "Re: ADP api central question",
+  from: [{ address: "b@x.com" }],
+  to: [{ address: "a@x.com" }],
+  flags: [],
+});
+assert.equal(sameMailThread(softA, softB), true);
+
 const ordered = sortThreadOldestFirst([
   { ...b, date: "2026-08-10T12:00:00.000Z" },
   { ...a, date: "2026-08-10T11:00:00.000Z" },

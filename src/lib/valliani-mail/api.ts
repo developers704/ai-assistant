@@ -22,6 +22,7 @@ import {
   parseMailSummary,
   dedupeThreadMessages,
   isSnoozedFolder,
+  isWeakThreadSubject,
   sameMailThread,
   sortFolders,
   sortThreadOldestFirst,
@@ -448,16 +449,26 @@ export async function getThread(input: {
       const res = await run();
       const parsed = await tryParseThreadResponse(res);
       if (parsed?.length) {
-        return dedupeThreadMessages(mergeThreadMessages(seed, parsed));
+        // API may over-include by subject — keep only true thread mates
+        const related = parsed.filter((m) => sameMailThread(seed, m));
+        if (related.length) {
+          return dedupeThreadMessages(mergeThreadMessages(seed, related));
+        }
       }
     } catch {
       /* try next */
     }
   }
 
-  // Fallback: search All Mail by subject and filter to same thread
+  // Fallback: All Mail search, then strict sameMailThread filter (IDs / people)
   const subjectKey = normalizeSubjectForThread(seed.subject);
-  if (subjectKey) {
+  const seedHasIds = Boolean(
+    seed.messageId?.trim() ||
+      seed.inReplyTo?.trim() ||
+      seed.references?.length
+  );
+  // Weak subjects without IDs → never hunt siblings (stops "test mail" collisions)
+  if (subjectKey && !(isWeakThreadSubject(subjectKey) && !seedHasIds)) {
     try {
       const page = await getMessagePage({
         folder: ALL_MAIL_FOLDER,
@@ -466,8 +477,7 @@ export async function getThread(input: {
         offset: 0,
       });
       const related = page.messages.filter((m) => sameMailThread(seed, m));
-      if (related.length) {
-        // Hydrate a few siblings so bodies show in the thread
+      if (related.length > 1 || (related.length === 1 && related[0]!.uid !== seed.uid)) {
         const hydrated = await hydrateThreadMessages(
           sortThreadOldestFirst(mergeThreadMessages(seed, related)).slice(-8)
         );
