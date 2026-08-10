@@ -69,7 +69,8 @@ export default function CalculatorPage() {
   const [selectedTier, setSelectedTier] = useState<ManagerTier>("m");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [financingPlan, setFinancingPlan] = useState<FinancingPlan>("6_months");
-  const [commissionMode, setCommissionMode] = useState<CommissionMode>("regular");
+  /** Empty = no commission until user picks Regular or Goal. */
+  const [commissionMode, setCommissionMode] = useState<CommissionMode | "">("");
   const [preview, setPreview] = useState<{
     src: string;
     alt: string;
@@ -103,6 +104,7 @@ export default function CalculatorPage() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setCommissionMode("");
 
     try {
       const res = await fetch(
@@ -168,14 +170,21 @@ export default function CalculatorPage() {
     [selectedCashPrice, paymentMethod, financingPlan]
   );
 
-  const commissionPercent = COMMISSION_RATES[commissionMode];
+  const commissionPercent =
+    commissionMode === "" ? 0 : COMMISSION_RATES[commissionMode];
   const commissionAmt = useMemo(
-    () => commissionDollars(financing.financedPrice, commissionPercent),
+    () =>
+      commissionPercent > 0
+        ? commissionDollars(financing.financedPrice, commissionPercent)
+        : 0,
     [financing.financedPrice, commissionPercent]
   );
 
   const grandTotal = useMemo(
-    () => calculateGrandTotal(financing.financedPrice, commissionPercent),
+    () =>
+      commissionPercent > 0
+        ? calculateGrandTotal(financing.financedPrice, commissionPercent)
+        : financing.financedPrice,
     [financing.financedPrice, commissionPercent]
   );
 
@@ -458,12 +467,19 @@ export default function CalculatorPage() {
                         id="commission-mode"
                         value={commissionMode}
                         onChange={(e) =>
-                          setCommissionMode(e.target.value as CommissionMode)
+                          setCommissionMode(
+                            e.target.value as CommissionMode | ""
+                          )
                         }
                         className={selectClass}
                       >
-                        <option value="regular">{COMMISSION_MODE_LABELS.regular}</option>
-                        <option value="goal">{COMMISSION_MODE_LABELS.goal}</option>
+                        <option value="">No commission</option>
+                        <option value="regular">
+                          {COMMISSION_MODE_LABELS.regular}
+                        </option>
+                        <option value="goal">
+                          {COMMISSION_MODE_LABELS.goal}
+                        </option>
                       </select>
                     </div>
 
@@ -479,10 +495,12 @@ export default function CalculatorPage() {
                           value={money(financing.financedPrice)}
                         />
                       )}
-                      <Row
-                        label={`${commissionMode === "goal" ? "Goal" : "Regular"} (${commissionPercent}%)`}
-                        value={money(commissionAmt)}
-                      />
+                      {commissionMode !== "" ? (
+                        <Row
+                          label={`${commissionMode === "goal" ? "Goal" : "Regular"} (${commissionPercent}%)`}
+                          value={money(commissionAmt)}
+                        />
+                      ) : null}
                     </div>
 
                     <div className="rounded-xl bg-amber-500/10 px-4 py-4 ring-1 ring-amber-400/20">
