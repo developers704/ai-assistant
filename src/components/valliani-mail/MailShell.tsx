@@ -36,6 +36,7 @@ import {
   isSeen,
   prettyFolderName,
   replySubject,
+  dedupeThreadMessages,
   sortThreadOldestFirst,
   type MailAddress,
   type MailAuthUser,
@@ -462,10 +463,12 @@ export function MailShell({
           replyTo: [],
         };
         setThread((prev) =>
-          sortThreadOldestFirst(
-            prev.some((m) => m.uid === optimistic.uid)
-              ? prev
-              : [...prev, optimistic]
+          dedupeThreadMessages(
+            sortThreadOldestFirst(
+              prev.some((m) => m.uid === optimistic.uid)
+                ? prev
+                : [...prev, optimistic]
+            )
           )
         );
         const seed = selected;
@@ -473,7 +476,10 @@ export function MailShell({
         window.setTimeout(() => {
           void getThread({ folder, seed })
             .then((msgs) => {
-              if (msgs.length > 1) setThread(msgs);
+              if (msgs.length)
+                setThread((prev) =>
+                  dedupeThreadMessages([...prev.filter((m) => m.uid > 0), ...msgs])
+                );
             })
             .catch(() => undefined);
         }, 1500);

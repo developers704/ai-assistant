@@ -22,6 +22,7 @@ import {
   displayName,
   isFlagged,
   isSeen,
+  stripQuotedTail,
   type MailMessage,
 } from "@/lib/valliani-mail/types";
 import { VallianiAttachmentPanel } from "@/components/valliani-mail/AttachmentPanel";
@@ -250,10 +251,15 @@ function ThreadMessageCard({
   onForward: () => void;
 }) {
   const from = message.from[0];
-  const html = message.bodyHtml?.trim()
-    ? sanitizeEmailHtmlForPreview(message.bodyHtml)
-    : "";
-  const text = message.bodyText?.trim() || message.preview;
+  const rawText = message.bodyText?.trim() || message.preview;
+  // Thread cards: show only this message's new text (quotes live in other cards)
+  const text = stripQuotedTail(rawText) || rawText;
+  const quoted = rawText.length > text.length ? rawText.slice(text.length).trim() : "";
+  const [showQuote, setShowQuote] = useState(false);
+  const html =
+    !quoted && message.bodyHtml?.trim()
+      ? sanitizeEmailHtmlForPreview(message.bodyHtml)
+      : "";
   const folder = message.sourceFolder || "INBOX";
 
   return (
@@ -311,6 +317,23 @@ function ThreadMessageCard({
         ) : (
           <pre className="whitespace-pre-wrap font-sans text-[14px]">{text}</pre>
         )}
+        {quoted ? (
+          <div className="mt-2">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center h-6 min-w-8 rounded-full bg-white/5 px-2 text-[11px] text-white/40 hover:bg-white/10"
+              onClick={() => setShowQuote((v) => !v)}
+              aria-label={showQuote ? "Hide quoted text" : "Show quoted text"}
+            >
+              ⋯
+            </button>
+            {showQuote ? (
+              <pre className="mt-2 whitespace-pre-wrap font-sans text-[12px] text-white/40 border-l-2 border-white/15 pl-3">
+                {quoted}
+              </pre>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </article>
   );

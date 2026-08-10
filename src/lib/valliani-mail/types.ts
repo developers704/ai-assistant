@@ -476,6 +476,61 @@ export function sortThreadOldestFirst(messages: MailMessage[]): MailMessage[] {
   });
 }
 
+/**
+ * Keep the author's new text; drop trailing "On … wrote:" / `>` quote blocks.
+ * Thread UI shows each message as its own card — nested quotes are noise.
+ */
+export function stripQuotedTail(text: string): string {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  let cut = lines.length;
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i]!.trim();
+    if (
+      /^On .+ wrote:\s*$/i.test(t) ||
+      /^-{2,}\s*Original Message\s*-{2,}/i.test(t) ||
+      /^-{5,}.*Forwarded message/i.test(t)
+    ) {
+      cut = i;
+      while (cut > 0 && !lines[cut - 1]!.trim()) cut--;
+      break;
+    }
+  }
+  return lines.slice(0, cut).join("\n").trim();
+}
+
+/** Collapse optimistic local sends with the real Sent copy. */
+export function dedupeThreadMessages(messages: MailMessage[]): MailMessage[] {
+  const sorted = sortThreadOldestFirst(messages);
+  const out: MailMessage[] = [];
+  for (const m of sorted) {
+    const bodyKey = stripQuotedTail(m.bodyText || m.preview)
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+    const fromKey = (m.from[0]?.address || "").toLowerCase();
+    const mid = stripMsgId(m.messageId);
+    const idx = out.findIndex((x) => {
+      const xMid = stripMsgId(x.messageId);
+      if (mid && xMid && mid === xMid && !mid.startsWith("local-")) return true;
+      const xb = stripQuotedTail(x.bodyText || x.preview)
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+      const xf = (x.from[0]?.address || "").toLowerCase();
+      if (fromKey && xf === fromKey && bodyKey && xb === bodyKey) return true;
+      return false;
+    });
+    if (idx < 0) {
+      out.push(m);
+      continue;
+    }
+    const prev = out[idx]!;
+    // Prefer real IMAP uid over optimistic local (uid < 0)
+    if (m.uid > 0 && prev.uid < 0) out[idx] = m;
+    else if (m.isHydrated && !prev.isHydrated) out[idx] = m;
+    else if (m.bodyText.length > prev.bodyText.length && m.uid > 0) out[idx] = m;
+  }
+  return out;
+}
+
 export function forwardSubject(subject: string): string {
   const clean = subject.trim();
   if (!clean) return "Fwd: (No subject)";
@@ -506,7 +561,11 @@ function quotePlainBody(text: string): string {
 export function buildReplyBody(message: MailMessage): string {
   const who = message.from[0] ? displayName(message.from[0]) : "sender";
   const when = formatMailDate(message.date);
-  const body = normalizeMailPlainText(message.bodyText || message.preview);
+  // Quote only the new text — never re-quote already-quoted history (`> >`)
+  const body = stripQuotedTail(
+    normalizeMailPlainText(message.bodyText || message.preview)
+  );
+  if (!body) return "";
   return `\n\nOn ${when}, ${who} wrote:\n${quotePlainBody(body)}`;
 }
 

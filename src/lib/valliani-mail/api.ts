@@ -18,6 +18,7 @@ import {
   parseMailFolder,
   parseMailMessage,
   parseMailSummary,
+  dedupeThreadMessages,
   sameMailThread,
   sortFolders,
   sortThreadOldestFirst,
@@ -428,8 +429,7 @@ export async function getThread(input: {
       const res = await run();
       const parsed = await tryParseThreadResponse(res);
       if (parsed?.length) {
-        const merged = mergeThreadMessages(seed, parsed);
-        return sortThreadOldestFirst(merged);
+        return dedupeThreadMessages(mergeThreadMessages(seed, parsed));
       }
     } catch {
       /* try next */
@@ -452,7 +452,7 @@ export async function getThread(input: {
         const hydrated = await hydrateThreadMessages(
           sortThreadOldestFirst(mergeThreadMessages(seed, related)).slice(-8)
         );
-        return sortThreadOldestFirst(mergeThreadMessages(seed, hydrated));
+        return dedupeThreadMessages(mergeThreadMessages(seed, hydrated));
       }
     } catch {
       /* keep seed only */
