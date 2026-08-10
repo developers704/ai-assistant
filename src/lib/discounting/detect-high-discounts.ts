@@ -14,6 +14,14 @@ import {
 
 const PCT_EPSILON = 0.05;
 
+/** Soft-hide from Discounting overage table (still in sales). Restore by removing SKU. */
+const HIDDEN_DISCOUNT_SKUS = new Set(["731903468252"]);
+
+function isHiddenDiscountSku(sku: string): boolean {
+  const key = sku.trim().replace(/v$/i, "");
+  return HIDDEN_DISCOUNT_SKUS.has(key);
+}
+
 export type HighDiscountHit = {
   date: string;
   store: string;
@@ -90,6 +98,7 @@ function resolveItem(row: VendorPosRow): {
 function isProductDiscountLine(row: VendorPosRow): boolean {
   const sku = (row.sku || row.itemNumber || "").trim();
   if (!sku) return false;
+  if (isHiddenDiscountSku(sku)) return false;
   if (row.grossSales <= 0) return false;
   if (!(row.discountAmount > 0)) return false;
   // Skip pure APP/FIN memo lines that somehow have amounts
