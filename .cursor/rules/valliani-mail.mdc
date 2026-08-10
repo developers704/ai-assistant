@@ -37,7 +37,7 @@ Send body: to/cc/bcc comma strings, text/html, optional reply threading (`inRepl
 
 ## Wiring status (keep in mind)
 
-Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download (PDF/images inline; DOC/Excel download; needs base64 or downloadUrl on getMessage)  
+Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download (fetches bytes via mail/messages/{uid}/attachments/* when getMessage only has metadata)  
 Incomplete vs API: saveDraft unused · server forward unused · move unused · compose attach UI · scheduled/snoozed folders not in sidebar
 
 ## Rules when changing

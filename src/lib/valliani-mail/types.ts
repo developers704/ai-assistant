@@ -47,6 +47,10 @@ export type MailAttachment = {
   contentType?: string;
   size?: number;
   contentId?: string;
+  /** Part / attachment id from mail API (for download endpoint). */
+  id?: string;
+  /** Zero-based part index when API lists attachments in order. */
+  index?: number;
   /** Raw file bytes from getMessage (base64 or data-URL). */
   contentBase64?: string;
   /** Optional HTTPS URL returned on the message payload. */
@@ -278,7 +282,7 @@ export function parseMailMessage(
 ): MailMessage {
   const attachments = ((json.attachments as unknown[]) ?? [])
     .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
-    .map((e) => {
+    .map((e, i) => {
       const rawB64 =
         e.contentBase64 ??
         e.content_base64 ??
@@ -288,6 +292,15 @@ export function parseMailMessage(
         e.body;
       const rawUrl =
         e.downloadUrl ?? e.download_url ?? e.url ?? e.href ?? e.link;
+      const rawId =
+        e.id ??
+        e.attachmentId ??
+        e.attachment_id ??
+        e.partId ??
+        e.part_id ??
+        e.part;
+      const rawIndex =
+        e.index ?? e.partIndex ?? e.part_index ?? e.attachmentIndex;
       return {
         filename: String(
           e.filename ??
@@ -313,6 +326,11 @@ export function parseMailMessage(
           e.contentId != null || e.content_id != null || e.cid != null
             ? String(e.contentId ?? e.content_id ?? e.cid)
             : undefined,
+        id: rawId != null && String(rawId).trim() ? String(rawId) : undefined,
+        index:
+          rawIndex != null && Number.isFinite(Number(rawIndex))
+            ? asInt(rawIndex)
+            : i,
         contentBase64:
           rawB64 != null && String(rawB64).trim()
             ? String(rawB64)

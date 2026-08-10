@@ -1,21 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Download,
   FileSpreadsheet,
   FileText,
   FileType,
   Image as ImageIcon,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { downloadAttachment } from "@/lib/valliani-mail/api";
 import type { MailAttachment } from "@/lib/valliani-mail/types";
 import {
-  attachmentHasPayload,
   attachmentKind,
   blobFromAttachment,
   canInlinePreview,
   formatAttachmentBytes,
+  mimeForAttachment,
   type AttachmentKind,
 } from "@/lib/valliani-mail/attachments";
 
@@ -47,40 +49,37 @@ function downloadBlob(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 2_000);
 }
 
-function downloadViaUrl(url: string, filename: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename || "attachment";
-  a.rel = "noopener";
-  a.target = "_blank";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+function attKey(att: MailAttachment, index: number): string {
+  return `${att.id ?? ""}:${att.filename}:${index}`;
 }
 
 function AttachmentCard({
   att,
+  index,
+  folder,
+  uid,
   active,
-  onSelect,
+  busy,
+  error,
+  onPreview,
+  onDownload,
 }: {
   att: MailAttachment;
+  index: number;
+  folder: string;
+  uid: number;
   active: boolean;
-  onSelect: () => void;
+  busy: boolean;
+  error?: string;
+  onPreview: () => void;
+  onDownload: () => void;
 }) {
   const kind = attachmentKind(att);
-  const blob = useMemo(() => blobFromAttachment(att), [att]);
-  const hasData = attachmentHasPayload(att);
   const sizeLabel = formatAttachmentBytes(att.size);
   const previewable =
     canInlinePreview(kind) || kind === "doc" || kind === "excel";
-
-  function onDownload() {
-    if (blob) {
-      downloadBlob(blob, att.filename);
-      return;
-    }
-    if (att.downloadUrl) downloadViaUrl(att.downloadUrl, att.filename);
-  }
+  void folder;
+  void uid;
 
   return (
     <div
@@ -112,60 +111,88 @@ function AttachmentCard({
         {previewable ? (
           <button
             type="button"
-            disabled={!hasData}
-            onClick={onSelect}
+            disabled={busy}
+            onClick={onPreview}
             className={cn(
               "rounded-lg px-2.5 py-1 text-[11px] font-medium ring-1",
               active
                 ? "bg-sky-500/25 text-sky-100 ring-sky-400/40"
                 : "bg-white/5 text-white/75 ring-white/10 hover:bg-white/10",
-              !hasData && "opacity-40 cursor-not-allowed"
+              busy && "opacity-60"
             )}
           >
-            Preview
+            {busy && active ? "Loading…" : "Preview"}
           </button>
         ) : null}
         <button
           type="button"
-          disabled={!hasData}
+          disabled={busy}
           onClick={onDownload}
           className={cn(
             "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium",
             "bg-white/5 text-white/80 ring-1 ring-white/10 hover:bg-white/10",
-            !hasData && "opacity-40 cursor-not-allowed"
+            busy && "opacity-60"
           )}
         >
-          <Download size={12} />
+          {busy ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <Download size={12} />
+          )}
           Download
         </button>
       </div>
-      {!hasData ? (
-        <p className="mt-2 text-[10px] text-amber-200/70 leading-snug">
-          File content wasn’t included on this message — ask the mail API to
-          return base64 (or a download URL) on getMessage.
-        </p>
+      {error ? (
+        <p className="mt-2 text-[10px] text-amber-200/80 leading-snug">{error}</p>
       ) : null}
     </div>
   );
 }
 
-function PreviewPane({ att }: { att: MailAttachment }) {
+function PreviewPane({
+  att,
+  blob,
+  busy,
+  error,
+  onDownload,
+}: {
+  att: MailAttachment;
+  blob: Blob | null;
+  busy: boolean;
+  error?: string;
+  onDownload: () => void;
+}) {
   const kind = attachmentKind(att);
-  const blob = useMemo(() => blobFromAttachment(att), [att]);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!blob) {
-      setBlobUrl(null);
+      setUrl(null);
       return;
     }
     const next = URL.createObjectURL(blob);
-    setBlobUrl(next);
+    setUrl(next);
     return () => URL.revokeObjectURL(next);
   }, [blob]);
 
-  const src = blobUrl || att.downloadUrl || null;
+  if (busy) {
+    return (
+      <div className="rounded-xl bg-black/30 ring-1 ring-white/10 px-4 py-8 flex items-center justify-center gap-2 text-sm text-white/50">
+        <Loader2 size={16} className="animate-spin" />
+        Loading {att.filename}…
+      </div>
+    );
+  }
 
+  if (error) {
+    return (
+      <div className="rounded-xl bg-black/30 ring-1 ring-white/10 px-4 py-6 text-center text-sm text-amber-100/80">
+        {error}
+      </div>
+    );
+  }
+
+  const src = url || att.downloadUrl || null;
   if (!src) {
     return (
       <div className="rounded-xl bg-black/30 ring-1 ring-white/10 px-4 py-8 text-center text-sm text-white/45">
@@ -209,11 +236,7 @@ function PreviewPane({ att }: { att: MailAttachment }) {
       </p>
       <button
         type="button"
-        onClick={() => {
-          if (blob) downloadBlob(blob, att.filename);
-          else if (att.downloadUrl)
-            downloadViaUrl(att.downloadUrl, att.filename);
-        }}
+        onClick={onDownload}
         className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/20 px-4 py-2 text-xs font-semibold text-sky-100 ring-1 ring-sky-400/30 hover:bg-sky-500/30"
       >
         <Download size={14} />
@@ -226,34 +249,96 @@ function PreviewPane({ att }: { att: MailAttachment }) {
 /** Inline attachment cards + preview / download for Valliani Mail reading pane. */
 export function VallianiAttachmentPanel({
   attachments,
+  folder,
+  uid,
 }: {
   attachments: MailAttachment[];
+  folder: string;
+  uid: number;
 }) {
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  const [blobs, setBlobs] = useState<Record<string, Blob>>({});
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (attachments.length === 1) {
-      const only = attachments[0];
-      const kind = attachmentKind(only);
-      // Auto-open inline preview for single PDF/image when bytes exist
-      if (canInlinePreview(kind) && attachmentHasPayload(only)) {
-        setActiveIdx(0);
-        return;
-      }
-      if (
-        (kind === "doc" || kind === "excel") &&
-        attachmentHasPayload(only)
-      ) {
-        setActiveIdx(0);
-        return;
-      }
-    }
     setActiveIdx(null);
-  }, [attachments]);
+    setBlobs({});
+    setErrors({});
+    setBusyKey(null);
+  }, [uid, folder, attachments]);
+
+  async function ensureBlob(att: MailAttachment, index: number): Promise<Blob> {
+    const key = attKey(att, index);
+    const existing = blobs[key] || blobFromAttachment(att);
+    if (existing) {
+      if (!blobs[key]) setBlobs((prev) => ({ ...prev, [key]: existing }));
+      return existing;
+    }
+    if (att.downloadUrl?.trim()) {
+      const res = await fetch(att.downloadUrl);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      setBlobs((prev) => ({ ...prev, [key]: blob }));
+      return blob;
+    }
+    setBusyKey(key);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    try {
+      const blob = await downloadAttachment({
+        folder,
+        uid,
+        attachment: att,
+        index,
+      });
+      // Ensure mime is set for PDF iframe
+      const typed =
+        blob.type && blob.type !== "application/octet-stream"
+          ? blob
+          : new Blob([blob], { type: mimeForAttachment(att) });
+      setBlobs((prev) => ({ ...prev, [key]: typed }));
+      return typed;
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Couldn’t download this file";
+      setErrors((prev) => ({ ...prev, [key]: msg }));
+      throw err;
+    } finally {
+      setBusyKey((cur) => (cur === key ? null : cur));
+    }
+  }
+
+  async function handlePreview(index: number) {
+    const att = attachments[index];
+    if (!att) return;
+    setActiveIdx(index);
+    try {
+      await ensureBlob(att, index);
+    } catch {
+      /* error stored */
+    }
+  }
+
+  async function handleDownload(index: number) {
+    const att = attachments[index];
+    if (!att) return;
+    try {
+      const blob = await ensureBlob(att, index);
+      downloadBlob(blob, att.filename);
+    } catch {
+      /* error stored */
+    }
+  }
 
   if (!attachments.length) return null;
 
   const active = activeIdx != null ? attachments[activeIdx] : null;
+  const activeKey =
+    active && activeIdx != null ? attKey(active, activeIdx) : null;
 
   return (
     <div className="mt-4 space-y-3">
@@ -261,16 +346,25 @@ export function VallianiAttachmentPanel({
         {attachments.length} attachment{attachments.length === 1 ? "" : "s"}
       </p>
       <div className="flex flex-wrap gap-2">
-        {attachments.map((att, i) => (
-          <AttachmentCard
-            key={`${att.filename}-${i}`}
-            att={att}
-            active={activeIdx === i}
-            onSelect={() => setActiveIdx((cur) => (cur === i ? null : i))}
-          />
-        ))}
+        {attachments.map((att, i) => {
+          const key = attKey(att, i);
+          return (
+            <AttachmentCard
+              key={key}
+              att={att}
+              index={i}
+              folder={folder}
+              uid={uid}
+              active={activeIdx === i}
+              busy={busyKey === key}
+              error={errors[key]}
+              onPreview={() => void handlePreview(i)}
+              onDownload={() => void handleDownload(i)}
+            />
+          );
+        })}
       </div>
-      {active ? (
+      {active && activeKey && activeIdx != null ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] text-white/40 truncate">
@@ -284,7 +378,13 @@ export function VallianiAttachmentPanel({
               Close
             </button>
           </div>
-          <PreviewPane att={active} />
+          <PreviewPane
+            att={active}
+            blob={blobs[activeKey] || blobFromAttachment(active)}
+            busy={busyKey === activeKey}
+            error={errors[activeKey]}
+            onDownload={() => void handleDownload(activeIdx)}
+          />
         </div>
       ) : null}
     </div>

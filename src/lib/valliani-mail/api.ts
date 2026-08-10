@@ -363,6 +363,201 @@ export async function getMessage(input: {
   });
 }
 
+/** Index into attachmentDownloadCandidates that worked this session. */
+let attachmentDownloadCandidateIndex: number | null = null;
+
+function attachmentDownloadCandidates(input: {
+  uid: number;
+  folder: string;
+  index: number;
+  id: string;
+  filename: string;
+}): Array<{ path: string; query?: Record<string, string | number | boolean> }> {
+  const { uid, folder, index, id, filename } = input;
+  const encName = encodeURIComponent(filename);
+  const idOrIndex = id || String(index);
+  return [
+    { path: `mail/messages/${uid}/attachments/${idOrIndex}`, query: { folder } },
+    { path: `mail/messages/${uid}/attachment/${idOrIndex}`, query: { folder } },
+    { path: `mail/messages/${uid}/attachments/${index}`, query: { folder } },
+    {
+      path: `mail/messages/${uid}/attachments/${encName}`,
+      query: { folder },
+    },
+    {
+      path: `mail/messages/${uid}/attachments`,
+      query: { folder, index, id: idOrIndex, filename },
+    },
+    {
+      path: `mail/attachment`,
+      query: { folder, uid, index, id: idOrIndex, filename },
+    },
+    {
+      path: `mail/attachments/${uid}/${idOrIndex}`,
+      query: { folder },
+    },
+    {
+      path: `mail/messages/${uid}`,
+      query: {
+        folder,
+        includeAttachments: true,
+        downloadAttachments: true,
+        withAttachments: true,
+      },
+    },
+  ];
+}
+
+async function blobFromAttachmentResponse(
+  res: Response,
+  filename: string,
+  index: number
+): Promise<Blob | null> {
+  if (!res.ok) return null;
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
+  if (ct.includes("application/json") || ct.includes("text/json")) {
+    const text = await res.text();
+    let map: Record<string, unknown>;
+    try {
+      map = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+    const list = (map.attachments as unknown[]) ?? [];
+    if (Array.isArray(list) && list.length) {
+      const hit =
+        list.find((e) => {
+          if (!e || typeof e !== "object") return false;
+          const o = e as Record<string, unknown>;
+          return (
+            String(o.filename ?? o.name ?? "") === filename ||
+            Number(o.index ?? o.partIndex) === index
+          );
+        }) ??
+        list[index] ??
+        list[0];
+      if (hit && typeof hit === "object") {
+        const o = hit as Record<string, unknown>;
+        const b64 =
+          o.contentBase64 ??
+          o.content_base64 ??
+          o.base64 ??
+          o.content ??
+          o.data;
+        const url = o.downloadUrl ?? o.download_url ?? o.url;
+        if (typeof b64 === "string" && b64.trim()) {
+          const cleaned = b64.includes("base64,")
+            ? b64.slice(b64.indexOf("base64,") + 7)
+            : b64.replace(/\s+/g, "");
+          try {
+            const bin = atob(cleaned);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return new Blob([bytes], {
+              type: String(
+                o.contentType ?? o.content_type ?? "application/octet-stream"
+              ),
+            });
+          } catch {
+            return null;
+          }
+        }
+        if (typeof url === "string" && url.trim()) {
+          const fileRes = await fetch(url);
+          if (fileRes.ok) return fileRes.blob();
+        }
+      }
+    }
+    const b64 =
+      map.contentBase64 ??
+      map.content_base64 ??
+      map.base64 ??
+      map.content ??
+      map.data;
+    if (typeof b64 === "string" && b64.trim()) {
+      const cleaned = b64.includes("base64,")
+        ? b64.slice(b64.indexOf("base64,") + 7)
+        : b64.replace(/\s+/g, "");
+      try {
+        const bin = atob(cleaned);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new Blob([bytes], {
+          type: String(
+            map.contentType ?? map.content_type ?? "application/octet-stream"
+          ),
+        });
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+  const buf = await res.arrayBuffer();
+  if (!buf.byteLength) return null;
+  return new Blob([buf], { type: ct || "application/octet-stream" });
+}
+
+/**
+ * Fetch attachment bytes the way the official Valliani app does:
+ * via a dedicated download route (message only returns metadata).
+ */
+export async function downloadAttachment(input: {
+  folder: string;
+  uid: number;
+  attachment: MailAttachment;
+  index?: number;
+}): Promise<Blob> {
+  const index = input.index ?? input.attachment.index ?? 0;
+  const id = (input.attachment.id || "").trim();
+  const filename = input.attachment.filename || "attachment";
+  const args = {
+    uid: input.uid,
+    folder: input.folder,
+    index,
+    id,
+    filename,
+  };
+
+  const all = attachmentDownloadCandidates(args);
+  const order: number[] = [];
+  if (
+    attachmentDownloadCandidateIndex != null &&
+    attachmentDownloadCandidateIndex >= 0 &&
+    attachmentDownloadCandidateIndex < all.length
+  ) {
+    order.push(attachmentDownloadCandidateIndex);
+  }
+  for (let i = 0; i < all.length; i++) {
+    if (i !== attachmentDownloadCandidateIndex) order.push(i);
+  }
+
+  let lastErr = "Attachment download failed";
+  for (const i of order) {
+    const candidate = all[i]!;
+    try {
+      const res = await mailRequest((access, mail) =>
+        fetch(proxyUrl(candidate.path, candidate.query), {
+          headers: authHeaders(access, mail),
+        })
+      );
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        lastErr = extractError(res.status, body);
+        continue;
+      }
+      const blob = await blobFromAttachmentResponse(res, filename, index);
+      if (blob && blob.size > 0) {
+        attachmentDownloadCandidateIndex = i;
+        return blob;
+      }
+    } catch (err) {
+      lastErr = err instanceof Error ? err.message : lastErr;
+    }
+  }
+  throw new Error(lastErr);
+}
+
 export async function getContactSuggestions(query = ""): Promise<string[]> {
   const res = await mailRequest((access, mail) =>
     fetch(proxyUrl("mail/contacts", { q: query, query }), {

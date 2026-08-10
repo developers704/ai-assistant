@@ -51,6 +51,10 @@ async function proxy(req: NextRequest, pathParts: string[]) {
   const outHeaders = new Headers();
   const upstreamType = upstream.headers.get("content-type");
   if (upstreamType) outHeaders.set("content-type", upstreamType);
+  const disposition = upstream.headers.get("content-disposition");
+  if (disposition) outHeaders.set("content-disposition", disposition);
+  const length = upstream.headers.get("content-length");
+  if (length) outHeaders.set("content-length", length);
 
   return new NextResponse(upstream.body, {
     status: upstream.status,

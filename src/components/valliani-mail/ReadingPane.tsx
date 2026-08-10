@@ -198,7 +198,11 @@ export function ReadingPane({
           />
         </div>
 
-        <VallianiAttachmentPanel attachments={message.attachments} />
+        <VallianiAttachmentPanel
+          attachments={message.attachments}
+          folder={message.sourceFolder || "INBOX"}
+          uid={message.uid}
+        />
 
         <div className="mt-6 text-[14px] text-white/85 leading-relaxed">
           {html ? (
