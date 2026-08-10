@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { getContactSuggestions } from "@/lib/valliani-mail/api";
+import type { MailAttachment } from "@/lib/valliani-mail/types";
+import {
+  filesToMailAttachments,
+  formatAttachmentBytes,
+  MAX_COMPOSE_ATTACHMENTS,
+} from "@/lib/valliani-mail/attachments";
 
 export type ComposeDraft = {
   to: string;
@@ -14,6 +20,7 @@ export type ComposeDraft = {
   body: string;
   /** Hidden quoted original for replies (appended on send). */
   quote?: string;
+  attachments?: MailAttachment[];
   mode?: "new" | "reply" | "replyAll" | "forward";
   replyToUid?: number;
   replyToFolder?: string;
@@ -40,6 +47,10 @@ export function ComposePanel({
 }) {
   const [showCc, setShowCc] = useState(!!draft.cc.trim() || !!draft.bcc.trim());
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [attaching, setAttaching] = useState(false);
+  const [attachError, setAttachError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const attachments = draft.attachments ?? [];
 
   useEffect(() => {
     setShowCc(!!draft.cc.trim() || !!draft.bcc.trim());
@@ -73,6 +84,22 @@ export function ComposePanel({
       .split(/[,;]/)
       .map((s) => s.trim())
       .filter(Boolean);
+  }
+
+  async function onPickFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setAttaching(true);
+    setAttachError("");
+    try {
+      const result = await filesToMailAttachments(files, attachments);
+      onChange({ ...draft, attachments: result.attachments });
+      if (result.error) setAttachError(result.error);
+    } catch {
+      setAttachError("Couldn’t add attachment");
+    } finally {
+      setAttaching(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   return (
@@ -165,18 +192,81 @@ export function ComposePanel({
             rows={12}
             className="w-full rounded-2xl bg-white/5 ring-1 ring-white/10 focus:ring-sky-400/50 px-3 py-3 text-sm text-white placeholder:text-white/35 outline-none resize-y min-h-[180px]"
           />
-          {error ? (
+          {attachments.length > 0 ? (
+            <ul className="flex flex-wrap gap-1.5">
+              {attachments.map((a, i) => (
+                <li
+                  key={`${a.filename}-${i}`}
+                  className="inline-flex items-center gap-1.5 max-w-full rounded-lg bg-white/5 ring-1 ring-white/10 px-2.5 py-1.5 text-xs text-white/75"
+                >
+                  <Paperclip size={12} className="shrink-0 text-sky-300/80" />
+                  <span className="truncate max-w-[12rem]" title={a.filename}>
+                    {a.filename}
+                  </span>
+                  {a.size != null ? (
+                    <span className="text-white/35 shrink-0">
+                      {formatAttachmentBytes(a.size)}
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="p-0.5 rounded text-white/40 hover:text-white/80"
+                    aria-label={`Remove ${a.filename}`}
+                    onClick={() =>
+                      onChange({
+                        ...draft,
+                        attachments: attachments.filter((_, idx) => idx !== i),
+                      })
+                    }
+                  >
+                    <X size={12} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {error || attachError ? (
             <div className="rounded-xl bg-rose-500/15 ring-1 ring-rose-400/30 px-3 py-2 text-sm text-rose-100">
-              {error}
+              {error || attachError}
             </div>
           ) : null}
         </div>
 
         <div className="shrink-0 flex items-center justify-end gap-2 px-4 py-3 border-t border-white/10">
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => void onPickFiles(e.target.files)}
+          />
+          <Button
+            variant="ghost"
+            disabled={
+              busy ||
+              attaching ||
+              attachments.length >= MAX_COMPOSE_ATTACHMENTS
+            }
+            onClick={() => fileRef.current?.click()}
+          >
+            {attaching ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Paperclip size={16} />
+            )}
+            Attach
+          </Button>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={onSend} disabled={busy || !draft.to.trim()}>
+          <Button
+            onClick={onSend}
+            disabled={
+              busy ||
+              !draft.to.trim() ||
+              (!draft.body.trim() && attachments.length === 0)
+            }
+          >
             {busy ? <Loader2 size={16} className="animate-spin" /> : "Send"}
           </Button>
         </div>

@@ -9,9 +9,15 @@ import {
   Reply,
   ReplyAll,
   Trash2,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ComposeDraft } from "@/components/valliani-mail/ComposePanel";
+import {
+  filesToMailAttachments,
+  formatAttachmentBytes,
+  MAX_COMPOSE_ATTACHMENTS,
+} from "@/lib/valliani-mail/attachments";
 
 /** Gmail / Valliani-app style inline reply under the open message. */
 export function InlineReplyBox({
@@ -33,13 +39,43 @@ export function InlineReplyBox({
 }) {
   const [modeMenu, setModeMenu] = useState(false);
   const [showQuote, setShowQuote] = useState(false);
+  const [attaching, setAttaching] = useState(false);
+  const [attachError, setAttachError] = useState("");
   const areaRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     areaRef.current?.focus();
   }, [draft.replyToUid, draft.mode]);
 
   const isReplyAll = draft.mode === "replyAll";
+  const attachments = draft.attachments ?? [];
+  const canSend =
+    !!draft.to.trim() &&
+    (!!draft.body.trim() || attachments.length > 0);
+
+  async function onPickFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setAttaching(true);
+    setAttachError("");
+    try {
+      const result = await filesToMailAttachments(files, attachments);
+      onChange({ ...draft, attachments: result.attachments });
+      if (result.error) setAttachError(result.error);
+    } catch {
+      setAttachError("Couldn’t add attachment");
+    } finally {
+      setAttaching(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  function removeAttachment(index: number) {
+    onChange({
+      ...draft,
+      attachments: attachments.filter((_, i) => i !== index),
+    });
+  }
 
   return (
     <div className="shrink-0 border-t border-white/10 bg-[#0d121c] px-3 sm:px-5 py-3">
@@ -123,13 +159,43 @@ export function InlineReplyBox({
             rows={5}
             className="w-full resize-none bg-transparent text-[14px] text-white/90 placeholder:text-white/35 outline-none min-h-[7rem] leading-relaxed"
           />
+          {attachments.length > 0 ? (
+            <ul className="flex flex-wrap gap-1.5 pb-2">
+              {attachments.map((a, i) => (
+                <li
+                  key={`${a.filename}-${i}`}
+                  className="inline-flex items-center gap-1.5 max-w-full rounded-lg bg-white/5 ring-1 ring-white/10 px-2 py-1 text-[11px] text-white/75"
+                >
+                  <Paperclip size={11} className="shrink-0 text-sky-300/80" />
+                  <span className="truncate max-w-[10rem]" title={a.filename}>
+                    {a.filename}
+                  </span>
+                  {a.size != null ? (
+                    <span className="text-white/35 shrink-0">
+                      {formatAttachmentBytes(a.size)}
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="p-0.5 rounded text-white/40 hover:text-white/80"
+                    aria-label={`Remove ${a.filename}`}
+                    onClick={() => removeAttachment(i)}
+                  >
+                    <X size={12} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {draft.quote?.trim() ? (
             <div className="pb-2">
               <button
                 type="button"
                 className="inline-flex items-center justify-center h-6 min-w-8 rounded-full bg-white/5 px-2 text-[11px] text-white/45 hover:bg-white/10"
                 onClick={() => setShowQuote((v) => !v)}
-                aria-label={showQuote ? "Hide quoted message" : "Show quoted message"}
+                aria-label={
+                  showQuote ? "Hide quoted message" : "Show quoted message"
+                }
               >
                 ⋯
               </button>
@@ -142,16 +208,16 @@ export function InlineReplyBox({
           ) : null}
         </div>
 
-        {error ? (
+        {error || attachError ? (
           <div className="mx-3 mb-2 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/25 px-2.5 py-1.5 text-xs text-rose-100">
-            {error}
+            {error || attachError}
           </div>
         ) : null}
 
         <div className="flex items-center gap-1 px-2 py-2 border-t border-white/[0.06]">
           <button
             type="button"
-            disabled={busy || !draft.to.trim() || !draft.body.trim()}
+            disabled={busy || !canSend}
             onClick={onSend}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-semibold",
@@ -161,13 +227,31 @@ export function InlineReplyBox({
             {busy ? <Loader2 size={14} className="animate-spin" /> : null}
             Send
           </button>
-          <span
-            className="p-2 rounded-full text-white/25"
-            title="Attachments coming soon"
-            aria-hidden
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => void onPickFiles(e.target.files)}
+          />
+          <button
+            type="button"
+            disabled={
+              busy ||
+              attaching ||
+              attachments.length >= MAX_COMPOSE_ATTACHMENTS
+            }
+            onClick={() => fileRef.current?.click()}
+            className="p-2 rounded-full text-white/55 hover:bg-white/10 hover:text-white/90 disabled:opacity-35"
+            aria-label="Attach files"
+            title="Attach files"
           >
-            <Paperclip size={16} />
-          </span>
+            {attaching ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Paperclip size={16} />
+            )}
+          </button>
           <div className="flex-1" />
           <button
             type="button"

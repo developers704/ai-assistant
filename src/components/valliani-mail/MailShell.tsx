@@ -51,6 +51,7 @@ function emptyCompose(): ComposeDraft {
     bcc: "",
     subject: "",
     body: "",
+    attachments: [],
     mode: "new",
   };
 }
@@ -331,6 +332,7 @@ export function MailShell({
       subject: replySubject(selected.subject),
       body: "",
       quote: buildReplyBody(selected).trim(),
+      attachments: [],
       mode,
       replyToUid: selected.uid,
       replyToFolder: folder,
@@ -353,6 +355,7 @@ export function MailShell({
       bcc: "",
       subject: forwardSubject(selected.subject),
       body: buildForwardBody(selected),
+      attachments: [],
       mode: "forward",
       replyToUid: selected.uid,
       replyToFolder: sourceFolderOf(selected, selectedFolder),
@@ -379,6 +382,9 @@ export function MailShell({
         replyToFolder: compose.replyToFolder,
         inReplyTo: compose.inReplyTo,
         references: compose.references,
+        attachments: compose.attachments?.length
+          ? compose.attachments
+          : undefined,
       });
       setCompose(null);
       if (
