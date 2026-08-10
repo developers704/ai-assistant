@@ -11,6 +11,7 @@ import {
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import { VendorModelTextFilter } from "@/components/reports/VendorModelTextFilter";
 import { SkuStoreBreakdownList } from "@/components/reports/SkuStoreBreakdownList";
+import { SalesMultiSelectFilter } from "@/components/sales/SalesMultiSelectFilter";
 import {
   applyVendorModelTextFilter,
   buildVendorModelSearchText,
@@ -58,7 +59,7 @@ interface TopProductsTableProps {
   showDateSort?: boolean;
 }
 
-type SortKey = "qty" | "revenue" | "margin" | "department" | "date";
+type SortKey = "qty" | "revenue" | "margin" | "date";
 type SortDir = "asc" | "desc";
 
 const DESKTOP_ROW_GRID =
@@ -199,6 +200,7 @@ export function TopProductsTable({
   const baseRows = filterTopProductSkus(products);
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<VendorModelTextFilterMode>("include");
+  const [deptFilter, setDeptFilter] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<SortKey>("qty");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   /** Expanded SKU per vendor-model row (shared mobile/desktop). */
@@ -222,31 +224,38 @@ export function TopProductsTable({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [openSkuByRow]);
 
-  const filtered = useMemo(
-    () =>
-      applyVendorModelTextFilter(
-        baseRows,
-        (p) =>
-          buildVendorModelSearchText({
-            name: p.name,
-            vendorModel: p.vendorModel,
-            itemNumber: p.itemNumber,
-            skus: p.skus,
-          }),
-        query,
-        mode
-      ),
-    [baseRows, query, mode]
-  );
+  const departmentOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of baseRows) {
+      const d = p.department?.trim();
+      if (d) set.add(d);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [baseRows]);
+
+  const filtered = useMemo(() => {
+    const textFiltered = applyVendorModelTextFilter(
+      baseRows,
+      (p) =>
+        buildVendorModelSearchText({
+          name: p.name,
+          vendorModel: p.vendorModel,
+          itemNumber: p.itemNumber,
+          skus: p.skus,
+        }),
+      query,
+      mode
+    );
+    if (!deptFilter.length) return textFiltered;
+    const want = new Set(deptFilter);
+    return textFiltered.filter((p) => p.department && want.has(p.department));
+  }, [baseRows, query, mode, deptFilter]);
 
   const rows = useMemo(() => {
     const list = [...filtered];
     const mul = sortDir === "asc" ? 1 : -1;
     list.sort((a, b) => {
-      if (sortKey === "department") {
-        const cmp = (a.department || "zzz").localeCompare(b.department || "zzz");
-        if (cmp !== 0) return cmp * mul;
-      } else if (sortKey === "date") {
+      if (sortKey === "date") {
         const cmp = (a.lastSaleDate || "").localeCompare(b.lastSaleDate || "");
         if (cmp !== 0) return cmp * mul;
       } else if (sortKey === "qty") {
@@ -275,7 +284,7 @@ export function TopProductsTable({
       setSortDir((d) => (d === "desc" ? "asc" : "desc"));
     } else {
       setSortKey(key);
-      setSortDir(key === "department" ? "asc" : "desc");
+      setSortDir("desc");
     }
   };
 
@@ -287,15 +296,27 @@ export function TopProductsTable({
 
   return (
     <>
-      <div className="mb-3">
-        <VendorModelTextFilter
-          query={query}
-          mode={mode}
-          onQueryChange={setQuery}
-          onModeChange={setMode}
-          matchCount={rows.length}
-          totalCount={baseRows.length}
-        />
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <VendorModelTextFilter
+            query={query}
+            mode={mode}
+            onQueryChange={setQuery}
+            onModeChange={setMode}
+            matchCount={rows.length}
+            totalCount={baseRows.length}
+          />
+        </div>
+        {departmentOptions.length > 0 && (
+          <SalesMultiSelectFilter
+            label="departments"
+            allLabel="All departments"
+            options={departmentOptions}
+            value={deptFilter}
+            onChange={setDeptFilter}
+            className="shrink-0"
+          />
+        )}
       </div>
 
       <div className="overflow-hidden rounded-xl ring-1 ring-white/10">
@@ -310,12 +331,6 @@ export function TopProductsTable({
           <span className="text-ink-muted">Vendor model</span>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
             <span className="text-ink-muted">Product</span>
-            <SortHeader
-              label="Dept"
-              active={sortKey === "department"}
-              dir={sortDir}
-              onClick={() => toggleSort("department")}
-            />
             {showDateSort && (
               <SortHeader
                 label="Date"
@@ -359,7 +374,6 @@ export function TopProductsTable({
               ["qty", "Qty"],
               ["revenue", "Rev"],
               ["margin", "Margin"],
-              ["department", "Dept"],
               ...(showDateSort ? [["date", "Date"] as const] : []),
             ] as [SortKey, string][]
           ).map(([key, label]) => (

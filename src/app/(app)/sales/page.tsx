@@ -758,7 +758,7 @@ export default function SalesPage() {
                 <span className="text-xs text-ink-muted">
                   {isFinancingReport
                     ? "By net sales amount"
-                    : `Top ${topProducts.length} · sort Qty / Revenue / Margin / Dept${multiDayRange ? " / Date" : ""} · expand SKU for tag price & stores`}
+                    : `Top ${topProducts.length} · sort Qty / Revenue / Margin${multiDayRange ? " / Date" : ""} · filter departments · expand SKU for tag price & stores`}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">
