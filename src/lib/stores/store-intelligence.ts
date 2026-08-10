@@ -11,6 +11,7 @@ import {
   normalizeQuery,
   STORE_SOURCE_URL,
 } from "@/lib/stores/store-directory";
+import { buildStoreDistanceToolResult } from "@/lib/stores/store-distances";
 import type { StoreDirectoryEntry } from "@/lib/stores/types";
 
 export type StoreIntent =
@@ -145,8 +146,6 @@ export function answerStoreQuery(message: string): { markdown: string; intent: S
 
   switch (intent) {
     case "store.distance": {
-      // Lazy import: store-distances imports findStore from this module
-      const { buildStoreDistanceToolResult } = require("@/lib/stores/store-distances") as typeof import("@/lib/stores/store-distances");
       const result = buildStoreDistanceToolResult({ userMessage: message });
       return { markdown: result.message, intent };
     }

@@ -4,9 +4,16 @@ import {
   milesToKm,
   sortStoresByDistance,
 } from "@/lib/stores/distance";
-import { findStore } from "@/lib/stores/store-intelligence";
-import { getAllStores, isStoreDirectoryAvailable } from "@/lib/stores/store-directory";
+import {
+  getAllStores,
+  isStoreDirectoryAvailable,
+  searchStores,
+} from "@/lib/stores/store-directory";
 import type { StoreDirectoryEntry } from "@/lib/stores/types";
+
+function findStore(query: string): StoreDirectoryEntry | null {
+  return searchStores(query)[0] ?? null;
+}
 
 function storeLabel(store: StoreDirectoryEntry): string {
   const city = store.city ? ` (${store.city})` : "";
