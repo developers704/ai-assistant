@@ -33,18 +33,19 @@ function isAcknowledgmentMessage(message: string): boolean {
   const normalized = message
     .toLowerCase()
     .trim()
-    .replace(/[!.,]+$/g, "")
+    .replace(/[!.,\\]+$/g, "")
     .replace(/\s+/g, " ");
-  if (!normalized || normalized.length > 50) return false;
+  if (!normalized || normalized.length > 60) return false;
 
   return (
     /^(ok(ay)?|k)( (thank\s*you|thankyou|thanks|thx|ty|cheers))?$/i.test(normalized) ||
     /^(thank\s*you|thankyou|thanks|thx|ty|cheers|much appreciated|appreciate it)( (so much|a lot|again))?$/i.test(
       normalized
     ) ||
-    /^(got it|perfect|great|cool|nice|good|awesome|sounds good|noted|will do|lovely|fine)$/i.test(
+    /^(got it|perfect|great|cool|nice|good|awesome|sounds good|noted|will do|lovely|fine|all good|all set|no worries|np|no problem|nothing|nothing much|nm|never ?mind|nmnd|that's all|thats all|no thanks|no thank you|i'm good|im good|all fine)$/i.test(
       normalized
-    )
+    ) ||
+    /^(nothing|not) (asking|needed|now|else|really)$/i.test(normalized)
   );
 }
 
@@ -68,7 +69,11 @@ function detectIntent(message: string): IntentType {
   if (/what('s| is|s)?\s*(today'?s?\s*)?date|what date|today'?s date|date today/.test(lower)) {
     return "date_query";
   }
-  if (/sales report|today('s)? sales|store sales|revenue|sales across|sales data|forecast|show me.*sales/.test(lower)) {
+  if (
+    /sales report|today('s)? sales|yesterday('s)? sales|(?:what'?s|whats|what is|show|tell me)\s+(?:the\s+)?(?:today|yesterday)(?:'s)?\s+sales|sales\s+(?:for\s+)?(?:today|yesterday|aaj|kal)|store sales|revenue|sales across|sales data|forecast|show me.*sales/.test(
+      lower
+    )
+  ) {
     return "sales_report";
   }
   if (
@@ -246,7 +251,7 @@ export function processMessage(message: string, state: AppState): AIResponse {
     case "store_list":
       return listStores(message);
     case "sales_report":
-      return generateSalesReport();
+      return generateSalesReport(message);
     case "schedule_meeting":
       return prepareScheduleMeeting(message, state);
     case "email_summary":
@@ -289,6 +294,13 @@ Try: "What do I need to focus on today?" or "Summarize my inbox."`,
         speak: true,
       };
     default:
+      if (isTrivialChatMessage(message)) {
+        return {
+          intent: "acknowledgment",
+          message: "Got it — I'm ready when you are. What would you like to do?",
+          speak: true,
+        };
+      }
       return {
         intent: "general",
         message:
@@ -298,14 +310,22 @@ Try: "What do I need to focus on today?" or "Summarize my inbox."`,
   }
 }
 
-function generateSalesReport(): AIResponse {
-  const { summary, source } = getAssistantSalesSummary();
+function generateSalesReport(message: string): AIResponse {
+  const opts = { userMessage: message };
+  const { summary, source, filterDate, dateMissing, availableDates } =
+    getAssistantSalesSummary(opts);
 
   return {
     intent: "sales_report",
-    message: formatSalesReportMarkdown(),
+    message: formatSalesReportMarkdown(opts),
     speak: true,
-    data: { summary, source },
+    data: {
+      summary,
+      source,
+      filterDate: filterDate ?? null,
+      dateMissing: dateMissing ?? false,
+      availableDates,
+    },
   };
 }
 
@@ -738,11 +758,17 @@ Should I place this call? I'll log notes afterward and can create a follow-up ta
 function handleAcknowledgment(message: string): AIResponse {
   const lower = message.toLowerCase().trim();
   const isThanks = /thanks?|thank\s*you|thankyou|thx|\bty\b|appreciate|cheers/.test(lower);
+  const isNothing =
+    /\bnothing\b|\bno thanks\b|\bi'?m good\b|\ball good\b|\ball set\b|\bnever ?mind\b/.test(
+      lower
+    );
   return {
     intent: "acknowledgment",
     message: isThanks
       ? "You're welcome! Let me know if you need anything else."
-      : "Got it. I'm here whenever you need me.",
+      : isNothing
+        ? "Alright — I'm here whenever you need me."
+        : "Got it. I'm here whenever you need me.",
     speak: true,
   };
 }
@@ -886,6 +912,10 @@ export function shouldUseRuleEngine(message: string, state?: { pendingActions?: 
     return !!(state?.pendingActions?.length);
   }
   return (
+    // Instant local replies — never wait on OpenAI for hi / thanks / help
+    intent === "greeting" ||
+    intent === "acknowledgment" ||
+    intent === "help" ||
     intent === "sales_report" ||
     intent === "calendar_today" ||
     intent === "email_summary" ||
@@ -897,9 +927,12 @@ export function shouldUseRuleEngine(message: string, state?: { pendingActions?: 
 
 /** Tiny ack-only lines (not full greetings) — still allowed for ultra-fast path if needed. */
 export function isTrivialChatMessage(message: string): boolean {
-  const t = message.trim().toLowerCase();
+  const t = message.trim().toLowerCase().replace(/[!.,\\]+$/g, "");
   if (!t) return true;
-  return /^(thanks|thank you|thx|ok+|okay|k|cool|great|got it|bye|goodbye)([\s!.?,]*)$/i.test(t);
+  if (isAcknowledgmentMessage(t)) return true;
+  return /^(thanks|thank you|thx|ok+|okay|k|cool|great|got it|bye|goodbye|why|lol|haha|hmm+|yes|yep|yeah|nope)([\s!.?,]*)$/i.test(
+    t
+  );
 }
 
 /**
@@ -922,9 +955,17 @@ export function isGeneralKnowledgeChatQuery(message: string): boolean {
   ) {
     return false;
   }
+  // Bare greetings use the rule engine (shouldUseRuleEngine) — not LLM
+  if (
+    /^(hi+|hello|hey+|greetings|good\s+(morning|afternoon|evening))([\s!.?,]*)$/i.test(
+      t
+    )
+  ) {
+    return false;
+  }
   if (/how\s+(?:r\s+u|are\s+you|you\s+doing|going)/i.test(t)) return true;
   if (/\b(who|what)\s+(is|are|was|were)\b/i.test(t)) return true;
-  return /^(who|what|when|where|why|how|which|is|are|can|could|do|does|did|explain|define|tell\s+me|hi+|hello|hey+|good\s+(morning|afternoon|evening))\b/i.test(
+  return /^(who|what|when|where|why|how|which|is|are|can|could|do|does|did|explain|define|tell\s+me)\b/i.test(
     t
   );
 }

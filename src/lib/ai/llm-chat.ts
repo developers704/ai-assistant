@@ -293,19 +293,38 @@ Do NOT say you couldn't find it in company knowledge for non-company topics.`;
         : OPENAI_CHAT_MODEL;
   const maxTokens = generalQ ? 900 : 1200;
 
-  const completion = await client.chat.completions.create({
-    model,
-    ...chatCompletionLimits(model, {
-      temperature: generalQ ? 0.5 : 0.35,
-      maxTokens,
-    }),
-    messages,
-    ...(generalQ
-      ? {}
-      : { tools: ASSISTANT_CHAT_TOOLS, tool_choice: "auto" as const }),
-  });
+  let choice: OpenAI.ChatCompletionMessage | undefined;
+  try {
+    const completion = await client.chat.completions.create({
+      model,
+      ...chatCompletionLimits(model, {
+        temperature: generalQ ? 0.5 : 0.35,
+        maxTokens,
+      }),
+      messages,
+      ...(generalQ
+        ? {}
+        : { tools: ASSISTANT_CHAT_TOOLS, tool_choice: "auto" as const }),
+    });
+    choice = completion.choices[0]?.message;
+  } catch (primaryErr) {
+    // Retry once on a lighter model without tools for flaky/unsupported models
+    if (model !== OPENAI_FAST_MODEL) {
+      console.warn("LLM primary failed, retrying fast model:", primaryErr);
+      const retry = await client.chat.completions.create({
+        model: OPENAI_FAST_MODEL,
+        ...chatCompletionLimits(OPENAI_FAST_MODEL, {
+          temperature: 0.5,
+          maxTokens: 600,
+        }),
+        messages,
+      });
+      choice = retry.choices[0]?.message;
+    } else {
+      throw primaryErr;
+    }
+  }
 
-  const choice = completion.choices[0]?.message;
   if (!choice) {
     throw new Error("Empty LLM response");
   }

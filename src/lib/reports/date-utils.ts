@@ -95,6 +95,24 @@ function inferYears(availableDates: string[] | undefined, day: number, month: nu
  * "show sales of 8 july", "July 8 sales", "sales on 7/8/26", "2026-07-08".
  * Prefers dates that exist in `availableDates` when provided.
  */
+function businessTodayIso(): string {
+  const tz = process.env.BUSINESS_TIMEZONE || "America/Los_Angeles";
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  // en-CA → YYYY-MM-DD
+  return fmt.format(new Date());
+}
+
+function shiftIsoDays(iso: string, delta: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + delta));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
+
 export function extractSalesDateFromMessage(
   message: string,
   availableDates?: string[]
@@ -103,6 +121,20 @@ export function extractSalesDateFromMessage(
   if (!text) return null;
 
   const candidates: string[] = [];
+  const lower = text.toLowerCase();
+  const today = businessTodayIso();
+
+  // Relative days (chat: "today's sales", "yesterday sales", "aaj")
+  if (/\b(today|aaj)\b/i.test(lower)) {
+    candidates.push(today);
+  } else if (
+    /\b(yesterday|kal)\b/i.test(lower) &&
+    !/\b(tomorrow|future)\b/i.test(lower)
+  ) {
+    candidates.push(shiftIsoDays(today, -1));
+  } else if (/\b(day before yesterday|parson|parso[nm]?)\b/i.test(lower)) {
+    candidates.push(shiftIsoDays(today, -2));
+  }
 
   for (const token of text.match(/\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g) ?? []) {
     const iso = parseReportFilterDate(token);

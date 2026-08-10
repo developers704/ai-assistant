@@ -11,6 +11,7 @@ import {
   executeSideEffects,
   shouldUseRuleEngine,
   isGeneralKnowledgeChatQuery,
+  isTrivialChatMessage,
 } from "@/lib/ai/assistant-engine";
 
 import { isLLMChatConfigured, processMessageWithLLM } from "@/lib/ai/llm-chat";
@@ -95,7 +96,13 @@ async function resolveResponse(
       };
     } catch (err) {
       console.error("LLM chat failed:", err);
-      // Never dump the old "I can help with emails…" canned line for Q&A.
+      // Short chitchat → local rules instead of a dead-end error toast
+      if (isTrivialChatMessage(message) || shouldUseRuleEngine(message, state)) {
+        return {
+          response: processMessage(message, state),
+          engine: "llm-fallback",
+        };
+      }
       return {
         response: {
           intent: "general",
