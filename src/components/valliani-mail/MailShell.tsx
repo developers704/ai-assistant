@@ -32,6 +32,7 @@ import {
   addressEmail,
   buildForwardBody,
   buildReplyBody,
+  collapseMessagesToThreads,
   displayName,
   forwardSubject,
   isSeen,
@@ -509,6 +510,12 @@ export function MailShell({
     return hit?.name ?? prettyFolderName(selectedFolder);
   }, [folders, selectedFolder]);
 
+  // Gmail-style: one list row per conversation (replies open in the reading pane)
+  const listThreads = useMemo(
+    () => collapseMessagesToThreads(messages),
+    [messages]
+  );
+
   return (
     <div className="h-full min-h-0 flex flex-col rounded-none sm:rounded-3xl overflow-hidden glass-panel-strong ring-1 ring-white/10">
       {error ? (
@@ -592,7 +599,7 @@ export function MailShell({
           )}
         >
           <MessageList
-            messages={messages}
+            messages={listThreads}
             selectedUid={selected?.uid ?? null}
             loading={listLoading}
             loadingMore={loadingMore}

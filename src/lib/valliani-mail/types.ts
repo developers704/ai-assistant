@@ -466,6 +466,54 @@ export function sameMailThread(a: MailMessage, b: MailMessage): boolean {
   return Boolean(subA && subA === subB);
 }
 
+/** List row for Gmail-style conversation view (one row per thread). */
+export type MailThreadListItem = MailMessage & {
+  threadCount: number;
+  threadUids: number[];
+  threadHasUnread: boolean;
+  threadHasStar: boolean;
+};
+
+/**
+ * Collapse flat IMAP messages into one list row per conversation.
+ * Keeps the newest message as the row (snippet / date / from).
+ */
+export function collapseMessagesToThreads(
+  messages: MailMessage[]
+): MailThreadListItem[] {
+  const groups: MailMessage[][] = [];
+  for (const m of messages) {
+    const group = groups.find((g) => g.some((x) => sameMailThread(x, m)));
+    if (group) group.push(m);
+    else groups.push([m]);
+  }
+
+  const rows: MailThreadListItem[] = groups.map((group) => {
+    const newest = [...group].sort((a, b) => {
+      const da = a.date ? new Date(a.date).getTime() : 0;
+      const db = b.date ? new Date(b.date).getTime() : 0;
+      if (db !== da) return db - da;
+      return b.uid - a.uid;
+    })[0]!;
+    return {
+      ...newest,
+      hasAttachments:
+        newest.hasAttachments || group.some((m) => m.hasAttachments),
+      threadCount: group.length,
+      threadUids: group.map((m) => m.uid),
+      threadHasUnread: group.some((m) => !isSeen(m.flags)),
+      threadHasStar: group.some((m) => isFlagged(m.flags)),
+    };
+  });
+
+  return rows.sort((a, b) => {
+    const da = a.date ? new Date(a.date).getTime() : 0;
+    const db = b.date ? new Date(b.date).getTime() : 0;
+    if (db !== da) return db - da;
+    return b.uid - a.uid;
+  });
+}
+
 /** Oldest → newest for thread reading pane. */
 export function sortThreadOldestFirst(messages: MailMessage[]): MailMessage[] {
   return [...messages].sort((a, b) => {

@@ -5,10 +5,8 @@ import { cn, formatRelativeTime } from "@/lib/utils";
 import {
   cleanSubject,
   displayName,
-  isFlagged,
-  isSeen,
   messageListPreview,
-  type MailMessage,
+  type MailThreadListItem,
 } from "@/lib/valliani-mail/types";
 
 export function MessageList({
@@ -23,14 +21,14 @@ export function MessageList({
   onLoadMore,
   folderTitle,
 }: {
-  messages: MailMessage[];
+  messages: MailThreadListItem[];
   selectedUid: number | null;
   loading?: boolean;
   loadingMore?: boolean;
   hasMore?: boolean;
   search: string;
   onSearchChange: (value: string) => void;
-  onSelect: (message: MailMessage) => void;
+  onSelect: (message: MailThreadListItem) => void;
   onLoadMore?: () => void;
   folderTitle: string;
 }) {
@@ -65,9 +63,12 @@ export function MessageList({
         ) : (
           <ul>
             {messages.map((message) => {
-              const unread = !isSeen(message.flags);
-              const starred = isFlagged(message.flags);
-              const active = selectedUid === message.uid;
+              const unread = message.threadHasUnread;
+              const starred = message.threadHasStar;
+              const active =
+                selectedUid != null &&
+                (message.uid === selectedUid ||
+                  message.threadUids.includes(selectedUid));
               const from =
                 message.from[0] != null
                   ? displayName(message.from[0])
@@ -94,11 +95,25 @@ export function MessageList({
                       >
                         {from}
                       </span>
+                      {message.threadCount > 1 ? (
+                        <span
+                          className="text-[10px] tabular-nums text-white/40 shrink-0"
+                          title={`${message.threadCount} messages in conversation`}
+                        >
+                          {message.threadCount}
+                        </span>
+                      ) : null}
                       {starred ? (
-                        <Star size={12} className="text-amber-300 fill-amber-300 shrink-0" />
+                        <Star
+                          size={12}
+                          className="text-amber-300 fill-amber-300 shrink-0"
+                        />
                       ) : null}
                       {message.hasAttachments ? (
-                        <Paperclip size={12} className="text-white/35 shrink-0" />
+                        <Paperclip
+                          size={12}
+                          className="text-white/35 shrink-0"
+                        />
                       ) : null}
                       <span className="text-[11px] text-white/35 tabular-nums shrink-0">
                         {message.date
