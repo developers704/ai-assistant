@@ -37,12 +37,22 @@ Send body: to/cc/bcc comma strings, text/html, optional reply threading (`inRepl
 
 ## Wiring status (keep in mind)
 
-Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download · compose/reply attach · inline reply · thread view (API thread or All-Mail subject match; reply stays in thread)  
+Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download · compose/reply attach · inline reply · thread list collapse · rich compose toolbar · AI Draft (same rules as Gmail Email) · thread view (API thread or All-Mail subject match; reply stays in thread)  
 Incomplete vs API: saveDraft unused · server forward unused · move unused · scheduled/snoozed folders not in sidebar
+
+## AI draft + send guards (parity with `/email`)
+
+Reuse Gmail helpers — do **not** invent a second rule set:
+
+- `bodyMentionsAttachment()` from `src/lib/email-utils.ts` (run on **plain** body via `htmlToPlain`)
+- AI Draft / polish / rewrite via `POST /api/email/draft` with IMAP thread mapped by `mailThreadToDraftEmail()` (`src/lib/valliani-mail/ai-draft.ts`) — pass `email` stub; do not call Gmail fetch/send
+- **Block send** when: missing subject · body mentions attachment but none attached · no recipients · empty body and no attachments
+- New mail / forward: AI Draft requires a rough body first (“make professional”)
+- Reply / reply-all: auto AI Draft on open; Regen + Shorter / Formal / Casual
 
 ## Rules when changing
 
-- Do not wire Valliani Mail through Google Gmail helpers
+- Do not wire Valliani Mail through Google Gmail helpers (except shared draft LLM + `bodyMentionsAttachment`)
 - Prefer extending `src/lib/valliani-mail/api.ts` + types before new proxy routes
 - Sanitize HTML with existing `sanitizeEmailHtmlForPreview`
 - Self-check: `npx tsx scripts/check-valliani-mail-api.ts`

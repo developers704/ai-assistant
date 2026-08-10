@@ -17,6 +17,17 @@ import {
   type ComposeDraft,
 } from "@/components/valliani-mail/ComposePanel";
 import {
+  ComposeBodyEditor,
+  ComposeFormatToolbar,
+} from "@/components/valliani-mail/ComposeBodyEditor";
+import { ComposeAiBar } from "@/components/valliani-mail/ComposeAiBar";
+import {
+  htmlToPlain,
+  isComposeBodyEmpty,
+} from "@/lib/valliani-mail/compose-html";
+import { bodyMentionsAttachment } from "@/lib/email-utils";
+import type { AiRewriteTone } from "@/lib/valliani-mail/ai-draft";
+import {
   filesToMailAttachments,
   formatAttachmentBytes,
   MAX_COMPOSE_ATTACHMENTS,
@@ -29,7 +40,10 @@ export function InlineReplyBox({
   onSend,
   onDiscard,
   onExpand,
+  onAiDraft,
+  onRewrite,
   busy,
+  drafting,
   error,
 }: {
   draft: ComposeDraft;
@@ -37,25 +51,42 @@ export function InlineReplyBox({
   onSend: () => void;
   onDiscard: () => void;
   onExpand?: () => void;
+  onAiDraft?: () => void;
+  onRewrite?: (tone: AiRewriteTone) => void;
   busy?: boolean;
+  drafting?: boolean;
   error?: string;
 }) {
   const [modeMenu, setModeMenu] = useState(false);
   const [showQuote, setShowQuote] = useState(false);
   const [attaching, setAttaching] = useState(false);
   const [attachError, setAttachError] = useState("");
-  const areaRef = useRef<HTMLTextAreaElement>(null);
+  const editorWrapRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    areaRef.current?.focus();
+    const el = editorWrapRef.current?.querySelector(
+      ".compose-body-editor"
+    ) as HTMLElement | null;
+    el?.focus();
   }, [draft.replyToUid, draft.mode]);
 
   const isReplyAll = draft.mode === "replyAll";
   const attachments = draft.attachments ?? [];
+  const plainBody = htmlToPlain(draft.body);
+  const missingSubject = !draft.subject.trim();
+  const missingAttachment =
+    attachments.length === 0 && bodyMentionsAttachment(plainBody);
   const canSend =
     !!draft.to.trim() &&
-    (!!draft.body.trim() || attachments.length > 0);
+    !missingSubject &&
+    !missingAttachment &&
+    (!isComposeBodyEmpty(draft.body) || attachments.length > 0);
+  const sendBlockReason = missingSubject
+    ? "Add a subject before sending."
+    : missingAttachment
+      ? "You mentioned an attachment — attach a file before sending."
+      : null;
 
   async function onPickFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -154,14 +185,13 @@ export function InlineReplyBox({
           ) : null}
         </div>
 
-        <div className="px-3 pt-2 pb-1">
-          <textarea
-            ref={areaRef}
+        <div className="px-3 pt-2 pb-1" ref={editorWrapRef}>
+          <ComposeBodyEditor
+            key={`inline-${draft.replyToUid ?? 0}-${draft.mode}`}
             value={draft.body}
-            onChange={(e) => onChange({ ...draft, body: e.target.value })}
+            onChange={(body) => onChange({ ...draft, body })}
             placeholder="Write a reply…"
-            rows={5}
-            className="w-full resize-none bg-transparent text-[14px] text-white/90 placeholder:text-white/35 outline-none min-h-[7rem] leading-relaxed"
+            minHeightClass="min-h-[7rem]"
           />
           {attachments.length > 0 ? (
             <ul className="flex flex-wrap gap-1.5 pb-2">
@@ -212,16 +242,29 @@ export function InlineReplyBox({
           ) : null}
         </div>
 
-        {error || attachError ? (
+        {error || attachError || sendBlockReason ? (
           <div className="mx-3 mb-2 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/25 px-2.5 py-1.5 text-xs text-rose-100">
-            {error || attachError}
+            {error || attachError || sendBlockReason}
+          </div>
+        ) : null}
+
+        {onAiDraft && onRewrite ? (
+          <div className="px-3 pb-2">
+            <ComposeAiBar
+              isNewMail={false}
+              hasBody={!!plainBody}
+              drafting={drafting}
+              onAiDraft={onAiDraft}
+              onRewrite={onRewrite}
+              compact
+            />
           </div>
         ) : null}
 
         <div className="flex items-center gap-1 px-2 py-2 border-t border-white/[0.06]">
           <button
             type="button"
-            disabled={busy || !canSend}
+            disabled={busy || drafting || !canSend}
             onClick={onSend}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-semibold",
@@ -238,28 +281,33 @@ export function InlineReplyBox({
             className="hidden"
             onChange={(e) => void onPickFiles(e.target.files)}
           />
-          <button
-            type="button"
-            disabled={
-              busy ||
-              attaching ||
-              attachments.length >= MAX_COMPOSE_ATTACHMENTS
+          <ComposeFormatToolbar
+            leading={
+              <button
+                type="button"
+                disabled={
+                  busy ||
+                  drafting ||
+                  attaching ||
+                  attachments.length >= MAX_COMPOSE_ATTACHMENTS
+                }
+                onClick={() => fileRef.current?.click()}
+                className="p-1.5 rounded-lg text-sky-300/90 hover:bg-white/10 hover:text-sky-200 disabled:opacity-35"
+                aria-label="Attach files"
+                title="Attach files"
+              >
+                {attaching ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Paperclip size={15} />
+                )}
+              </button>
             }
-            onClick={() => fileRef.current?.click()}
-            className="p-2 rounded-full text-white/55 hover:bg-white/10 hover:text-white/90 disabled:opacity-35"
-            aria-label="Attach files"
-            title="Attach files"
-          >
-            {attaching ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Paperclip size={16} />
-            )}
-          </button>
+          />
           <div className="flex-1" />
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || drafting}
             onClick={onDiscard}
             className="p-2 rounded-full text-white/45 hover:bg-white/10 hover:text-white/80"
             aria-label="Discard"

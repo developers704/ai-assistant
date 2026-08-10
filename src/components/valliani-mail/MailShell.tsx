@@ -47,6 +47,18 @@ import {
   type MailSummary,
 } from "@/lib/valliani-mail/types";
 import { cn } from "@/lib/utils";
+import { bodyMentionsAttachment } from "@/lib/email-utils";
+import {
+  buildSendBodies,
+  htmlToPlain,
+  isComposeBodyEmpty,
+  plainToComposeHtml,
+} from "@/lib/valliani-mail/compose-html";
+import {
+  mailThreadToDraftEmail,
+  requestEmailAiDraft,
+  type AiRewriteTone,
+} from "@/lib/valliani-mail/ai-draft";
 
 const PAGE_SIZE = 50;
 
@@ -92,6 +104,7 @@ export function MailShell({
   const [actionBusy, setActionBusy] = useState(false);
   const [compose, setCompose] = useState<ComposeDraft | null>(null);
   const [composeBusy, setComposeBusy] = useState(false);
+  const [composeDrafting, setComposeDrafting] = useState(false);
   const [composeError, setComposeError] = useState("");
   const [error, setError] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -356,7 +369,7 @@ export function MailShell({
       target.uid > 0
         ? folder
         : sourceFolderOf(selected, selectedFolder);
-    setCompose({
+    const draft: ComposeDraft = {
       to: to.join(", "),
       cc: cc.join(", "),
       bcc: "",
@@ -378,8 +391,11 @@ export function MailShell({
         return ids.length ? [...new Set(ids)] : undefined;
       })(),
       forceModal: false,
-    });
+    };
+    setCompose(draft);
     setComposeError("");
+    // Gmail parity: auto-draft reply when opening Reply
+    void runAiDraft(draft, thread.length ? thread : [selected, target]);
   }
 
   function startForward() {
@@ -398,15 +414,135 @@ export function MailShell({
     setComposeError("");
   }
 
+  async function runAiDraft(
+    draft: ComposeDraft,
+    threadMsgs?: MailMessage[]
+  ) {
+    const isNewMail =
+      draft.mode === "new" || draft.mode === "forward" || !draft.mode;
+    const plain = htmlToPlain(draft.body);
+    if (isNewMail && !plain) {
+      setComposeError("Write a rough message first, then use AI Draft");
+      return;
+    }
+    setComposeDrafting(true);
+    setComposeError("");
+    try {
+      if (isNewMail) {
+        const data = await requestEmailAiDraft({
+          mode: "polish",
+          existingDraft: plain,
+          subject: draft.subject,
+          to: draft.to,
+        });
+        setCompose((c) =>
+          c ? { ...c, body: plainToComposeHtml(data.draft) } : c
+        );
+        return;
+      }
+      const seed = selected;
+      if (!seed) {
+        setComposeError("Open a message to draft a reply");
+        return;
+      }
+      const email = mailThreadToDraftEmail(
+        seed,
+        threadMsgs?.length ? threadMsgs : thread.length ? thread : [seed]
+      );
+      const data = await requestEmailAiDraft({
+        mode: "reply",
+        email,
+        subject: draft.subject,
+        to: draft.to,
+      });
+      setCompose((c) =>
+        c
+          ? {
+              ...c,
+              body: plainToComposeHtml(data.draft),
+              subject: data.subject || c.subject,
+              to: data.to || c.to,
+            }
+          : c
+      );
+    } catch (err) {
+      setComposeError(err instanceof Error ? err.message : "Draft failed");
+    } finally {
+      setComposeDrafting(false);
+    }
+  }
+
+  async function handleAiDraft() {
+    if (!compose) return;
+    await runAiDraft(compose);
+  }
+
+  async function handleRewrite(tone: AiRewriteTone) {
+    if (!compose) return;
+    const plain = htmlToPlain(compose.body);
+    if (!plain) return;
+    setComposeDrafting(true);
+    setComposeError("");
+    try {
+      const isReply =
+        compose.mode === "reply" || compose.mode === "replyAll";
+      const email =
+        isReply && selected
+          ? mailThreadToDraftEmail(
+              selected,
+              thread.length ? thread : [selected]
+            )
+          : undefined;
+      const data = await requestEmailAiDraft({
+        mode: "rewrite",
+        rewriteTone: tone,
+        existingDraft: plain,
+        subject: compose.subject,
+        to: compose.to,
+        email,
+      });
+      setCompose((c) =>
+        c ? { ...c, body: plainToComposeHtml(data.draft) } : c
+      );
+    } catch (err) {
+      setComposeError(err instanceof Error ? err.message : "Rewrite failed");
+    } finally {
+      setComposeDrafting(false);
+    }
+  }
+
   async function handleSend() {
     if (!compose) return;
+    const plain = htmlToPlain(compose.body);
+    if (!compose.subject.trim()) {
+      setComposeError("Add a subject before sending.");
+      return;
+    }
+    if (
+      !(compose.attachments ?? []).length &&
+      bodyMentionsAttachment(plain)
+    ) {
+      setComposeError(
+        "You mentioned an attachment — attach a file before sending."
+      );
+      return;
+    }
+    if (!compose.to.trim()) {
+      setComposeError("Add at least one recipient.");
+      return;
+    }
+    if (isComposeBodyEmpty(compose.body) && !(compose.attachments ?? []).length) {
+      setComposeError("Write a message or attach a file.");
+      return;
+    }
     setComposeBusy(true);
     setComposeError("");
     try {
-      const userBody = compose.body.trim();
-      const body = [userBody, compose.quote?.trim()]
-        .filter(Boolean)
-        .join("\n\n");
+      const { text: body, html } = buildSendBodies(
+        compose.body,
+        compose.quote
+      );
+      const userPlain = plain;
       const wasReply =
         compose.mode === "reply" || compose.mode === "replyAll";
       await sendMail({
@@ -415,6 +551,7 @@ export function MailShell({
         bcc: splitRecipients(compose.bcc),
         subject: compose.subject,
         body,
+        html,
         composeMode: compose.mode,
         replyToUid: compose.replyToUid,
         replyToFolder: compose.replyToFolder,
@@ -443,10 +580,10 @@ export function MailShell({
           bcc: addressesFromRaw(compose.bcc),
           date: new Date().toISOString(),
           flags: ["\\Seen"],
-          preview: userBody.slice(0, 160),
-          bodyText: userBody,
-          bodyHtml: "",
-          hasHtml: false,
+          preview: userPlain.slice(0, 160),
+          bodyText: userPlain,
+          bodyHtml: html ?? "",
+          hasHtml: Boolean(html),
           isHydrated: true,
           attachments: compose.attachments ?? [],
           hasAttachments: (compose.attachments?.length ?? 0) > 0,
@@ -647,7 +784,10 @@ export function MailShell({
             onReplyExpand={() =>
               setCompose((c) => (c ? { ...c, forceModal: true } : c))
             }
+            onReplyAiDraft={() => void handleAiDraft()}
+            onReplyRewrite={(t) => void handleRewrite(t)}
             replyBusy={composeBusy}
+            replyDrafting={composeDrafting}
             replyError={composeError}
           />
         </div>
@@ -663,7 +803,10 @@ export function MailShell({
           onChange={setCompose}
           onClose={() => setCompose(null)}
           onSend={() => void handleSend()}
+          onAiDraft={() => void handleAiDraft()}
+          onRewrite={(t) => void handleRewrite(t)}
           busy={composeBusy}
+          drafting={composeDrafting}
           error={composeError}
         />
       ) : null}

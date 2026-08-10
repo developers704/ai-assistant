@@ -28,6 +28,7 @@ import {
 import { VallianiAttachmentPanel } from "@/components/valliani-mail/AttachmentPanel";
 import { InlineReplyBox } from "@/components/valliani-mail/InlineReplyBox";
 import type { ComposeDraft } from "@/components/valliani-mail/ComposePanel";
+import type { AiRewriteTone } from "@/lib/valliani-mail/ai-draft";
 
 export type ReadingAction =
   | "star"
@@ -53,7 +54,10 @@ export function ReadingPane({
   onReplySend,
   onReplyDiscard,
   onReplyExpand,
+  onReplyAiDraft,
+  onReplyRewrite,
   replyBusy,
+  replyDrafting,
   replyError,
 }: {
   message: MailMessage | null;
@@ -71,7 +75,10 @@ export function ReadingPane({
   onReplySend?: () => void;
   onReplyDiscard?: () => void;
   onReplyExpand?: () => void;
+  onReplyAiDraft?: () => void;
+  onReplyRewrite?: (tone: AiRewriteTone) => void;
   replyBusy?: boolean;
+  replyDrafting?: boolean;
   replyError?: string;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
@@ -229,7 +236,10 @@ export function ReadingPane({
           onSend={onReplySend}
           onDiscard={onReplyDiscard}
           onExpand={onReplyExpand}
+          onAiDraft={onReplyAiDraft}
+          onRewrite={onReplyRewrite}
           busy={replyBusy}
+          drafting={replyDrafting}
           error={replyError}
         />
       ) : null}

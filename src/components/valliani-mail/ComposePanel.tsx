@@ -11,6 +11,17 @@ import {
   formatAttachmentBytes,
   MAX_COMPOSE_ATTACHMENTS,
 } from "@/lib/valliani-mail/attachments";
+import {
+  ComposeBodyEditor,
+  ComposeFormatToolbar,
+} from "@/components/valliani-mail/ComposeBodyEditor";
+import { ComposeAiBar } from "@/components/valliani-mail/ComposeAiBar";
+import {
+  htmlToPlain,
+  isComposeBodyEmpty,
+} from "@/lib/valliani-mail/compose-html";
+import { bodyMentionsAttachment } from "@/lib/email-utils";
+import type { AiRewriteTone } from "@/lib/valliani-mail/ai-draft";
 
 export type ComposeDraft = {
   to: string;
@@ -65,14 +76,20 @@ export function ComposePanel({
   onChange,
   onClose,
   onSend,
+  onAiDraft,
+  onRewrite,
   busy,
+  drafting,
   error,
 }: {
   draft: ComposeDraft;
   onChange: (next: ComposeDraft) => void;
   onClose: () => void;
   onSend: () => void;
+  onAiDraft?: () => void;
+  onRewrite?: (tone: AiRewriteTone) => void;
   busy?: boolean;
+  drafting?: boolean;
   error?: string;
 }) {
   const [showCc, setShowCc] = useState(!!draft.cc.trim() || !!draft.bcc.trim());
@@ -82,6 +99,21 @@ export function ComposePanel({
   const [attachError, setAttachError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const attachments = draft.attachments ?? [];
+  const plainBody = htmlToPlain(draft.body);
+  const isNewMail = draft.mode === "new" || draft.mode === "forward" || !draft.mode;
+  const missingSubject = !draft.subject.trim();
+  const missingAttachment =
+    attachments.length === 0 && bodyMentionsAttachment(plainBody);
+  const canSend =
+    !!draft.to.trim() &&
+    !missingSubject &&
+    !missingAttachment &&
+    (!isComposeBodyEmpty(draft.body) || attachments.length > 0);
+  const sendBlockReason = missingSubject
+    ? "Add a subject before sending."
+    : missingAttachment
+      ? "You mentioned an attachment — attach a file before sending."
+      : null;
 
   useEffect(() => {
     setShowCc(!!draft.cc.trim() || !!draft.bcc.trim());
@@ -220,13 +252,15 @@ export function ComposePanel({
             value={draft.subject}
             onChange={(subject) => onChange({ ...draft, subject })}
           />
-          <textarea
-            value={draft.body}
-            onChange={(e) => onChange({ ...draft, body: e.target.value })}
-            placeholder="Write your message…"
-            rows={12}
-            className="w-full rounded-2xl bg-white/5 ring-1 ring-white/10 focus:ring-sky-400/50 px-3 py-3 text-sm text-white placeholder:text-white/35 outline-none resize-y min-h-[180px]"
-          />
+          <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 focus-within:ring-sky-400/50 px-3 py-3">
+            <ComposeBodyEditor
+              key={`${draft.mode ?? "new"}-${draft.replyToUid ?? 0}-${draft.subject}`}
+              value={draft.body}
+              onChange={(body) => onChange({ ...draft, body })}
+              placeholder="Write your message…"
+              minHeightClass="min-h-[180px]"
+            />
+          </div>
           {attachments.length > 0 ? (
             <ul className="flex flex-wrap gap-1.5">
               {attachments.map((a, i) => (
@@ -260,14 +294,23 @@ export function ComposePanel({
               ))}
             </ul>
           ) : null}
-          {error || attachError ? (
+          {error || attachError || sendBlockReason ? (
             <div className="rounded-xl bg-rose-500/15 ring-1 ring-rose-400/30 px-3 py-2 text-sm text-rose-100">
-              {error || attachError}
+              {error || attachError || sendBlockReason}
             </div>
+          ) : null}
+          {onAiDraft && onRewrite ? (
+            <ComposeAiBar
+              isNewMail={isNewMail}
+              hasBody={!!plainBody}
+              drafting={drafting}
+              onAiDraft={onAiDraft}
+              onRewrite={onRewrite}
+            />
           ) : null}
         </div>
 
-        <div className="shrink-0 flex items-center justify-end gap-2 px-4 py-3 border-t border-white/10">
+        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-t border-white/10">
           <input
             ref={fileRef}
             type="file"
@@ -275,33 +318,33 @@ export function ComposePanel({
             className="hidden"
             onChange={(e) => void onPickFiles(e.target.files)}
           />
-          <Button
-            variant="ghost"
-            disabled={
-              busy ||
-              attaching ||
-              attachments.length >= MAX_COMPOSE_ATTACHMENTS
+          <ComposeFormatToolbar
+            leading={
+              <button
+                type="button"
+                disabled={
+                  busy ||
+                  attaching ||
+                  attachments.length >= MAX_COMPOSE_ATTACHMENTS
+                }
+                onClick={() => fileRef.current?.click()}
+                className="p-1.5 rounded-lg text-sky-300/90 hover:bg-white/10 disabled:opacity-35"
+                aria-label="Attach files"
+                title="Attach files"
+              >
+                {attaching ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Paperclip size={15} />
+                )}
+              </button>
             }
-            onClick={() => fileRef.current?.click()}
-          >
-            {attaching ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Paperclip size={16} />
-            )}
-            Attach
-          </Button>
-          <Button variant="ghost" onClick={onClose} disabled={busy}>
+          />
+          <div className="flex-1" />
+          <Button variant="ghost" onClick={onClose} disabled={busy || drafting}>
             Cancel
           </Button>
-          <Button
-            onClick={onSend}
-            disabled={
-              busy ||
-              !draft.to.trim() ||
-              (!draft.body.trim() && attachments.length === 0)
-            }
-          >
+          <Button onClick={onSend} disabled={busy || drafting || !canSend}>
             {busy ? <Loader2 size={16} className="animate-spin" /> : "Send"}
           </Button>
         </div>
