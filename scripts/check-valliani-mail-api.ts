@@ -8,6 +8,9 @@ import {
   folderSortRank,
   formatMailDate,
   buildReplyBody,
+  normalizeSubjectForThread,
+  sameMailThread,
+  sortThreadOldestFirst,
   jwtExpiresWithin,
   looksLikeQuotedPrintable,
   messageListPreview,
@@ -153,5 +156,30 @@ const replyBody = buildReplyBody({
 assert.ok(!replyBody.includes("T17:54:35.000Z"));
 assert.match(replyBody, /Umair Jam wrote:/);
 assert.match(replyBody, /^> hi how are you sir \?\?/m);
+
+assert.equal(normalizeSubjectForThread("Re: Re: test"), "test");
+const a = parseMailMessage({
+  uid: 10,
+  subject: "test",
+  messageId: "<a@x>",
+  from: [],
+  to: [],
+  flags: [],
+});
+const b = parseMailMessage({
+  uid: 11,
+  subject: "Re: test",
+  inReplyTo: "<a@x>",
+  from: [],
+  to: [],
+  flags: [],
+});
+assert.equal(sameMailThread(a, b), true);
+const ordered = sortThreadOldestFirst([
+  { ...b, date: "2026-08-10T12:00:00.000Z" },
+  { ...a, date: "2026-08-10T11:00:00.000Z" },
+]);
+assert.equal(ordered[0]!.uid, 10);
+assert.equal(ordered[1]!.uid, 11);
 
 console.log("check-valliani-mail-api: ok");

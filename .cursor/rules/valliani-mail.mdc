@@ -37,7 +37,7 @@ Send body: to/cc/bcc comma strings, text/html, optional reply threading (`inRepl
 
 ## Wiring status (keep in mind)
 
-Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download · compose/reply attach (base64 on send) · inline reply  
+Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download · compose/reply attach · inline reply · thread view (API thread or All-Mail subject match; reply stays in thread)  
 Incomplete vs API: saveDraft unused · server forward unused · move unused · scheduled/snoozed folders not in sidebar
 
 ## Rules when changing

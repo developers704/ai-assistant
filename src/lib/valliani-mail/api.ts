@@ -13,11 +13,14 @@ import {
   ALL_MAIL_FOLDER,
   STARRED_FOLDER,
   jwtExpiresWithin,
+  normalizeSubjectForThread,
   parseMailAuthUser,
   parseMailFolder,
   parseMailMessage,
   parseMailSummary,
+  sameMailThread,
   sortFolders,
+  sortThreadOldestFirst,
   type MailAttachment,
   type MailAuthResponse,
   type MailAuthUser,
@@ -361,6 +364,147 @@ export async function getMessage(input: {
   return parseMailMessage(JSON.parse(text) as Record<string, unknown>, {
     hydrated: true,
   });
+}
+
+async function tryParseThreadResponse(res: Response): Promise<MailMessage[] | null> {
+  if (!res.ok) return null;
+  const text = await res.text();
+  let map: Record<string, unknown>;
+  try {
+    map = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  const raw =
+    (map.messages as unknown[]) ??
+    (map.thread as unknown[]) ??
+    (map.items as unknown[]) ??
+    [];
+  if (!Array.isArray(raw) || !raw.length) return null;
+  return raw
+    .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
+    .map((e) => parseMailMessage(e));
+}
+
+/**
+ * Load conversation for a message (API thread endpoint, else All Mail subject search).
+ * Returns oldest → newest, always including the seed.
+ */
+export async function getThread(input: {
+  folder: string;
+  seed: MailMessage;
+}): Promise<MailMessage[]> {
+  const { folder, seed } = input;
+  const uid = seed.uid;
+
+  const endpointTries: Array<() => Promise<Response>> = [
+    () =>
+      mailRequest((access, mail) =>
+        fetch(proxyUrl(`mail/messages/${uid}/thread`, { folder }), {
+          headers: authHeaders(access, mail),
+        })
+      ),
+    () =>
+      mailRequest((access, mail) =>
+        fetch(proxyUrl("mail/thread", { folder, uid, messageId: seed.messageId }), {
+          headers: authHeaders(access, mail),
+        })
+      ),
+    () =>
+      mailRequest((access, mail) =>
+        fetch(
+          proxyUrl("mail/threads", {
+            folder,
+            uid,
+            messageId: seed.messageId,
+          }),
+          { headers: authHeaders(access, mail) }
+        )
+      ),
+  ];
+
+  for (const run of endpointTries) {
+    try {
+      const res = await run();
+      const parsed = await tryParseThreadResponse(res);
+      if (parsed?.length) {
+        const merged = mergeThreadMessages(seed, parsed);
+        return sortThreadOldestFirst(merged);
+      }
+    } catch {
+      /* try next */
+    }
+  }
+
+  // Fallback: search All Mail by subject and filter to same thread
+  const subjectKey = normalizeSubjectForThread(seed.subject);
+  if (subjectKey) {
+    try {
+      const page = await getMessagePage({
+        folder: ALL_MAIL_FOLDER,
+        search: subjectKey.slice(0, 80),
+        limit: 40,
+        offset: 0,
+      });
+      const related = page.messages.filter((m) => sameMailThread(seed, m));
+      if (related.length) {
+        // Hydrate a few siblings so bodies show in the thread
+        const hydrated = await hydrateThreadMessages(
+          sortThreadOldestFirst(mergeThreadMessages(seed, related)).slice(-8)
+        );
+        return sortThreadOldestFirst(mergeThreadMessages(seed, hydrated));
+      }
+    } catch {
+      /* keep seed only */
+    }
+  }
+
+  return [seed];
+}
+
+function mergeThreadMessages(
+  seed: MailMessage,
+  others: MailMessage[]
+): MailMessage[] {
+  const byKey = new Map<string, MailMessage>();
+  const keyOf = (m: MailMessage) =>
+    `${(m.sourceFolder || "").toLowerCase()}:${m.uid}` ||
+    m.messageId ||
+    `${m.date}:${m.preview.slice(0, 40)}`;
+  byKey.set(keyOf(seed), seed);
+  for (const m of others) {
+    const k = keyOf(m);
+    const prev = byKey.get(k);
+    if (!prev || (m.isHydrated && !prev.isHydrated)) byKey.set(k, m);
+  }
+  return [...byKey.values()];
+}
+
+async function hydrateThreadMessages(
+  messages: MailMessage[]
+): Promise<MailMessage[]> {
+  const out: MailMessage[] = [];
+  for (const m of messages) {
+    if (m.isHydrated && (m.bodyText || m.bodyHtml)) {
+      out.push(m);
+      continue;
+    }
+    const folder = (m.sourceFolder || "").trim();
+    if (!folder || folder === ALL_MAIL_FOLDER || m.uid <= 0) {
+      out.push(m);
+      continue;
+    }
+    try {
+      const full = await getMessage({ folder, uid: m.uid });
+      out.push({
+        ...full,
+        sourceFolder: full.sourceFolder || folder,
+      });
+    } catch {
+      out.push(m);
+    }
+  }
+  return out;
 }
 
 /** Index into attachmentDownloadCandidates that worked this session. */

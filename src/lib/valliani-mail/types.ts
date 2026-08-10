@@ -427,6 +427,55 @@ export function replySubject(subject: string): string {
   return `Re: ${clean}`;
 }
 
+/** Strip Re:/Fwd: prefixes for thread grouping. */
+export function normalizeSubjectForThread(subject: string): string {
+  let s = subject.trim();
+  for (let i = 0; i < 6; i++) {
+    const next = s.replace(/^(re|fw|fwd)\s*:\s*/i, "").trim();
+    if (next === s) break;
+    s = next;
+  }
+  return s.toLowerCase();
+}
+
+function stripMsgId(id: string): string {
+  return id.replace(/^<|>$/g, "").trim().toLowerCase();
+}
+
+function messageIdSet(m: MailMessage): Set<string> {
+  const ids = [m.messageId, m.inReplyTo, ...m.references]
+    .map(stripMsgId)
+    .filter(Boolean);
+  return new Set(ids);
+}
+
+/** True when two messages belong to the same conversation. */
+export function sameMailThread(a: MailMessage, b: MailMessage): boolean {
+  if (a.uid === b.uid) {
+    const af = (a.sourceFolder || "").toLowerCase();
+    const bf = (b.sourceFolder || "").toLowerCase();
+    if (!af || !bf || af === bf) return true;
+  }
+  const aIds = messageIdSet(a);
+  const bIds = messageIdSet(b);
+  for (const id of bIds) {
+    if (aIds.has(id)) return true;
+  }
+  const subA = normalizeSubjectForThread(a.subject);
+  const subB = normalizeSubjectForThread(b.subject);
+  return Boolean(subA && subA === subB);
+}
+
+/** Oldest → newest for thread reading pane. */
+export function sortThreadOldestFirst(messages: MailMessage[]): MailMessage[] {
+  return [...messages].sort((a, b) => {
+    const da = a.date ? new Date(a.date).getTime() : 0;
+    const db = b.date ? new Date(b.date).getTime() : 0;
+    if (da !== db) return da - db;
+    return a.uid - b.uid;
+  });
+}
+
 export function forwardSubject(subject: string): string {
   const clean = subject.trim();
   if (!clean) return "Fwd: (No subject)";

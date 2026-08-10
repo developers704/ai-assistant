@@ -19,6 +19,7 @@ import {
   getMailboxSummary,
   getMessage,
   getMessagePage,
+  getThread,
   logoutMail,
   sendMail,
   spamMessages,
@@ -35,6 +36,8 @@ import {
   isSeen,
   prettyFolderName,
   replySubject,
+  sortThreadOldestFirst,
+  type MailAddress,
   type MailAuthUser,
   type MailFolder,
   type MailMessage,
@@ -84,6 +87,7 @@ export function MailShell({
   const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<MailMessage | null>(null);
+  const [thread, setThread] = useState<MailMessage[]>([]);
   const [readingLoading, setReadingLoading] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const [compose, setCompose] = useState<ComposeDraft | null>(null);
@@ -176,6 +180,7 @@ export function MailShell({
   async function openMessage(message: MailMessage) {
     setMobileView("read");
     setSelected(message);
+    setThread([message]);
     setCompose((c) =>
       c &&
       (c.mode === "reply" || c.mode === "replyAll") &&
@@ -187,7 +192,9 @@ export function MailShell({
     setReadingLoading(true);
     try {
       const full = await getMessage({ folder, uid: message.uid });
-      setSelected({ ...full, sourceFolder: full.sourceFolder || folder });
+      const seed = { ...full, sourceFolder: full.sourceFolder || folder };
+      setSelected(seed);
+      setThread([seed]);
       if (!isSeen(message.flags)) {
         void updateMessageFlags({
           folder,
@@ -203,6 +210,12 @@ export function MailShell({
           )
         );
       }
+      // Load rest of conversation (Sent + Inbox siblings) in background
+      void getThread({ folder, seed })
+        .then((msgs) => {
+          if (msgs.length) setThread(msgs);
+        })
+        .catch(() => undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to open message");
     } finally {
@@ -295,27 +308,39 @@ export function MailShell({
   function removeFromList(uid: number) {
     setMessages((prev) => prev.filter((m) => m.uid !== uid));
     setSelected(null);
+    setThread([]);
     setMobileView("list");
+  }
+
+  function addressesFromRaw(raw: string): MailAddress[] {
+    return splitRecipients(raw).map((addr) => ({
+      name: "",
+      address: addr,
+      label: addr,
+      avatarUrl: "",
+    }));
   }
 
   function startReply(mode: "reply" | "replyAll") {
     if (!selected) return;
+    // Reply against the latest message in the open thread
+    const target = thread[thread.length - 1] ?? selected;
     const self = user.email.toLowerCase();
-    const folder = sourceFolderOf(selected, selectedFolder);
+    const folder = sourceFolderOf(target, selectedFolder);
     let to: string[] = [];
     let cc: string[] = [];
     if (mode === "reply") {
       const prefer =
-        selected.replyTo.length > 0 ? selected.replyTo : selected.from;
+        target.replyTo.length > 0 ? target.replyTo : target.from;
       to = prefer.map(addressEmail).filter(Boolean);
     } else {
       const fromAddrs = (
-        selected.replyTo.length > 0 ? selected.replyTo : selected.from
+        target.replyTo.length > 0 ? target.replyTo : target.from
       )
         .map(addressEmail)
         .filter(Boolean);
       to = fromAddrs;
-      const others = [...selected.to, ...selected.cc]
+      const others = [...target.to, ...target.cc]
         .map(addressEmail)
         .filter(
           (e) =>
@@ -325,23 +350,33 @@ export function MailShell({
         );
       cc = others;
     }
+    // IMAP replyToUid must be a real server uid — prefer original selection if optimistic
+    const replyUid = target.uid > 0 ? target.uid : selected.uid;
+    const replyFolder =
+      target.uid > 0
+        ? folder
+        : sourceFolderOf(selected, selectedFolder);
     setCompose({
       to: to.join(", "),
       cc: cc.join(", "),
       bcc: "",
-      subject: replySubject(selected.subject),
+      subject: replySubject(target.subject || selected.subject),
       body: "",
-      quote: buildReplyBody(selected).trim(),
+      quote: buildReplyBody(target).trim(),
       attachments: [],
       mode,
-      replyToUid: selected.uid,
-      replyToFolder: folder,
-      inReplyTo: selected.messageId || undefined,
-      references: selected.references.length
-        ? [...selected.references, selected.messageId].filter(Boolean)
-        : selected.messageId
-          ? [selected.messageId]
-          : undefined,
+      replyToUid: replyUid,
+      replyToFolder: replyFolder,
+      inReplyTo: target.messageId || selected.messageId || undefined,
+      references: (() => {
+        const ids = [
+          ...target.references,
+          ...selected.references,
+          target.messageId,
+          selected.messageId,
+        ].filter(Boolean);
+        return ids.length ? [...new Set(ids)] : undefined;
+      })(),
       forceModal: false,
     });
     setComposeError("");
@@ -368,9 +403,12 @@ export function MailShell({
     setComposeBusy(true);
     setComposeError("");
     try {
-      const body = [compose.body.trim(), compose.quote?.trim()]
+      const userBody = compose.body.trim();
+      const body = [userBody, compose.quote?.trim()]
         .filter(Boolean)
         .join("\n\n");
+      const wasReply =
+        compose.mode === "reply" || compose.mode === "replyAll";
       await sendMail({
         to: splitRecipients(compose.to),
         cc: splitRecipients(compose.cc),
@@ -386,6 +424,61 @@ export function MailShell({
           ? compose.attachments
           : undefined,
       });
+
+      // Show reply in this thread immediately (no need to open Sent)
+      if (wasReply && selected) {
+        const optimistic: MailMessage = {
+          uid: -Date.now(),
+          subject: compose.subject,
+          from: [
+            {
+              name: user.name || user.email,
+              address: user.email,
+              label: user.name || user.email,
+              avatarUrl: "",
+            },
+          ],
+          to: addressesFromRaw(compose.to),
+          cc: addressesFromRaw(compose.cc),
+          bcc: addressesFromRaw(compose.bcc),
+          date: new Date().toISOString(),
+          flags: ["\\Seen"],
+          preview: userBody.slice(0, 160),
+          bodyText: userBody,
+          bodyHtml: "",
+          hasHtml: false,
+          isHydrated: true,
+          attachments: compose.attachments ?? [],
+          hasAttachments: (compose.attachments?.length ?? 0) > 0,
+          avatarUrl: "",
+          sourceFolder: "Sent",
+          messageId: `local-${Date.now()}`,
+          inReplyTo: compose.inReplyTo ?? selected.messageId,
+          references: compose.references?.length
+            ? compose.references
+            : selected.messageId
+              ? [selected.messageId]
+              : [],
+          replyTo: [],
+        };
+        setThread((prev) =>
+          sortThreadOldestFirst(
+            prev.some((m) => m.uid === optimistic.uid)
+              ? prev
+              : [...prev, optimistic]
+          )
+        );
+        const seed = selected;
+        const folder = sourceFolderOf(seed, selectedFolder);
+        window.setTimeout(() => {
+          void getThread({ folder, seed })
+            .then((msgs) => {
+              if (msgs.length > 1) setThread(msgs);
+            })
+            .catch(() => undefined);
+        }, 1500);
+      }
+
       setCompose(null);
       if (
         selectedFolder.toLowerCase().includes("sent") ||
@@ -518,11 +611,13 @@ export function MailShell({
         >
           <ReadingPane
             message={selected}
+            thread={thread}
             loading={readingLoading}
             busy={actionBusy}
             onClose={() => {
               setMobileView("list");
               setSelected(null);
+              setThread([]);
             }}
             onReply={() => startReply("reply")}
             onReplyAll={() => startReply("replyAll")}
