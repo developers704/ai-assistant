@@ -817,23 +817,60 @@ export async function saveDraft(input: {
   bcc?: string[];
   subject?: string;
   body?: string;
-}): Promise<void> {
+  html?: string;
+  inReplyTo?: string;
+  references?: string[];
+  attachments?: MailAttachment[];
+}): Promise<{ uid?: number }> {
   const res = await mailRequest((access, mail) =>
     fetch(proxyUrl("mail/drafts"), {
       method: "POST",
       headers: authHeaders(access, mail),
       body: JSON.stringify({
-        ...(input.uid != null ? { uid: input.uid } : {}),
+        ...(input.uid != null && input.uid > 0 ? { uid: input.uid } : {}),
         to: (input.to ?? []).join(", "),
         ...(input.cc?.length ? { cc: input.cc.join(", ") } : {}),
         ...(input.bcc?.length ? { bcc: input.bcc.join(", ") } : {}),
         subject: input.subject ?? "",
         text: input.body ?? "",
+        ...(input.html ? { html: input.html } : {}),
+        ...(input.inReplyTo?.trim() ? { inReplyTo: input.inReplyTo } : {}),
+        ...(input.references?.length ? { references: input.references } : {}),
+        ...(input.attachments?.length
+          ? {
+              attachments: input.attachments.map((a) => {
+                const mime =
+                  a.contentType?.trim() || "application/octet-stream";
+                const b64 = a.contentBase64?.replace(/\s+/g, "") ?? "";
+                return {
+                  filename: a.filename,
+                  name: a.filename,
+                  base64: b64,
+                  contentType: mime,
+                  content_type: mime,
+                  ...(a.size != null ? { size: a.size } : {}),
+                };
+              }),
+            }
+          : {}),
       }),
     })
   );
   const text = await res.text();
   if (!res.ok) throw new Error(extractError(res.status, text));
+  try {
+    const map = JSON.parse(text) as Record<string, unknown>;
+    const nested =
+      map.data && typeof map.data === "object"
+        ? (map.data as Record<string, unknown>)
+        : map.draft && typeof map.draft === "object"
+          ? (map.draft as Record<string, unknown>)
+          : map;
+    const uid = Number(nested.uid ?? map.uid);
+    return { uid: Number.isFinite(uid) && uid > 0 ? uid : undefined };
+  } catch {
+    return {};
+  }
 }
 
 async function postBulkAction(

@@ -39,6 +39,8 @@ export type ComposeDraft = {
   references?: string[];
   /** Force modal even for reply (expand from inline). */
   forceModal?: boolean;
+  /** IMAP Drafts uid when editing / updating a saved draft. */
+  draftUid?: number;
 };
 
 export function splitRecipientList(raw: string): string[] {

@@ -37,8 +37,14 @@ Send body: to/cc/bcc comma strings, text/html, optional reply threading (`inRepl
 
 ## Wiring status (keep in mind)
 
-Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download · compose/reply attach · inline reply · thread list collapse · rich compose toolbar · AI Draft (same rules as Gmail Email) · thread view (API thread or All-Mail subject match; reply stays in thread)  
-Incomplete vs API: saveDraft unused · server forward unused · move unused · scheduled/snoozed folders not in sidebar
+Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download · compose/reply attach · inline reply · thread list collapse · rich compose toolbar · AI Draft (same rules as Gmail Email) · close compose → save Drafts · open Drafts → resume compose · thread view (API thread or All-Mail subject match; reply stays in thread)  
+Incomplete vs API: server forward unused · move unused · scheduled/snoozed folders not in sidebar
+
+## Drafts
+
+- Closing New message / Cancel / X with any To, subject, body, or attachments → `saveDraft()` (`POST mail/drafts`)
+- Inline reply trash = discard (no save)
+- Opening a message in Drafts opens the compose modal for edit (`draftUid` for update)
 
 ## AI draft + send guards (parity with `/email`)
 

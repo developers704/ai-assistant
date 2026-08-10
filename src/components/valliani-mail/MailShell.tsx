@@ -22,6 +22,7 @@ import {
   getMessagePage,
   getThread,
   logoutMail,
+  saveDraft,
   sendMail,
   spamMessages,
   updateMessageFlags,
@@ -81,6 +82,33 @@ function splitRecipients(raw: string): string[] {
 function sourceFolderOf(message: MailMessage, fallback: string): string {
   const f = (message.sourceFolder || fallback).trim();
   return f && f !== ALL_MAIL_FOLDER ? f : fallback === ALL_MAIL_FOLDER ? "INBOX" : fallback;
+}
+
+function isDraftsFolder(path: string): boolean {
+  return path.toLowerCase().includes("draft");
+}
+
+function composeHasDraftContent(c: ComposeDraft): boolean {
+  return (
+    !!c.to.trim() ||
+    !!c.cc.trim() ||
+    !!c.bcc.trim() ||
+    !!c.subject.trim() ||
+    !isComposeBodyEmpty(c.body) ||
+    (c.attachments?.length ?? 0) > 0
+  );
+}
+
+function addressesToComposeLine(addrs: MailAddress[]): string {
+  return addrs
+    .map((a) => {
+      const email = a.address.trim();
+      const name = a.name.trim();
+      if (name && email) return `${name} <${email}>`;
+      return email || name;
+    })
+    .filter(Boolean)
+    .join(", ");
 }
 
 export function MailShell({
@@ -191,17 +219,71 @@ export function MailShell({
   }
 
   async function openMessage(message: MailMessage) {
+    const folder = sourceFolderOf(message, selectedFolder);
+    // Drafts → resume in compose (not reading pane)
+    if (isDraftsFolder(folder) || isDraftsFolder(selectedFolder)) {
+      setReadingLoading(true);
+      setError("");
+      try {
+        const full = await getMessage({ folder, uid: message.uid });
+        const bodyHtml = full.bodyHtml?.trim();
+        const body = bodyHtml
+          ? bodyHtml
+          : plainToComposeHtml(full.bodyText || full.preview || "");
+        setCompose({
+          to: addressesToComposeLine(full.to),
+          cc: addressesToComposeLine(full.cc),
+          bcc: addressesToComposeLine(full.bcc),
+          subject: full.subject || "",
+          body,
+          attachments: full.attachments ?? [],
+          mode: "new",
+          forceModal: true,
+          draftUid: full.uid,
+          inReplyTo: full.inReplyTo || undefined,
+          references: full.references?.length ? full.references : undefined,
+        });
+        setComposeError("");
+        setSelected(null);
+        setThread([]);
+        setMobileView("list");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to open draft");
+      } finally {
+        setReadingLoading(false);
+      }
+      return;
+    }
+
     setMobileView("read");
     setSelected(message);
     setThread([message]);
-    setCompose((c) =>
-      c &&
-      (c.mode === "reply" || c.mode === "replyAll") &&
-      c.replyToUid !== message.uid
-        ? null
-        : c
-    );
-    const folder = sourceFolderOf(message, selectedFolder);
+    // Switching threads: park open reply in Drafts instead of losing it
+    setCompose((c) => {
+      if (
+        c &&
+        (c.mode === "reply" || c.mode === "replyAll") &&
+        c.replyToUid !== message.uid
+      ) {
+        if (composeHasDraftContent(c)) {
+          const { text, html } = buildSendBodies(c.body, c.quote);
+          void saveDraft({
+            uid: c.draftUid,
+            to: splitRecipients(c.to),
+            cc: splitRecipients(c.cc),
+            bcc: splitRecipients(c.bcc),
+            subject: c.subject.trim() || "(No subject)",
+            body: text || htmlToPlain(c.body),
+            html,
+            inReplyTo: c.inReplyTo,
+            references: c.references,
+            attachments: c.attachments?.length ? c.attachments : undefined,
+          }).catch(() => undefined);
+        }
+        return null;
+      }
+      return c;
+    });
     setReadingLoading(true);
     try {
       const full = await getMessage({ folder, uid: message.uid });
@@ -234,6 +316,42 @@ export function MailShell({
     } finally {
       setReadingLoading(false);
     }
+  }
+
+  /** Close compose: save to Drafts when there’s content (X / Cancel). */
+  function handleCloseCompose(opts?: { discard?: boolean }) {
+    const snapshot = compose;
+    if (!snapshot) return;
+    setCompose(null);
+    setComposeError("");
+    if (opts?.discard || !composeHasDraftContent(snapshot)) return;
+
+    const { text, html } = buildSendBodies(snapshot.body, snapshot.quote);
+    const plain = text || htmlToPlain(snapshot.body);
+    void saveDraft({
+      uid: snapshot.draftUid,
+      to: splitRecipients(snapshot.to),
+      cc: splitRecipients(snapshot.cc),
+      bcc: splitRecipients(snapshot.bcc),
+      subject: snapshot.subject.trim() || "(No subject)",
+      body: plain,
+      html,
+      inReplyTo: snapshot.inReplyTo,
+      references: snapshot.references,
+      attachments: snapshot.attachments?.length
+        ? snapshot.attachments
+        : undefined,
+    })
+      .then(() => {
+        if (isDraftsFolder(selectedFolder)) {
+          void loadMessages({ offset: 0 });
+        }
+      })
+      .catch((err) => {
+        setError(
+          err instanceof Error ? err.message : "Couldn’t save draft"
+        );
+      });
   }
 
   async function handleAction(action: ReadingAction) {
@@ -780,7 +898,7 @@ export function MailShell({
             }
             onReplyDraftChange={setCompose}
             onReplySend={() => void handleSend()}
-            onReplyDiscard={() => setCompose(null)}
+            onReplyDiscard={() => handleCloseCompose({ discard: true })}
             onReplyExpand={() =>
               setCompose((c) => (c ? { ...c, forceModal: true } : c))
             }
@@ -801,7 +919,7 @@ export function MailShell({
         <ComposePanel
           draft={compose}
           onChange={setCompose}
-          onClose={() => setCompose(null)}
+          onClose={() => handleCloseCompose()}
           onSend={() => void handleSend()}
           onAiDraft={() => void handleAiDraft()}
           onRewrite={(t) => void handleRewrite(t)}
