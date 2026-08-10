@@ -6,6 +6,20 @@ import { cn } from "@/lib/utils";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 
 const WEEKDAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
+const MONTHS_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
 
 function isoFromYmd(y: number, m: number, d: number): string {
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -75,6 +89,7 @@ type SalesDateRangePickerProps = {
 };
 
 type ActiveField = "from" | "to";
+type PanelMode = "days" | "months";
 
 type Cell = {
   iso: string;
@@ -83,9 +98,8 @@ type Cell = {
 };
 
 /**
- * Sales date filter — Date From / To + ERP-style month calendar.
- * Only dates present in the report are selectable. Weekends render red;
- * selected range uses blue like the POS filter calendar.
+ * Sales date filter — separate From / To calendars with ERP-style
+ * day grid + year month picker (click "August 2026" → all months).
  */
 export function SalesDateRangePicker({
   availableDates,
@@ -94,8 +108,8 @@ export function SalesDateRangePicker({
   onChange,
   className,
 }: SalesDateRangePickerProps) {
-  const [open, setOpen] = useState(false);
-  const [activeField, setActiveField] = useState<ActiveField>("from");
+  const [openField, setOpenField] = useState<ActiveField | null>(null);
+  const [panelMode, setPanelMode] = useState<PanelMode>("days");
   const [draftFrom, setDraftFrom] = useState<string | null>(value?.from ?? null);
   const [draftTo, setDraftTo] = useState<string | null>(value?.to ?? null);
   const [focusIso, setFocusIso] = useState<string | null>(value?.to ?? value?.from ?? null);
@@ -114,25 +128,30 @@ export function SalesDateRangePicker({
     return p ? { y: p.y, m: p.m } : { y: 2026, m: 8 };
   });
 
-  useEffect(() => {
-    if (!open) return;
+  function openCalendar(field: ActiveField) {
+    setOpenField(field);
+    setPanelMode("days");
     setDraftFrom(value?.from ?? null);
     setDraftTo(value?.to ?? null);
-    setActiveField("from");
-    const seed = value?.to || value?.from || sortedAvail[sortedAvail.length - 1] || reportRange?.to;
-    setFocusIso(seed ?? null);
+    const seed =
+      (field === "from" ? value?.from : value?.to) ||
+      value?.from ||
+      value?.to ||
+      sortedAvail[sortedAvail.length - 1] ||
+      reportRange?.to ||
+      null;
+    setFocusIso(seed);
     const p = seed ? parseIso(seed) : null;
     if (p) setView({ y: p.y, m: p.m });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }
 
   useEffect(() => {
-    if (!open) return;
+    if (!openField) return;
     const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      if (!rootRef.current?.contains(e.target as Node)) setOpenField(null);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") setOpenField(null);
     };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
@@ -140,7 +159,7 @@ export function SalesDateRangePicker({
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [openField]);
 
   const triggerLabel = value ? shortRange(value.from, value.to) : "All dates";
 
@@ -207,28 +226,26 @@ export function SalesDateRangePicker({
   };
 
   const pickDay = (iso: string) => {
-    if (!availableSet.has(iso)) return;
+    if (!availableSet.has(iso) || !openField) return;
     setFocusIso(iso);
 
-    if (activeField === "from") {
+    if (openField === "from") {
       setDraftFrom(iso);
-      const nextTo = draftTo && draftTo < iso ? null : draftTo;
-      if (nextTo == null) {
-        setDraftTo(iso);
-        setActiveField("to");
-        applyDraft(iso, iso);
-      } else {
-        setDraftTo(nextTo);
-        applyDraft(iso, nextTo);
-        setActiveField("to");
-      }
+      const nextTo = draftTo && draftTo < iso ? iso : draftTo ?? iso;
+      setDraftTo(nextTo);
+      applyDraft(iso, nextTo);
       return;
     }
 
-    const start = draftFrom ?? iso;
+    const start = draftFrom && draftFrom <= iso ? draftFrom : iso;
     setDraftFrom(start);
     setDraftTo(iso);
     applyDraft(start, iso);
+  };
+
+  const pickMonth = (month: number) => {
+    setView((v) => ({ y: v.y, m: month }));
+    setPanelMode("days");
   };
 
   const clear = () => {
@@ -236,42 +253,60 @@ export function SalesDateRangePicker({
     setDraftTo(null);
     setFocusIso(null);
     onChange(null);
-    setActiveField("from");
   };
+
+  const fieldIso =
+    openField === "from"
+      ? draftFrom
+      : openField === "to"
+        ? draftTo
+        : null;
 
   const headerIso =
     focusIso ||
-    (activeField === "to" ? draftTo : draftFrom) ||
+    fieldIso ||
     draftTo ||
     draftFrom ||
     sortedAvail[sortedAvail.length - 1] ||
     reportRange?.to ||
     null;
 
+  const monthsWithData = useMemo(() => {
+    const set = new Set<number>();
+    for (const iso of sortedAvail) {
+      const p = parseIso(iso);
+      if (p && p.y === view.y) set.add(p.m);
+    }
+    return set;
+  }, [sortedAvail, view.y]);
+
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (openField) setOpenField(null);
+          else openCalendar("from");
+        }}
         className={cn(
           "select-dark inline-flex h-9 items-center gap-2 px-3 rounded-xl text-sm whitespace-nowrap",
           "backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-sky-400/30 focus:border-sky-400/40"
         )}
         aria-label="Filter by date"
-        aria-expanded={open}
+        aria-expanded={openField != null}
       >
         <CalendarDays size={15} className="text-ink-muted shrink-0" />
         <span className="text-left font-medium tabular-nums">{triggerLabel}</span>
       </button>
 
-      {open && (
+      {openField != null && (
         <div
           className={cn(
             "absolute left-0 z-40 mt-2 w-[19rem] overflow-hidden rounded-xl",
             "border border-white/12 bg-[#101826] shadow-2xl ring-1 ring-white/10"
           )}
         >
-          {/* ERP header: full weekday + date */}
+          {/* ERP header: recent / selected date always on top */}
           <div className="border-b border-white/10 bg-[#152033] px-3 py-2.5">
             <p className="text-[13px] font-medium text-sky-100/90 tabular-nums">
               {headerIso ? longWeekdayDate(headerIso) : "Select a date"}
@@ -279,122 +314,200 @@ export function SalesDateRangePicker({
           </div>
 
           <div className="p-3">
-            {/* Date From / To like POS filter */}
+            {/* Separate From / To — each opens its own calendar context */}
             <div className="mb-3 space-y-2">
               <div className="grid grid-cols-[4.5rem_1fr] items-center gap-2">
                 <span className="text-[11px] text-white/55">Date From:</span>
                 <button
                   type="button"
-                  onClick={() => setActiveField("from")}
+                  onClick={() => openCalendar("from")}
                   className={cn(
                     "flex h-8 items-center justify-between rounded-md px-2 text-left text-sm tabular-nums ring-1 transition-colors",
-                    activeField === "from"
+                    openField === "from"
                       ? "bg-sky-500/20 ring-sky-400/50 text-white"
                       : "bg-white/[0.04] ring-white/12 text-white/85 hover:bg-white/[0.07]"
                   )}
                 >
                   <span>{draftFrom ? usDate(draftFrom) : "—"}</span>
-                  <CalendarDays size={13} className="text-white/40" />
+                  <CalendarDays size={13} className="text-sky-300/80" />
                 </button>
               </div>
               <div className="grid grid-cols-[4.5rem_1fr] items-center gap-2">
                 <span className="text-[11px] text-white/55">To:</span>
                 <button
                   type="button"
-                  onClick={() => setActiveField("to")}
+                  onClick={() => openCalendar("to")}
                   className={cn(
                     "flex h-8 items-center justify-between rounded-md px-2 text-left text-sm tabular-nums ring-1 transition-colors",
-                    activeField === "to"
+                    openField === "to"
                       ? "bg-sky-500/20 ring-sky-400/50 text-white"
                       : "bg-white/[0.04] ring-white/12 text-white/85 hover:bg-white/[0.07]"
                   )}
                 >
                   <span>{draftTo ? usDate(draftTo) : "—"}</span>
-                  <CalendarDays size={13} className="text-white/40" />
+                  <CalendarDays size={13} className="text-sky-300/80" />
                 </button>
               </div>
             </div>
 
-            {/* Month nav */}
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
-                onClick={() => setView((v) => addMonths(v.y, v.m, -1))}
-                aria-label="Previous month"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <p className="text-sm font-semibold text-white/90">
-                {monthLabel(view.y, view.m)}
-              </p>
-              <button
-                type="button"
-                className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
-                onClick={() => setView((v) => addMonths(v.y, v.m, 1))}
-                aria-label="Next month"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-
-            <div className="mb-0.5 grid grid-cols-7">
-              {WEEKDAYS.map((w, i) => (
-                <div
-                  key={w}
-                  className={cn(
-                    "flex h-7 items-center justify-center text-[10px] font-bold tracking-wide",
-                    i === 0 || i === 6 ? "text-red-400/90" : "text-white/40"
-                  )}
-                >
-                  {w}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-y-0.5">
-              {cells.map((cell) => {
-                const available = availableSet.has(cell.iso);
-                const selected = inSelection(cell.iso);
-                const edge = isEdge(cell.iso);
-                const weekend = (() => {
-                  const wd = weekdayUtc(cell.iso);
-                  return wd === 0 || wd === 6;
-                })();
-
-                return (
+            {panelMode === "days" ? (
+              <>
+                {/* Month nav — click label for year/month grid */}
+                <div className="mb-2 flex items-center justify-between gap-2">
                   <button
-                    key={`${cell.iso}-${cell.inMonth ? "in" : "out"}`}
                     type="button"
-                    disabled={!available}
-                    onClick={() => pickDay(cell.iso)}
-                    onMouseEnter={() => setFocusIso(cell.iso)}
-                    className={cn(
-                      "relative h-8 text-[12px] tabular-nums transition-colors",
-                      !cell.inMonth && "opacity-40",
-                      !available && "cursor-not-allowed opacity-30",
-                      available && !selected && weekend && "text-red-400",
-                      available && !selected && !weekend && "text-white/80 hover:bg-white/10",
-                      !available && weekend && cell.inMonth && "text-red-400/35",
-                      selected && !edge && "bg-sky-500/25 text-sky-50",
-                      edge && "bg-sky-500 text-white font-semibold",
-                      selected && !edge && "rounded-none",
-                      edge && cell.iso === rangeFrom && rangeFrom !== rangeTo && "rounded-l-md rounded-r-none",
-                      edge && cell.iso === rangeTo && rangeFrom !== rangeTo && "rounded-r-md rounded-l-none",
-                      edge && rangeFrom === rangeTo && "rounded-md"
-                    )}
+                    className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                    onClick={() => setView((v) => addMonths(v.y, v.m, -1))}
+                    aria-label="Previous month"
                   >
-                    {cell.day}
+                    <ChevronLeft size={16} />
                   </button>
-                );
-              })}
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => setPanelMode("months")}
+                    className="rounded-md px-2.5 py-1 text-sm font-semibold text-white/90 ring-1 ring-sky-400/35 bg-sky-500/15 hover:bg-sky-500/25"
+                    title="Show all months"
+                  >
+                    {monthLabel(view.y, view.m)}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                    onClick={() => setView((v) => addMonths(v.y, v.m, 1))}
+                    aria-label="Next month"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+
+                <div className="mb-0.5 grid grid-cols-7">
+                  {WEEKDAYS.map((w, i) => (
+                    <div
+                      key={w}
+                      className={cn(
+                        "flex h-7 items-center justify-center text-[10px] font-bold tracking-wide",
+                        i === 0 || i === 6 ? "text-red-400/90" : "text-white/40"
+                      )}
+                    >
+                      {w}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-y-0.5">
+                  {cells.map((cell) => {
+                    const available = availableSet.has(cell.iso);
+                    const selected = inSelection(cell.iso);
+                    const edge = isEdge(cell.iso);
+                    const weekend = (() => {
+                      const wd = weekdayUtc(cell.iso);
+                      return wd === 0 || wd === 6;
+                    })();
+                    const isFieldPick =
+                      openField === "from"
+                        ? cell.iso === draftFrom
+                        : cell.iso === draftTo;
+
+                    return (
+                      <button
+                        key={`${cell.iso}-${cell.inMonth ? "in" : "out"}`}
+                        type="button"
+                        disabled={!available}
+                        onClick={() => pickDay(cell.iso)}
+                        onMouseEnter={() => setFocusIso(cell.iso)}
+                        className={cn(
+                          "relative h-8 text-[12px] tabular-nums transition-colors",
+                          !cell.inMonth && "opacity-40",
+                          !available && "cursor-not-allowed opacity-30",
+                          available && !selected && weekend && "text-red-400",
+                          available &&
+                            !selected &&
+                            !weekend &&
+                            "text-white/80 hover:bg-white/10",
+                          !available && weekend && cell.inMonth && "text-red-400/35",
+                          selected && !edge && "bg-sky-500/25 text-sky-50",
+                          edge && "bg-sky-500 text-white font-semibold",
+                          selected && !edge && "rounded-none",
+                          edge &&
+                            cell.iso === rangeFrom &&
+                            rangeFrom !== rangeTo &&
+                            "rounded-l-md rounded-r-none",
+                          edge &&
+                            cell.iso === rangeTo &&
+                            rangeFrom !== rangeTo &&
+                            "rounded-r-md rounded-l-none",
+                          edge && rangeFrom === rangeTo && "rounded-md",
+                          isFieldPick && "ring-2 ring-amber-300/70 ring-inset"
+                        )}
+                      >
+                        {cell.day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Year view — all 12 months (ERP style) */}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                    onClick={() => setView((v) => ({ y: v.y - 1, m: v.m }))}
+                    aria-label="Previous year"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPanelMode("days")}
+                    className="rounded-md px-2.5 py-1 text-sm font-semibold text-white/90 ring-1 ring-sky-400/35 bg-sky-500/15 hover:bg-sky-500/25"
+                    title="Back to days"
+                  >
+                    {view.y}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                    onClick={() => setView((v) => ({ y: v.y + 1, m: v.m }))}
+                    aria-label="Next year"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5 py-1">
+                  {MONTHS_SHORT.map((label, idx) => {
+                    const month = idx + 1;
+                    const hasData = monthsWithData.has(month);
+                    const isCurrent = view.m === month;
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => pickMonth(month)}
+                        className={cn(
+                          "rounded-md py-2.5 text-[13px] font-medium transition-colors",
+                          isCurrent
+                            ? "bg-sky-500 text-white"
+                            : hasData
+                              ? "text-white/85 hover:bg-white/10"
+                              : "text-white/35 hover:bg-white/[0.06]"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             <div className="mt-3 flex justify-center border-t border-white/10 pt-2">
               <button
                 type="button"
                 onClick={clear}
-                className="min-w-[4.5rem] rounded-md px-4 py-1 text-[12px] text-white/55 hover:bg-white/10 hover:text-white/90"
+                className="min-w-[4.5rem] rounded-md px-4 py-1.5 text-[12px] font-medium text-white/80 ring-1 ring-sky-400/30 bg-sky-500/15 hover:bg-sky-500/25"
               >
                 Clear
               </button>
