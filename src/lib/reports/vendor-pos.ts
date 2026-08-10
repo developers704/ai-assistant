@@ -226,6 +226,9 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       revenue: number;
       units: number;
       margin: number;
+      department: string;
+      deptRevenue: Map<string, number>;
+      lastSaleDate: string;
       rows: VendorPosRow[];
     }
   >();
@@ -253,9 +256,22 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       revenue: 0,
       units: 0,
       margin: 0,
+      department: "",
+      deptRevenue: new Map<string, number>(),
+      lastSaleDate: "",
       rows: [],
     };
     existing.rows.push(r);
+    const dept = r.department?.trim() || "";
+    if (dept) {
+      existing.deptRevenue.set(
+        dept,
+        (existing.deptRevenue.get(dept) ?? 0) + r.netRevenue
+      );
+    }
+    if (r.date && (!existing.lastSaleDate || r.date > existing.lastSaleDate)) {
+      existing.lastSaleDate = r.date;
+    }
 
     map.set(key, {
       name: label || existing.name,
@@ -265,6 +281,9 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       revenue: existing.revenue + r.netRevenue,
       units: existing.units + salesUnitsSold(r.quantity),
       margin: existing.margin + r.margin,
+      department: existing.department,
+      deptRevenue: existing.deptRevenue,
+      lastSaleDate: existing.lastSaleDate,
       rows: existing.rows,
     });
   }
@@ -275,10 +294,20 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
   const sliced =
     limit == null || limit <= 0 ? ranked : ranked.slice(0, limit);
 
-  return sliced.map(({ rows: modelRows, ...p }) => {
+  return sliced.map(({ rows: modelRows, deptRevenue, ...p }) => {
     const skus = skuLinesForModel(modelRows);
+    let department = "";
+    let best = -Infinity;
+    for (const [d, rev] of deptRevenue) {
+      if (rev > best) {
+        best = rev;
+        department = d;
+      }
+    }
     return {
       ...p,
+      department: department || undefined,
+      lastSaleDate: p.lastSaleDate || undefined,
       skus: skus.length ? skus : undefined,
       marginRate: p.revenue > 0 ? p.margin / p.revenue : 0,
       imageUrl: resolveProductImageUrl(p.imageDir),

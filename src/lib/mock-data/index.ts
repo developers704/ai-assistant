@@ -82,7 +82,7 @@ export const mockContacts: Contact[] = [
   {
     id: "c2",
     name: "Umair",
-    role: "Director Operations",
+    role: "Pakistan Consulting Director",
     company: "Valliani Jewelers",
     phone: "+92 335 1006205",
     whatsapp: "+92 335 1006205",
@@ -132,7 +132,7 @@ export const mockContacts: Contact[] = [
   {
     id: "c7",
     name: "Rahim",
-    role: "Dubai Office",
+    role: "Rolex Specialist",
     company: "Valliani Jewelers — Dubai",
     phone: "+92 335 1006200",
     whatsapp: "+92 335 1006200",
@@ -152,7 +152,7 @@ export const mockContacts: Contact[] = [
   {
     id: "c9",
     name: "Aziz",
-    role: "India Office",
+    role: "India Lead Consultant",
     company: "Valliani Jewelers — India",
     phone: "+91 98339 90602",
     whatsapp: "+91 98339 90602",

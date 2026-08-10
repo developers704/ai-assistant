@@ -2,6 +2,7 @@ import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import { hasOnhandData, listOnhandStoresForSku, lookupOnhandQty } from "@/lib/inventory/onhand";
+import { lookupInventory } from "@/lib/inventory/store";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type {
   SalesBreakdownRow,
@@ -106,6 +107,10 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
         ...line,
         margin,
         marginRate: line.revenue > 0 ? margin / line.revenue : 0,
+        tagPrice: (() => {
+          const tag = lookupInventory(line.sku)?.item?.tagPrice;
+          return tag != null && tag > 0 ? tag : undefined;
+        })(),
         stores: stores.length ? stores : undefined,
         onHandTotal: onHandTotal ?? undefined,
       };
@@ -258,6 +263,29 @@ export function groupRows(
     const unitsSold = s.unitsSold ?? 0;
     const inventory =
       by === "vendor_model" ? rollupModelInventory(v.rows) : null;
+
+    let department: string | undefined;
+    let lastSaleDate: string | undefined;
+    if (by === "vendor_model") {
+      const deptRevenue = new Map<string, number>();
+      for (const r of v.rows) {
+        const dept = r.department?.trim();
+        if (dept) {
+          deptRevenue.set(dept, (deptRevenue.get(dept) ?? 0) + r.netRevenue);
+        }
+        if (r.date && (!lastSaleDate || r.date > lastSaleDate)) {
+          lastSaleDate = r.date;
+        }
+      }
+      let best = -Infinity;
+      for (const [d, rev] of deptRevenue) {
+        if (rev > best) {
+          best = rev;
+          department = d;
+        }
+      }
+    }
+
     return {
       name,
       netSales: s.netSales ?? 0,
@@ -272,6 +300,8 @@ export function groupRows(
       sku: v.sku,
       vendorModel: v.vendorModel,
       description: v.description,
+      department,
+      lastSaleDate,
       ...(inventory
         ? {
             onHandTotal: inventory.onHandTotal ?? undefined,

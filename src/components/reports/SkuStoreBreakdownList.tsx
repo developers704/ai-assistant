@@ -14,6 +14,8 @@ export type SkuBreakdownRow = {
   sku: string;
   units: number;
   onHandTotal?: number;
+  /** Inventory tag price when available. */
+  tagPrice?: number;
   stores?: SkuStoreBreakdownLine[];
 };
 
@@ -25,16 +27,29 @@ function formatOnhand(n: number): string {
 export function SkuStoreBreakdownList({
   lines,
   className,
+  openSku: openSkuProp,
+  onOpenSkuChange,
 }: {
   lines: SkuBreakdownRow[];
   className?: string;
+  /** Controlled expanded SKU (e.g. open first SKU from product title click). */
+  openSku?: string | null;
+  onOpenSkuChange?: (sku: string | null) => void;
 }) {
-  const [openSku, setOpenSku] = useState<string | null>(null);
+  const [internalOpen, setInternalOpen] = useState<string | null>(null);
+  const controlled = openSkuProp !== undefined;
+  const openSku = controlled ? openSkuProp ?? null : internalOpen;
+  const setOpenSku = (next: string | null | ((cur: string | null) => string | null)) => {
+    const resolved =
+      typeof next === "function" ? next(controlled ? openSkuProp ?? null : internalOpen) : next;
+    if (!controlled) setInternalOpen(resolved);
+    onOpenSkuChange?.(resolved);
+  };
 
   if (!lines.length) return null;
 
   return (
-    <ul className={cn("mt-2 space-y-1.5", className)}>
+    <ul className={cn("mt-2 space-y-1.5", className)} data-sku-detail>
       {lines.map((line) => {
         const expanded = openSku === line.sku;
         const storeCount = line.stores?.length ?? 0;
@@ -78,6 +93,15 @@ export function SkuStoreBreakdownList({
                 </span>
               </span>
               <span className="tabular-nums text-[11px] font-medium">
+                {typeof line.tagPrice === "number" && line.tagPrice > 0 && (
+                  <span className="text-white/45 font-normal">
+                    tag $
+                    {line.tagPrice.toLocaleString("en-US", {
+                      maximumFractionDigits: 0,
+                    })}
+                    {" · "}
+                  </span>
+                )}
                 <span className="text-emerald-300/75">
                   {formatPieceCount(line.units)} sold
                 </span>

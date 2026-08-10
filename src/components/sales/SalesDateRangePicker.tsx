@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const WEEKDAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
 
 function isoFromYmd(y: number, m: number, d: number): string {
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -34,16 +34,31 @@ function monthLabel(y: number, m: number): string {
   });
 }
 
-/** Compact label for the filter chip — avoids weekday noise / truncation. */
-function shortDate(iso: string): string {
+/** ERP-style header: "Monday, August 10, 2026" */
+function longWeekdayDate(iso: string): string {
   if (!isValidIsoDate(iso)) return iso;
-  const [, m, d] = iso.split("-");
-  const y = iso.slice(2, 4);
+  return new Date(`${iso}T12:00:00.000Z`).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** POS / ERP short date: 8/9/2026 */
+function usDate(iso: string): string {
+  if (!isValidIsoDate(iso)) return iso;
+  const [y, m, d] = iso.split("-");
   return `${Number(m)}/${Number(d)}/${y}`;
 }
 
 function shortRange(from: string, to: string): string {
-  return from === to ? shortDate(from) : `${shortDate(from)} – ${shortDate(to)}`;
+  return from === to ? usDate(from) : `${usDate(from)} – ${usDate(to)}`;
+}
+
+function weekdayUtc(iso: string): number {
+  return new Date(`${iso}T12:00:00.000Z`).getUTCDay(); // 0=Sun … 6=Sat
 }
 
 export type SalesDateRangeValue = {
@@ -61,9 +76,16 @@ type SalesDateRangePickerProps = {
 
 type ActiveField = "from" | "to";
 
+type Cell = {
+  iso: string;
+  day: number;
+  inMonth: boolean;
+};
+
 /**
- * Sales date filter — explicit From / To fields + calendar.
- * Only dates present in the report are selectable.
+ * Sales date filter — Date From / To + ERP-style month calendar.
+ * Only dates present in the report are selectable. Weekends render red;
+ * selected range uses blue like the POS filter calendar.
  */
 export function SalesDateRangePicker({
   availableDates,
@@ -76,6 +98,7 @@ export function SalesDateRangePicker({
   const [activeField, setActiveField] = useState<ActiveField>("from");
   const [draftFrom, setDraftFrom] = useState<string | null>(value?.from ?? null);
   const [draftTo, setDraftTo] = useState<string | null>(value?.to ?? null);
+  const [focusIso, setFocusIso] = useState<string | null>(value?.to ?? value?.from ?? null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const availableSet = useMemo(
@@ -84,28 +107,22 @@ export function SalesDateRangePicker({
   );
   const sortedAvail = useMemo(() => [...availableSet].sort(), [availableSet]);
 
-  const initialMonth = useMemo(() => {
+  const [view, setView] = useState(() => {
     const seed =
-      (activeField === "to" ? draftTo : draftFrom) ||
-      value?.from ||
-      sortedAvail[sortedAvail.length - 1] ||
-      reportRange?.to;
+      value?.from || sortedAvail[sortedAvail.length - 1] || reportRange?.to;
     const p = seed ? parseIso(seed) : null;
-    if (p) return { y: p.y, m: p.m };
-    return { y: 2026, m: 7 };
-  }, [activeField, draftFrom, draftTo, value?.from, sortedAvail, reportRange?.to]);
-
-  const [view, setView] = useState(initialMonth);
+    return p ? { y: p.y, m: p.m } : { y: 2026, m: 8 };
+  });
 
   useEffect(() => {
     if (!open) return;
     setDraftFrom(value?.from ?? null);
     setDraftTo(value?.to ?? null);
     setActiveField("from");
-    const seed = value?.from || sortedAvail[sortedAvail.length - 1] || reportRange?.to;
+    const seed = value?.to || value?.from || sortedAvail[sortedAvail.length - 1] || reportRange?.to;
+    setFocusIso(seed ?? null);
     const p = seed ? parseIso(seed) : null;
     if (p) setView({ y: p.y, m: p.m });
-    // Only when the popover opens — don't reset while picking days.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -125,20 +142,29 @@ export function SalesDateRangePicker({
     };
   }, [open]);
 
-  const triggerLabel = value
-    ? shortRange(value.from, value.to)
-    : "All dates";
+  const triggerLabel = value ? shortRange(value.from, value.to) : "All dates";
 
   const cells = useMemo(() => {
     const first = new Date(Date.UTC(view.y, view.m - 1, 1));
     const startPad = first.getUTCDay();
     const dim = daysInMonth(view.y, view.m);
-    const out: Array<{ iso: string | null; day: number | null }> = [];
-    for (let i = 0; i < startPad; i++) out.push({ iso: null, day: null });
-    for (let d = 1; d <= dim; d++) {
-      out.push({ iso: isoFromYmd(view.y, view.m, d), day: d });
+    const prev = addMonths(view.y, view.m, -1);
+    const prevDim = daysInMonth(prev.y, prev.m);
+    const next = addMonths(view.y, view.m, 1);
+
+    const out: Cell[] = [];
+    for (let i = startPad - 1; i >= 0; i--) {
+      const d = prevDim - i;
+      out.push({ iso: isoFromYmd(prev.y, prev.m, d), day: d, inMonth: false });
     }
-    while (out.length % 7 !== 0) out.push({ iso: null, day: null });
+    for (let d = 1; d <= dim; d++) {
+      out.push({ iso: isoFromYmd(view.y, view.m, d), day: d, inMonth: true });
+    }
+    let n = 1;
+    while (out.length % 7 !== 0) {
+      out.push({ iso: isoFromYmd(next.y, next.m, n), day: n, inMonth: false });
+      n++;
+    }
     return out;
   }, [view]);
 
@@ -157,11 +183,8 @@ export function SalesDateRangePicker({
         : previewFrom
       : previewTo;
 
-  const inSelection = (iso: string) => {
-    if (!rangeFrom || !rangeTo) return false;
-    return iso >= rangeFrom && iso <= rangeTo;
-  };
-
+  const inSelection = (iso: string) =>
+    Boolean(rangeFrom && rangeTo && iso >= rangeFrom && iso <= rangeTo);
   const isEdge = (iso: string) =>
     Boolean(rangeFrom && rangeTo && (iso === rangeFrom || iso === rangeTo));
 
@@ -179,18 +202,16 @@ export function SalesDateRangePicker({
       return;
     }
     if (from && to) {
-      onChange(
-        from <= to ? { from, to } : { from: to, to: from }
-      );
+      onChange(from <= to ? { from, to } : { from: to, to: from });
     }
   };
 
   const pickDay = (iso: string) => {
     if (!availableSet.has(iso)) return;
+    setFocusIso(iso);
 
     if (activeField === "from") {
       setDraftFrom(iso);
-      // If end is before new start, clear end so user sets To next
       const nextTo = draftTo && draftTo < iso ? null : draftTo;
       if (nextTo == null) {
         setDraftTo(iso);
@@ -204,7 +225,6 @@ export function SalesDateRangePicker({
       return;
     }
 
-    // Setting "to"
     const start = draftFrom ?? iso;
     setDraftFrom(start);
     setDraftTo(iso);
@@ -214,10 +234,19 @@ export function SalesDateRangePicker({
   const clear = () => {
     setDraftFrom(null);
     setDraftTo(null);
+    setFocusIso(null);
     onChange(null);
     setActiveField("from");
-    setOpen(false);
   };
+
+  const headerIso =
+    focusIso ||
+    (activeField === "to" ? draftTo : draftFrom) ||
+    draftTo ||
+    draftFrom ||
+    sortedAvail[sortedAvail.length - 1] ||
+    reportRange?.to ||
+    null;
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
@@ -226,7 +255,7 @@ export function SalesDateRangePicker({
         onClick={() => setOpen((o) => !o)}
         className={cn(
           "select-dark inline-flex h-9 items-center gap-2 px-3 rounded-xl text-sm whitespace-nowrap",
-          "backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400/40"
+          "backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-sky-400/30 focus:border-sky-400/40"
         )}
         aria-label="Filter by date"
         aria-expanded={open}
@@ -236,129 +265,140 @@ export function SalesDateRangePicker({
       </button>
 
       {open && (
-        <div className="absolute left-0 z-40 mt-2 w-[18.5rem] rounded-2xl border border-white/12 bg-[#121a28] p-3 shadow-2xl ring-1 ring-white/10">
-          {/* Explicit From / To */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <button
-              type="button"
-              onClick={() => setActiveField("from")}
-              className={cn(
-                "rounded-xl px-2.5 py-2 text-left ring-1 transition-colors",
-                activeField === "from"
-                  ? "bg-amber-500/20 ring-amber-400/50"
-                  : "bg-white/[0.03] ring-white/10 hover:bg-white/[0.06]"
-              )}
-            >
-              <p className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
-                From
-              </p>
-              <p className="text-sm tabular-nums text-white/90 mt-0.5">
-                {draftFrom ? shortDate(draftFrom) : "Pick start"}
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveField("to")}
-              className={cn(
-                "rounded-xl px-2.5 py-2 text-left ring-1 transition-colors",
-                activeField === "to"
-                  ? "bg-amber-500/20 ring-amber-400/50"
-                  : "bg-white/[0.03] ring-white/10 hover:bg-white/[0.06]"
-              )}
-            >
-              <p className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
-                To
-              </p>
-              <p className="text-sm tabular-nums text-white/90 mt-0.5">
-                {draftTo ? shortDate(draftTo) : "Pick end"}
-              </p>
-            </button>
+        <div
+          className={cn(
+            "absolute left-0 z-40 mt-2 w-[19rem] overflow-hidden rounded-xl",
+            "border border-white/12 bg-[#101826] shadow-2xl ring-1 ring-white/10"
+          )}
+        >
+          {/* ERP header: full weekday + date */}
+          <div className="border-b border-white/10 bg-[#152033] px-3 py-2.5">
+            <p className="text-[13px] font-medium text-sky-100/90 tabular-nums">
+              {headerIso ? longWeekdayDate(headerIso) : "Select a date"}
+            </p>
           </div>
 
-          <p className="text-[10px] text-white/45 mb-2 px-0.5">
-            {activeField === "from"
-              ? "Select a start date on the calendar."
-              : "Select an end date on the calendar."}
-            {reportRange
-              ? ` Report covers ${shortRange(reportRange.from, reportRange.to)}.`
-              : ""}
-          </p>
-
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <button
-              type="button"
-              className="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white"
-              onClick={() => setView((v) => addMonths(v.y, v.m, -1))}
-              aria-label="Previous month"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <p className="text-sm font-semibold text-white/90">{monthLabel(view.y, view.m)}</p>
-            <button
-              type="button"
-              className="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white"
-              onClick={() => setView((v) => addMonths(v.y, v.m, 1))}
-              aria-label="Next month"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-7 gap-0.5 mb-1">
-            {WEEKDAYS.map((w) => (
-              <div
-                key={w}
-                className="h-7 flex items-center justify-center text-[10px] font-semibold uppercase text-white/35"
-              >
-                {w}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-0.5">
-            {cells.map((cell, i) => {
-              if (!cell.iso || cell.day == null) {
-                return <div key={`e-${i}`} className="h-8" />;
-              }
-              const available = availableSet.has(cell.iso);
-              const selected = inSelection(cell.iso);
-              const edge = Boolean(isEdge(cell.iso));
-              return (
+          <div className="p-3">
+            {/* Date From / To like POS filter */}
+            <div className="mb-3 space-y-2">
+              <div className="grid grid-cols-[4.5rem_1fr] items-center gap-2">
+                <span className="text-[11px] text-white/55">Date From:</span>
                 <button
-                  key={cell.iso}
                   type="button"
-                  disabled={!available}
-                  onClick={() => pickDay(cell.iso!)}
+                  onClick={() => setActiveField("from")}
                   className={cn(
-                    "h-8 rounded-lg text-xs tabular-nums transition-colors",
-                    !available && "text-white/18 cursor-not-allowed",
-                    available && !selected && "text-white/75 hover:bg-white/10",
-                    selected && !edge && "bg-amber-500/20 text-amber-100",
-                    edge && "bg-amber-500/45 text-white font-semibold ring-1 ring-amber-300/40"
+                    "flex h-8 items-center justify-between rounded-md px-2 text-left text-sm tabular-nums ring-1 transition-colors",
+                    activeField === "from"
+                      ? "bg-sky-500/20 ring-sky-400/50 text-white"
+                      : "bg-white/[0.04] ring-white/12 text-white/85 hover:bg-white/[0.07]"
                   )}
                 >
-                  {cell.day}
+                  <span>{draftFrom ? usDate(draftFrom) : "—"}</span>
+                  <CalendarDays size={13} className="text-white/40" />
                 </button>
-              );
-            })}
-          </div>
+              </div>
+              <div className="grid grid-cols-[4.5rem_1fr] items-center gap-2">
+                <span className="text-[11px] text-white/55">To:</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveField("to")}
+                  className={cn(
+                    "flex h-8 items-center justify-between rounded-md px-2 text-left text-sm tabular-nums ring-1 transition-colors",
+                    activeField === "to"
+                      ? "bg-sky-500/20 ring-sky-400/50 text-white"
+                      : "bg-white/[0.04] ring-white/12 text-white/85 hover:bg-white/[0.07]"
+                  )}
+                >
+                  <span>{draftTo ? usDate(draftTo) : "—"}</span>
+                  <CalendarDays size={13} className="text-white/40" />
+                </button>
+              </div>
+            </div>
 
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/10 pt-2">
-            <button
-              type="button"
-              onClick={clear}
-              className="inline-flex items-center gap-1 text-[11px] text-white/45 hover:text-white/80"
-            >
-              <X size={12} />
-              Clear
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-lg bg-amber-500/25 px-3 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/35 ring-1 ring-amber-400/30"
-            >
-              Done
-            </button>
+            {/* Month nav */}
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                onClick={() => setView((v) => addMonths(v.y, v.m, -1))}
+                aria-label="Previous month"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <p className="text-sm font-semibold text-white/90">
+                {monthLabel(view.y, view.m)}
+              </p>
+              <button
+                type="button"
+                className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                onClick={() => setView((v) => addMonths(v.y, v.m, 1))}
+                aria-label="Next month"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <div className="mb-0.5 grid grid-cols-7">
+              {WEEKDAYS.map((w, i) => (
+                <div
+                  key={w}
+                  className={cn(
+                    "flex h-7 items-center justify-center text-[10px] font-bold tracking-wide",
+                    i === 0 || i === 6 ? "text-red-400/90" : "text-white/40"
+                  )}
+                >
+                  {w}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-y-0.5">
+              {cells.map((cell) => {
+                const available = availableSet.has(cell.iso);
+                const selected = inSelection(cell.iso);
+                const edge = isEdge(cell.iso);
+                const weekend = (() => {
+                  const wd = weekdayUtc(cell.iso);
+                  return wd === 0 || wd === 6;
+                })();
+
+                return (
+                  <button
+                    key={`${cell.iso}-${cell.inMonth ? "in" : "out"}`}
+                    type="button"
+                    disabled={!available}
+                    onClick={() => pickDay(cell.iso)}
+                    onMouseEnter={() => setFocusIso(cell.iso)}
+                    className={cn(
+                      "relative h-8 text-[12px] tabular-nums transition-colors",
+                      !cell.inMonth && "opacity-40",
+                      !available && "cursor-not-allowed opacity-30",
+                      available && !selected && weekend && "text-red-400",
+                      available && !selected && !weekend && "text-white/80 hover:bg-white/10",
+                      !available && weekend && cell.inMonth && "text-red-400/35",
+                      selected && !edge && "bg-sky-500/25 text-sky-50",
+                      edge && "bg-sky-500 text-white font-semibold",
+                      selected && !edge && "rounded-none",
+                      edge && cell.iso === rangeFrom && rangeFrom !== rangeTo && "rounded-l-md rounded-r-none",
+                      edge && cell.iso === rangeTo && rangeFrom !== rangeTo && "rounded-r-md rounded-l-none",
+                      edge && rangeFrom === rangeTo && "rounded-md"
+                    )}
+                  >
+                    {cell.day}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-3 flex justify-center border-t border-white/10 pt-2">
+              <button
+                type="button"
+                onClick={clear}
+                className="min-w-[4.5rem] rounded-md px-4 py-1 text-[12px] text-white/55 hover:bg-white/10 hover:text-white/90"
+              >
+                Clear
+              </button>
+            </div>
           </div>
         </div>
       )}

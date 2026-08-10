@@ -413,6 +413,9 @@ export default function SalesPage() {
   }
 
   const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts));
+  const multiDayRange = Boolean(
+    dateRange && dateRange.from && dateRange.to && dateRange.from !== dateRange.to
+  );
 
   const isFinancingReport =
     reportSummary?.schema === "financing" || reportSummary?.reportCategory === "financing";
@@ -755,12 +758,13 @@ export default function SalesPage() {
                 <span className="text-xs text-ink-muted">
                   {isFinancingReport
                     ? "By net sales amount"
-                    : `Top ${topProducts.length} by qty · click row for trend · expand SKU for stores`}
+                    : `Top ${topProducts.length} · sort Qty / Revenue / Margin / Dept${multiDayRange ? " / Date" : ""} · expand SKU for tag price & stores`}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">
                 <TopProductsTable
                   products={topProducts}
+                  showDateSort={multiDayRange}
                   onVendorModelDetail={(p) =>
                     setVendorModelDetail({
                       vendorModel: p.vendorModel || p.itemNumber || p.name,

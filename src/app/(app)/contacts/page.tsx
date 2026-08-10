@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { PageShell, PageShellHeader } from "@/components/layout/PageShell";
@@ -17,7 +17,7 @@ import {
   openWhatsAppChat,
 } from "@/lib/contact-links";
 import type { Contact } from "@/types";
-import { Mail, Phone, MessageCircle, Star, Users, ChevronLeft } from "lucide-react";
+import { Mail, Phone, MessageCircle, Star, Users, ChevronLeft, Search } from "lucide-react";
 
 const MOBILE_HEIGHT =
   "max-lg:h-[calc(100dvh-5.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-4rem)]";
@@ -26,6 +26,7 @@ export default function ContactsPage() {
   const { state, sendChat } = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [actionHint, setActionHint] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     void syncUiSelection({
@@ -33,9 +34,22 @@ export default function ContactsPage() {
     });
   }, [selectedId]);
 
+  const filteredContacts = useMemo(() => {
+    const list = state?.contacts ?? [];
+    const q = search.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((c) =>
+      [c.name, c.role, c.company, c.email, c.phone, c.whatsapp, c.notes]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q))
+    );
+  }, [state?.contacts, search]);
+
   if (!state) return null;
 
-  const selected = state.contacts.find((c) => c.id === selectedId);
+  const selected =
+    state.contacts.find((c) => c.id === selectedId) ??
+    filteredContacts.find((c) => c.id === selectedId);
   const mobileDetail = !!selectedId;
   const googleConnected = state.integrations?.google?.connected ?? false;
   const contactsSynced = state.integrations?.google?.contactsSynced;
@@ -239,7 +253,33 @@ export default function ContactsPage() {
               )}
             >
               <div className="flex-1 overflow-y-auto overscroll-y-contain p-3 sm:p-4 space-y-2 min-h-0 pb-2">
-                {state.contacts.map((contact) => {
+                <div className="sticky top-0 z-[1] -mx-1 px-1 pb-2 bg-[rgba(10,14,22,0.92)] backdrop-blur-md">
+                  <label className="relative block">
+                    <Search
+                      size={14}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35"
+                    />
+                    <input
+                      type="search"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search name, role, email, phone…"
+                      className="select-dark w-full h-9 rounded-xl pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      aria-label="Search contacts"
+                    />
+                  </label>
+                  {search.trim() && (
+                    <p className="mt-1.5 text-[11px] text-white/35 px-0.5">
+                      {filteredContacts.length} of {state.contacts.length} contacts
+                    </p>
+                  )}
+                </div>
+                {filteredContacts.length === 0 ? (
+                  <p className="text-sm text-ink-muted text-center py-8 px-2">
+                    No contacts match “{search.trim()}”.
+                  </p>
+                ) : (
+                  filteredContacts.map((contact) => {
                   const active = selectedId === contact.id;
                   return (
                     <button
@@ -267,7 +307,8 @@ export default function ContactsPage() {
                       </div>
                     </button>
                   );
-                })}
+                })
+                )}
               </div>
             </aside>
 

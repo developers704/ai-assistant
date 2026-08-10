@@ -485,10 +485,29 @@ export function calculateFinancedPrice(
   };
 }
 
+export type CommissionMode = "regular" | "goal";
+
+export const COMMISSION_RATES: Record<CommissionMode, number> = {
+  regular: 4.25,
+  goal: 8.5,
+};
+
+export const COMMISSION_MODE_LABELS: Record<CommissionMode, string> = {
+  regular: "Regular commission — 4.25%",
+  goal: "Goal commission — 8.5%",
+};
+
+/** Full final = financed/cash price + selected commission %. */
 export function calculateGrandTotal(
   financedPrice: number,
-  commission: number,
-  commissionPlus: number
+  commissionPercent: number
 ): number {
-  return financedPrice + commission + commissionPlus;
+  return financedPrice * (1 + commissionPercent / 100);
+}
+
+export function commissionDollars(
+  financedPrice: number,
+  commissionPercent: number
+): number {
+  return financedPrice * (commissionPercent / 100);
 }

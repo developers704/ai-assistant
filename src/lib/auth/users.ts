@@ -103,7 +103,7 @@ const USERS: AuthUserRecord[] = [
       "$2b$10$OBpALP1RdZwVEQxVzl61JevYdrYcaDp521ZWmMndRQzJP4tvqRa7W", // Rozy-Valliani
     role: "dm",
     storeCodes: [...ROZINA_STORES],
-    title: "District Manager",
+    title: "",
   },
   {
     username: "ross",

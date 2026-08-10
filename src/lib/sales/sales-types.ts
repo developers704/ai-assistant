@@ -171,6 +171,8 @@ export interface VendorModelSkuLine {
   margin?: number;
   /** Profit margin = margin / revenue (0–1) */
   marginRate?: number;
+  /** Inventory tag price when SKU is in the on-hand file. */
+  tagPrice?: number;
   /** Per-store units sold for this SKU under the parent model / filter slice */
   stores?: VendorModelSkuStoreLine[];
   /** On-hand total across stores for this SKU. */
@@ -194,6 +196,10 @@ export interface SalesBreakdownRow {
   sku?: string;
   vendorModel?: string;
   description?: string;
+  /** Dominant department for this vendor model (by revenue). */
+  department?: string;
+  /** Latest sale date (ISO) in the filtered window. */
+  lastSaleDate?: string;
   /** Distinct SKUs sold under this vendor model (Top Vendor Models). */
   skus?: VendorModelSkuLine[];
   /** Chain on-hand total for SKUs under this vendor model. */

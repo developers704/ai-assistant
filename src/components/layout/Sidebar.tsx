@@ -174,7 +174,11 @@ export function Sidebar() {
             <div className="flex-1 min-w-0 pr-1">
               <p className="text-sm font-medium text-ink leading-tight">{state?.user?.name || "Kash"}</p>
               <p className="text-[10.5px] text-ink-muted leading-snug mt-1">
-                {state?.user?.role || "Founder & President"}
+                {state?.user?.role?.trim()
+                  ? state.user.role
+                  : state?.user?.username === "rozina"
+                    ? null
+                    : "Founder & President"}
               </p>
             </div>
             <button
@@ -270,7 +274,11 @@ export function MobileNav() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ink leading-tight">{state?.user?.name || "Kash"}</p>
                 <p className="text-[10.5px] text-ink-muted leading-snug mt-1">
-                  {state?.user?.role || "Founder & President"}
+                  {state?.user?.role?.trim()
+                    ? state.user.role
+                    : state?.user?.username === "rozina"
+                      ? null
+                      : "Founder & President"}
                 </p>
               </div>
               <button onClick={logout} className="text-ink-muted hover:text-rose-300" title="Logout">
