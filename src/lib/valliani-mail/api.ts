@@ -632,21 +632,38 @@ export async function sendMail(input: {
         attachmentSharing: { expiresIn: "never" },
         ...(input.attachments?.length
           ? {
-              attachments: input.attachments.map((a) => ({
-                filename: a.filename,
-                ...(a.contentBase64
-                  ? { base64: a.contentBase64, content: a.contentBase64 }
-                  : {}),
-                ...(a.contentType ? { contentType: a.contentType } : {}),
-                ...(a.size != null ? { size: a.size } : {}),
-              })),
+              // API expects one base64 field — do not send content+base64 (doubles payload → 500)
+              attachments: input.attachments.map((a) => {
+                const mime =
+                  a.contentType?.trim() || "application/octet-stream";
+                const b64 = a.contentBase64?.replace(/\s+/g, "") ?? "";
+                return {
+                  filename: a.filename,
+                  name: a.filename,
+                  base64: b64,
+                  contentType: mime,
+                  content_type: mime,
+                  ...(a.size != null ? { size: a.size } : {}),
+                };
+              }),
             }
           : {}),
       }),
     })
   );
   const text = await res.text();
-  if (!res.ok) throw new Error(extractError(res.status, text));
+  if (!res.ok) {
+    const msg = extractError(res.status, text);
+    if (
+      input.attachments?.length &&
+      (res.status >= 500 || /internal server error/i.test(msg))
+    ) {
+      throw new Error(
+        `${msg} — try fewer/smaller attachments (under ~5 MB total).`
+      );
+    }
+    throw new Error(msg);
+  }
 }
 
 export async function saveDraft(input: {

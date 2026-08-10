@@ -99,9 +99,10 @@ export function formatAttachmentBytes(size?: number): string {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export const MAX_COMPOSE_ATTACHMENT_BYTES = 8 * 1024 * 1024;
-export const MAX_COMPOSE_ATTACHMENTS = 8;
-export const MAX_COMPOSE_TOTAL_BYTES = 20 * 1024 * 1024;
+/** Soft caps — JSON+base64 inflates ~33%; mail API 500s on oversized send bodies. */
+export const MAX_COMPOSE_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+export const MAX_COMPOSE_ATTACHMENTS = 5;
+export const MAX_COMPOSE_TOTAL_BYTES = 8 * 1024 * 1024;
 
 async function fileToBase64(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
@@ -135,13 +136,13 @@ export async function filesToMailAttachments(
     if (file.size > MAX_COMPOSE_ATTACHMENT_BYTES) {
       return {
         attachments: next,
-        error: `${file.name} is over 8 MB.`,
+        error: `${file.name} is over 5 MB.`,
       };
     }
     if (total + file.size > MAX_COMPOSE_TOTAL_BYTES) {
       return {
         attachments: next,
-        error: "Attachments total over 20 MB.",
+        error: "Attachments total over 8 MB (mail server limit).",
       };
     }
     const contentBase64 = await fileToBase64(file);

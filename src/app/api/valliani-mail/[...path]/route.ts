@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const maxDuration = 120;
+
 const DEFAULT_BASE = "https://mail-api.valliani.app/api";
 
 function baseUrl(): string {
