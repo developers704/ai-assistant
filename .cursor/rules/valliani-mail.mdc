@@ -27,7 +27,8 @@ alwaysApply: false
 - IMAP **uid** + folder path (not Gmail thread id)
 - Type `MailMessage`: from/to/cc/bcc (`MailAddress`), subject, date, flags, preview, bodyText/bodyHtml, attachments, messageId, inReplyTo, references
 - List page: `MailMessagePage` (messages, total, offset, limit, hasMore)
-- Synthetic folders: `__all__` (All Mail), `__starred__` (Favorites), `__scheduled__` → `mail/scheduled`, `__snoozed__` → `mail/snoozed`
+- Synthetic folders: `__all__` (All Mail → `mail/all`), `__starred__` (Favorites → `mail/starred`)
+- Scheduled = real IMAP folder via `mail/messages?folder=Scheduled` (no `/mail/scheduled` on mail-api)
 
 ## Client API (`src/lib/valliani-mail/api.ts`)
 
@@ -37,8 +38,8 @@ Send body: to/cc/bcc comma strings, text/html, optional reply threading (`inRepl
 
 ## Wiring status (keep in mind)
 
-Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download · compose/reply attach · inline reply · thread list collapse · rich compose toolbar · AI Draft (same rules as Gmail Email) · close compose → save Drafts · open Drafts → resume compose · thread view (API thread or All-Mail subject match; reply stays in thread) · Scheduled (`mail/scheduled`) · Favorites (`mail/starred`) · All Mail (`mail/all`)  
-Incomplete vs API: server forward unused · move unused · compose “send later” / snooze-message actions · Snoozed hidden (`SHOW_SNOOZED_FOLDER` in `api.ts`; `mail/snoozed` still wired)
+Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash · attachment preview/download · compose/reply attach · inline reply · thread list collapse · rich compose toolbar · AI Draft (same rules as Gmail Email) · close compose → save Drafts · open Drafts → resume compose · thread view · Scheduled (IMAP folder) · Favorites (`mail/starred`) · All Mail (`mail/all`)  
+Incomplete vs API: server forward unused · move unused · compose “send later” · Snoozed hidden from sidebar
 
 ## Drafts
 

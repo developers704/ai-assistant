@@ -21,7 +21,6 @@ import {
   parseMailMessage,
   parseMailSummary,
   dedupeThreadMessages,
-  isScheduledFolder,
   isSnoozedFolder,
   sameMailThread,
   sortFolders,
@@ -252,34 +251,15 @@ function isServerVirtualFolder(folder: MailFolder): boolean {
   if (path === STARRED_FOLDER || name === "favorites" || name === "starred") {
     return true;
   }
-  if (isScheduledFolder(path) || isScheduledFolder(name)) return true;
+  // Snoozed hidden for now (no dedicated UI). Keep real IMAP Scheduled.
   if (isSnoozedFolder(path) || isSnoozedFolder(name)) return true;
   return false;
 }
-
-/** Set true to show Snoozed in the sidebar again (`mail/snoozed` is already wired). */
-const SHOW_SNOOZED_FOLDER = false;
 
 export function withAllMailFolder(folders: MailFolder[]): MailFolder[] {
   const filtered = folders.filter((folder) => !isServerVirtualFolder(folder));
   return sortFolders([
     ...filtered,
-    {
-      path: SCHEDULED_FOLDER,
-      name: "Scheduled",
-      listed: true,
-      subscribed: false,
-    },
-    ...(SHOW_SNOOZED_FOLDER
-      ? [
-          {
-            path: SNOOZED_FOLDER,
-            name: "Snoozed",
-            listed: true,
-            subscribed: false,
-          } satisfies MailFolder,
-        ]
-      : []),
     {
       path: ALL_MAIL_FOLDER,
       name: "All Mail",
@@ -334,36 +314,22 @@ export async function getMessagePage(input: {
     };
   }
 
-  if (folder === SCHEDULED_FOLDER || isScheduledFolder(folder)) {
-    const messages = await getSpecialFolderMessages("mail/scheduled", limit);
-    return {
-      messages,
-      total: messages.length,
-      offset: 0,
-      limit,
-      hasMore: false,
-    };
-  }
+  // mail-api has no /mail/scheduled or /mail/snoozed — use IMAP folder paths
+  const imapFolder =
+    folder === SCHEDULED_FOLDER
+      ? "Scheduled"
+      : folder === SNOOZED_FOLDER
+        ? "Snoozed"
+        : folder;
 
-  if (folder === SNOOZED_FOLDER || isSnoozedFolder(folder)) {
-    const messages = await getSpecialFolderMessages("mail/snoozed", limit);
-    return {
-      messages,
-      total: messages.length,
-      offset: 0,
-      limit,
-      hasMore: false,
-    };
-  }
-
-  const path = folder === ALL_MAIL_FOLDER ? "mail/all" : "mail/messages";
+  const path = imapFolder === ALL_MAIL_FOLDER ? "mail/all" : "mail/messages";
   const query: Record<string, string | number | boolean | undefined> = {
     limit,
     offset,
     search: input.search?.trim() || undefined,
   };
-  if (folder !== ALL_MAIL_FOLDER) {
-    query.folder = folder;
+  if (imapFolder !== ALL_MAIL_FOLDER) {
+    query.folder = imapFolder;
     if (input.unreadOnly) query.unread = true;
   }
 
@@ -387,7 +353,7 @@ export async function getMessagePage(input: {
 }
 
 async function getSpecialFolderMessages(
-  path: "mail/starred" | "mail/scheduled" | "mail/snoozed",
+  path: "mail/starred",
   limit = 100
 ): Promise<MailMessage[]> {
   const res = await mailRequest((access, mail) =>

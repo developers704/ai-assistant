@@ -88,9 +88,10 @@ const merged = withAllMailFolder([
 ]);
 assert.deepEqual(
   merged.map((f) => f.path),
-  ["INBOX", "Sent", "__scheduled__", "__all__", "__starred__"]
+  ["INBOX", "Sent", "Scheduled", "__all__", "__starred__"]
 );
 assert.equal(isSyntheticMailFolder("__scheduled__"), true);
+assert.equal(isSyntheticMailFolder("Scheduled"), false);
 assert.equal(isSyntheticMailFolder("INBOX"), false);
 
 assert.equal(jwtExpiresWithin(null, 60_000), false);
