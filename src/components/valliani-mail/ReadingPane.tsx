@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Archive,
   ChevronLeft,
@@ -25,6 +25,8 @@ import {
   type MailMessage,
 } from "@/lib/valliani-mail/types";
 import { VallianiAttachmentPanel } from "@/components/valliani-mail/AttachmentPanel";
+import { InlineReplyBox } from "@/components/valliani-mail/InlineReplyBox";
+import type { ComposeDraft } from "@/components/valliani-mail/ComposePanel";
 
 export type ReadingAction =
   | "star"
@@ -44,6 +46,13 @@ export function ReadingPane({
   onReplyAll,
   onForward,
   onAction,
+  replyDraft,
+  onReplyDraftChange,
+  onReplySend,
+  onReplyDiscard,
+  onReplyExpand,
+  replyBusy,
+  replyError,
 }: {
   message: MailMessage | null;
   loading?: boolean;
@@ -53,8 +62,28 @@ export function ReadingPane({
   onReplyAll: () => void;
   onForward: () => void;
   onAction: (action: ReadingAction) => void;
+  replyDraft?: ComposeDraft | null;
+  onReplyDraftChange?: (next: ComposeDraft) => void;
+  onReplySend?: () => void;
+  onReplyDiscard?: () => void;
+  onReplyExpand?: () => void;
+  replyBusy?: boolean;
+  replyError?: string;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const showInlineReply =
+    !!replyDraft &&
+    (replyDraft.mode === "reply" || replyDraft.mode === "replyAll") &&
+    !replyDraft.forceModal;
+
+  useEffect(() => {
+    if (!showInlineReply) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [showInlineReply, replyDraft?.replyToUid]);
 
   if (!message && !loading) {
     return (
@@ -157,7 +186,10 @@ export function ReadingPane({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4"
+      >
         <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">
           {cleanSubject(message.subject)}
         </h1>
@@ -184,19 +216,21 @@ export function ReadingPane({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <ActionChip icon={<Reply size={14} />} label="Reply" onClick={onReply} />
-          <ActionChip
-            icon={<ReplyAll size={14} />}
-            label="Reply all"
-            onClick={onReplyAll}
-          />
-          <ActionChip
-            icon={<Forward size={14} />}
-            label="Forward"
-            onClick={onForward}
-          />
-        </div>
+        {!showInlineReply ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ActionChip icon={<Reply size={14} />} label="Reply" onClick={onReply} />
+            <ActionChip
+              icon={<ReplyAll size={14} />}
+              label="Reply all"
+              onClick={onReplyAll}
+            />
+            <ActionChip
+              icon={<Forward size={14} />}
+              label="Forward"
+              onClick={onForward}
+            />
+          </div>
+        ) : null}
 
         <VallianiAttachmentPanel
           attachments={message.attachments}
@@ -215,6 +249,22 @@ export function ReadingPane({
           )}
         </div>
       </div>
+
+      {showInlineReply &&
+      replyDraft &&
+      onReplyDraftChange &&
+      onReplySend &&
+      onReplyDiscard ? (
+        <InlineReplyBox
+          draft={replyDraft}
+          onChange={onReplyDraftChange}
+          onSend={onReplySend}
+          onDiscard={onReplyDiscard}
+          onExpand={onReplyExpand}
+          busy={replyBusy}
+          error={replyError}
+        />
+      ) : null}
     </div>
   );
 }

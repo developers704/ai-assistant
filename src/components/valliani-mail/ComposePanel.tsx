@@ -12,11 +12,15 @@ export type ComposeDraft = {
   bcc: string;
   subject: string;
   body: string;
+  /** Hidden quoted original for replies (appended on send). */
+  quote?: string;
   mode?: "new" | "reply" | "replyAll" | "forward";
   replyToUid?: number;
   replyToFolder?: string;
   inReplyTo?: string;
   references?: string[];
+  /** Force modal even for reply (expand from inline). */
+  forceModal?: boolean;
 };
 
 export function ComposePanel({

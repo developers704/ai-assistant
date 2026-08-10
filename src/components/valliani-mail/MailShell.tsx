@@ -175,6 +175,13 @@ export function MailShell({
   async function openMessage(message: MailMessage) {
     setMobileView("read");
     setSelected(message);
+    setCompose((c) =>
+      c &&
+      (c.mode === "reply" || c.mode === "replyAll") &&
+      c.replyToUid !== message.uid
+        ? null
+        : c
+    );
     const folder = sourceFolderOf(message, selectedFolder);
     setReadingLoading(true);
     try {
@@ -322,7 +329,8 @@ export function MailShell({
       cc: cc.join(", "),
       bcc: "",
       subject: replySubject(selected.subject),
-      body: buildReplyBody(selected),
+      body: "",
+      quote: buildReplyBody(selected).trim(),
       mode,
       replyToUid: selected.uid,
       replyToFolder: folder,
@@ -332,6 +340,7 @@ export function MailShell({
         : selected.messageId
           ? [selected.messageId]
           : undefined,
+      forceModal: false,
     });
     setComposeError("");
   }
@@ -356,12 +365,15 @@ export function MailShell({
     setComposeBusy(true);
     setComposeError("");
     try {
+      const body = [compose.body.trim(), compose.quote?.trim()]
+        .filter(Boolean)
+        .join("\n\n");
       await sendMail({
         to: splitRecipients(compose.to),
         cc: splitRecipients(compose.cc),
         bcc: splitRecipients(compose.bcc),
         subject: compose.subject,
-        body: compose.body,
+        body,
         composeMode: compose.mode,
         replyToUid: compose.replyToUid,
         replyToFolder: compose.replyToFolder,
@@ -510,11 +522,30 @@ export function MailShell({
             onReplyAll={() => startReply("replyAll")}
             onForward={startForward}
             onAction={(a) => void handleAction(a)}
+            replyDraft={
+              compose &&
+              (compose.mode === "reply" || compose.mode === "replyAll") &&
+              !compose.forceModal
+                ? compose
+                : null
+            }
+            onReplyDraftChange={setCompose}
+            onReplySend={() => void handleSend()}
+            onReplyDiscard={() => setCompose(null)}
+            onReplyExpand={() =>
+              setCompose((c) => (c ? { ...c, forceModal: true } : c))
+            }
+            replyBusy={composeBusy}
+            replyError={composeError}
           />
         </div>
       </div>
 
-      {compose ? (
+      {compose &&
+      (compose.forceModal ||
+        compose.mode === "new" ||
+        compose.mode === "forward" ||
+        !compose.mode) ? (
         <ComposePanel
           draft={compose}
           onChange={setCompose}
