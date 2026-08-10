@@ -1,0 +1,15 @@
+---
+description: Product brand name — Valliani Athena (not Alexa)
+globs: src/**/*.{ts,tsx},prompts/**/*,public/manifest.json
+alwaysApply: true
+---
+
+# Brand
+
+User-facing product name is **Valliani Athena** (`src/lib/brand.ts`: `APP_NAME`).
+
+- UI, titles, splash, login, PWA manifest, voice copy, system prompts → **Valliani Athena**
+- AI identity: “You are Valliani Athena…” / “I'm Valliani Athena…”
+- Do **not** show “Alexa” as the product name in UI or prompts
+- Legacy wake word “Alexa” may still be stripped as a filler; prefer Athena / Valliani Athena
+- Do not rename auth cookies (`alexa_session`) or internal `src/lib/alexa/*` module paths unless explicitly asked (breaks sessions / huge refactor)

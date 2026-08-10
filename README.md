@@ -1,4 +1,4 @@
-# Executive AI Assistant
+# Valliani Athena
 
 A full-stack AI personal assistant for business owners. Chat and voice-driven interface for managing emails, calendar, reminders, documents, sales reports, WhatsApp, calls, and business automation.
 

@@ -16,7 +16,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 /**
  * Floating voice pill shown on every page (except /voice) while a voice
- * session is live. Lets the boss keep talking after Alexa navigates.
+ * session is live. Lets the boss keep talking after Valliani Athena navigates.
  */
 export function VoiceMiniHud() {
   const router = useRouter();
@@ -79,7 +79,7 @@ export function VoiceMiniHud() {
               </p>
             ) : (
               <p className="text-[11px] text-ink-muted truncate mt-0.5">
-                Keep talking — Alexa is with you
+                Keep talking — Valliani Athena is with you
               </p>
             )}
           </div>

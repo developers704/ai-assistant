@@ -233,11 +233,11 @@ export function VoiceSession() {
               {!hasTranscript && !error && (
                 <p className="text-[15px] text-ink-muted text-left min-h-[2.75rem] leading-relaxed">
                   {status === "connecting"
-                    ? "Connecting to Alexa voice — allow microphone if asked…"
+                    ? "Connecting to Valliani Athena voice — allow microphone if asked…"
                     : status === "thinking"
                       ? "Thinking…"
                       : isSpeaking
-                        ? "Alexa is speaking…"
+                        ? "Valliani Athena is speaking…"
                         : "Listening for your voice…"}
                 </p>
               )}
@@ -255,7 +255,7 @@ export function VoiceSession() {
                     <div className="flex justify-start">
                       <div className="chat-bubble-ai max-w-[95%] rounded-2xl rounded-tl-md px-4 py-3">
                         <p className="text-[10px] uppercase tracking-[0.16em] text-violet-300/70 mb-1.5">
-                          Alexa
+                          Valliani Athena
                         </p>
                         <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap">
                           {assistantTranscript}

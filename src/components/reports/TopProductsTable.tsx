@@ -46,6 +46,8 @@ export interface TopProductRow {
   department?: string;
   /** Latest ISO sale date in the current filter window */
   lastSaleDate?: string;
+  /** Distinct sale dates (ISO) for this model in the window */
+  saleDates?: string[];
   onHandTotal?: number;
   /** Distinct SKUs sold under this vendor model */
   skus?: TopProductSkuLine[];
@@ -55,11 +57,11 @@ interface TopProductsTableProps {
   products: TopProductRow[];
   emptyLabel?: string;
   onVendorModelDetail?: (product: TopProductRow) => void;
-  /** When true, show Date column/sort (multi-day range selected). */
-  showDateSort?: boolean;
+  /** When true (multi-day range), show date multi-select like departments. */
+  showDateFilter?: boolean;
 }
 
-type SortKey = "qty" | "revenue" | "margin" | "date";
+type SortKey = "qty" | "revenue" | "margin";
 type SortDir = "asc" | "desc";
 
 const DESKTOP_ROW_GRID =
@@ -191,16 +193,22 @@ function SortHeader({
   );
 }
 
+function productSaleDates(p: TopProductRow): string[] {
+  if (p.saleDates?.length) return p.saleDates;
+  return p.lastSaleDate ? [p.lastSaleDate] : [];
+}
+
 export function TopProductsTable({
   products,
   emptyLabel = "No product data in this report.",
   onVendorModelDetail,
-  showDateSort = false,
+  showDateFilter = false,
 }: TopProductsTableProps) {
   const baseRows = filterTopProductSkus(products);
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<VendorModelTextFilterMode>("include");
   const [deptFilter, setDeptFilter] = useState<string[]>([]);
+  const [dateFilter, setDateFilter] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<SortKey>("qty");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   /** Expanded SKU per vendor-model row (shared mobile/desktop). */
@@ -224,6 +232,10 @@ export function TopProductsTable({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [openSkuByRow]);
 
+  useEffect(() => {
+    if (!showDateFilter) setDateFilter([]);
+  }, [showDateFilter]);
+
   const departmentOptions = useMemo(() => {
     const set = new Set<string>();
     for (const p of baseRows) {
@@ -233,8 +245,17 @@ export function TopProductsTable({
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [baseRows]);
 
+  const dateOptions = useMemo(() => {
+    if (!showDateFilter) return [] as string[];
+    const set = new Set<string>();
+    for (const p of baseRows) {
+      for (const d of productSaleDates(p)) set.add(d);
+    }
+    return [...set].sort();
+  }, [baseRows, showDateFilter]);
+
   const filtered = useMemo(() => {
-    const textFiltered = applyVendorModelTextFilter(
+    let next = applyVendorModelTextFilter(
       baseRows,
       (p) =>
         buildVendorModelSearchText({
@@ -246,19 +267,24 @@ export function TopProductsTable({
       query,
       mode
     );
-    if (!deptFilter.length) return textFiltered;
-    const want = new Set(deptFilter);
-    return textFiltered.filter((p) => p.department && want.has(p.department));
-  }, [baseRows, query, mode, deptFilter]);
+    if (deptFilter.length) {
+      const want = new Set(deptFilter);
+      next = next.filter((p) => p.department && want.has(p.department));
+    }
+    if (showDateFilter && dateFilter.length) {
+      const want = new Set(dateFilter);
+      next = next.filter((p) =>
+        productSaleDates(p).some((d) => want.has(d))
+      );
+    }
+    return next;
+  }, [baseRows, query, mode, deptFilter, dateFilter, showDateFilter]);
 
   const rows = useMemo(() => {
     const list = [...filtered];
     const mul = sortDir === "asc" ? 1 : -1;
     list.sort((a, b) => {
-      if (sortKey === "date") {
-        const cmp = (a.lastSaleDate || "").localeCompare(b.lastSaleDate || "");
-        if (cmp !== 0) return cmp * mul;
-      } else if (sortKey === "qty") {
+      if (sortKey === "qty") {
         if (a.units !== b.units) return (a.units - b.units) * mul;
       } else if (sortKey === "revenue") {
         if (a.revenue !== b.revenue) return (a.revenue - b.revenue) * mul;
@@ -307,16 +333,29 @@ export function TopProductsTable({
             totalCount={baseRows.length}
           />
         </div>
-        {departmentOptions.length > 0 && (
-          <SalesMultiSelectFilter
-            label="departments"
-            allLabel="All departments"
-            options={departmentOptions}
-            value={deptFilter}
-            onChange={setDeptFilter}
-            className="shrink-0"
-          />
-        )}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {showDateFilter && dateOptions.length > 0 ? (
+            <SalesMultiSelectFilter
+              label="dates"
+              allLabel="All dates"
+              options={dateOptions}
+              value={dateFilter}
+              onChange={setDateFilter}
+              formatOption={shortIso}
+              className="shrink-0"
+            />
+          ) : null}
+          {departmentOptions.length > 0 ? (
+            <SalesMultiSelectFilter
+              label="departments"
+              allLabel="All departments"
+              options={departmentOptions}
+              value={deptFilter}
+              onChange={setDeptFilter}
+              className="shrink-0"
+            />
+          ) : null}
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl ring-1 ring-white/10">
@@ -331,15 +370,6 @@ export function TopProductsTable({
           <span className="text-ink-muted">Vendor model</span>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
             <span className="text-ink-muted">Product</span>
-            {showDateSort && (
-              <SortHeader
-                label="Date"
-                active={sortKey === "date"}
-                dir={sortDir}
-                onClick={() => toggleSort("date")}
-                title="Sort by most recent sale date"
-              />
-            )}
           </div>
           <div className={DESKTOP_METRICS}>
             <SortHeader
@@ -374,7 +404,6 @@ export function TopProductsTable({
               ["qty", "Qty"],
               ["revenue", "Rev"],
               ["margin", "Margin"],
-              ...(showDateSort ? [["date", "Date"] as const] : []),
             ] as [SortKey, string][]
           ).map(([key, label]) => (
             <button
@@ -485,7 +514,7 @@ export function TopProductsTable({
                         )}
                         <p className="mt-0.5 text-[11px] text-white/40 truncate">
                           {product.department || "—"}
-                          {showDateSort && product.lastSaleDate
+                          {showDateFilter && product.lastSaleDate
                             ? ` · ${shortIso(product.lastSaleDate)}`
                             : ""}
                         </p>

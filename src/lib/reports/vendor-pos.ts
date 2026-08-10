@@ -229,6 +229,7 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       department: string;
       deptRevenue: Map<string, number>;
       lastSaleDate: string;
+      saleDates: Set<string>;
       rows: VendorPosRow[];
     }
   >();
@@ -259,6 +260,7 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       department: "",
       deptRevenue: new Map<string, number>(),
       lastSaleDate: "",
+      saleDates: new Set<string>(),
       rows: [],
     };
     existing.rows.push(r);
@@ -269,8 +271,11 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
         (existing.deptRevenue.get(dept) ?? 0) + r.netRevenue
       );
     }
-    if (r.date && (!existing.lastSaleDate || r.date > existing.lastSaleDate)) {
-      existing.lastSaleDate = r.date;
+    if (r.date) {
+      existing.saleDates.add(r.date);
+      if (!existing.lastSaleDate || r.date > existing.lastSaleDate) {
+        existing.lastSaleDate = r.date;
+      }
     }
 
     map.set(key, {
@@ -284,6 +289,7 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       department: existing.department,
       deptRevenue: existing.deptRevenue,
       lastSaleDate: existing.lastSaleDate,
+      saleDates: existing.saleDates,
       rows: existing.rows,
     });
   }
@@ -294,7 +300,7 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
   const sliced =
     limit == null || limit <= 0 ? ranked : ranked.slice(0, limit);
 
-  return sliced.map(({ rows: modelRows, deptRevenue, ...p }) => {
+  return sliced.map(({ rows: modelRows, deptRevenue, saleDates, ...p }) => {
     const skus = skuLinesForModel(modelRows);
     let department = "";
     let best = -Infinity;
@@ -304,10 +310,12 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
         department = d;
       }
     }
+    const dates = [...saleDates].sort();
     return {
       ...p,
       department: department || undefined,
       lastSaleDate: p.lastSaleDate || undefined,
+      saleDates: dates.length ? dates : undefined,
       skus: skus.length ? skus : undefined,
       marginRate: p.revenue > 0 ? p.margin / p.revenue : 0,
       imageUrl: resolveProductImageUrl(p.imageDir),

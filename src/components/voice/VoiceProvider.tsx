@@ -24,7 +24,7 @@ const VoiceContext = createContext<VoiceContextType | null>(null);
 
 /**
  * Hosts the realtime voice session at the app-layout level so it SURVIVES
- * route changes. When Alexa navigates the boss to /sales or /email, the
+ * route changes. When Valliani Athena navigates the boss to /sales or /email, the
  * mic + audio keep running and the spoken summary still plays.
  */
 export function VoiceProvider({ children }: { children: ReactNode }) {

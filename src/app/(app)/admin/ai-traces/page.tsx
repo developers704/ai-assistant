@@ -23,7 +23,7 @@ export default async function AiTracesPage({
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-4 text-ink">
-      <h1 className="text-2xl font-semibold">Alexa AI Traces</h1>
+      <h1 className="text-2xl font-semibold">Valliani Athena AI Traces</h1>
       <p className="text-sm text-ink-secondary">
         Admin-only debug view. Enable with ALEXA_TRACE_LOGGING=true. Protect with
         ALEXA_ADMIN_TRACE_TOKEN.

@@ -365,7 +365,7 @@ export function EmailReadingPane({
         <div className="h-24 lg:hidden" aria-hidden />
       </div>
 
-      {/* Mobile Gmail-style Reply / Forward bar — Alexa cyan pills */}
+      {/* Mobile Gmail-style Reply / Forward bar — Valliani Athena cyan pills */}
       <div className="lg:hidden shrink-0 border-t border-white/[0.06] bg-[var(--em-surface,#0e1a2e)]/95 backdrop-blur-md px-4 py-3 safe-area-bottom">
         <div className="flex items-center gap-2.5">
           <button

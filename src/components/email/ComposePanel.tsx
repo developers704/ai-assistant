@@ -217,7 +217,7 @@ export function ComposePanel({
   if (variant === "fullscreen") {
     return (
       <div className="flex flex-col flex-1 min-h-0 h-full bg-[var(--em-bg,#0a1628)] safe-area-bottom">
-        {/* Gmail mobile compose top bar — Alexa navy */}
+        {/* Gmail mobile compose top bar — Valliani Athena navy */}
         <div className="shrink-0 flex items-center gap-0.5 px-1.5 py-1.5 border-b border-white/[0.07] bg-[var(--em-surface,#0e1a2e)] safe-area-top">
           <button
             type="button"

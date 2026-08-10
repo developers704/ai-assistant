@@ -56,7 +56,9 @@ export default function LoginForm() {
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-10">
         <div className="mb-8 flex flex-col items-center text-center opacity-0 [animation:loginFade_0.55s_ease-out_forwards]">
           <PlasmaOrb density="low" className="h-24 w-24 sm:h-28 sm:w-28 shrink-0 mb-5" />
-          <h1 className="text-ink text-3xl font-semibold tracking-[0.04em]">Alexa</h1>
+          <h1 className="text-ink text-3xl font-semibold tracking-[0.04em]">
+            Valliani Athena
+          </h1>
           <p className="mt-1.5 text-sm text-ink-muted tracking-wide">
             Executive assistance
           </p>

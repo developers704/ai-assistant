@@ -266,15 +266,20 @@ export function groupRows(
 
     let department: string | undefined;
     let lastSaleDate: string | undefined;
+    let saleDates: string[] | undefined;
     if (by === "vendor_model") {
       const deptRevenue = new Map<string, number>();
+      const dates = new Set<string>();
       for (const r of v.rows) {
         const dept = r.department?.trim();
         if (dept) {
           deptRevenue.set(dept, (deptRevenue.get(dept) ?? 0) + r.netRevenue);
         }
-        if (r.date && (!lastSaleDate || r.date > lastSaleDate)) {
-          lastSaleDate = r.date;
+        if (r.date) {
+          dates.add(r.date);
+          if (!lastSaleDate || r.date > lastSaleDate) {
+            lastSaleDate = r.date;
+          }
         }
       }
       let best = -Infinity;
@@ -284,6 +289,7 @@ export function groupRows(
           department = d;
         }
       }
+      if (dates.size) saleDates = [...dates].sort();
     }
 
     return {
@@ -302,6 +308,7 @@ export function groupRows(
       description: v.description,
       department,
       lastSaleDate,
+      saleDates,
       ...(inventory
         ? {
             onHandTotal: inventory.onHandTotal ?? undefined,

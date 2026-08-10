@@ -45,7 +45,7 @@ function buildToolArgs(intent: AlexaIntent, message: string): Record<string, unk
 }
 
 /**
- * Unified Alexa orchestrator — Chat and Voice share this entry.
+ * Unified Valliani Athena orchestrator — Chat and Voice share this entry.
  * When ALEXA_UNIFIED_ORCHESTRATOR is off, callers should use legacy paths.
  */
 export async function processAlexaTurn(input: AlexaTurnInput): Promise<AlexaTurnResult> {

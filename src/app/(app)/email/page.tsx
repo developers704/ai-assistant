@@ -988,7 +988,7 @@ export default function EmailPage() {
   return (
     <div
       className={cn(
-        "email-alexa flex flex-col flex-1 min-h-0 h-0",
+        "email-athena flex flex-col flex-1 min-h-0 h-0",
         MOBILE_HEIGHT
       )}
     >

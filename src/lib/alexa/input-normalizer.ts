@@ -1,7 +1,7 @@
 import type { AlexaChannel } from "@/lib/alexa/types";
 
 const FILLERS =
-  /\b(um+|uh+|erm+|like|please|alexa|hey alexa|ok alexa|can you|could you|would you|just)\b/gi;
+  /\b(um+|uh+|erm+|like|please|hey valliani athena|ok valliani athena|valliani athena|hey athena|ok athena|athena|hey alexa|ok alexa|alexa|can you|could you|would you|just)\b/gi;
 
 const ROMAN_URDU: Array<[RegExp, string]> = [
   [/\bdikha\s*do\b/gi, "show"],

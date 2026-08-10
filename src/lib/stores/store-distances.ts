@@ -102,7 +102,7 @@ export function getDistancesFromStore(fromQuery: string): {
 }
 
 /**
- * Compact pairwise distance reference for Alexa LIVE CONTEXT.
+ * Compact pairwise distance reference for Valliani Athena LIVE CONTEXT.
  * One line per store: mall → all other malls with km.
  */
 export function buildStoreDistanceMatrixContext(): string {

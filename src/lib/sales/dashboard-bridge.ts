@@ -88,6 +88,7 @@ export function reportSummaryFromQueryResult(
       marginRate: r.netSales > 0 ? r.estimatedMargin / r.netSales : 0,
       department: r.department,
       lastSaleDate: r.lastSaleDate,
+      saleDates: r.saleDates,
       onHandTotal: r.onHandTotal,
       skus: r.skus,
     })

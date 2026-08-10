@@ -161,7 +161,7 @@ export function Sidebar() {
           <div className="flex items-center gap-3.5">
             <PlasmaOrb density="low" className="h-12 w-12 shrink-0" />
             <div className="min-w-0">
-              <h1 className="text-ink font-semibold text-[15px] tracking-wide">Alexa</h1>
+              <h1 className="text-ink font-semibold text-[15px] tracking-wide">Valliani Athena</h1>
               <p className="text-ink-muted text-[11px] tracking-wide leading-snug">executive assistance</p>
             </div>
           </div>
@@ -230,7 +230,9 @@ export function MobileNav() {
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <PlasmaOrb density="low" className="h-10 w-10 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-ink font-semibold text-[15px] leading-tight tracking-tight">Alexa</p>
+              <p className="text-ink font-semibold text-[14px] leading-tight tracking-tight truncate">
+                Valliani Athena
+              </p>
               <p className="text-ink-muted text-xs truncate leading-tight mt-0.5 font-medium">
                 {active?.label ?? "executive assistance"}
               </p>
@@ -260,7 +262,7 @@ export function MobileNav() {
           )}
         >
           <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 flex-shrink-0">
-            <span className="text-ink font-semibold text-sm">Alexa</span>
+            <span className="text-ink font-semibold text-sm">Valliani Athena</span>
             <button onClick={() => setOpen(false)} aria-label="Close menu" className="p-1 text-ink-muted hover:text-white">
               <Icon icon={X} size="lg" />
             </button>

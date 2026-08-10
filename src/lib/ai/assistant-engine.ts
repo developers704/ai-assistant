@@ -239,7 +239,7 @@ export function processMessage(message: string, state: AppState): AIResponse {
         intent: "greeting",
         message: casual
           ? `I'm doing well, thank you. You have **${meetings}** meeting${meetings !== 1 ? "s" : ""} today and **${tasks}** pending task${tasks !== 1 ? "s" : ""}. What can I help with?`
-          : `Good day, Kash. I'm your Executive AI Assistant. You have ${meetings} meetings today and ${tasks} pending tasks. How may I assist you?`,
+          : `Good day, Kash. I'm Valliani Athena, your Executive AI Assistant. You have ${meetings} meetings today and ${tasks} pending tasks. How may I assist you?`,
         speak: true,
       };
     }

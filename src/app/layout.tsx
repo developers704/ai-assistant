@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/store/app-context";
 import { SplashOverlay } from "@/components/layout/SplashOverlay";
+import { APP_NAME, APP_NAME_SHORT, APP_TITLE } from "@/lib/brand";
 
 /**
  * Avoid next/font/google — VPS builds often time out fetching Google Fonts
@@ -9,13 +10,13 @@ import { SplashOverlay } from "@/components/layout/SplashOverlay";
  */
 
 export const metadata: Metadata = {
-  title: "Alexa — executive assistance",
+  title: APP_TITLE,
   description: "Your private AI executive assistant for business owners",
   manifest: "/manifest.json",
-  applicationName: "Alexa",
+  applicationName: APP_NAME,
   appleWebApp: {
     capable: true,
-    title: "Alexa",
+    title: APP_NAME_SHORT,
     statusBarStyle: "black-translucent",
   },
   icons: {

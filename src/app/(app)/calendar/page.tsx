@@ -324,7 +324,9 @@ export default function CalendarTasksPage() {
                   <Card className="p-10 text-center">
                     <CheckSquare size={36} className="text-ink-muted mx-auto mb-3 opacity-60" />
                     <p className="text-ink-secondary">No tasks yet</p>
-                    <p className="text-sm text-ink-muted mt-1">Tap Add Task above, or ask Alexa in chat.</p>
+                    <p className="text-sm text-ink-muted mt-1">
+                      Tap Add Task above, or ask Valliani Athena in chat.
+                    </p>
                   </Card>
                 )}
               </div>

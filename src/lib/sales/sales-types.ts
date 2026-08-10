@@ -200,6 +200,8 @@ export interface SalesBreakdownRow {
   department?: string;
   /** Latest sale date (ISO) in the filtered window. */
   lastSaleDate?: string;
+  /** Distinct sale dates (ISO) under this vendor model in the window. */
+  saleDates?: string[];
   /** Distinct SKUs sold under this vendor model (Top Vendor Models). */
   skus?: VendorModelSkuLine[];
   /** Chain on-hand total for SKUs under this vendor model. */

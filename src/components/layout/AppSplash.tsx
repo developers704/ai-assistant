@@ -11,7 +11,7 @@ interface AppSplashProps {
 }
 
 /**
- * Branded launch splash — icon + Alexa name (not icon-only).
+ * Branded launch splash — icon + Valliani Athena name (not icon-only).
  * Used while app state hydrates after PWA/home-screen open.
  */
 export function AppSplash({ variant = "fullscreen", className }: AppSplashProps) {
@@ -26,7 +26,7 @@ export function AppSplash({ variant = "fullscreen", className }: AppSplashProps)
       )}
       role="status"
       aria-live="polite"
-      aria-label="Loading Alexa"
+      aria-label="Loading Valliani Athena"
     >
       {!compact && <FuturisticBackground />}
 
@@ -55,7 +55,7 @@ export function AppSplash({ variant = "fullscreen", className }: AppSplashProps)
               compact ? "text-2xl" : "text-3xl sm:text-4xl"
             )}
           >
-            Alexa
+            Valliani Athena
           </h1>
           <p
             className={cn(

@@ -591,7 +591,7 @@
   .voice-ring:nth-child(2) { animation-delay: 0.7s; border-color: rgba(34, 211, 238, 0.35); }
   .voice-ring:nth-child(3) { animation-delay: 1.4s; border-color: rgba(217, 70, 239, 0.32); }
 
-  /* Equalizer bars while Alexa speaks */
+  /* Equalizer bars while Valliani Athena speaks */
   .voice-eq {
     display: flex;
     align-items: center;
@@ -1078,8 +1078,8 @@
   }
 }
 
-/* ============ Email mobile — Gmail layout + Alexa navy/cyan ============ */
-.email-alexa {
+/* ============ Email mobile — Gmail layout + Valliani Athena navy/cyan ============ */
+.email-athena {
   --em-bg: #0a1628;
   --em-surface: #0e1a2e;
   --em-elevated: #132338;
@@ -1101,48 +1101,48 @@
 }
 
 @media (max-width: 1023px) {
-  .email-alexa .email-mobile-shell {
+  .email-athena .email-mobile-shell {
     background: var(--em-bg) !important;
     border: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
   }
 
-  .email-alexa .em-search-pill {
+  .email-athena .em-search-pill {
     background: var(--em-search);
     color: var(--em-text);
   }
-  .email-alexa .em-search-pill::placeholder {
+  .email-athena .em-search-pill::placeholder {
     color: var(--em-muted);
   }
 
-  .email-alexa .em-drawer {
+  .email-athena .em-drawer {
     background: var(--em-surface);
   }
-  .email-alexa .em-nav-active {
+  .email-athena .em-nav-active {
     background: var(--em-accent-soft);
     color: #0b1220;
   }
-  .email-alexa .em-nav-active span,
-  .email-alexa .em-nav-active svg {
+  .email-athena .em-nav-active span,
+  .email-athena .em-nav-active svg {
     color: #0b1220 !important;
     opacity: 1 !important;
   }
 
-  .email-alexa .em-fab {
+  .email-athena .em-fab {
     background: var(--em-fab);
     color: var(--em-fab-ink);
     box-shadow: 0 6px 20px rgba(94, 179, 240, 0.35);
   }
 
-  .email-alexa .em-row-unread {
+  .email-athena .em-row-unread {
     background: rgba(94, 179, 240, 0.04);
   }
-  .email-alexa .em-tag {
+  .email-athena .em-tag {
     background: var(--em-tag);
     color: var(--em-tag-ink);
   }
-  .email-alexa .em-reply-pill {
+  .email-athena .em-reply-pill {
     background: var(--em-accent-soft);
     color: #0b1220;
   }

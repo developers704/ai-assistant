@@ -1,6 +1,6 @@
 {
-  "name": "Alexa — executive assistance",
-  "short_name": "Alexa",
+  "name": "Valliani Athena — executive assistance",
+  "short_name": "Athena",
   "description": "Your private AI executive assistant for business owners",
   "start_url": "/chat",
   "display": "standalone",

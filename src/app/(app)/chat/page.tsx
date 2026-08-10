@@ -68,7 +68,7 @@ export default function ChatPage() {
         {/* Ambient aurora wash */}
         <div className="chat-aurora pointer-events-none absolute inset-0" aria-hidden />
 
-        {/* Desktop header only — mobile uses top nav "Alexa / AI Chat" */}
+        {/* Desktop header only — mobile uses top nav "Valliani Athena / AI Chat" */}
         <header className="relative shrink-0 hidden sm:block px-5 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-white/8">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -79,7 +79,7 @@ export default function ChatPage() {
                 </h1>
                 <p className="text-sm text-white/40 mt-0.5 flex items-center gap-1.5">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                  Alexa is online — ask anything
+                  Valliani Athena is online — ask anything
                 </p>
               </div>
             </div>

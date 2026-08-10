@@ -216,6 +216,12 @@ export interface SalesSummary {
     margin?: number;
     /** Profit margin = profit / net sales (0–1) */
     marginRate?: number;
+    /** Dominant department by revenue */
+    department?: string;
+    /** Latest sale date (ISO) in the filtered window */
+    lastSaleDate?: string;
+    /** Distinct sale dates (ISO) under this vendor model */
+    saleDates?: string[];
     /** Chain on-hand total for SKUs under this vendor model. */
     onHandTotal?: number;
     /** Distinct SKUs sold under this vendor model */
@@ -289,7 +295,7 @@ export interface UiContext {
   lastUserIntent?: string;
   /** Last section/topic discussed — for "open it" follow-ups */
   lastTopic?: string;
-  /** Route Alexa last suggested opening */
+  /** Route Valliani Athena last suggested opening */
   lastSuggestedRoute?: string;
   /** Short summary of last tool execution */
   lastToolResult?: string;

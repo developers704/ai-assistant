@@ -98,7 +98,7 @@ export function ChatComposer({ onSend, disabled, voiceControl }: ChatComposerPro
               autoGrow();
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Alexa anything…"
+            placeholder="Ask Valliani Athena anything…"
             disabled={disabled}
             enterKeyHint="send"
             className="flex-1 min-w-0 resize-none bg-transparent px-2 sm:px-3 py-2.5 text-[15px] sm:text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none disabled:opacity-50 leading-relaxed max-h-[168px]"
@@ -135,7 +135,7 @@ export function ChatComposer({ onSend, disabled, voiceControl }: ChatComposerPro
             <kbd className="px-1 py-0.5 rounded bg-white/8 ring-1 ring-white/10 text-[10px] font-sans">Enter</kbd>{" "}
             to send ·{" "}
             <kbd className="px-1 py-0.5 rounded bg-white/8 ring-1 ring-white/10 text-[10px] font-sans">Shift+Enter</kbd>{" "}
-            for a new line · Alexa can make mistakes.
+            for a new line · Valliani Athena can make mistakes.
           </p>
         </div>
       </form>

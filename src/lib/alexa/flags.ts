@@ -1,4 +1,4 @@
-/** Feature flags for gradual Alexa unified orchestrator migration. */
+/** Feature flags for gradual Valliani Athena unified orchestrator migration. */
 function flag(name: string, defaultOn = false): boolean {
   const v = process.env[name];
   if (v === undefined || v === "") return defaultOn;

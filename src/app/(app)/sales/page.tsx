@@ -758,13 +758,13 @@ export default function SalesPage() {
                 <span className="text-xs text-ink-muted">
                   {isFinancingReport
                     ? "By net sales amount"
-                    : `Top ${topProducts.length} · sort Qty / Revenue / Margin${multiDayRange ? " / Date" : ""} · filter departments · expand SKU for tag price & stores`}
+                    : `Top ${topProducts.length} · sort Qty / Revenue / Margin · filter${multiDayRange ? " dates /" : ""} departments · expand SKU for tag price & stores`}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">
                 <TopProductsTable
                   products={topProducts}
-                  showDateSort={multiDayRange}
+                  showDateFilter={multiDayRange}
                   onVendorModelDetail={(p) =>
                     setVendorModelDetail({
                       vendorModel: p.vendorModel || p.itemNumber || p.name,

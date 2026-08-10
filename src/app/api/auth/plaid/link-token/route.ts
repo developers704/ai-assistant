@@ -19,7 +19,7 @@ export async function POST() {
   try {
     const response = await client.linkTokenCreate({
       user: { client_user_id: "alex-executive-assistant" },
-      client_name: "Alexa",
+      client_name: "Valliani Athena",
       products: [Products.Investments],
       country_codes: [CountryCode.Us],
       language: "en",

@@ -16,6 +16,8 @@ type Props = {
   fullWidth?: boolean;
   /** Keep "All …" label on the trigger; selections shown as chips elsewhere. */
   selectionsAsChips?: boolean;
+  /** Pretty-print option values in the menu / single-select trigger. */
+  formatOption?: (value: string) => string;
 };
 
 /**
@@ -31,7 +33,9 @@ export function SalesMultiSelectFilter({
   className,
   fullWidth = false,
   selectionsAsChips = false,
+  formatOption,
 }: Props) {
+  const labelOf = (v: string) => formatOption?.(v) ?? v;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [menuPos, setMenuPos] = useState<{ top: number; left: number; width: number } | null>(
@@ -47,8 +51,12 @@ export function SalesMultiSelectFilter({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return options;
-    return options.filter((o) => o.toLowerCase().includes(q));
-  }, [options, query]);
+    return options.filter((o) => {
+      if (o.toLowerCase().includes(q)) return true;
+      const pretty = formatOption?.(o) ?? o;
+      return pretty.toLowerCase().includes(q);
+    });
+  }, [options, query, formatOption]);
 
   const updatePosition = () => {
     const btn = buttonRef.current;
@@ -116,7 +124,7 @@ export function SalesMultiSelectFilter({
     selectionsAsChips || value.length === 0
       ? allLabel
       : value.length === 1
-        ? value[0]
+        ? labelOf(value[0]!)
         : `${value.length} selected`;
 
   const menu =
@@ -192,7 +200,7 @@ export function SalesMultiSelectFilter({
                         >
                           {on && <Check size={11} strokeWidth={3} />}
                         </span>
-                        <span className="truncate">{opt}</span>
+                        <span className="truncate">{labelOf(opt)}</span>
                       </button>
                     </li>
                   );

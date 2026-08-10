@@ -11,7 +11,7 @@ import {
 export type { AlexaChannel };
 
 /**
- * Unified Alexa intelligence pipeline for Chat and Voice.
+ * Unified Valliani Athena intelligence pipeline for Chat and Voice.
  * Order: working memory sync → follow-ups → section intelligence → tool routing.
  */
 export async function processAlexaMessage(

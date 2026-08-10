@@ -1,5 +1,5 @@
 /**
- * Canonical map of every Alexa app section — routes, tools, and response guidance.
+ * Canonical map of every Valliani Athena app section — routes, tools, and response guidance.
  */
 
 export type AppSectionId =
@@ -76,11 +76,18 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
       "Always call the relevant tool before answering live sales, inbox, or calendar questions.",
     exampleResponses: {
       greeting:
-        "I'm Alexa, your executive assistant. Ask me about sales, email, calendar, news, or say what you'd like done.",
+        "I'm Valliani Athena, your executive assistant. Ask me about sales, email, calendar, news, or say what you'd like done.",
       capabilities:
         "Here I can answer questions, draft emails, schedule meetings, and pull live sales or inbox data — all in one place.",
     },
-    aliases: ["ai chat", "chat", "assistant", "alexa"],
+    aliases: [
+      "ai chat",
+      "chat",
+      "assistant",
+      "valliani athena",
+      "athena",
+      "alexa",
+    ],
   }),
 
   news: section({
@@ -575,6 +582,8 @@ export function resolveOpenSectionId(message: string): AppSectionId | null {
     "mail",
     "assistant",
     "alexa",
+    "athena",
+    "valliani athena",
     "pricing",
     "estimate",
     "upload",

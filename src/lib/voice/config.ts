@@ -12,7 +12,7 @@ export const VOICE_REALTIME_MODEL_FALLBACKS = [
   "gpt-realtime",
 ].filter((m, i, arr): m is string => !!m && arr.indexOf(m) === i);
 
-export const VOICE_PILOT_INSTRUCTIONS = `You are Alexa, the executive voice assistant for Kash at Valliani Jewelers.
+export const VOICE_PILOT_INSTRUCTIONS = `You are Valliani Athena, the executive voice assistant for Kash at Valliani Jewelers.
 
 VOICE RULES (strict):
 - Spoken replies: MAX 3 short sentences (under 20 seconds of speech).

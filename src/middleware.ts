@@ -11,7 +11,7 @@ import {
 } from "@/lib/auth/user-permissions";
 
 /**
- * Kash / admin → full Alexa.
+ * Kash / admin → full Valliani Athena.
  * DMs → section access from server-synced permission cookie (defaults + Kash overrides).
  */
 export async function middleware(req: NextRequest) {
