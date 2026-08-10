@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/store/app-context";
 import { SplashOverlay } from "@/components/layout/SplashOverlay";
-import { APP_NAME, APP_NAME_SHORT, APP_TITLE } from "@/lib/brand";
+import { DocumentTitle } from "@/components/layout/DocumentTitle";
+import { APP_NAME, APP_NAME_SHORT, APP_TAGLINE, APP_TITLE } from "@/lib/brand";
 
 /**
  * Avoid next/font/google — VPS builds often time out fetching Google Fonts
@@ -10,8 +11,12 @@ import { APP_NAME, APP_NAME_SHORT, APP_TITLE } from "@/lib/brand";
  */
 
 export const metadata: Metadata = {
-  title: APP_TITLE,
-  description: "Your private AI executive assistant for business owners",
+  // absolute: prevent parent/template from concatenating old + new titles
+  title: {
+    default: APP_TITLE,
+    absolute: APP_TITLE,
+  },
+  description: `${APP_NAME} — ${APP_TAGLINE}`,
   manifest: "/manifest.json",
   applicationName: APP_NAME,
   appleWebApp: {
@@ -38,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" data-theme="futuristic">
       <body className="font-sans antialiased">
         <AppProvider>
+          <DocumentTitle />
           <SplashOverlay />
           {children}
         </AppProvider>

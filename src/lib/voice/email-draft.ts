@@ -12,15 +12,24 @@ export interface EmailSigner {
 export type DraftMode = "reply" | "followup" | "rewrite" | "polish";
 export type RewriteTone = "shorter" | "formal" | "casual" | "regenerate";
 
+/** Second signature line: "Title | Company" or just company when title is blank. */
+export function formatSignerTitleLine(signer: EmailSigner): string {
+  const role = signer.role?.trim();
+  const company = signer.company?.trim() || "Valliani Jewelers";
+  return role ? `${role} | ${company}` : company;
+}
+
+function signOff(signer: EmailSigner): string {
+  return `Best regards,\n${signer.name}\n${formatSignerTitleLine(signer)}`;
+}
+
 function buildTemplateCompose(signer: EmailSigner, rough: string): string {
   const cleaned = rough.replace(/\s+/g, " ").trim() || "Please see the note below.";
   return `Hello,
 
 ${cleaned}
 
-Best regards,
-${signer.name}
-${signer.role} | ${signer.company}`;
+${signOff(signer)}`;
 }
 
 function titleCaseSubject(topic: string): string {
@@ -41,9 +50,7 @@ function buildTemplateComposePair(
 
 I wanted to let you know that ${topic.replace(/^(to\s+)/i, "").trim()}.
 
-Best regards,
-${signer.name}
-${signer.role} | ${signer.company}`;
+${signOff(signer)}`;
   return { subject, body };
 }
 
@@ -82,9 +89,11 @@ export async function generateComposeEmail(
       messages: [
         {
           role: "system",
-          content: `You write new outbound emails for ${signer.name}, ${signer.role} at ${signer.company}.
+          content: `You write new outbound emails for ${signer.role.trim() ? `${signer.name}, ${signer.role} at ${signer.company}` : `${signer.name} at ${signer.company}`}.
 Return JSON only: {"subject":"...","body":"..."}.
-Plain text body (no markdown). Short subject. Natural sign-off with name (and role/company if it fits).
+Plain text body (no markdown). Short subject.
+ALWAYS end the body with exactly this signature:
+${signOff(signer)}
 Do not invent facts beyond the user's topic. STYLE GUIDE:
 ${style}`,
         },
@@ -120,9 +129,7 @@ Thank you for your email regarding "${email.subject}".
 
 I've reviewed the details and will follow up with next steps shortly. Please let me know if you need anything else in the meantime.
 
-Best regards,
-${signer.name}
-${signer.role} | ${signer.company}`;
+${signOff(signer)}`;
 }
 
 function plainBody(email: Email, max = 1800): string {
@@ -209,20 +216,28 @@ export async function generateSmartEmailReply(
     "Warm, concise, confident. Match a senior jewelry-retail executive voice.";
 
   let userPrompt = "";
-  let systemExtra = `You draft email replies for ${signer.name}, ${signer.role} at ${signer.company}.
+  const identity = signer.role.trim()
+    ? `${signer.name}, ${signer.role} at ${signer.company}`
+    : `${signer.name} at ${signer.company}`;
+  const signOffRule = `ALWAYS end with exactly this signature (do not use anyone else's name):\n${signOff(signer)}`;
+
+  let systemExtra = `You draft email replies for ${identity}.
 You receive a FULL email thread (${messageCount} message${messageCount === 1 ? "" : "s"}), oldest to newest.
 Read the entire conversation before drafting. Address open questions and the latest message.
 Write plain text only (no markdown, no bullet lists unless the thread clearly uses them).
 STYLE GUIDE:
 ${style}
-Do not invent facts that are not in the thread. End with a natural sign-off that matches the style (include name; role/company if that matches their sent style).`;
+Do not invent facts that are not in the thread.
+${signOffRule}`;
 
   if (mode === "polish" && rough) {
-    systemExtra = `You polish outgoing emails for ${signer.name}, ${signer.role} at ${signer.company}.
+    systemExtra = `You polish outgoing emails for ${identity}.
 The user typed a hurried / informal draft. Rewrite it into a clear, professional, well-structured email.
 Fix spelling and grammar. Keep the same intent, requests, and facts — do not invent new commitments or details.
-Write plain text only (no markdown). Use short paragraphs. End with a natural sign-off matching this STYLE GUIDE:
-${style}`;
+Write plain text only (no markdown). Use short paragraphs.
+STYLE GUIDE:
+${style}
+${signOffRule}`;
     userPrompt = `Paraphrase this rough draft into a professional email.
 
 Subject: ${email.subject || "(no subject)"}
@@ -245,10 +260,11 @@ ${rough}
 
 ${threadText.trim() ? `Thread subject: ${email.subject}\n\n${threadText}` : `Subject: ${email.subject || "(no subject)"}`}`;
     if (!threadText.trim()) {
-      systemExtra = `You rewrite outgoing emails for ${signer.name}, ${signer.role} at ${signer.company}.
+      systemExtra = `You rewrite outgoing emails for ${identity}.
 Write plain text only. STYLE GUIDE:
 ${style}
-Keep facts; end with a natural sign-off.`;
+Keep facts.
+${signOffRule}`;
     }
   } else {
     if (!threadText.trim()) return buildTemplateReply(email, signer);

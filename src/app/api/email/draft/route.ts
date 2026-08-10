@@ -12,6 +12,7 @@ import {
   type RewriteTone,
 } from "@/lib/voice/email-draft";
 import { getState } from "@/lib/store/server-store";
+import { resolveEmailSignerFromSession } from "@/lib/auth/email-signer";
 import type { Email } from "@/types";
 
 let styleCache: { card: string; at: number } | null = null;
@@ -74,11 +75,8 @@ export async function POST(req: NextRequest) {
   const toHint = body.to ? String(body.to) : "";
 
   const state = getState();
-  const signer = {
-    name: state.user?.name || "Kash Valliani",
-    role: state.user?.role || "CEO",
-    company: state.user?.company || "Valliani Jewelers",
-  };
+  // Signature = logged-in app user (AJ, Kash, Ross…), not mailbox IMAP login
+  const signer = await resolveEmailSignerFromSession();
 
   let email: Email | null = null;
 

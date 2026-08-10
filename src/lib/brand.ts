@@ -3,4 +3,5 @@ export const APP_NAME = "Valliani Athena";
 /** Shorter label for tight UI / home-screen shortcut when needed. */
 export const APP_NAME_SHORT = "Athena";
 export const APP_TAGLINE = "executive assistance";
-export const APP_TITLE = `${APP_NAME} — ${APP_TAGLINE}`;
+/** Browser / PWA window title — name only (no tagline; avoids doubled titles). */
+export const APP_TITLE = APP_NAME;

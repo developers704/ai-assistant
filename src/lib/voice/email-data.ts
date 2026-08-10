@@ -12,6 +12,7 @@ import {
   generateComposeEmail,
   generateSmartEmailReply,
 } from "@/lib/voice/email-draft";
+import { resolveEmailSignerFromSession } from "@/lib/auth/email-signer";
 import { createPendingAction, savePendingAction } from "@/lib/actions/confirmation";
 import type { PendingAction } from "@/types";
 import {
@@ -176,11 +177,10 @@ export async function buildVoiceEmailDraft(hints?: {
     };
   }
 
-  const body = await generateSmartEmailReply(target, {
-    name: state.user?.name || "Kash Valliani",
-    role: state.user?.role || "Founder & President",
-    company: state.user?.company || "Valliani Jewelers",
-  });
+  const body = await generateSmartEmailReply(
+    target,
+    await resolveEmailSignerFromSession()
+  );
 
   const latestInThread =
     target.threadMessages && target.threadMessages.length > 0
@@ -343,11 +343,7 @@ export async function buildVoiceComposeEmail(hints?: {
     }
   }
 
-  const signer = {
-    name: state.user?.name || "Kash Valliani",
-    role: state.user?.role || "Founder & President",
-    company: state.user?.company || "Valliani Jewelers",
-  };
+  const signer = await resolveEmailSignerFromSession();
 
   let subject = hints?.subject?.trim() || "";
   let body = hints?.body?.trim() || "";
