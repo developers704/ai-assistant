@@ -92,6 +92,29 @@ export type MailMessagePage = {
 
 export const ALL_MAIL_FOLDER = "__all__";
 export const STARRED_FOLDER = "__starred__";
+export const SCHEDULED_FOLDER = "__scheduled__";
+export const SNOOZED_FOLDER = "__snoozed__";
+
+/** Synthetic sidebar folders — not real IMAP paths for getMessage/flags. */
+export function isSyntheticMailFolder(path: string): boolean {
+  const p = path.toLowerCase();
+  return (
+    p === ALL_MAIL_FOLDER ||
+    p === STARRED_FOLDER ||
+    p === SCHEDULED_FOLDER ||
+    p === SNOOZED_FOLDER
+  );
+}
+
+export function isScheduledFolder(path: string): boolean {
+  const p = path.toLowerCase();
+  return p === SCHEDULED_FOLDER || p.includes("schedule");
+}
+
+export function isSnoozedFolder(path: string): boolean {
+  const p = path.toLowerCase();
+  return p === SNOOZED_FOLDER || p.includes("snooze");
+}
 
 export function asInt(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) return Math.trunc(value);
@@ -144,12 +167,11 @@ export function prettyFolderName(value: string): string {
   const lower = value.toLowerCase();
   if (lower === "__all__") return "All Mail";
   if (lower === "__starred__") return "Favorites";
-  if (lower === "__scheduled__") return "Scheduled";
-  if (lower === "__snoozed__") return "Snoozed";
+  if (lower === "__scheduled__" || lower.includes("schedule")) return "Scheduled";
+  if (lower === "__snoozed__" || lower.includes("snooze")) return "Snoozed";
   if (lower === "inbox") return "Inbox";
   if (lower.includes("sent")) return "Sent Mails";
   if (lower.includes("draft")) return "Drafts";
-  if (lower.includes("snooze")) return "Snoozed";
   if (lower.includes("junk") || lower.includes("spam")) return "Spam";
   if (lower.includes("trash")) return "Trash";
   if (lower.includes("archive")) return "Archive";
@@ -162,12 +184,15 @@ export function folderSortRank(path: string): number {
   const p = path.toLowerCase();
   if (p === "inbox") return 0;
   if (p.includes("sent")) return 1;
-  if (p === "__all__" || p.includes("all")) return 2;
-  if (p.includes("draft")) return 3;
-  if (p.includes("archive")) return 4;
-  if (p.includes("junk") || p.includes("spam")) return 5;
-  if (p.includes("trash")) return 6;
-  return 9;
+  if (p.includes("draft")) return 2;
+  if (p.includes("junk") || p.includes("spam")) return 3;
+  if (p.includes("trash")) return 4;
+  if (p === SCHEDULED_FOLDER || p.includes("schedule")) return 5;
+  if (p === SNOOZED_FOLDER || p.includes("snooze")) return 6;
+  if (p.includes("archive")) return 7;
+  if (p === ALL_MAIL_FOLDER || p.includes("all")) return 8;
+  if (p === STARRED_FOLDER || p.includes("star") || p.includes("flag")) return 9;
+  return 10;
 }
 
 export function sortFolders(folders: MailFolder[]): MailFolder[] {

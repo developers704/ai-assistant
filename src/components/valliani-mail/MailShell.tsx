@@ -37,6 +37,7 @@ import {
   displayName,
   forwardSubject,
   isSeen,
+  isSyntheticMailFolder,
   prettyFolderName,
   replySubject,
   dedupeThreadMessages,
@@ -80,8 +81,11 @@ function splitRecipients(raw: string): string[] {
 }
 
 function sourceFolderOf(message: MailMessage, fallback: string): string {
-  const f = (message.sourceFolder || fallback).trim();
-  return f && f !== ALL_MAIL_FOLDER ? f : fallback === ALL_MAIL_FOLDER ? "INBOX" : fallback;
+  const fromMsg = (message.sourceFolder || "").trim();
+  if (fromMsg && !isSyntheticMailFolder(fromMsg)) return fromMsg;
+  const fb = (fallback || "").trim();
+  if (fb && !isSyntheticMailFolder(fb)) return fb;
+  return "INBOX";
 }
 
 function isDraftsFolder(path: string): boolean {

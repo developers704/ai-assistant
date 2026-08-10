@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  AlarmClock,
   Archive,
+  Clock,
   FileEdit,
   Inbox,
   LogOut,
@@ -16,6 +18,8 @@ import {
 import { cn } from "@/lib/utils";
 import {
   ALL_MAIL_FOLDER,
+  SCHEDULED_FOLDER,
+  SNOOZED_FOLDER,
   STARRED_FOLDER,
   type MailFolder,
   type MailSummary,
@@ -24,7 +28,11 @@ import {
 function folderIcon(path: string): LucideIcon {
   const p = path.toLowerCase();
   if (p === "inbox") return Inbox;
-  if (p === STARRED_FOLDER || p.includes("star")) return Star;
+  if (p === STARRED_FOLDER || p.includes("star") || p.includes("flag")) {
+    return Star;
+  }
+  if (p === SCHEDULED_FOLDER || p.includes("schedule")) return Clock;
+  if (p === SNOOZED_FOLDER || p.includes("snooze")) return AlarmClock;
   if (p === ALL_MAIL_FOLDER || p.includes("all")) return Layers;
   if (p.includes("sent")) return Send;
   if (p.includes("draft")) return FileEdit;

@@ -9,6 +9,23 @@ import {
   type MailThreadListItem,
 } from "@/lib/valliani-mail/types";
 
+function emptyFolderCopy(folderTitle: string): string {
+  const t = folderTitle.toLowerCase();
+  if (t.includes("schedule")) {
+    return "No scheduled emails. Send later from compose when the mail server supports it.";
+  }
+  if (t.includes("snooze")) {
+    return "No snoozed emails. Messages you snooze will show up here.";
+  }
+  if (t.includes("favorite") || t.includes("star")) {
+    return "No favorites yet. Star a message to find it here.";
+  }
+  if (t.includes("draft")) return "No drafts.";
+  if (t.includes("trash")) return "Trash is empty.";
+  if (t.includes("spam")) return "No spam.";
+  return "No messages in this folder.";
+}
+
 export function MessageList({
   messages,
   selectedUid,
@@ -61,7 +78,7 @@ export function MessageList({
           </div>
         ) : !messages.length ? (
           <p className="text-center text-[15px] text-white/45 py-16 px-4">
-            No messages in this folder.
+            {emptyFolderCopy(folderTitle)}
           </p>
         ) : (
           <ul>

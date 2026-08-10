@@ -8,6 +8,7 @@ import {
   folderSortRank,
   formatMailDate,
   buildReplyBody,
+  isSyntheticMailFolder,
   normalizeSubjectForThread,
   sameMailThread,
   sortThreadOldestFirst,
@@ -20,6 +21,7 @@ import {
   sortFolders,
   type MailFolder,
 } from "../src/lib/valliani-mail/types";
+import { withAllMailFolder } from "../src/lib/valliani-mail/api";
 import {
   attachmentExt,
   attachmentHasPayload,
@@ -49,27 +51,47 @@ function fakeJwt(expSecondsFromNow: number): string {
 assert.equal(folderSortRank("INBOX"), 0);
 assert.equal(folderSortRank("inbox"), 0);
 assert.equal(folderSortRank("Sent"), 1);
-assert.equal(folderSortRank("__all__"), 2);
-assert.equal(folderSortRank("Drafts"), 3);
-assert.equal(folderSortRank("Archive"), 4);
-assert.equal(folderSortRank("Junk"), 5);
-assert.equal(folderSortRank("Trash"), 6);
-assert.equal(folderSortRank("Custom"), 9);
+assert.equal(folderSortRank("Drafts"), 2);
+assert.equal(folderSortRank("Junk"), 3);
+assert.equal(folderSortRank("Trash"), 4);
+assert.equal(folderSortRank("__scheduled__"), 5);
+assert.equal(folderSortRank("__snoozed__"), 6);
+assert.equal(folderSortRank("Archive"), 7);
+assert.equal(folderSortRank("__all__"), 8);
+assert.equal(folderSortRank("__starred__"), 9);
+assert.equal(folderSortRank("Custom"), 10);
 
 assert.equal(prettyFolderName("__all__"), "All Mail");
 assert.equal(prettyFolderName("INBOX"), "Inbox");
 assert.equal(prettyFolderName("Sent Items"), "Sent Mails");
+assert.equal(prettyFolderName("__scheduled__"), "Scheduled");
+assert.equal(prettyFolderName("Snoozed"), "Snoozed");
 
 const folders: MailFolder[] = [
   { path: "Trash", name: "Trash", listed: true, subscribed: false },
   { path: "INBOX", name: "Inbox", listed: true, subscribed: false },
   { path: "Sent", name: "Sent", listed: true, subscribed: false },
+  { path: "__snoozed__", name: "Snoozed", listed: true, subscribed: false },
+  { path: "__scheduled__", name: "Scheduled", listed: true, subscribed: false },
 ];
 const sorted = sortFolders(folders);
 assert.deepEqual(
   sorted.map((f) => f.path),
-  ["INBOX", "Sent", "Trash"]
+  ["INBOX", "Sent", "Trash", "__scheduled__", "__snoozed__"]
 );
+
+const merged = withAllMailFolder([
+  { path: "INBOX", name: "Inbox", listed: true, subscribed: false },
+  { path: "Scheduled", name: "Scheduled", listed: true, subscribed: false },
+  { path: "Snoozed", name: "Snoozed", listed: true, subscribed: false },
+  { path: "Sent", name: "Sent", listed: true, subscribed: false },
+]);
+assert.deepEqual(
+  merged.map((f) => f.path),
+  ["INBOX", "Sent", "__scheduled__", "__all__", "__starred__"]
+);
+assert.equal(isSyntheticMailFolder("__scheduled__"), true);
+assert.equal(isSyntheticMailFolder("INBOX"), false);
 
 assert.equal(jwtExpiresWithin(null, 60_000), false);
 assert.equal(jwtExpiresWithin("not-a-jwt", 60_000), false);

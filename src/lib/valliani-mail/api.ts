@@ -11,6 +11,8 @@ import {
 } from "@/lib/valliani-mail/session";
 import {
   ALL_MAIL_FOLDER,
+  SCHEDULED_FOLDER,
+  SNOOZED_FOLDER,
   STARRED_FOLDER,
   jwtExpiresWithin,
   normalizeSubjectForThread,
@@ -19,6 +21,8 @@ import {
   parseMailMessage,
   parseMailSummary,
   dedupeThreadMessages,
+  isScheduledFolder,
+  isSnoozedFolder,
   sameMailThread,
   sortFolders,
   sortThreadOldestFirst,
@@ -240,18 +244,42 @@ export async function getFolders(): Promise<MailFolder[]> {
   return sortFolders(folders);
 }
 
+function isServerVirtualFolder(folder: MailFolder): boolean {
+  const path = folder.path.toLowerCase();
+  const name = folder.name.toLowerCase();
+  if (path === ALL_MAIL_FOLDER || path === "all mail") return true;
+  if (path.endsWith("/all mail") || path.endsWith("\\all mail")) return true;
+  if (path === STARRED_FOLDER || name === "favorites" || name === "starred") {
+    return true;
+  }
+  if (isScheduledFolder(path) || isScheduledFolder(name)) return true;
+  if (isSnoozedFolder(path) || isSnoozedFolder(name)) return true;
+  return false;
+}
+
+/** Set true to show Snoozed in the sidebar again (`mail/snoozed` is already wired). */
+const SHOW_SNOOZED_FOLDER = false;
+
 export function withAllMailFolder(folders: MailFolder[]): MailFolder[] {
-  const filtered = folders.filter((folder) => {
-    const path = folder.path.toLowerCase();
-    return (
-      path !== ALL_MAIL_FOLDER &&
-      path !== "all mail" &&
-      !path.endsWith("/all mail") &&
-      !path.endsWith("\\all mail")
-    );
-  });
-  return [
+  const filtered = folders.filter((folder) => !isServerVirtualFolder(folder));
+  return sortFolders([
     ...filtered,
+    {
+      path: SCHEDULED_FOLDER,
+      name: "Scheduled",
+      listed: true,
+      subscribed: false,
+    },
+    ...(SHOW_SNOOZED_FOLDER
+      ? [
+          {
+            path: SNOOZED_FOLDER,
+            name: "Snoozed",
+            listed: true,
+            subscribed: false,
+          } satisfies MailFolder,
+        ]
+      : []),
     {
       path: ALL_MAIL_FOLDER,
       name: "All Mail",
@@ -264,7 +292,7 @@ export function withAllMailFolder(folders: MailFolder[]): MailFolder[] {
       listed: true,
       subscribed: false,
     },
-  ];
+  ]);
 }
 
 export async function getMailboxSummary(): Promise<MailSummary> {
@@ -296,7 +324,29 @@ export async function getMessagePage(input: {
   const offset = input.offset ?? 0;
 
   if (folder === STARRED_FOLDER) {
-    const messages = await getStarredMessages(limit);
+    const messages = await getSpecialFolderMessages("mail/starred", limit);
+    return {
+      messages,
+      total: messages.length,
+      offset: 0,
+      limit,
+      hasMore: false,
+    };
+  }
+
+  if (folder === SCHEDULED_FOLDER || isScheduledFolder(folder)) {
+    const messages = await getSpecialFolderMessages("mail/scheduled", limit);
+    return {
+      messages,
+      total: messages.length,
+      offset: 0,
+      limit,
+      hasMore: false,
+    };
+  }
+
+  if (folder === SNOOZED_FOLDER || isSnoozedFolder(folder)) {
+    const messages = await getSpecialFolderMessages("mail/snoozed", limit);
     return {
       messages,
       total: messages.length,
@@ -336,9 +386,12 @@ export async function getMessagePage(input: {
   };
 }
 
-async function getStarredMessages(limit = 100): Promise<MailMessage[]> {
+async function getSpecialFolderMessages(
+  path: "mail/starred" | "mail/scheduled" | "mail/snoozed",
+  limit = 100
+): Promise<MailMessage[]> {
   const res = await mailRequest((access, mail) =>
-    fetch(proxyUrl("mail/starred", { limit }), {
+    fetch(proxyUrl(path, { limit }), {
       headers: authHeaders(access, mail),
     })
   );
