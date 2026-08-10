@@ -275,29 +275,42 @@ export function decodeQuotedPrintable(input: string): string {
   }
 }
 
+/** Strip MIME headers/boundaries that leak into list previews / plain bodies. */
+export function stripMimeHeaderLeakage(raw: string): string {
+  let text = String(raw ?? "");
+  if (!text) return "";
+
+  // Leading MIME header block (header lines until blank line)
+  text = text.replace(
+    /^(?:(?:Content-(?:Type|Transfer-Encoding|Disposition|ID|Description)|MIME-Version)\s*:[^\n]*\n)+\s*/i,
+    ""
+  );
+
+  // Inline / mid-snippet headers (common: "Content-Transfer-Encoding: 7bit hey…")
+  text = text
+    .replace(/\bContent-Transfer-Encoding\s*:\s*\S+\s*/gi, "")
+    .replace(/\bContent-Disposition\s*:\s*[^\n;]+;?\s*/gi, "")
+    .replace(/\bContent-Type\s*:\s*[^\n;]+;?\s*/gi, "")
+    .replace(/\bContent-(?:ID|Description)\s*:\s*\S+\s*/gi, "")
+    .replace(/\bMIME-Version\s*:\s*\S+\s*/gi, "")
+    .replace(/--[0-9A-Za-z_.+=-]{6,}/g, " ")
+    .replace(/\bboundary=["']?[^"'\s;]+["']?/gi, " ")
+    .replace(/\bcharset=["']?[^"'\s;]+["']?/gi, " ");
+
+  return text;
+}
+
 /** Decode QP when present; strip MIME-boundary leakage from snippets. */
 export function normalizeMailPlainText(raw: string): string {
   let text = String(raw ?? "");
   if (!text) return "";
   if (looksLikeQuotedPrintable(text)) text = decodeQuotedPrintable(text);
-
-  // Multipart DSN snippets sometimes start with mime boundaries / headers
-  if (
-    /^--[0-9A-Za-z_-]{8,}/.test(text.trim()) ||
-    /^Content-Type:\s*multipart/i.test(text.trim())
-  ) {
-    text = text
-      .replace(/--[0-9A-Za-z_-]+/g, " ")
-      .replace(/Content-Type:[^\n;]+;?/gi, " ")
-      .replace(/boundary=["']?[^"'\s;]+["']?/gi, " ")
-      .replace(/charset=["']?[^"'\s;]+["']?/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
+  text = stripMimeHeaderLeakage(text);
 
   return text
     .replace(/\u0000/g, "")
     .replace(/[^\S\n]{2,}/g, " ")
+    .replace(/[ \t]*\n[ \t]*/g, "\n")
     .trim();
 }
 

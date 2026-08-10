@@ -108,6 +108,25 @@ assert.equal(
   normalizeMailPlainText("Hi Raza,=20 Thanks =F0=9F=91=8D"),
   "Hi Raza, Thanks 👍"
 );
+assert.equal(
+  normalizeMailPlainText(
+    "Content-Transfer-Encoding: 7bit hey , how are you? i am pretty good"
+  ),
+  "hey , how are you? i am pretty good"
+);
+assert.ok(
+  !messageListPreview(
+    parseMailMessage({
+      uid: 99,
+      subject: "test",
+      preview:
+        "Content-Transfer-Encoding: 7bit hey , how are you? i am pretty good c",
+      from: [],
+      to: [],
+      flags: [],
+    })
+  ).toLowerCase().includes("content-transfer")
+);
 
 const parsed = parseMailMessage({
   uid: 1,

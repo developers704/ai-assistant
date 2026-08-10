@@ -341,9 +341,11 @@ export function VallianiAttachmentPanel({
     active && activeIdx != null ? attKey(active, activeIdx) : null;
 
   return (
-    <div className="mt-4 space-y-3">
-      <p className="text-[11px] font-medium text-white/45">
-        {attachments.length} attachment{attachments.length === 1 ? "" : "s"}
+    <div className="mt-5 space-y-3 border-t border-dashed border-white/15 pt-4">
+      <p className="text-[12px] font-medium text-white/50">
+        {attachments.length === 1
+          ? "One attachment"
+          : `${attachments.length} attachments`}
       </p>
       <div className="flex flex-wrap gap-2">
         {attachments.map((att, i) => {
