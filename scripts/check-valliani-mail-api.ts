@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import {
   decodeQuotedPrintable,
   folderSortRank,
+  formatMailDate,
+  buildReplyBody,
   jwtExpiresWithin,
   looksLikeQuotedPrintable,
   messageListPreview,
@@ -15,6 +17,15 @@ import {
   sortFolders,
   type MailFolder,
 } from "../src/lib/valliani-mail/types";
+import {
+  attachmentExt,
+  attachmentHasPayload,
+  attachmentKind,
+  blobFromAttachment,
+  canInlinePreview,
+  cleanBase64,
+  mimeForAttachment,
+} from "../src/lib/valliani-mail/attachments";
 
 function b64url(obj: object): string {
   return Buffer.from(JSON.stringify(obj))
@@ -86,5 +97,61 @@ assert.equal(parsed.bodyText, "Hi Raza, Thanks 👍🙏");
 assert.ok(!messageListPreview(parsed).includes("=20"));
 assert.ok(!messageListPreview(parsed).includes("=F0"));
 assert.match(messageListPreview(parsed), /Hi Raza, Thanks/);
+
+const withAtt = parseMailMessage({
+  uid: 2,
+  subject: "docs",
+  attachments: [
+    {
+      filename: "ADP Developer Resources.pdf",
+      content_type: "application/pdf",
+      size: 12,
+      content_base64: Buffer.from("%PDF-1.4 test").toString("base64"),
+    },
+    {
+      name: "sheet.xlsx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      data: "AAAA",
+    },
+    {
+      filename: "photo.JPG",
+      download_url: "https://example.com/photo.jpg",
+    },
+  ],
+});
+assert.equal(withAtt.attachments.length, 3);
+assert.equal(withAtt.attachments[0].filename, "ADP Developer Resources.pdf");
+assert.ok(withAtt.attachments[0].contentBase64);
+assert.equal(attachmentKind(withAtt.attachments[0]), "pdf");
+assert.equal(canInlinePreview("pdf"), true);
+assert.equal(mimeForAttachment(withAtt.attachments[0]), "application/pdf");
+assert.ok(attachmentHasPayload(withAtt.attachments[0]));
+assert.ok(blobFromAttachment(withAtt.attachments[0]));
+
+assert.equal(attachmentExt("sheet.xlsx"), "xlsx");
+assert.equal(attachmentKind(withAtt.attachments[1]), "excel");
+assert.ok(attachmentHasPayload(withAtt.attachments[1]));
+
+assert.equal(attachmentKind(withAtt.attachments[2]), "image");
+assert.equal(withAtt.attachments[2].downloadUrl, "https://example.com/photo.jpg");
+assert.ok(attachmentHasPayload(withAtt.attachments[2]));
+assert.equal(cleanBase64("data:application/pdf;base64,QQ=="), "QQ==");
+
+assert.equal(
+  formatMailDate("2026-08-10T17:54:35.000Z").includes("T17:54"),
+  false
+);
+assert.ok(formatMailDate("2026-08-10T17:54:35.000Z").length > 6);
+const replyBody = buildReplyBody({
+  ...parsed,
+  date: "2026-08-10T17:54:35.000Z",
+  from: [{ name: "Umair Jam", address: "a@b.com", label: "Umair Jam" }],
+  bodyText: "hi how are you sir ??\npls check docs",
+  preview: "",
+});
+assert.ok(!replyBody.includes("T17:54:35.000Z"));
+assert.match(replyBody, /Umair Jam wrote:/);
+assert.match(replyBody, /^> hi how are you sir \?\?/m);
 
 console.log("check-valliani-mail-api: ok");

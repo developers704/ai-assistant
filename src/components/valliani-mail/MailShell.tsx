@@ -28,6 +28,8 @@ import {
 import {
   ALL_MAIL_FOLDER,
   addressEmail,
+  buildForwardBody,
+  buildReplyBody,
   displayName,
   forwardSubject,
   isSeen,
@@ -320,9 +322,7 @@ export function MailShell({
       cc: cc.join(", "),
       bcc: "",
       subject: replySubject(selected.subject),
-      body: `\n\n---\nOn ${selected.date ?? "unknown date"}, ${
-        selected.from[0] ? displayName(selected.from[0]) : "sender"
-      } wrote:\n${selected.bodyText || selected.preview}`,
+      body: buildReplyBody(selected),
       mode,
       replyToUid: selected.uid,
       replyToFolder: folder,
@@ -343,11 +343,7 @@ export function MailShell({
       cc: "",
       bcc: "",
       subject: forwardSubject(selected.subject),
-      body: `\n\n---------- Forwarded message ----------\nFrom: ${
-        selected.from[0] ? displayName(selected.from[0]) : ""
-      }\nDate: ${selected.date ?? ""}\nSubject: ${selected.subject}\n\n${
-        selected.bodyText || selected.preview
-      }`,
+      body: buildForwardBody(selected),
       mode: "forward",
       replyToUid: selected.uid,
       replyToFolder: sourceFolderOf(selected, selectedFolder),

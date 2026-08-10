@@ -47,7 +47,10 @@ export type MailAttachment = {
   contentType?: string;
   size?: number;
   contentId?: string;
+  /** Raw file bytes from getMessage (base64 or data-URL). */
   contentBase64?: string;
+  /** Optional HTTPS URL returned on the message payload. */
+  downloadUrl?: string;
 };
 
 export type MailMessage = {
@@ -275,24 +278,51 @@ export function parseMailMessage(
 ): MailMessage {
   const attachments = ((json.attachments as unknown[]) ?? [])
     .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
-    .map((e) => ({
-      filename: String(
-        e.filename ?? e.name ?? e.originalName ?? e.original_name ?? "attachment"
-      ),
-      contentType:
-        e.contentType != null || e.content_type != null || e.mimeType != null
-          ? String(e.contentType ?? e.content_type ?? e.mimeType)
-          : undefined,
-      size:
-        e.size != null || e.sizeBytes != null
-          ? asInt(e.size ?? e.sizeBytes)
-          : undefined,
-      contentId: e.contentId != null ? String(e.contentId) : undefined,
-      contentBase64:
-        e.content != null || e.base64 != null
-          ? String(e.content ?? e.base64)
-          : undefined,
-    }));
+    .map((e) => {
+      const rawB64 =
+        e.contentBase64 ??
+        e.content_base64 ??
+        e.base64 ??
+        e.content ??
+        e.data ??
+        e.body;
+      const rawUrl =
+        e.downloadUrl ?? e.download_url ?? e.url ?? e.href ?? e.link;
+      return {
+        filename: String(
+          e.filename ??
+            e.name ??
+            e.originalName ??
+            e.original_name ??
+            "attachment"
+        ),
+        contentType:
+          e.contentType != null ||
+          e.content_type != null ||
+          e.mimeType != null ||
+          e.mime_type != null
+            ? String(
+                e.contentType ?? e.content_type ?? e.mimeType ?? e.mime_type
+              )
+            : undefined,
+        size:
+          e.size != null || e.sizeBytes != null || e.size_bytes != null
+            ? asInt(e.size ?? e.sizeBytes ?? e.size_bytes)
+            : undefined,
+        contentId:
+          e.contentId != null || e.content_id != null || e.cid != null
+            ? String(e.contentId ?? e.content_id ?? e.cid)
+            : undefined,
+        contentBase64:
+          rawB64 != null && String(rawB64).trim()
+            ? String(rawB64)
+            : undefined,
+        downloadUrl:
+          rawUrl != null && String(rawUrl).trim()
+            ? String(rawUrl).trim()
+            : undefined,
+      };
+    });
 
   const previewRaw = String(json.preview ?? json.snippet ?? "");
   const bodyTextRaw = String(json.bodyText ?? "");
@@ -384,6 +414,40 @@ export function forwardSubject(subject: string): string {
   if (!clean) return "Fwd: (No subject)";
   if (/^(fw|fwd)\s*:/i.test(clean)) return clean;
   return `Fwd: ${clean}`;
+}
+
+/** Human-readable mail date for reply/forward quotes (no raw ISO). */
+export function formatMailDate(date: string | null | undefined): string {
+  if (!date?.trim()) return "unknown date";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return date.trim();
+  return d.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function quotePlainBody(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .trim()
+    .split("\n")
+    .map((line) => (line ? `> ${line}` : ">"))
+    .join("\n");
+}
+
+export function buildReplyBody(message: MailMessage): string {
+  const who = message.from[0] ? displayName(message.from[0]) : "sender";
+  const when = formatMailDate(message.date);
+  const body = normalizeMailPlainText(message.bodyText || message.preview);
+  return `\n\nOn ${when}, ${who} wrote:\n${quotePlainBody(body)}`;
+}
+
+export function buildForwardBody(message: MailMessage): string {
+  const who = message.from[0] ? displayName(message.from[0]) : "";
+  const when = formatMailDate(message.date);
+  const body = normalizeMailPlainText(message.bodyText || message.preview);
+  return `\n\n---------- Forwarded message ----------\nFrom: ${who}\nDate: ${when}\nSubject: ${message.subject}\n\n${body}`;
 }
 
 export function addressEmail(addr: MailAddress): string {

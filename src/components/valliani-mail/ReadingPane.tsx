@@ -24,6 +24,7 @@ import {
   isSeen,
   type MailMessage,
 } from "@/lib/valliani-mail/types";
+import { VallianiAttachmentPanel } from "@/components/valliani-mail/AttachmentPanel";
 
 export type ReadingAction =
   | "star"
@@ -197,18 +198,7 @@ export function ReadingPane({
           />
         </div>
 
-        {message.attachments.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {message.attachments.map((att, i) => (
-              <span
-                key={`${att.filename}-${i}`}
-                className="rounded-lg bg-white/5 ring-1 ring-white/10 px-2.5 py-1 text-xs text-white/70"
-              >
-                {att.filename}
-              </span>
-            ))}
-          </div>
-        ) : null}
+        <VallianiAttachmentPanel attachments={message.attachments} />
 
         <div className="mt-6 text-[14px] text-white/85 leading-relaxed">
           {html ? (

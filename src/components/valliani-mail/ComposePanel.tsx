@@ -34,18 +34,31 @@ export function ComposePanel({
   busy?: boolean;
   error?: string;
 }) {
-  const [showCc, setShowCc] = useState(!!draft.cc || !!draft.bcc);
+  const [showCc, setShowCc] = useState(!!draft.cc.trim() || !!draft.bcc.trim());
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
   useEffect(() => {
+    setShowCc(!!draft.cc.trim() || !!draft.bcc.trim());
+  }, [draft.mode, draft.replyToUid, draft.cc, draft.bcc]);
+
+  useEffect(() => {
     const q = draft.to.split(/[,;]/).pop()?.trim() ?? "";
-    if (q.length < 2) {
+    // Complete address already entered — don't show a duplicate chip under To
+    if (q.length < 2 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q)) {
       setSuggestions([]);
       return;
     }
     const t = setTimeout(() => {
       void getContactSuggestions(q)
-        .then(setSuggestions)
+        .then((list) => {
+          const lower = q.toLowerCase();
+          setSuggestions(
+            list.filter((s) => {
+              const email = s.match(/<([^>]+)>/)?.[1]?.toLowerCase() ?? s.toLowerCase();
+              return email !== lower && !s.toLowerCase().includes(`<${lower}>`);
+            })
+          );
+        })
         .catch(() => setSuggestions([]));
     }, 250);
     return () => clearTimeout(t);
