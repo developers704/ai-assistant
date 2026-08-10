@@ -1,0 +1,48 @@
+---
+description: Valliani Mail (IMAP mailbox) architecture — separate from Gmail Email
+globs: src/**/valliani-mail/**/*,src/app/api/valliani-mail/**/*
+alwaysApply: false
+---
+
+# Valliani Mail
+
+**Not Gmail.** `/email` = Google. `/valliani-mail` = `@valliani.app` IMAP mailbox via teammate API.
+
+## Layout
+
+- Route: `/valliani-mail` · nav label “Valliani Mails”
+- Permission: same app key `"email"` as Gmail
+- UI: folders | list | reading pane + compose modal
+- Core dirs: `src/lib/valliani-mail/`, `src/components/valliani-mail/`, `src/app/(app)/valliani-mail/`, `src/app/api/valliani-mail/`
+
+## API
+
+- Browser calls `/api/valliani-mail/*` only
+- Proxy forwards to `MAIL_API_BASE_URL` (default `https://mail-api.valliani.app/api`)
+- Headers: `Authorization: Bearer <accessToken>` + `x-mail-token: <mailToken>`
+- Session in localStorage (`mail_access_token`, `mail_mail_token`, login email/password for refresh)
+
+## Message model
+
+- IMAP **uid** + folder path (not Gmail thread id)
+- Type `MailMessage`: from/to/cc/bcc (`MailAddress`), subject, date, flags, preview, bodyText/bodyHtml, attachments, messageId, inReplyTo, references
+- List page: `MailMessagePage` (messages, total, offset, limit, hasMore)
+- Synthetic folders: `__all__` (All Mail), `__starred__` (Favorites)
+
+## Client API (`src/lib/valliani-mail/api.ts`)
+
+login / me / refreshMailToken · folders · summary · getMessagePage · getMessage · contacts · **sendMail** · saveDraft · flags · move · archive · spam · delete · forward
+
+Send body: to/cc/bcc comma strings, text/html, optional reply threading (`inReplyTo`, `references`, `replyToUid`, `replyToFolder`), attachments `{ filename, base64, contentType }`
+
+## Wiring status (keep in mind)
+
+Works in UI: login, list, read, send, reply/forward-via-send, star/seen, archive, spam, trash  
+Incomplete vs API: saveDraft unused · server forward unused · move unused · no attach UI / download · scheduled/snoozed folders not in sidebar
+
+## Rules when changing
+
+- Do not wire Valliani Mail through Google Gmail helpers
+- Prefer extending `src/lib/valliani-mail/api.ts` + types before new proxy routes
+- Sanitize HTML with existing `sanitizeEmailHtmlForPreview`
+- Self-check: `npx tsx scripts/check-valliani-mail-api.ts`

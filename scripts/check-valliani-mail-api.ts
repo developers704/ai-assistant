@@ -4,8 +4,13 @@
  */
 import assert from "node:assert/strict";
 import {
+  decodeQuotedPrintable,
   folderSortRank,
   jwtExpiresWithin,
+  looksLikeQuotedPrintable,
+  messageListPreview,
+  normalizeMailPlainText,
+  parseMailMessage,
   prettyFolderName,
   sortFolders,
   type MailFolder,
@@ -56,5 +61,30 @@ assert.equal(jwtExpiresWithin(null, 60_000), false);
 assert.equal(jwtExpiresWithin("not-a-jwt", 60_000), false);
 assert.equal(jwtExpiresWithin(fakeJwt(3600), 120_000), false);
 assert.equal(jwtExpiresWithin(fakeJwt(30), 120_000), true);
+
+assert.equal(looksLikeQuotedPrintable("Hi Raza,=20 Thanks"), true);
+assert.equal(
+  decodeQuotedPrintable("Hi Raza,=20 Thanks =F0=9F=91=8D=F0=9F=99=8F"),
+  "Hi Raza,  Thanks 👍🙏"
+);
+assert.equal(
+  normalizeMailPlainText("Hi Raza,=20 Thanks =F0=9F=91=8D"),
+  "Hi Raza, Thanks 👍"
+);
+
+const parsed = parseMailMessage({
+  uid: 1,
+  subject: "Re: test",
+  preview: "Hi Raza,=20 Thanks =F0=9F=91=8D=F0=9F=99=8F",
+  bodyText: "Hi Raza,=20 Thanks =F0=9F=91=8D=F0=9F=99=8F",
+  from: [],
+  to: [],
+  flags: [],
+});
+assert.equal(parsed.preview, "Hi Raza, Thanks 👍🙏");
+assert.equal(parsed.bodyText, "Hi Raza, Thanks 👍🙏");
+assert.ok(!messageListPreview(parsed).includes("=20"));
+assert.ok(!messageListPreview(parsed).includes("=F0"));
+assert.match(messageListPreview(parsed), /Hi Raza, Thanks/);
 
 console.log("check-valliani-mail-api: ok");

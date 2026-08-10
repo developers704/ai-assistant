@@ -215,6 +215,60 @@ export function parseMailAuthUser(json: Record<string, unknown>): MailAuthUser {
   };
 }
 
+/** Detect leaked Quoted-Printable (`=20`, emoji `=F0=9F…`, soft breaks). */
+export function looksLikeQuotedPrintable(text: string): boolean {
+  return /=[0-9A-Fa-f]{2}/.test(text) || /=\r?\n/.test(text);
+}
+
+/**
+ * Decode Quoted-Printable to UTF-8 text.
+ * Fixes list snippets like `Hi Raza,=20 Thanks =F0=9F=91=8D`.
+ */
+export function decodeQuotedPrintable(input: string): string {
+  if (!input) return "";
+  const soft = input.replace(/=\r?\n/g, "");
+  const bytes: number[] = [];
+  for (let i = 0; i < soft.length; i++) {
+    if (soft[i] === "=" && /^[0-9A-Fa-f]{2}/.test(soft.slice(i + 1, i + 3))) {
+      bytes.push(parseInt(soft.slice(i + 1, i + 3), 16));
+      i += 2;
+      continue;
+    }
+    bytes.push(soft.charCodeAt(i) & 0xff);
+  }
+  try {
+    return new TextDecoder("utf-8", { fatal: false }).decode(Uint8Array.from(bytes));
+  } catch {
+    return soft;
+  }
+}
+
+/** Decode QP when present; strip MIME-boundary leakage from snippets. */
+export function normalizeMailPlainText(raw: string): string {
+  let text = String(raw ?? "");
+  if (!text) return "";
+  if (looksLikeQuotedPrintable(text)) text = decodeQuotedPrintable(text);
+
+  // Multipart DSN snippets sometimes start with mime boundaries / headers
+  if (
+    /^--[0-9A-Za-z_-]{8,}/.test(text.trim()) ||
+    /^Content-Type:\s*multipart/i.test(text.trim())
+  ) {
+    text = text
+      .replace(/--[0-9A-Za-z_-]+/g, " ")
+      .replace(/Content-Type:[^\n;]+;?/gi, " ")
+      .replace(/boundary=["']?[^"'\s;]+["']?/gi, " ")
+      .replace(/charset=["']?[^"'\s;]+["']?/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  return text
+    .replace(/\u0000/g, "")
+    .replace(/[^\S\n]{2,}/g, " ")
+    .trim();
+}
+
 export function parseMailMessage(
   json: Record<string, unknown>,
   opts?: { hydrated?: boolean }
@@ -240,6 +294,9 @@ export function parseMailMessage(
           : undefined,
     }));
 
+  const previewRaw = String(json.preview ?? json.snippet ?? "");
+  const bodyTextRaw = String(json.bodyText ?? "");
+
   return {
     uid: asInt(json.uid),
     subject: String(json.subject ?? ""),
@@ -250,8 +307,8 @@ export function parseMailMessage(
     date: json.date != null ? String(json.date) : null,
     flags: ((json.flags as unknown[]) ?? []).map((e) => String(e)),
     size: typeof json.size === "number" ? json.size : undefined,
-    preview: String(json.preview ?? json.snippet ?? ""),
-    bodyText: String(json.bodyText ?? ""),
+    preview: normalizeMailPlainText(previewRaw),
+    bodyText: normalizeMailPlainText(bodyTextRaw),
     bodyHtml: String(json.bodyHtml ?? ""),
     hasHtml: json.hasHtml === true,
     isHydrated:
@@ -308,9 +365,10 @@ export function displayName(addr: MailAddress): string {
 }
 
 export function messageListPreview(message: MailMessage): string {
-  const preview = message.preview.trim();
+  const preview = normalizeMailPlainText(message.preview).replace(/\s+/g, " ").trim();
   if (preview) return preview.slice(0, 160);
-  if (message.bodyText.trim()) return message.bodyText.trim().slice(0, 160);
+  const body = normalizeMailPlainText(message.bodyText).replace(/\s+/g, " ").trim();
+  if (body) return body.slice(0, 160);
   return "";
 }
 
