@@ -2,7 +2,6 @@ import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import { hasOnhandData, listOnhandStoresForSku, lookupOnhandQty } from "@/lib/inventory/onhand";
-import { lookupInventory } from "@/lib/inventory/store";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import {
   calculatorWholesaleUnitCost,
@@ -80,6 +79,9 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     VendorModelSkuLine & {
       storeUnits: Map<string, number>;
       missingWholesale?: boolean;
+      /** Latest sale's Sales Amount (gross) — shown as "tag" on Top Models. */
+      salesAmount?: number;
+      lastSaleDate?: string;
     }
   >();
   for (const r of collapseCancelledSkuLegs(rows)) {
@@ -107,10 +109,19 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     if (store && units > 0) {
       cur.storeUnits.set(store, (cur.storeUnits.get(store) ?? 0) + units);
     }
+    // Prefer latest sale's Sales Amount for the "tag $" label (not inventory Tag)
+    const salesAmt = Math.abs(Number(r.grossSales) || 0);
+    if (salesAmt > 0) {
+      const d = (r.date ?? "").trim();
+      if (!cur.lastSaleDate || d >= cur.lastSaleDate) {
+        cur.lastSaleDate = d || cur.lastSaleDate;
+        cur.salesAmount = salesAmt;
+      }
+    }
     map.set(key, cur);
   }
   return [...map.values()]
-    .map(({ storeUnits, missingWholesale, ...line }) => {
+    .map(({ storeUnits, missingWholesale, salesAmount, lastSaleDate: _, ...line }) => {
       const stores = buildSkuStoreLines(line.sku, storeUnits);
       const hasOnhand = hasOnhandData();
       const onHandTotal = hasOnhand
@@ -125,10 +136,8 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
         ...line,
         margin,
         marginRate,
-        tagPrice: (() => {
-          const tag = lookupInventory(line.sku)?.item?.tagPrice;
-          return tag != null && tag > 0 ? tag : undefined;
-        })(),
+        // UI label stays "tag $" — value is Sales Amount (gross), not inventory Tag
+        tagPrice: salesAmount != null && salesAmount > 0 ? salesAmount : undefined,
         stores: stores.length ? stores : undefined,
         onHandTotal: onHandTotal ?? undefined,
       };

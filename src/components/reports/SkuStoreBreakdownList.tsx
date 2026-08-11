@@ -94,7 +94,7 @@ export function SkuStoreBreakdownList({
               </span>
               <span className="tabular-nums text-[11px] font-medium">
                 {typeof line.tagPrice === "number" && line.tagPrice > 0 && (
-                  <span className="text-white/45 font-normal">
+                  <span className="text-white/45 font-normal" title="Sales Amount">
                     tag $
                     {line.tagPrice.toLocaleString("en-US", {
                       maximumFractionDigits: 0,
