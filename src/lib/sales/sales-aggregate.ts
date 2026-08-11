@@ -92,8 +92,8 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     const units = salesUnitsSold(r.quantity);
     cur.units += units;
     cur.revenue += r.netRevenue;
-    // Top-model SKU lines: revenue − calculator Whole Cost (qty ignored)
-    const cost = calculatorWholesaleUnitCost(sku, r.storeName);
+    // Top-model SKU lines: revenue − calculator cost rules (qty ignored)
+    const cost = calculatorWholesaleUnitCost(sku, r.storeName, r);
     if (cost == null) {
       cur.missingWholesale = true;
     } else {
