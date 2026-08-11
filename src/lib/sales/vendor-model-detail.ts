@@ -1,6 +1,10 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
+import {
+  collapseCancelledSkuLegs,
+  wholesaleProfitForModelRows,
+} from "@/lib/sales/top-models-wholesale-margin";
 import { inclusivePeriodDays } from "@/lib/sales/inventory-metrics";
 import {
   hasOnhandData,
@@ -263,7 +267,8 @@ export function buildVendorModelDetail(
   }
 
   const periodDays = inclusivePeriodDays(dateFrom, dateTo);
-  const skuLines = skuLinesForModel(rows);
+  const activeRows = collapseCancelledSkuLegs(rows);
+  const skuLines = skuLinesForModel(activeRows);
 
   const skus: VendorModelSkuDetail[] = [];
   const seenSku = new Set<string>();
@@ -316,9 +321,10 @@ export function buildVendorModelDetail(
 
   skus.sort((a, b) => b.units - a.units || (b.onHandTotal ?? 0) - (a.onHandTotal ?? 0));
 
-  const units = rows.reduce((s, r) => s + salesUnitsSold(r.quantity), 0);
-  const revenue = rows.reduce((s, r) => s + r.netRevenue, 0);
-  const margin = rows.reduce((s, r) => s + r.margin, 0);
+  const units = activeRows.reduce((s, r) => s + salesUnitsSold(r.quantity), 0);
+  const revenue = activeRows.reduce((s, r) => s + r.netRevenue, 0);
+  const { profit, marginRate } = wholesaleProfitForModelRows(activeRows);
+  const margin = profit ?? 0;
 
   let onHandTotal: number | null = null;
   const activeStores = new Set<string>();
@@ -403,7 +409,7 @@ export function buildVendorModelDetail(
   }
 
   const byStore = new Map<string, { revenue: number; units: number }>();
-  for (const r of rows) {
+  for (const r of activeRows) {
     const store = r.storeName?.trim();
     if (!store) continue;
     const cur = byStore.get(store) ?? { revenue: 0, units: 0 };
@@ -449,7 +455,7 @@ export function buildVendorModelDetail(
       revenue,
       units,
       margin,
-      marginRate: revenue > 0 ? margin / revenue : 0,
+      marginRate: marginRate ?? (revenue > 0 ? margin / revenue : 0),
       onHandTotal,
       sellThrough: sellThrough(units, onHandTotal),
       activeStores: activeStores.size,

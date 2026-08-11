@@ -5,6 +5,8 @@ import { isValidIsoDate, parseReportFilterDate, shiftIsoToSameWeekdayLastYear, s
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import {
   calculatorWholesaleUnitCost,
+  collapseCancelledSkuLegs,
+  signedWholesaleUnitCost,
   wholesaleProfitForModelRows,
 } from "@/lib/sales/top-models-wholesale-margin";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
@@ -153,7 +155,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
         wholesaleCost,
       });
       if (calcCost != null) {
-        margin = net - calcCost;
+        margin = net - signedWholesaleUnitCost(calcCost, { quantity: qty, netRevenue: net, grossSales: gross });
       } else if (profitAmountCol && String(rec[profitAmountCol] ?? "").trim() !== "") {
         margin = parseNumber(rec[profitAmountCol]);
       }
@@ -294,13 +296,6 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       rows: [],
     };
     existing.rows.push(r);
-    const dept = r.department?.trim() || "";
-    if (dept) {
-      existing.deptRevenue.set(
-        dept,
-        (existing.deptRevenue.get(dept) ?? 0) + r.netRevenue
-      );
-    }
     if (r.date) {
       existing.saleDates.add(r.date);
       if (!existing.lastSaleDate || r.date > existing.lastSaleDate) {
@@ -313,9 +308,9 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       itemNumber: existing.itemNumber || itemNumber || undefined,
       vendorModel: vendorModel || existing.vendorModel,
       imageDir: existing.imageDir || r.imageDir?.trim() || undefined,
-      revenue: existing.revenue + r.netRevenue,
-      units: existing.units + salesUnitsSold(r.quantity),
-      margin: existing.margin + r.margin,
+      revenue: existing.revenue,
+      units: existing.units,
+      margin: existing.margin,
       department: existing.department,
       deptRevenue: existing.deptRevenue,
       lastSaleDate: existing.lastSaleDate,
@@ -324,7 +319,31 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
     });
   }
 
-  const ranked = [...map.values()].sort(
+  const finalized = [...map.values()]
+    .map((entry) => {
+      const collapsed = collapseCancelledSkuLegs(entry.rows);
+      const deptRevenue = new Map<string, number>();
+      let revenue = 0;
+      let units = 0;
+      for (const r of collapsed) {
+        revenue += r.netRevenue;
+        units += salesUnitsSold(r.quantity);
+        const dept = r.department?.trim() || "";
+        if (dept) {
+          deptRevenue.set(dept, (deptRevenue.get(dept) ?? 0) + r.netRevenue);
+        }
+      }
+      return {
+        ...entry,
+        rows: collapsed,
+        revenue,
+        units,
+        deptRevenue,
+      };
+    })
+    .filter((p) => p.units > 0 || Math.abs(p.revenue) >= 0.01);
+
+  const ranked = finalized.sort(
     (a, b) => b.units - a.units || b.revenue - a.revenue
   );
   const sliced =

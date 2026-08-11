@@ -4,7 +4,11 @@ import { isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } fr
 import { hasOnhandData, listOnhandStoresForSku, lookupOnhandQty } from "@/lib/inventory/onhand";
 import { lookupInventory } from "@/lib/inventory/store";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
-import { calculatorWholesaleUnitCost } from "./top-models-wholesale-margin";
+import {
+  calculatorWholesaleUnitCost,
+  collapseCancelledSkuLegs,
+  signedWholesaleUnitCost,
+} from "./top-models-wholesale-margin";
 import type {
   SalesBreakdownRow,
   SalesGroupBy,
@@ -78,7 +82,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       missingWholesale?: boolean;
     }
   >();
-  for (const r of rows) {
+  for (const r of collapseCancelledSkuLegs(rows)) {
     const sku = (r.sku || r.itemNumber || "").trim();
     if (!sku || isExcludedSalesSku(sku)) continue;
     const key = sku.toUpperCase();
@@ -92,12 +96,12 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     const units = salesUnitsSold(r.quantity);
     cur.units += units;
     cur.revenue += r.netRevenue;
-    // Top-model SKU lines: revenue − calculator cost rules (qty ignored)
+    // Top-model SKU lines: revenue − signed calculator cost (returns add cost back)
     const cost = calculatorWholesaleUnitCost(sku, r.storeName, r);
     if (cost == null) {
       cur.missingWholesale = true;
     } else {
-      cur.margin = (cur.margin ?? 0) + (r.netRevenue - cost);
+      cur.margin = (cur.margin ?? 0) + (r.netRevenue - signedWholesaleUnitCost(cost, r));
     }
     const store = r.storeName?.trim();
     if (store && units > 0) {
@@ -273,7 +277,12 @@ export function groupRows(
   const list: (SalesBreakdownRow & { _modelRows?: VendorPosRow[] })[] = [
     ...map.entries(),
   ].map(([name, v]) => {
-    const s = summarizeRows(v.rows);
+    // Top models / product / sku: cancel same-day SKU sale+return legs before metrics
+    const metricRows =
+      by === "vendor_model" || by === "product" || by === "sku"
+        ? collapseCancelledSkuLegs(v.rows)
+        : v.rows;
+    const s = summarizeRows(metricRows);
     const unitsSold = s.unitsSold ?? 0;
     const inventory =
       by === "vendor_model" ? rollupModelInventory(v.rows) : null;
@@ -284,7 +293,7 @@ export function groupRows(
     if (by === "vendor_model") {
       const deptRevenue = new Map<string, number>();
       const dates = new Set<string>();
-      for (const r of v.rows) {
+      for (const r of metricRows) {
         const dept = r.department?.trim();
         if (dept) {
           deptRevenue.set(dept, (deptRevenue.get(dept) ?? 0) + r.netRevenue);
@@ -329,8 +338,11 @@ export function groupRows(
           }
         : {}),
       // Defer SKU/store/onhand breakdown until after sort — only top models need it.
-      ...(by === "vendor_model" ? { _modelRows: v.rows } : {}),
+      ...(by === "vendor_model" ? { _modelRows: metricRows } : {}),
     };
+  }).filter((item) => {
+    if (by !== "vendor_model" && by !== "product" && by !== "sku") return true;
+    return (item.unitsSold ?? 0) > 0 || Math.abs(item.netSales ?? 0) >= 0.01;
   });
 
   const secondary: "netSales" | "unitsSold" =

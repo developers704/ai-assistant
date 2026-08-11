@@ -64,7 +64,7 @@ export function calculatorWholesaleUnitCost(
   }
 
   if (saleRow) {
-    const salesAmount = Number(saleRow.grossSales) || 0;
+    const salesAmount = Math.abs(Number(saleRow.grossSales) || 0);
     if (salesAmount > 0) {
       const fromSales = wholeCostFromRules(
         {
@@ -85,26 +85,125 @@ export function calculatorWholesaleUnitCost(
 }
 
 /**
+ * Unit cost with sign: sales subtract cost, returns add it back
+ * (sale R−C then return −R+C → net 0). Qty ignored for magnitude.
+ */
+export function signedWholesaleUnitCost(
+  unitCost: number,
+  row: Pick<VendorPosRow, "quantity" | "netRevenue" | "grossSales">
+): number {
+  const qty = Number(row.quantity ?? 0);
+  if (qty < 0) return -unitCost;
+  if (qty > 0) return unitCost;
+  const net = Number(row.netRevenue ?? 0);
+  if (net < 0) return -unitCost;
+  const gross = Number(row.grossSales ?? 0);
+  if (gross < 0) return -unitCost;
+  return unitCost;
+}
+
+/** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
+export const TOP_MODELS_MARGIN_RULES_VERSION = 1;
+
+function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
+  const net = Number(row.netRevenue ?? 0);
+  if (net !== 0) return Math.round(Math.abs(net) * 100);
+  return Math.round(Math.abs(Number(row.grossSales ?? 0)) * 100);
+}
+
+function isReturnish(row: Pick<VendorPosRow, "quantity" | "netRevenue" | "grossSales">): boolean {
+  const qty = Number(row.quantity ?? 0);
+  if (qty < 0) return true;
+  if (Number(row.netRevenue ?? 0) < 0) return true;
+  if (Number(row.grossSales ?? 0) < 0) return true;
+  return false;
+}
+
+function isSaleish(row: Pick<VendorPosRow, "quantity" | "netRevenue" | "grossSales">): boolean {
+  if (isReturnish(row)) return false;
+  const qty = Number(row.quantity ?? 0);
+  const net = Number(row.netRevenue ?? 0);
+  const gross = Number(row.grossSales ?? 0);
+  return qty > 0 || net > 0 || gross > 0;
+}
+
+function cancelPairKey(
+  row: Pick<VendorPosRow, "storeName" | "date" | "sku" | "itemNumber" | "netRevenue" | "grossSales">
+): string | null {
+  const store = (row.storeName ?? "").trim().toLowerCase();
+  if (!store) return null;
+  const sku = (row.sku || row.itemNumber || "").trim().toUpperCase();
+  if (!sku) return null;
+  const amount = absAmountCents(row);
+  if (!(amount > 0)) return null;
+  const date = (row.date ?? "").trim().slice(0, 10);
+  return `${store}|${date}|${sku}|${amount}`;
+}
+
+/**
+ * Within one vendor-model / product group: drop matching sale↔return legs
+ * (same store, calendar date, SKU, abs net). Does NOT change store Net Sales —
+ * only product rankings / Top Vendor Models / model detail.
+ */
+export function collapseCancelledSkuLegs<T extends VendorPosRow>(rows: T[]): T[] {
+  if (rows.length < 2) return rows;
+
+  const drop = new Set<number>();
+  const saleIndex = new Map<string, number[]>();
+  for (let j = 0; j < rows.length; j++) {
+    if (!isSaleish(rows[j])) continue;
+    const key = cancelPairKey(rows[j]);
+    if (!key) continue;
+    const list = saleIndex.get(key);
+    if (list) list.push(j);
+    else saleIndex.set(key, [j]);
+  }
+
+  const usedPositive = new Set<number>();
+  for (let i = 0; i < rows.length; i++) {
+    if (drop.has(i) || !isReturnish(rows[i])) continue;
+    const key = cancelPairKey(rows[i]);
+    if (!key) continue;
+    for (const j of saleIndex.get(key) ?? []) {
+      if (j === i || drop.has(j) || usedPositive.has(j)) continue;
+      if (!isSaleish(rows[j])) continue;
+      const absNeg = Math.abs(Number(rows[i].quantity ?? 0));
+      const absPos = Math.abs(Number(rows[j].quantity ?? 0));
+      if (absNeg > 0 && absPos > 0 && absNeg !== absPos) continue;
+      drop.add(i);
+      drop.add(j);
+      usedPositive.add(j);
+      break;
+    }
+  }
+
+  if (!drop.size) return rows;
+  return rows.filter((_, idx) => !drop.has(idx));
+}
+
+/**
  * Top Vendor Models margin from calculator wholesale rules.
- * Per sale line: profit = revenue − cost (qty ignored — owner rule).
+ * Collapses cancelled SKU sale+return legs first, then:
+ * profit = revenue − signed unit cost (qty ignored — owner rule).
  * If any SKU lacks cost → hide margin (null).
  */
 export function wholesaleProfitForModelRows(rows: VendorPosRow[]): {
   profit: number | null;
   marginRate: number | null;
 } {
-  if (!rows.length) return { profit: null, marginRate: null };
+  const active = collapseCancelledSkuLegs(rows);
+  if (!active.length) return { profit: 0, marginRate: null };
 
   let profit = 0;
   let revenue = 0;
 
-  for (const r of rows) {
+  for (const r of active) {
     const sku = (r.sku || r.itemNumber || "").trim();
     if (!sku) return { profit: null, marginRate: null };
     const cost = calculatorWholesaleUnitCost(sku, r.storeName, r);
     if (cost == null) return { profit: null, marginRate: null };
     revenue += r.netRevenue;
-    profit += r.netRevenue - cost;
+    profit += r.netRevenue - signedWholesaleUnitCost(cost, r);
   }
 
   return {

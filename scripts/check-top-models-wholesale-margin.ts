@@ -4,7 +4,11 @@
  */
 import { getVisibleDmCostPrice } from "../src/lib/inventory/pricing";
 import { wholeCostFromRules } from "../src/lib/inventory/whole-cost-rules";
-import { wholesaleProfitForModelRows } from "../src/lib/sales/top-models-wholesale-margin";
+import {
+  collapseCancelledSkuLegs,
+  wholesaleProfitForModelRows,
+} from "../src/lib/sales/top-models-wholesale-margin";
+import { salesUnitsSold } from "../src/lib/utils";
 import type { VendorPosRow } from "../src/lib/reports/types";
 
 function row(partial: Partial<VendorPosRow> & { netRevenue: number }): VendorPosRow {
@@ -154,6 +158,63 @@ assert(
   "GOLD JEWL+UV sales margin uses ÷1.3",
   uvGold.profit != null && Math.abs(uvGold.profit - (2724 - uvGoldCost)) < 0.01,
   `profit=${uvGold.profit} rate=${uvGold.marginRate}`
+);
+
+console.log("cancel legs");
+const qkvkStyle = [
+  row({
+    date: "2026-08-08",
+    storeName: "VJ-VAL",
+    transactionId: "FA-10291461",
+    sku: "205357-20",
+    vendorModel: "QKVK100001",
+    department: "GOLD CHAIN",
+    design: "GOLD JEWL",
+    productClass: "18KT",
+    quantity: 1,
+    grossSales: 27510,
+    netRevenue: 10909.09,
+  }),
+  row({
+    date: "2026-08-08",
+    storeName: "VJ-VAL",
+    transactionId: "FA-10291462",
+    sku: "205357-20",
+    vendorModel: "QKVK100001",
+    department: "GOLD CHAIN",
+    design: "GOLD JEWL",
+    productClass: "18KT",
+    quantity: -1,
+    grossSales: -27510,
+    netRevenue: -10909.09,
+  }),
+  row({
+    date: "2026-08-10",
+    storeName: "VJ-SERRA",
+    transactionId: "VS-KEEP",
+    sku: "205351-8",
+    vendorModel: "QKVK100001",
+    department: "GOLD ID",
+    design: "GOLD JEWL",
+    productClass: "18KT",
+    quantity: 1,
+    grossSales: 12707,
+    netRevenue: 5733.78,
+  }),
+];
+const collapsed = collapseCancelledSkuLegs(qkvkStyle);
+assert(
+  "collapse drops cross-txn cancelled SKU pair",
+  collapsed.length === 1 && collapsed[0].sku === "205351-8",
+  `len=${collapsed.length}`
+);
+const units = collapsed.reduce((s, r) => s + salesUnitsSold(r.quantity), 0);
+assert("collapse leaves 1 real unit", units === 1, `units=${units}`);
+const wp = wholesaleProfitForModelRows(qkvkStyle);
+assert(
+  "QKVK-style margin uses only kept sale (not −30%)",
+  wp.marginRate != null && wp.marginRate > 0,
+  `rate=${wp.marginRate} profit=${wp.profit}`
 );
 
 if (failed) {

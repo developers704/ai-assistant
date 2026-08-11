@@ -20,6 +20,8 @@ export interface SalesVersionMetadata {
   fileHash: string;
   /** When exclusion / return-pair rules change, refresh rebuilds even if fileHash matches. */
   exclusionRulesVersion?: number;
+  /** Top Vendor Models cancel-leg / signed-margin rules version. */
+  topModelsMarginRulesVersion?: number;
   reportId?: string;
   generatedAt: string;
   refreshedAt: string;

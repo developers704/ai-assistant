@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
+import { TOP_MODELS_MARGIN_RULES_VERSION } from "@/lib/sales/top-models-wholesale-margin";
 import {
   getLatestReportMeta,
   getReportMeta,
@@ -87,7 +88,8 @@ export async function refreshSalesData(options?: {
         const existing = readVersionMetadata(pointer.activeVersion);
         if (
           existing?.fileHash === fileHash &&
-          existing.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION
+          existing.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION &&
+          existing.topModelsMarginRulesVersion === TOP_MODELS_MARGIN_RULES_VERSION
         ) {
           return {
             success: true,
@@ -177,6 +179,7 @@ export async function refreshSalesData(options?: {
           fileName: meta.fileName,
           fileHash,
           exclusionRulesVersion: SALES_EXCLUSION_RULES_VERSION,
+          topModelsMarginRulesVersion: TOP_MODELS_MARGIN_RULES_VERSION,
           reportId: meta.id,
           generatedAt,
           refreshedAt: generatedAt,
@@ -242,7 +245,8 @@ export async function ensureActiveSalesVersion(): Promise<string | null> {
     const existing = readVersionMetadata(pointer.activeVersion);
     const latestHash = peekLatestReportHash();
     const rulesMatch =
-      existing?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION;
+      existing?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION &&
+      existing?.topModelsMarginRulesVersion === TOP_MODELS_MARGIN_RULES_VERSION;
     const hashMatch =
       !latestHash || !existing?.fileHash || existing.fileHash === latestHash;
     if (rulesMatch && hashMatch) {
