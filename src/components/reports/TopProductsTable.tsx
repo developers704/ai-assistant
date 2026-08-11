@@ -66,8 +66,9 @@ type SortDir = "asc" | "desc";
 
 const DESKTOP_ROW_GRID =
   "sm:grid-cols-[2rem_3.5rem_5.5rem_minmax(0,1fr)_auto]";
+/** Dept · Date · Qty · Revenue · Margin — aligned with sort headers */
 const DESKTOP_METRICS =
-  "grid grid-cols-[3.25rem_5rem_3rem] gap-x-2.5";
+  "grid grid-cols-[4.75rem_2.75rem_3.25rem_5rem_3rem] gap-x-2.5";
 
 function formatMarginPct(rate: number | undefined | null): string {
   if (rate == null || !Number.isFinite(rate)) return "—";
@@ -85,12 +86,16 @@ function MetricsBlock({
   revenue,
   marginRate,
   profit,
+  department,
+  dateLabel,
   mobile,
 }: {
   units: number;
   revenue: number;
   marginRate: number | null;
   profit?: number;
+  department?: string;
+  dateLabel?: string;
   mobile?: boolean;
 }) {
   const marginClass =
@@ -99,40 +104,60 @@ function MetricsBlock({
       : marginRate != null && marginRate >= 0
         ? "text-white/75"
         : "text-accent-rose/80";
+  const dept = department?.trim() || "—";
+  const date = dateLabel?.trim() || "—";
 
   if (mobile) {
     return (
-      <div className="grid grid-cols-3 divide-x divide-white/10 rounded-xl bg-white/[0.04] ring-1 ring-white/10 overflow-hidden">
-        <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
-            Qty
-          </span>
-          <span className="mt-0.5 text-sm font-semibold text-emerald-300 tabular-nums">
-            {formatPieceCount(units)}
-          </span>
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
+          <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-2.5 py-2">
+            <span className="block text-[10px] font-medium uppercase tracking-wide text-white/40">
+              Dept
+            </span>
+            <span className="mt-0.5 block truncate text-white/80" title={dept}>
+              {dept}
+            </span>
+          </div>
+          <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-2.5 py-2">
+            <span className="block text-[10px] font-medium uppercase tracking-wide text-white/40">
+              Date
+            </span>
+            <span className="mt-0.5 block tabular-nums text-white/80">{date}</span>
+          </div>
         </div>
-        <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
-            Revenue
-          </span>
-          <span className="mt-0.5 text-sm font-semibold text-ink tabular-nums">
-            {formatCurrency(revenue)}
-          </span>
-        </div>
-        <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
-            Margin
-          </span>
-          <span
-            className={cn("mt-0.5 text-sm font-semibold tabular-nums", marginClass)}
-            title={
-              profit != null
-                ? `Profit ${formatCurrency(profit)} on ${formatCurrency(revenue)} net`
-                : "Profit ÷ Net sales"
-            }
-          >
-            {formatMarginPct(marginRate)}
-          </span>
+        <div className="grid grid-cols-3 divide-x divide-white/10 rounded-xl bg-white/[0.04] ring-1 ring-white/10 overflow-hidden">
+          <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+              Qty
+            </span>
+            <span className="mt-0.5 text-sm font-semibold text-emerald-300 tabular-nums">
+              {formatPieceCount(units)}
+            </span>
+          </div>
+          <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+              Revenue
+            </span>
+            <span className="mt-0.5 text-sm font-semibold text-ink tabular-nums">
+              {formatCurrency(revenue)}
+            </span>
+          </div>
+          <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+              Margin
+            </span>
+            <span
+              className={cn("mt-0.5 text-sm font-semibold tabular-nums", marginClass)}
+              title={
+                profit != null
+                  ? `Profit ${formatCurrency(profit)} on ${formatCurrency(revenue)} net`
+                  : "Profit ÷ Net sales"
+              }
+            >
+              {formatMarginPct(marginRate)}
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -140,6 +165,12 @@ function MetricsBlock({
 
   return (
     <div className={DESKTOP_METRICS}>
+      <span className="text-[11px] text-white/70 truncate text-right" title={dept}>
+        {dept}
+      </span>
+      <span className="text-[11px] text-white/70 tabular-nums text-right" title={date}>
+        {date}
+      </span>
       <span className="text-sm font-semibold text-emerald-300/90 tabular-nums text-right">
         {formatPieceCount(units)}
       </span>
@@ -196,6 +227,13 @@ function SortHeader({
 function productSaleDates(p: TopProductRow): string[] {
   if (p.saleDates?.length) return p.saleDates;
   return p.lastSaleDate ? [p.lastSaleDate] : [];
+}
+
+function formatModelDate(p: TopProductRow): string {
+  const dates = productSaleDates(p);
+  if (!dates.length) return "—";
+  if (dates.length === 1) return shortIso(dates[0]);
+  return `${shortIso(dates[0])}–${shortIso(dates[dates.length - 1])}`;
 }
 
 export function TopProductsTable({
@@ -372,6 +410,8 @@ export function TopProductsTable({
             <span className="text-ink-muted">Product</span>
           </div>
           <div className={DESKTOP_METRICS}>
+            <span className="text-ink-muted text-right">Dept</span>
+            <span className="text-ink-muted text-right">Date</span>
             <SortHeader
               label="Qty"
               active={sortKey === "qty"}
@@ -512,12 +552,6 @@ export function TopProductsTable({
                             {displayName}
                           </p>
                         )}
-                        <p className="mt-0.5 text-[11px] text-white/40 truncate">
-                          {product.department || "—"}
-                          {showDateFilter && product.lastSaleDate
-                            ? ` · ${shortIso(product.lastSaleDate)}`
-                            : ""}
-                        </p>
                         <div className="hidden sm:block">
                           {skuLines.length > 0 && (
                             <SkuStoreBreakdownList
@@ -550,6 +584,8 @@ export function TopProductsTable({
                         revenue={product.revenue}
                         marginRate={marginRate}
                         profit={product.margin}
+                        department={product.department}
+                        dateLabel={formatModelDate(product)}
                       />
                       {onVendorModelDetail && (
                         <button
@@ -577,6 +613,8 @@ export function TopProductsTable({
                         revenue={product.revenue}
                         marginRate={marginRate}
                         profit={product.margin}
+                        department={product.department}
+                        dateLabel={formatModelDate(product)}
                       />
                     </div>
                   </div>
