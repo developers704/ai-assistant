@@ -194,15 +194,12 @@ function hasUvOrUltimateValue(item: InventoryItem): boolean {
 }
 
 /**
- * DM Cost Price:
- * 1) Inventory Whole Cost when filled (never overwrite with formula)
- * 2) Else CP Divisor sheet formula on Tag Price
+ * DM Cost Price (CP Divisor sheet is source of truth):
+ * 1) Sheet formula on Tag Price when a rule matches
+ * 2) Else inventory Whole Cost if filled
  * 3) Else Individual Cost Value
  */
 export function getVisibleDmCostPrice(item: InventoryItem): number {
-  const wholesale = Number(item.wholesaleCost) || 0;
-  if (wholesale > 0) return wholesale;
-
   const tag = Number(item.tagPrice) || 0;
   if (tag > 0) {
     const fromRules = wholeCostFromRules(
@@ -216,6 +213,9 @@ export function getVisibleDmCostPrice(item: InventoryItem): number {
     );
     if (fromRules != null && fromRules > 0) return fromRules;
   }
+
+  const wholesale = Number(item.wholesaleCost) || 0;
+  if (wholesale > 0) return wholesale;
 
   return Number(item.costPrice) || 0;
 }

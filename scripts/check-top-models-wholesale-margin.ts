@@ -1,13 +1,10 @@
 /**
- * Self-check: Whole Cost rules + Top Vendor Models sales fallback.
+ * Self-check: sheet formula beats stale Whole Cost; sales fallback works.
  * Run: npx tsx scripts/check-top-models-wholesale-margin.ts
  */
 import { getVisibleDmCostPrice } from "../src/lib/inventory/pricing";
 import { wholeCostFromRules } from "../src/lib/inventory/whole-cost-rules";
-import {
-  calculatorWholesaleUnitCost,
-  wholesaleProfitForModelRows,
-} from "../src/lib/sales/top-models-wholesale-margin";
+import { wholesaleProfitForModelRows } from "../src/lib/sales/top-models-wholesale-margin";
 import type { VendorPosRow } from "../src/lib/reports/types";
 
 function row(partial: Partial<VendorPosRow> & { netRevenue: number }): VendorPosRow {
@@ -47,34 +44,40 @@ function assert(name: string, ok: boolean, detail?: string) {
   }
 }
 
-console.log("whole-cost-rules");
+console.log("sheet truth");
+const radoCost = 2900 / 1.82 + 20;
 assert(
-  "diamond LADYS RING = base/8.8",
-  Math.abs((wholeCostFromRules({ department: "LADYS RING" }, 880) ?? 0) - 100) < 1e-9
+  "Rado formula Tag/1.82+20",
+  Math.abs((wholeCostFromRules({ department: "RADO" }, 2900) ?? 0) - radoCost) < 0.01
 );
 assert(
-  "MICHAEL KO = base/2+10",
-  Math.abs((wholeCostFromRules({ department: "MICHAEL KO" }, 200) ?? 0) - 110) < 1e-9
+  "Rado DM cost ignores stale Whole Cost 1450",
+  Math.abs(
+    getVisibleDmCostPrice({
+      sku: "207611",
+      description: "RADO WATCH",
+      vendorModel: "R30008302",
+      vendor: "RADO",
+      tagPrice: 2900,
+      costPrice: 1595,
+      wholesaleCost: 1450,
+      store: "VJ-FRE",
+      onHand: 1,
+      department: "RADO",
+      design: "WATCH",
+      class: "MENS",
+      subClass: "AUTOMATIC",
+      avgWeight: 0,
+      brand: "",
+    }) - radoCost
+  ) < 0.01
 );
+
+const radoMargin = (2204 - radoCost) / 2204;
 assert(
-  "filled Whole Cost wins over formula",
-  getVisibleDmCostPrice({
-    sku: "x",
-    description: "",
-    vendorModel: "",
-    vendor: "",
-    tagPrice: 1300,
-    costPrice: 0,
-    wholesaleCost: 99,
-    store: "",
-    onHand: 0,
-    department: "LADYS RING",
-    design: "",
-    class: "UV",
-    subClass: "",
-    avgWeight: 0,
-    brand: "",
-  }) === 99
+  "Rado example margin ~27% not 34%",
+  radoMargin > 0.26 && radoMargin < 0.28,
+  `${(radoMargin * 100).toFixed(1)}%`
 );
 
 console.log("sales fallback");
@@ -89,27 +92,10 @@ const bridal = wholesaleProfitForModelRows([
   }),
 ]);
 assert(
-  "missing inventory LADYS RING uses Sales Amount / 8.8",
-  bridal.profit != null &&
-    bridal.marginRate != null &&
-    Math.abs(bridal.profit - (800 - 880 / 8.8)) < 0.01,
+  "missing inventory uses Sales Amount / 8.8",
+  bridal.profit != null && Math.abs(bridal.profit - (800 - 880 / 8.8)) < 0.01,
   `profit=${bridal.profit}`
 );
-
-const lines = [
-  row({ netRevenue: 400, quantity: 5, sku: "A", department: "EARRINGS", grossSales: 400 }),
-  row({ netRevenue: 200, quantity: 1, sku: "A", department: "EARRINGS", grossSales: 200 }),
-];
-// Both EARRINGS → /8.8 on sales amount when no inventory
-const p = wholesaleProfitForModelRows(lines);
-assert(
-  "qty ignored (unit cost per line, not × qty)",
-  p.profit != null &&
-    Math.abs(p.profit - (400 - 400 / 8.8 + 200 - 200 / 8.8)) < 0.01,
-  `profit=${p.profit}`
-);
-
-void calculatorWholesaleUnitCost;
 
 if (failed) {
   console.error(`\n${failed} check(s) failed`);

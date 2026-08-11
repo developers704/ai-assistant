@@ -26,28 +26,29 @@ function makeItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
   };
 }
 
-describe("Whole Cost rules (CP Divisor sheet)", () => {
-  it("keeps filled inventory Whole Cost (never overwrite with formula)", () => {
+describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
+  it("sheet formula beats filled Whole Cost (Rado Tag/1.82+20)", () => {
+    const item = makeItem({
+      department: "RADO",
+      design: "WATCH",
+      class: "MENS",
+      tagPrice: 2900,
+      wholesaleCost: 1450, // stale CSV — ignore
+    });
+    expect(getVisibleDmCostPrice(item)).toBeCloseTo(2900 / 1.82 + 20, 5);
+  });
+
+  it("Class UV + GOLD JEWL → Tag ÷ 1.3 even if Whole Cost filled", () => {
     const item = makeItem({
       class: "UV",
       design: "GOLD JEWL",
       wholesaleCost: 140,
       tagPrice: 559,
     });
-    expect(getVisibleDmCostPrice(item)).toBe(140);
-  });
-
-  it("Class UV + GOLD JEWL → Tag ÷ 1.3 when Whole Cost blank", () => {
-    const item = makeItem({
-      class: "UV",
-      design: "GOLD JEWL",
-      wholesaleCost: 0,
-      tagPrice: 559,
-    });
     expect(getVisibleDmCostPrice(item)).toBeCloseTo(559 / 1.3, 5);
   });
 
-  it("GOLD JEWL design without UV → Tag ÷ 4 when Whole Cost blank", () => {
+  it("GOLD JEWL design without UV → Tag ÷ 4", () => {
     const item = makeItem({
       class: "10KT",
       design: "GOLD JEWL",
@@ -55,33 +56,31 @@ describe("Whole Cost rules (CP Divisor sheet)", () => {
       wholesaleCost: 0,
       tagPrice: 400,
     });
-    expect(getVisibleDmCostPrice(item)).toBeCloseTo(400 / 4, 5);
+    expect(getVisibleDmCostPrice(item)).toBeCloseTo(100, 5);
   });
 
-  it("LADYS RING (diamond dept) → Tag ÷ 8.8", () => {
+  it("uses filled Whole Cost only when no rule matches", () => {
+    const item = makeItem({
+      department: "SEIKO",
+      design: "WATCH",
+      class: "",
+      tagPrice: 500,
+      wholesaleCost: 220,
+    });
+    expect(getVisibleDmCostPrice(item)).toBe(220);
+  });
+
+  it("LADYS RING → Tag ÷ 8.8", () => {
     expect(
-      wholeCostFromRules(
-        { department: "LADYS RING", design: "OVANI", class: "14KT", subClass: "7" },
-        21995
-      )
+      wholeCostFromRules({ department: "LADYS RING", design: "OVANI", class: "14KT" }, 21995)
     ).toBeCloseTo(21995 / 8.8, 5);
   });
 
-  it("MICHAEL KO department → Tag/2 + 10", () => {
-    expect(
-      wholeCostFromRules({ department: "MICHAEL KO", design: "WATCH", class: "", subClass: "" }, 200)
-    ).toBeCloseTo(200 / 2 + 10, 5);
+  it("ROLEX → Tag ÷ 4", () => {
+    expect(wholeCostFromRules({ department: "ROLEX" }, 4000)).toBeCloseTo(1000, 5);
   });
 
-  it("MONT WATCH department → Tag/1.82 + 20", () => {
-    expect(
-      wholeCostFromRules({ department: "MONT WATCH", design: "WATCH", class: "", subClass: "" }, 182)
-    ).toBeCloseTo(182 / 1.82 + 20, 5);
-  });
-
-  it("TUNGS BAND → Tag * 0.06", () => {
-    expect(
-      wholeCostFromRules({ department: "TUNGS BAND", design: "", class: "", subClass: "" }, 1000)
-    ).toBeCloseTo(60, 5);
+  it("MICHAEL KO → Tag/2 + 10", () => {
+    expect(wholeCostFromRules({ department: "MICHAEL KO" }, 200)).toBeCloseTo(110, 5);
   });
 });

@@ -43,9 +43,9 @@ function itemForCalculatorCost(
 
 /**
  * Wholesale unit cost for Top Vendor Models / calculator:
- * 1) Inventory Whole Cost if filled
- * 2) Else Tag × CP Divisor sheet (via getVisibleDmCostPrice)
- * 3) Else Sales Amount × same sheet (when inventory missing / no cost)
+ * 1) Inventory Tag × CP Divisor sheet (preferred — sheet is truth)
+ * 2) Else filled Whole Cost / Individual Cost
+ * 3) Else Sales Amount × same sheet (SKU not in onhand / no tag rule)
  */
 export function calculatorWholesaleUnitCost(
   sku: string,
@@ -54,7 +54,8 @@ export function calculatorWholesaleUnitCost(
 ): number | null {
   const hit = lookupInventory(sku, store);
   if (hit?.item) {
-    const w = Number(getVisibleDmCostPrice(itemForCalculatorCost(hit.item, saleRow)));
+    const merged = itemForCalculatorCost(hit.item, saleRow);
+    const w = Number(getVisibleDmCostPrice(merged));
     if (Number.isFinite(w) && w > 0) return w;
   }
 
