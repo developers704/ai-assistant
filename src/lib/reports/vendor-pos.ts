@@ -3,7 +3,10 @@ import { filterExcludedSalesRows, isExcludedSalesRow, isHiddenFromTopVendorModel
 import { normalizeSalesImageDir, resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate, parseReportFilterDate, shiftIsoToSameWeekdayLastYear, shiftIsoYears } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
-import { wholesaleProfitForModelRows } from "@/lib/sales/top-models-wholesale-margin";
+import {
+  calculatorWholesaleUnitCost,
+  wholesaleProfitForModelRows,
+} from "@/lib/sales/top-models-wholesale-margin";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
 
@@ -128,9 +131,28 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       vendorModelCols
         .map((c) => String(rec[c] ?? "").trim())
         .find((v) => v.length > 0) ?? "";
-    const margin = profitAmountCol
-      ? parseNumber(rec[profitAmountCol])
-      : net - inventoryCost;
+    const description = descCol
+      ? String(rec[descCol] ?? "").trim() || department
+      : department;
+    const design = designCol ? String(rec[designCol] ?? "").trim() : "";
+    const productClass = classCol ? String(rec[classCol] ?? "").trim() : "";
+    const subClass = subClassCol ? String(rec[subClassCol] ?? "").trim() : "";
+    // Prefer CSV Profit Amount; else price-calculator wholesale rules (Gold+UV → Tag÷1.3).
+    // Daily uploads often omit Profit Amount — never fall back to Kash inventory cost.
+    let margin = 0;
+    if (profitAmountCol && String(rec[profitAmountCol] ?? "").trim() !== "") {
+      margin = parseNumber(rec[profitAmountCol]);
+    } else if (sku) {
+      const calcCost = calculatorWholesaleUnitCost(sku, store, {
+        description,
+        department,
+        design,
+        productClass,
+        subClass,
+        netRevenue: net,
+      });
+      margin = calcCost != null ? net - calcCost : 0;
+    }
 
     if (!store && !department && net === 0 && qty === 0) continue;
     if (!date && !txnId && !store) continue;
@@ -144,15 +166,15 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       storeName: store || "Unknown store",
       // Keep blank — excluded later by filterExcludedSalesRows (do not invent "Uncategorized")
       department,
-      design: designCol ? String(rec[designCol] ?? "").trim() : "",
+      design,
       itemNumber,
       sku,
       style: styleCol ? String(rec[styleCol] ?? "").trim() : "",
-      description: descCol ? String(rec[descCol] ?? "").trim() || department : department,
+      description,
       vendor: vendorCol ? String(rec[vendorCol] ?? "").trim().toUpperCase() : "",
       vendorModel,
-      productClass: classCol ? String(rec[classCol] ?? "").trim() : "",
-      subClass: subClassCol ? String(rec[subClassCol] ?? "").trim() : "",
+      productClass,
+      subClass,
       quantity: qty === 0 || qty == null || Number.isNaN(qty) ? 1 : qty,
       inventoryCost,
       wholesaleCost,
