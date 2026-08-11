@@ -3,6 +3,7 @@ import { filterExcludedSalesRows, isExcludedSalesRow, isHiddenFromTopVendorModel
 import { normalizeSalesImageDir, resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate, parseReportFilterDate, shiftIsoToSameWeekdayLastYear, shiftIsoYears } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
+import { wholesaleProfitForModelRows } from "@/lib/sales/top-models-wholesale-margin";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
 
@@ -311,13 +312,15 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       }
     }
     const dates = [...saleDates].sort();
+    const { profit, marginRate } = wholesaleProfitForModelRows(modelRows);
     return {
       ...p,
+      margin: profit ?? undefined,
       department: department || undefined,
       lastSaleDate: p.lastSaleDate || undefined,
       saleDates: dates.length ? dates : undefined,
       skus: skus.length ? skus : undefined,
-      marginRate: p.revenue > 0 ? p.margin / p.revenue : 0,
+      marginRate: marginRate ?? undefined,
       imageUrl: resolveProductImageUrl(p.imageDir),
     };
   });

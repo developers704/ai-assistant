@@ -84,8 +84,12 @@ export function reportSummaryFromQueryResult(
       imageUrl: r.imageUrl ?? resolveProductImageUrl(r.imageDir),
       revenue: r.netSales,
       units: r.unitsSold,
-      margin: r.estimatedMargin,
-      marginRate: r.netSales > 0 ? r.estimatedMargin / r.netSales : 0,
+      // null estimatedMargin → hide margin (missing calculator Whole Cost)
+      margin: r.estimatedMargin ?? undefined,
+      marginRate:
+        r.estimatedMargin != null && r.netSales > 0
+          ? r.estimatedMargin / r.netSales
+          : undefined,
       department: r.department,
       lastSaleDate: r.lastSaleDate,
       saleDates: r.saleDates,

@@ -188,7 +188,8 @@ export interface SalesBreakdownRow {
   discounts: number;
   unitsSold: number;
   transactions: number;
-  estimatedMargin: number;
+  /** Null when Top Vendor Models hides margin (missing calculator Whole Cost). */
+  estimatedMargin: number | null;
   share?: number;
   /** Raw POS Image Dir. (for client-side CDN fallback). */
   imageDir?: string;

@@ -4,6 +4,7 @@ import { isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } fr
 import { hasOnhandData, listOnhandStoresForSku, lookupOnhandQty } from "@/lib/inventory/onhand";
 import { lookupInventory } from "@/lib/inventory/store";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
+import { calculatorWholesaleUnitCost } from "./top-models-wholesale-margin";
 import type {
   SalesBreakdownRow,
   SalesGroupBy,
@@ -72,7 +73,10 @@ function rollupModelInventory(modelRows: VendorPosRow[]): {
 export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
   const map = new Map<
     string,
-    VendorModelSkuLine & { storeUnits: Map<string, number> }
+    VendorModelSkuLine & {
+      storeUnits: Map<string, number>;
+      missingWholesale?: boolean;
+    }
   >();
   for (const r of rows) {
     const sku = (r.sku || r.itemNumber || "").trim();
@@ -88,7 +92,13 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     const units = salesUnitsSold(r.quantity);
     cur.units += units;
     cur.revenue += r.netRevenue;
-    cur.margin = (cur.margin ?? 0) + r.margin;
+    // Top-model SKU lines: revenue − calculator Whole Cost (qty ignored)
+    const cost = calculatorWholesaleUnitCost(sku, r.storeName);
+    if (cost == null) {
+      cur.missingWholesale = true;
+    } else {
+      cur.margin = (cur.margin ?? 0) + (r.netRevenue - cost);
+    }
     const store = r.storeName?.trim();
     if (store && units > 0) {
       cur.storeUnits.set(store, (cur.storeUnits.get(store) ?? 0) + units);
@@ -96,17 +106,21 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     map.set(key, cur);
   }
   return [...map.values()]
-    .map(({ storeUnits, ...line }) => {
-      const margin = line.margin ?? 0;
+    .map(({ storeUnits, missingWholesale, ...line }) => {
       const stores = buildSkuStoreLines(line.sku, storeUnits);
       const hasOnhand = hasOnhandData();
       const onHandTotal = hasOnhand
         ? stores.reduce((sum, s) => sum + (s.onhand ?? 0), 0)
         : null;
+      const margin = missingWholesale ? undefined : line.margin;
+      const marginRate =
+        !missingWholesale && line.revenue > 0 && margin != null
+          ? margin / line.revenue
+          : undefined;
       return {
         ...line,
         margin,
-        marginRate: line.revenue > 0 ? margin / line.revenue : 0,
+        marginRate,
         tagPrice: (() => {
           const tag = lookupInventory(line.sku)?.item?.tagPrice;
           return tag != null && tag > 0 ? tag : undefined;
