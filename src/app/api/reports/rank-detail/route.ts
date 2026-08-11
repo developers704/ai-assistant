@@ -107,7 +107,9 @@ function skuLinesCredited(
 ): VendorModelSkuLine[] {
   const map = new Map<
     string,
-    VendorModelSkuLine & { storeUnits: Map<string, number> }
+    VendorModelSkuLine & {
+      storeSales: Map<string, { units: number; revenue: number }>;
+    }
   >();
   for (const r of rows) {
     const sku = (r.sku || r.itemNumber || "").trim();
@@ -120,22 +122,26 @@ function skuLinesCredited(
       units: 0,
       revenue: 0,
       margin: 0,
-      storeUnits: new Map<string, number>(),
+      storeSales: new Map<string, { units: number; revenue: number }>(),
     };
     const units = salesUnitsSold(r.quantity) * share;
+    const revenueShare = r.netRevenue * share;
     cur.units += units;
-    cur.revenue += r.netRevenue * share;
+    cur.revenue += revenueShare;
     cur.margin = (cur.margin ?? 0) + r.margin * share;
     const store = r.storeName?.trim();
-    if (store && units > 0) {
-      cur.storeUnits.set(store, (cur.storeUnits.get(store) ?? 0) + units);
+    if (store) {
+      const prev = cur.storeSales.get(store) ?? { units: 0, revenue: 0 };
+      prev.units += units;
+      prev.revenue += revenueShare;
+      cur.storeSales.set(store, prev);
     }
     map.set(key, cur);
   }
   return [...map.values()]
-    .map(({ storeUnits, ...line }) => {
+    .map(({ storeSales, ...line }) => {
       const margin = line.margin ?? 0;
-      const stores = buildSkuStoreLines(line.sku, storeUnits);
+      const stores = buildSkuStoreLines(line.sku, storeSales);
       return {
         ...line,
         margin,

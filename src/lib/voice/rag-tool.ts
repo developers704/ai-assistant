@@ -3,19 +3,7 @@ import {
   isRagAvailable,
   retrieveKnowledge,
 } from "@/lib/rag";
-import {
-  buildCompanyKnowledgeAnswer,
-  cleanChunkText,
-  isBroadCompanyOverviewQuery,
-} from "@/lib/voice/company-knowledge-format";
-
-function truncateForSpeech(text: string, maxLen: number): string {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (normalized.length <= maxLen) return normalized;
-  const cut = normalized.slice(0, maxLen - 3);
-  const lastSpace = cut.lastIndexOf(" ");
-  return `${(lastSpace > 80 ? cut.slice(0, lastSpace) : cut).trim()}...`;
-}
+import { buildCompanyKnowledgeAnswer } from "@/lib/voice/company-knowledge-format";
 
 /** Company knowledge answer for voice + chat tools. */
 export function buildCompanyKnowledgeVoiceAnswer(query: string): {
@@ -74,8 +62,6 @@ export function buildCompanyKnowledgeVoiceAnswer(query: string): {
   }
 
   const markdown = answer.markdown;
-  const top = chunks[0];
-  const voiceShort = truncateForSpeech(cleanChunkText(top), 400);
 
   return {
     spokenAnswer: markdown,
