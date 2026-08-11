@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { formatPieceCount, cn } from "@/lib/utils";
+import { formatCurrency, formatPieceCount, cn } from "@/lib/utils";
 
 export type SkuStoreBreakdownLine = {
   name: string;
@@ -13,14 +13,23 @@ export type SkuStoreBreakdownLine = {
 export type SkuBreakdownRow = {
   sku: string;
   units: number;
+  /** Net sales (Total) for this SKU in the filter window. */
+  revenue?: number;
   onHandTotal?: number;
-  /** Inventory tag price when available. */
+  /** Shown as "tag $" — Sales Amount (gross), not inventory Tag. */
   tagPrice?: number;
   stores?: SkuStoreBreakdownLine[];
 };
 
 function formatOnhand(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function formatMoneyCompact(n: number): string {
+  return n.toLocaleString("en-US", {
+    maximumFractionDigits: n >= 100 ? 0 : 2,
+    minimumFractionDigits: 0,
+  });
 }
 
 /** SKU list with click-to-expand store / sold / on-hand grid. */
@@ -49,18 +58,23 @@ export function SkuStoreBreakdownList({
   if (!lines.length) return null;
 
   return (
-    <ul className={cn("mt-2 space-y-1.5", className)} data-sku-detail>
+    <ul className={cn("mt-2 space-y-2", className)} data-sku-detail>
       {lines.map((line) => {
         const expanded = openSku === line.sku;
         const storeCount = line.stores?.length ?? 0;
         const showOnhand = (line.stores ?? []).some(
           (s) => s.onhand != null && s.onhand !== undefined
         );
-        const totalOnhand = (line.stores ?? []).reduce(
-          (sum, s) => sum + (typeof s.onhand === "number" ? s.onhand : 0),
-          0
-        );
+        const totalOnhand =
+          typeof line.onHandTotal === "number"
+            ? line.onHandTotal
+            : (line.stores ?? []).reduce(
+                (sum, s) => sum + (typeof s.onhand === "number" ? s.onhand : 0),
+                0
+              );
         const canExpand = storeCount > 0;
+        const hasTag = typeof line.tagPrice === "number" && line.tagPrice > 0;
+        const hasNet = typeof line.revenue === "number" && Number.isFinite(line.revenue);
 
         return (
           <li key={line.sku} className="min-w-0">
@@ -71,47 +85,61 @@ export function SkuStoreBreakdownList({
                 setOpenSku((cur) => (cur === line.sku ? null : line.sku))
               }
               className={cn(
-                "w-full flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 rounded-md px-1.5 py-1 text-left transition-colors",
+                "w-full rounded-md px-1.5 py-1.5 text-left transition-colors",
                 canExpand
                   ? "hover:bg-white/[0.05] cursor-pointer"
                   : "cursor-default opacity-90"
               )}
               aria-expanded={expanded}
             >
-              <span className="inline-flex items-center gap-1 min-w-0">
+              <div className="flex items-start gap-1 min-w-0">
                 {canExpand && (
                   <ChevronRight
                     size={12}
                     className={cn(
-                      "shrink-0 text-white/40 transition-transform",
+                      "mt-0.5 shrink-0 text-white/40 transition-transform",
                       expanded && "rotate-90"
                     )}
                   />
                 )}
-                <span className="font-mono text-[11px] text-cyan-300/90 tracking-normal underline-offset-2 group-hover:underline">
-                  SKU #{line.sku}
-                </span>
-              </span>
-              <span className="tabular-nums text-[11px] font-medium">
-                {typeof line.tagPrice === "number" && line.tagPrice > 0 && (
-                  <span className="text-white/45 font-normal" title="Sales Amount">
-                    tag $
-                    {line.tagPrice.toLocaleString("en-US", {
-                      maximumFractionDigits: 0,
-                    })}
-                    {" · "}
+                <div className="min-w-0 flex-1 space-y-1">
+                  <span className="font-mono text-[11px] text-cyan-300/90 tracking-normal">
+                    SKU #{line.sku}
                   </span>
-                )}
-                <span className="text-emerald-300/75">
-                  {formatPieceCount(line.units)} sold
-                </span>
-                {showOnhand && (
-                  <span className="text-amber-200/70 font-normal">
-                    {" "}
-                    · {formatOnhand(totalOnhand)} on hand
-                  </span>
-                )}
-              </span>
+
+                  {/* Mobile: 2×2 chips · Desktop: single compact row */}
+                  <div
+                    className={cn(
+                      "grid grid-cols-2 gap-x-2 gap-y-1",
+                      "sm:flex sm:flex-wrap sm:items-center sm:gap-x-0",
+                      "sm:[&>:not(:last-child)]:after:content-['·'] sm:[&>:not(:last-child)]:after:mx-1.5 sm:[&>:not(:last-child)]:after:text-white/25",
+                      "text-[11px] tabular-nums font-medium"
+                    )}
+                  >
+                    {hasTag && (
+                      <span className="text-white/45 font-normal" title="Sales Amount">
+                        tag ${formatMoneyCompact(line.tagPrice!)}
+                      </span>
+                    )}
+                    {hasNet && (
+                      <span
+                        className="text-white/80 font-normal"
+                        title={formatCurrency(line.revenue!)}
+                      >
+                        net ${formatMoneyCompact(line.revenue!)}
+                      </span>
+                    )}
+                    <span className="text-emerald-300/75">
+                      {formatPieceCount(line.units)} sold
+                    </span>
+                    {showOnhand && (
+                      <span className="text-amber-200/70 font-normal">
+                        {formatOnhand(totalOnhand)} on hand
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             </button>
 
             {expanded && line.stores && line.stores.length > 0 && (

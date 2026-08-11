@@ -167,11 +167,11 @@ export interface VendorModelSkuStoreLine {
 export interface VendorModelSkuLine {
   sku: string;
   units: number;
+  /** Net sales (Total) for this SKU in the filter window. */
   revenue: number;
   margin?: number;
   /** Profit margin = margin / revenue (0–1) */
   marginRate?: number;
-  /** Inventory tag price when SKU is in the on-hand file. */
   /** Shown as "tag $" on Top Vendor Models — Sales Amount (gross), not inventory Tag. */
   tagPrice?: number;
   /** Per-store units sold for this SKU under the parent model / filter slice */
