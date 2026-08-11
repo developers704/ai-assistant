@@ -160,6 +160,26 @@ assert(
   `profit=${uvGold.profit} rate=${uvGold.marginRate}`
 );
 
+// Sales Amount base (not Tag): GOLD JEWL ÷4 on gross 1388 → 347
+const fromSalesAmt = wholesaleProfitForModelRows([
+  row({
+    sku: "234687-8",
+    department: "GOLD ID",
+    design: "GOLD JEWL",
+    productClass: "10KT",
+    description: "10KT YELLOW-GOLD HLW MILANO ROPE BRACELET (NO WARRANTY)",
+    quantity: 1,
+    grossSales: 1388,
+    netRevenue: 415.7,
+  }),
+]);
+assert(
+  "sales dashboard uses Sales Amount÷4 not Tag÷4",
+  fromSalesAmt.profit != null &&
+    Math.abs(fromSalesAmt.profit - (415.7 - 1388 / 4)) < 0.01,
+  `profit=${fromSalesAmt.profit}`
+);
+
 console.log("cancel legs");
 const qkvkStyle = [
   row({

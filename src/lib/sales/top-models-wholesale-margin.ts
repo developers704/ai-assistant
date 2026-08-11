@@ -8,45 +8,35 @@ export type SaleCostContext = Pick<
   VendorPosRow,
   "description" | "department" | "design" | "productClass" | "subClass" | "netRevenue"
 > & {
-  /** Sales Amount (pre-discount). Required for sales-side formula fallback. */
+  /** Sales Amount (pre-discount). Required for sales-side formula. */
   grossSales?: number;
   wholesaleCost?: number;
 };
 
 /**
- * Merge sales-line fields onto inventory so calculator rules still fire when
- * on-hand class/desc is thin.
+ * Merge inventory attrs onto a sale line so CP rules still fire when
+ * POS class/desc is thin. Sales Amount stays the cost base (not Tag).
  */
-function itemForCalculatorCost(
-  item: InventoryItem,
-  saleRow?: SaleCostContext
-): InventoryItem {
-  if (!saleRow) return item;
-  const tagPrice =
-    item.tagPrice > 0
-      ? item.tagPrice
-      : (saleRow.grossSales ?? 0) > 0
-        ? saleRow.grossSales!
-        : saleRow.netRevenue > 0
-          ? saleRow.netRevenue
-          : 0;
+function ruleFieldsForSale(
+  sku: string,
+  saleRow: SaleCostContext,
+  item?: InventoryItem | null
+) {
   return {
-    ...item,
-    description: [item.description, saleRow.description].filter(Boolean).join(" "),
-    department: item.department?.trim() ? item.department : saleRow.department || item.department,
-    design: item.design?.trim() ? item.design : saleRow.design || item.design,
-    class: item.class?.trim() ? item.class : saleRow.productClass || item.class,
-    subClass: item.subClass?.trim() ? item.subClass : saleRow.subClass || item.subClass,
-    tagPrice,
+    sku,
+    department: saleRow.department?.trim() || item?.department || "",
+    design: saleRow.design?.trim() || item?.design || "",
+    class: saleRow.productClass?.trim() || item?.class || "",
+    subClass: saleRow.subClass?.trim() || item?.subClass || "",
+    description: [saleRow.description, item?.description].filter(Boolean).join(" "),
   };
 }
 
 /**
- * Wholesale unit cost for Top Vendor Models / calculator:
+ * Wholesale unit cost for sales dashboard / Top Vendor Models / daily report:
  * 0) Fixed SKU Whole Cost (owner list — everyone)
- * 1) Inventory Tag × CP Divisor sheet
- * 2) Else filled Whole Cost / Individual Cost
- * 3) Else Sales Amount × same sheet
+ * 1) When sale row present: **Sales Amount** × CP Divisor rules (not Tag)
+ * 2) Else (price-calculator / no sale context): inventory Tag × rules / Whole Cost
  */
 export function calculatorWholesaleUnitCost(
   sku: string,
@@ -57,28 +47,23 @@ export function calculatorWholesaleUnitCost(
   if (fixed != null) return fixed;
 
   const hit = lookupInventory(sku, store);
-  if (hit?.item) {
-    const merged = itemForCalculatorCost(hit.item, saleRow);
-    const w = Number(getVisibleDmCostPrice(merged));
-    if (Number.isFinite(w) && w > 0) return w;
-  }
 
+  // Daily / sales dashboard: always prefer Sales Amount × rules
   if (saleRow) {
     const salesAmount = Math.abs(Number(saleRow.grossSales) || 0);
     if (salesAmount > 0) {
       const fromSales = wholeCostFromRules(
-        {
-          department: saleRow.department,
-          design: saleRow.design,
-          class: saleRow.productClass,
-          subClass: saleRow.subClass,
-          description: saleRow.description,
-          sku,
-        },
+        ruleFieldsForSale(sku, saleRow, hit?.item),
         salesAmount
       );
       if (fromSales != null && fromSales > 0) return fromSales;
     }
+  }
+
+  // No sale context (or no Sales Amount): inventory Tag / filled Whole Cost
+  if (hit?.item) {
+    const w = Number(getVisibleDmCostPrice(hit.item));
+    if (Number.isFinite(w) && w > 0) return w;
   }
 
   return null;
@@ -103,7 +88,7 @@ export function signedWholesaleUnitCost(
 }
 
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
-export const TOP_MODELS_MARGIN_RULES_VERSION = 1;
+export const TOP_MODELS_MARGIN_RULES_VERSION = 2;
 
 function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
   const net = Number(row.netRevenue ?? 0);
@@ -185,6 +170,7 @@ export function collapseCancelledSkuLegs<T extends VendorPosRow>(rows: T[]): T[]
  * Top Vendor Models margin from calculator wholesale rules.
  * Collapses cancelled SKU sale+return legs first, then:
  * profit = revenue − signed unit cost (qty ignored — owner rule).
+ * Unit cost from Sales Amount × CP rules when sale context is present.
  * If any SKU lacks cost → hide margin (null).
  */
 export function wholesaleProfitForModelRows(rows: VendorPosRow[]): {

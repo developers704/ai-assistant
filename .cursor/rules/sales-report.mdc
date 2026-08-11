@@ -55,10 +55,11 @@ When adding exclusions, update `src/lib/utils.ts` only.
 ## Profit / margin
 
 - Prefer **Whole Cost rules** (`wholeCostFromRules` / `calculatorWholesaleUnitCost`) when a rule matches — GOLD JEWL+UV ÷1.3, Diamond+UV ÷8.8, watches, fixed SKUs, etc.
+- **Sales dashboard / daily report base = Sales Amount** (gross), not Tag Price. Price calculator stays on Tag.
 - Row margin = `netRevenue − signedWholesaleUnitCost` (sale subtracts cost; return adds cost back).
 - Else when the CSV includes **Profit Amount** and no calculator cost, use that column as row `margin`.
 - Last resort if neither applies: `margin = 0` (never use Kash inventory cost alone on sales lines).
-- **Real negative %** is allowed when ticket &lt; wholesale unit cost (deep discount) — do not hide those.
+- **Real negative %** is allowed when Net &lt; wholesale unit cost — do not hide those.
 
 ## Bundled default report
 
