@@ -129,14 +129,19 @@ export function SalesDateRangePicker({
   });
 
   function openCalendar(field: ActiveField) {
+    const fresh = openField == null;
+    const nextFrom = fresh ? (value?.from ?? null) : draftFrom;
+    const nextTo = fresh ? (value?.to ?? null) : draftTo;
+    if (fresh) {
+      setDraftFrom(nextFrom);
+      setDraftTo(nextTo);
+    }
     setOpenField(field);
     setPanelMode("days");
-    setDraftFrom(value?.from ?? null);
-    setDraftTo(value?.to ?? null);
     const seed =
-      (field === "from" ? value?.from : value?.to) ||
-      value?.from ||
-      value?.to ||
+      (field === "from" ? nextFrom : nextTo) ||
+      nextFrom ||
+      nextTo ||
       sortedAvail[sortedAvail.length - 1] ||
       reportRange?.to ||
       null;
@@ -145,13 +150,20 @@ export function SalesDateRangePicker({
     if (p) setView({ y: p.y, m: p.m });
   }
 
+  const discardAndClose = () => {
+    setOpenField(null);
+    setDraftFrom(value?.from ?? null);
+    setDraftTo(value?.to ?? null);
+    setPanelMode("days");
+  };
+
   useEffect(() => {
     if (!openField) return;
     const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpenField(null);
+      if (!rootRef.current?.contains(e.target as Node)) discardAndClose();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenField(null);
+      if (e.key === "Escape") discardAndClose();
     };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
@@ -159,7 +171,7 @@ export function SalesDateRangePicker({
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
     };
-  }, [openField]);
+  }, [openField, value?.from, value?.to]);
 
   const triggerLabel = value ? shortRange(value.from, value.to) : "All dates";
 
@@ -188,7 +200,7 @@ export function SalesDateRangePicker({
   }, [view]);
 
   const previewFrom = draftFrom;
-  const previewTo = draftTo ?? draftFrom;
+  const previewTo = draftTo;
   const rangeFrom =
     previewFrom && previewTo
       ? previewFrom <= previewTo
@@ -202,27 +214,18 @@ export function SalesDateRangePicker({
         : previewFrom
       : previewTo;
 
-  const inSelection = (iso: string) =>
-    Boolean(rangeFrom && rangeTo && iso >= rangeFrom && iso <= rangeTo);
-  const isEdge = (iso: string) =>
-    Boolean(rangeFrom && rangeTo && (iso === rangeFrom || iso === rangeTo));
+  /** From picker: single start day. To picker: full draft range. */
+  const inSelection = (iso: string) => {
+    if (openField === "from") return iso === draftFrom;
+    return Boolean(rangeFrom && rangeTo && iso >= rangeFrom && iso <= rangeTo);
+  };
+  const isEdge = (iso: string) => {
+    if (openField === "from") return iso === draftFrom;
+    return Boolean(rangeFrom && rangeTo && (iso === rangeFrom || iso === rangeTo));
+  };
 
-  const applyDraft = (from: string | null, to: string | null) => {
-    if (!from && !to) {
-      onChange(null);
-      return;
-    }
-    if (from && !to) {
-      onChange({ from, to: from });
-      return;
-    }
-    if (!from && to) {
-      onChange({ from: to, to });
-      return;
-    }
-    if (from && to) {
-      onChange(from <= to ? { from, to } : { from: to, to: from });
-    }
+  const applyDraft = (from: string, to: string) => {
+    onChange(from <= to ? { from, to } : { from: to, to: from });
   };
 
   const pickDay = (iso: string) => {
@@ -231,16 +234,12 @@ export function SalesDateRangePicker({
 
     if (openField === "from") {
       setDraftFrom(iso);
-      const nextTo = draftTo && draftTo < iso ? iso : draftTo ?? iso;
-      setDraftTo(nextTo);
-      applyDraft(iso, nextTo);
+      // Start date only — clear To if it would be before the new From
+      if (draftTo && draftTo < iso) setDraftTo(null);
       return;
     }
 
-    const start = draftFrom && draftFrom <= iso ? draftFrom : iso;
-    setDraftFrom(start);
     setDraftTo(iso);
-    applyDraft(start, iso);
   };
 
   const pickMonth = (month: number) => {
@@ -248,11 +247,12 @@ export function SalesDateRangePicker({
     setPanelMode("days");
   };
 
-  const clear = () => {
-    setDraftFrom(null);
-    setDraftTo(null);
-    setFocusIso(null);
-    onChange(null);
+  const canDone = Boolean(draftFrom && draftTo);
+
+  const done = () => {
+    if (!draftFrom || !draftTo) return;
+    applyDraft(draftFrom, draftTo);
+    setOpenField(null);
   };
 
   const fieldIso =
@@ -306,7 +306,7 @@ export function SalesDateRangePicker({
             <button
               type="button"
               onClick={() =>
-                openField === "from" ? setOpenField(null) : openCalendar("from")
+                openField === "from" ? discardAndClose() : openCalendar("from")
               }
               className="min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums text-white/90 hover:bg-white/[0.06]"
               aria-label="Date from"
@@ -317,7 +317,7 @@ export function SalesDateRangePicker({
             <button
               type="button"
               onClick={() =>
-                openField === "from" ? setOpenField(null) : openCalendar("from")
+                openField === "from" ? discardAndClose() : openCalendar("from")
               }
               className="flex w-7 items-center justify-center border-l border-white/12 text-sky-300/90 hover:bg-white/10"
               aria-label="Open from calendar"
@@ -340,7 +340,7 @@ export function SalesDateRangePicker({
             <button
               type="button"
               onClick={() =>
-                openField === "to" ? setOpenField(null) : openCalendar("to")
+                openField === "to" ? discardAndClose() : openCalendar("to")
               }
               className="min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums text-white/90 hover:bg-white/[0.06]"
               aria-label="Date to"
@@ -351,7 +351,7 @@ export function SalesDateRangePicker({
             <button
               type="button"
               onClick={() =>
-                openField === "to" ? setOpenField(null) : openCalendar("to")
+                openField === "to" ? discardAndClose() : openCalendar("to")
               }
               className="flex w-7 items-center justify-center border-l border-white/12 text-sky-300/90 hover:bg-white/10"
               aria-label="Open to calendar"
@@ -536,10 +536,21 @@ export function SalesDateRangePicker({
             <div className="mt-3 flex justify-center border-t border-white/10 pt-2">
               <button
                 type="button"
-                onClick={clear}
-                className="min-w-[4.5rem] rounded-md px-4 py-1.5 text-[12px] font-medium text-white/80 ring-1 ring-sky-400/30 bg-sky-500/15 hover:bg-sky-500/25"
+                onClick={done}
+                disabled={!canDone}
+                title={
+                  canDone
+                    ? "Apply date range to Sales"
+                    : "Select both Date From and To, then Done"
+                }
+                className={cn(
+                  "min-w-[4.5rem] rounded-md px-4 py-1.5 text-[12px] font-medium ring-1",
+                  canDone
+                    ? "text-white/90 ring-sky-400/40 bg-sky-500/25 hover:bg-sky-500/35"
+                    : "cursor-not-allowed text-white/35 ring-white/10 bg-white/[0.04]"
+                )}
               >
-                Clear
+                Done
               </button>
             </div>
           </div>
