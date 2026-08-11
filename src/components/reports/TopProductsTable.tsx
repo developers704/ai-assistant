@@ -61,7 +61,7 @@ interface TopProductsTableProps {
   showDateFilter?: boolean;
 }
 
-type SortKey = "qty" | "revenue" | "margin";
+type SortKey = "dept" | "date" | "qty" | "revenue" | "margin";
 type SortDir = "asc" | "desc";
 
 const DESKTOP_ROW_GRID =
@@ -236,6 +236,13 @@ function formatModelDate(p: TopProductRow): string {
   return `${shortIso(dates[0])}–${shortIso(dates[dates.length - 1])}`;
 }
 
+/** ISO date used for sorting (latest sale in the model window). */
+function sortDateKey(p: TopProductRow): string {
+  const dates = productSaleDates(p);
+  if (!dates.length) return "";
+  return dates[dates.length - 1] ?? "";
+}
+
 export function TopProductsTable({
   products,
   emptyLabel = "No product data in this report.",
@@ -270,10 +277,6 @@ export function TopProductsTable({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [openSkuByRow]);
 
-  useEffect(() => {
-    if (!showDateFilter) setDateFilter([]);
-  }, [showDateFilter]);
-
   const departmentOptions = useMemo(() => {
     const set = new Set<string>();
     for (const p of baseRows) {
@@ -284,13 +287,19 @@ export function TopProductsTable({
   }, [baseRows]);
 
   const dateOptions = useMemo(() => {
-    if (!showDateFilter) return [] as string[];
     const set = new Set<string>();
     for (const p of baseRows) {
       for (const d of productSaleDates(p)) set.add(d);
     }
     return [...set].sort();
-  }, [baseRows, showDateFilter]);
+  }, [baseRows]);
+
+  /** Date filter when parent says multi-day, or when rows span more than one day. */
+  const canFilterDates = showDateFilter || dateOptions.length > 1;
+
+  useEffect(() => {
+    if (!canFilterDates) setDateFilter([]);
+  }, [canFilterDates]);
 
   const filtered = useMemo(() => {
     let next = applyVendorModelTextFilter(
@@ -309,20 +318,28 @@ export function TopProductsTable({
       const want = new Set(deptFilter);
       next = next.filter((p) => p.department && want.has(p.department));
     }
-    if (showDateFilter && dateFilter.length) {
+    if (canFilterDates && dateFilter.length) {
       const want = new Set(dateFilter);
       next = next.filter((p) =>
         productSaleDates(p).some((d) => want.has(d))
       );
     }
     return next;
-  }, [baseRows, query, mode, deptFilter, dateFilter, showDateFilter]);
+  }, [baseRows, query, mode, deptFilter, dateFilter, canFilterDates]);
 
   const rows = useMemo(() => {
     const list = [...filtered];
     const mul = sortDir === "asc" ? 1 : -1;
     list.sort((a, b) => {
-      if (sortKey === "qty") {
+      if (sortKey === "dept") {
+        const cmp = (a.department || "").localeCompare(b.department || "", undefined, {
+          sensitivity: "base",
+        });
+        if (cmp !== 0) return cmp * mul;
+      } else if (sortKey === "date") {
+        const cmp = sortDateKey(a).localeCompare(sortDateKey(b));
+        if (cmp !== 0) return cmp * mul;
+      } else if (sortKey === "qty") {
         if (a.units !== b.units) return (a.units - b.units) * mul;
       } else if (sortKey === "revenue") {
         if (a.revenue !== b.revenue) return (a.revenue - b.revenue) * mul;
@@ -372,7 +389,7 @@ export function TopProductsTable({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {showDateFilter && dateOptions.length > 0 ? (
+          {canFilterDates && dateOptions.length > 0 ? (
             <SalesMultiSelectFilter
               label="dates"
               allLabel="All dates"
@@ -410,8 +427,20 @@ export function TopProductsTable({
             <span className="text-ink-muted">Product</span>
           </div>
           <div className={DESKTOP_METRICS}>
-            <span className="text-ink-muted text-right">Dept</span>
-            <span className="text-ink-muted text-right">Date</span>
+            <SortHeader
+              label="Dept"
+              active={sortKey === "dept"}
+              dir={sortDir}
+              onClick={() => toggleSort("dept")}
+              className="justify-end w-full"
+            />
+            <SortHeader
+              label="Date"
+              active={sortKey === "date"}
+              dir={sortDir}
+              onClick={() => toggleSort("date")}
+              className="justify-end w-full"
+            />
             <SortHeader
               label="Qty"
               active={sortKey === "qty"}
@@ -441,6 +470,8 @@ export function TopProductsTable({
         <div className="sm:hidden flex flex-wrap gap-1.5 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
           {(
             [
+              ["dept", "Dept"],
+              ["date", "Date"],
               ["qty", "Qty"],
               ["revenue", "Rev"],
               ["margin", "Margin"],
