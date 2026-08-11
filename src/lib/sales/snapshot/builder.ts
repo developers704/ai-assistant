@@ -57,7 +57,10 @@ function toRanking(
     transactions: r.transactions,
     averageTicket: r.transactions > 0 ? r.netSales / r.transactions : 0,
     estimatedMargin: r.estimatedMargin,
-    marginRate: r.netSales > 0 ? r.estimatedMargin / r.netSales : 0,
+    marginRate:
+      r.estimatedMargin != null && r.netSales > 0
+        ? r.estimatedMargin / r.netSales
+        : 0,
     contributionPercent: (r.netSales / totalNet) * 100,
   }));
 }
@@ -108,10 +111,21 @@ function buildInsights(rows: VendorPosRow[]): SalesDashboardSnapshot["insights"]
     .filter((s) => s.grossSales > 0 && s.discounts / s.grossSales > 0.15)
     .slice(0, 5);
   const lowMargin = groupRows(rows, "vendor", 50)
-    .filter((v) => v.netSales > 0 && v.estimatedMargin / v.netSales < 0.2)
+    .filter(
+      (v) =>
+        v.estimatedMargin != null &&
+        v.netSales > 0 &&
+        v.estimatedMargin / v.netSales < 0.2
+    )
     .slice(0, 5);
   const highSalesLowMargin = groupRows(rows, "design", 50)
-    .filter((d) => d.netSales > 1000 && d.netSales > 0 && d.estimatedMargin / d.netSales < 0.25)
+    .filter(
+      (d) =>
+        d.estimatedMargin != null &&
+        d.netSales > 1000 &&
+        d.netSales > 0 &&
+        d.estimatedMargin / d.netSales < 0.25
+    )
     .slice(0, 5);
 
   const insight = (
@@ -177,10 +191,10 @@ function buildInsights(rows: VendorPosRow[]): SalesDashboardSnapshot["insights"]
         `low-m-${i}`,
         "low_margin",
         `Low margin vendor: ${v.name}`,
-        `${v.name} estimated margin rate is ${((v.estimatedMargin / (v.netSales || 1)) * 100).toFixed(1)}%.`,
+        `${v.name} estimated margin rate is ${((((v.estimatedMargin ?? 0) / (v.netSales || 1)) * 100).toFixed(1))}%.`,
         v.name,
         "vendor",
-        v.estimatedMargin,
+        v.estimatedMargin ?? 0,
         "warning"
       )
     ),
