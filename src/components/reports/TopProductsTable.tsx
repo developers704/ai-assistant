@@ -61,7 +61,7 @@ interface TopProductsTableProps {
   showDateFilter?: boolean;
 }
 
-type SortKey = "dept" | "date" | "qty" | "revenue" | "margin";
+type SortKey = "date" | "qty" | "revenue" | "margin";
 type SortDir = "asc" | "desc";
 
 const DESKTOP_ROW_GRID =
@@ -331,12 +331,7 @@ export function TopProductsTable({
     const list = [...filtered];
     const mul = sortDir === "asc" ? 1 : -1;
     list.sort((a, b) => {
-      if (sortKey === "dept") {
-        const cmp = (a.department || "").localeCompare(b.department || "", undefined, {
-          sensitivity: "base",
-        });
-        if (cmp !== 0) return cmp * mul;
-      } else if (sortKey === "date") {
+      if (sortKey === "date") {
         const cmp = sortDateKey(a).localeCompare(sortDateKey(b));
         if (cmp !== 0) return cmp * mul;
       } else if (sortKey === "qty") {
@@ -400,16 +395,6 @@ export function TopProductsTable({
               className="shrink-0"
             />
           ) : null}
-          {departmentOptions.length > 0 ? (
-            <SalesMultiSelectFilter
-              label="departments"
-              allLabel="All departments"
-              options={departmentOptions}
-              value={deptFilter}
-              onChange={setDeptFilter}
-              className="shrink-0"
-            />
-          ) : null}
         </div>
       </div>
 
@@ -423,17 +408,21 @@ export function TopProductsTable({
           <span className="text-ink-muted">#</span>
           <span className="text-ink-muted">Pic</span>
           <span className="text-ink-muted">Vendor model</span>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
             <span className="text-ink-muted">Product</span>
+            {departmentOptions.length > 0 ? (
+              <SalesMultiSelectFilter
+                label="departments"
+                allLabel="All departments"
+                options={departmentOptions}
+                value={deptFilter}
+                onChange={setDeptFilter}
+                className="shrink-0 normal-case tracking-normal font-normal"
+              />
+            ) : null}
           </div>
           <div className={DESKTOP_METRICS}>
-            <SortHeader
-              label="Dept"
-              active={sortKey === "dept"}
-              dir={sortDir}
-              onClick={() => toggleSort("dept")}
-              className="justify-end w-full"
-            />
+            <span className="text-ink-muted text-right">Dept</span>
             <SortHeader
               label="Date"
               active={sortKey === "date"}
@@ -466,32 +455,44 @@ export function TopProductsTable({
           </div>
         </div>
 
-        {/* Mobile sort chips */}
-        <div className="sm:hidden flex flex-wrap gap-1.5 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
-          {(
-            [
-              ["dept", "Dept"],
-              ["date", "Date"],
-              ["qty", "Qty"],
-              ["revenue", "Rev"],
-              ["margin", "Margin"],
-            ] as [SortKey, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => toggleSort(key)}
-              className={cn(
-                "rounded-full px-2.5 py-1 text-[11px] font-medium ring-1",
-                sortKey === key
-                  ? "bg-sky-500/20 text-sky-200 ring-sky-400/40"
-                  : "text-white/50 ring-white/10"
-              )}
-            >
-              {label}
-              {sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
-            </button>
-          ))}
+        {/* Mobile: dept filter + sort chips */}
+        <div className="sm:hidden flex flex-col gap-2 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
+          {departmentOptions.length > 0 ? (
+            <SalesMultiSelectFilter
+              label="departments"
+              allLabel="All departments"
+              options={departmentOptions}
+              value={deptFilter}
+              onChange={setDeptFilter}
+              className="w-full"
+              fullWidth
+            />
+          ) : null}
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                ["date", "Date"],
+                ["qty", "Qty"],
+                ["revenue", "Rev"],
+                ["margin", "Margin"],
+              ] as [SortKey, string][]
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleSort(key)}
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[11px] font-medium ring-1",
+                  sortKey === key
+                    ? "bg-sky-500/20 text-sky-200 ring-sky-400/40"
+                    : "text-white/50 ring-white/10"
+                )}
+              >
+                {label}
+                {sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+              </button>
+            ))}
+          </div>
         </div>
 
         {rows.length === 0 ? (
