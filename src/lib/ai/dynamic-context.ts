@@ -35,7 +35,15 @@ function buildActiveSalesMemoryLine(): string {
   return `ACTIVE SALES MEMORY: ${bits.join("; ")} — for follow-ups call query_sales with the user message; do not invent filters.`;
 }
 
-const CONTEXT_FETCH_MS = 1500;
+/** Cap Google refreshes — short so chat TTFT stays snappy. */
+const CONTEXT_FETCH_MS = 600;
+
+export type DynamicContextOptions = {
+  /** Skip Gmail/Calendar network fetches (use in-memory state only). */
+  skipGoogle?: boolean;
+  /** Minimal block — no distance matrix / filter catalog (chitchat / world knowledge). */
+  lite?: boolean;
+};
 
 /** Compact catalog so voice can pass real filter names into sales tools. */
 function buildSalesFilterCatalogLine(): string {
@@ -106,21 +114,26 @@ function fallbackInbox(state: AppState) {
  */
 export async function buildDynamicContext(
   state: AppState,
-  userMessage?: string
+  userMessage?: string,
+  options: DynamicContextOptions = {}
 ): Promise<CompactDynamicContext> {
   const ui = state.uiContext ?? getUiContext();
   const tz = userTimezone(state);
   const now = new Date();
+  const lite = Boolean(options.lite);
+  const skipGoogle = lite || Boolean(options.skipGoogle);
 
-  // Cap Google refreshes so chat never stalls ~10–20s waiting on Gmail/Calendar.
-  const [calendar, inbox] = await Promise.all([
-    withTimeout(getVoiceCalendarEvents(), CONTEXT_FETCH_MS, "calendar-context").catch(() =>
-      fallbackCalendar(state)
-    ),
-    withTimeout(getVoiceEmails(), CONTEXT_FETCH_MS, "email-context").catch(() =>
-      fallbackInbox(state)
-    ),
-  ]);
+  // Cap Google refreshes so chat never stalls waiting on Gmail/Calendar.
+  const [calendar, inbox] = skipGoogle
+    ? [fallbackCalendar(state), fallbackInbox(state)]
+    : await Promise.all([
+        withTimeout(getVoiceCalendarEvents(), CONTEXT_FETCH_MS, "calendar-context").catch(() =>
+          fallbackCalendar(state)
+        ),
+        withTimeout(getVoiceEmails(), CONTEXT_FETCH_MS, "email-context").catch(() =>
+          fallbackInbox(state)
+        ),
+      ]);
 
   const salesBundle = getAssistantSalesSummary();
   const salesLine =
@@ -139,8 +152,8 @@ export async function buildDynamicContext(
     : undefined;
 
   const pending = state.pendingActions[0];
-  const memories = userMessage ? retrieveRelevantMemories(userMessage, 3) : [];
-  const summaries = loadConversationSummaries(1);
+  const memories = !lite && userMessage ? retrieveRelevantMemories(userMessage, 3) : [];
+  const summaries = lite ? [] : loadConversationSummaries(1);
 
   const userProfile = state.user
     ? `${state.user.name}, ${state.user.role} @ ${state.user.company}`
@@ -168,6 +181,17 @@ export async function buildDynamicContext(
     recentConversationSummary: summaries[0] ?? "None",
     textBlock: "",
   };
+
+  if (lite) {
+    const lines = [
+      `TIME: ${ctx.currentTime} (${ctx.timezone})`,
+      `USER: ${ctx.userProfile}`,
+      `PAGE: ${ctx.currentPage}`,
+      ctx.pendingAction ? `PENDING: ${ctx.pendingAction}` : "",
+    ].filter(Boolean);
+    ctx.textBlock = lines.join("\n");
+    return ctx;
+  }
 
   const sectionCtx = buildSectionRuntimeContext(state);
   const sectionBlock = buildSectionContextBlock(sectionCtx);

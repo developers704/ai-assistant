@@ -1,6 +1,6 @@
 /** Shared OpenAI model IDs — override via .env on the server. */
 
-/** Main AI Chat / planner / email drafts */
+/** Planner / email drafts / heavier reasoning (not every chat turn) */
 export const OPENAI_CHAT_MODEL =
   process.env.OPENAI_CHAT_MODEL ?? "gpt-5.6-terra";
 
@@ -8,7 +8,10 @@ export const OPENAI_CHAT_MODEL =
 export const OPENAI_ANALYST_MODEL =
   process.env.OPENAI_ANALYST_MODEL ?? "gpt-5.6-sol";
 
-/** Lightweight / fast paths (routing, quick transforms) */
+/**
+ * Interactive AI Chat default — keep this on a low-latency model.
+ * Override with OPENAI_FAST_MODEL in .env (e.g. gpt-4.1-mini / gpt-5.6-luna).
+ */
 export const OPENAI_FAST_MODEL =
   process.env.OPENAI_FAST_MODEL ?? "gpt-5.6-luna";
 

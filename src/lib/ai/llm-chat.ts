@@ -21,12 +21,13 @@ import {
 import { executeTool } from "@/lib/tools/registry";
 import { loadChatSystemPrompt } from "@/lib/prompts/loader";
 import { buildDynamicContext } from "./dynamic-context";
-import { OPENAI_CHAT_MODEL, OPENAI_FAST_MODEL, chatCompletionLimits } from "@/lib/openai/config";
+import { OPENAI_FAST_MODEL, chatCompletionLimits } from "@/lib/openai/config";
 import { synthesizeToolResponse } from "@/lib/ai/response-synthesizer";
 import { savePendingAction } from "@/lib/actions/confirmation";
 import { buildAppMapPromptBlock } from "@/lib/ai/app-intelligence";
 import { looksLikeCompanyKnowledgeQuery } from "@/lib/voice/company-knowledge-format";
 import { isGeneralKnowledgeChatQuery } from "@/lib/ai/assistant-engine";
+import { userTimezone } from "@/lib/calendar-dates";
 
 export function isLLMChatConfigured(): boolean {
   const key = process.env.OPENAI_API_KEY;
@@ -228,17 +229,36 @@ async function handleToolCall(
   };
 }
 
+function wantsLiveMailOrCalendar(message: string): boolean {
+  return /\b(email|inbox|gmail|calendar|meeting|schedule|appointment|remind(?:er|ers)?)\b/i.test(
+    message
+  );
+}
+
+function buildLiteChatContext(state: AppState): string {
+  const user = state.user;
+  const tz = userTimezone(state);
+  const now = new Date();
+  return `## User\nName: ${user?.name ?? "Executive"}\nCompany: ${user?.company ?? "Valliani Jewelers"}\nNow (${tz}): ${now.toLocaleString("en-US", { timeZone: tz })}`;
+}
+
 export async function processMessageWithLLM(
   message: string,
   state: AppState
 ): Promise<AIResponse> {
   const apiKey = process.env.OPENAI_API_KEY!;
-  const client = new OpenAI({ apiKey });
+  const client = new OpenAI({ apiKey, timeout: 45_000, maxRetries: 0 });
 
-  const context = buildAssistantContext(state);
-  const dynamic = await buildDynamicContext(state, message);
   const companyQ = looksLikeCompanyKnowledgeQuery(message);
   const generalQ = isGeneralKnowledgeChatQuery(message);
+  // Fast path: skip Google + fat prompts for chitchat / company RAG / non-mail asks
+  const lite = generalQ || companyQ || !wantsLiveMailOrCalendar(message);
+
+  const context = lite ? buildLiteChatContext(state) : buildAssistantContext(state);
+  const dynamic = await buildDynamicContext(state, message, {
+    lite: generalQ,
+    skipGoogle: lite,
+  });
   const ragSection =
     isRagAvailable() && companyQ
       ? (() => {
@@ -270,28 +290,32 @@ Use tools for live email, calendar, sales, and tasks.
 Do NOT call search_company_knowledge unless the user clearly asks about Valliani policies, brands, founder, or company facts.
 Do NOT say you couldn't find it in company knowledge for non-company topics.`;
 
-  const history = state.chatHistory.slice(-10).map((m) => ({
+  const history = state.chatHistory.slice(generalQ ? -4 : -6).map((m) => ({
     role: m.role as "user" | "assistant" | "system",
-    content: m.content,
+    content: m.content.length > 1200 ? `${m.content.slice(0, 1200)}…` : m.content,
   }));
+
+  const systemBits = [
+    loadChatSystemPrompt(),
+    !generalQ ? buildAppMapPromptBlock() : "",
+    `---\nLIVE CONTEXT:\n${context}`,
+    `---\nDYNAMIC CONTEXT:\n${dynamic.textBlock}`,
+    ragSection,
+  ].filter(Boolean);
 
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: `${loadChatSystemPrompt()}\n\n${buildAppMapPromptBlock()}\n\n---\nLIVE CONTEXT (real-time app data):\n\n${context}\n\n---\nDYNAMIC CONTEXT:\n${dynamic.textBlock}${ragSection}`,
+      content: systemBits.join("\n\n"),
     },
     ...history.filter((h) => h.role === "user" || h.role === "assistant"),
     { role: "user", content: message },
   ];
 
-  // World trivia / chitchat → main chat model, no tools (must answer like GPT).
-  const model =
-    generalQ || companyQ
-      ? OPENAI_CHAT_MODEL
-      : message.trim().length < 80
-        ? OPENAI_FAST_MODEL
-        : OPENAI_CHAT_MODEL;
-  const maxTokens = generalQ ? 900 : 1200;
+  // Interactive chat always uses the fast model (override via OPENAI_FAST_MODEL).
+  // Heavy terra stays for analyst/planner — not every chat turn.
+  const model = OPENAI_FAST_MODEL;
+  const maxTokens = generalQ ? 500 : companyQ ? 700 : 900;
 
   let choice: OpenAI.ChatCompletionMessage | undefined;
   try {
@@ -308,21 +332,17 @@ Do NOT say you couldn't find it in company knowledge for non-company topics.`;
     });
     choice = completion.choices[0]?.message;
   } catch (primaryErr) {
-    // Retry once on a lighter model without tools for flaky/unsupported models
-    if (model !== OPENAI_FAST_MODEL) {
-      console.warn("LLM primary failed, retrying fast model:", primaryErr);
-      const retry = await client.chat.completions.create({
-        model: OPENAI_FAST_MODEL,
-        ...chatCompletionLimits(OPENAI_FAST_MODEL, {
-          temperature: 0.5,
-          maxTokens: 600,
-        }),
-        messages,
-      });
-      choice = retry.choices[0]?.message;
-    } else {
-      throw primaryErr;
-    }
+    // One retry without tools if the first call failed
+    console.warn("LLM primary failed, retrying without tools:", primaryErr);
+    const retry = await client.chat.completions.create({
+      model: OPENAI_FAST_MODEL,
+      ...chatCompletionLimits(OPENAI_FAST_MODEL, {
+        temperature: 0.5,
+        maxTokens: 500,
+      }),
+      messages,
+    });
+    choice = retry.choices[0]?.message;
   }
 
   if (!choice) {
