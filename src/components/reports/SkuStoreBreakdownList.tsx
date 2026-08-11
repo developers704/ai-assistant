@@ -7,6 +7,8 @@ import { formatCurrency, formatPieceCount, cn } from "@/lib/utils";
 export type SkuStoreBreakdownLine = {
   name: string;
   units: number;
+  /** Return qty in window — Sold column shows e.g. 2 (−1 rtn). */
+  returned?: number;
   /** Net sales at this store for this SKU. */
   revenue?: number;
   onhand?: number | null;
@@ -150,8 +152,8 @@ export function SkuStoreBreakdownList({
                   className={cn(
                     "sticky top-0 z-[1] grid gap-x-1.5 sm:gap-x-2 px-2 py-1 text-[9px] uppercase tracking-wide text-white/35 border-b border-white/8 bg-black/50 backdrop-blur-sm",
                     showOnhand
-                      ? "grid-cols-[minmax(0,1.2fr)_minmax(3.25rem,1fr)_2.75rem_3rem]"
-                      : "grid-cols-[minmax(0,1.2fr)_minmax(3.25rem,1fr)_2.75rem]"
+                      ? "grid-cols-[minmax(0,1.1fr)_minmax(3rem,0.9fr)_minmax(3.5rem,1.1fr)_2.75rem]"
+                      : "grid-cols-[minmax(0,1.1fr)_minmax(3rem,0.9fr)_minmax(3.5rem,1.1fr)]"
                   )}
                 >
                   <span>Store</span>
@@ -162,14 +164,19 @@ export function SkuStoreBreakdownList({
                 <ul className="divide-y divide-white/[0.04]">
                   {line.stores.map((s) => {
                     const storeNet = Number(s.revenue) || 0;
+                    const returned = Number(s.returned) || 0;
+                    const soldLabel =
+                      returned > 0
+                        ? `${formatPieceCount(s.units)} (−${formatPieceCount(returned)} rtn)`
+                        : formatPieceCount(s.units);
                     return (
                       <li
                         key={s.name}
                         className={cn(
                           "grid gap-x-1.5 sm:gap-x-2 items-baseline px-2 py-1 text-[10px] font-sans tracking-normal",
                           showOnhand
-                            ? "grid-cols-[minmax(0,1.2fr)_minmax(3.25rem,1fr)_2.75rem_3rem]"
-                            : "grid-cols-[minmax(0,1.2fr)_minmax(3.25rem,1fr)_2.75rem]",
+                            ? "grid-cols-[minmax(0,1.1fr)_minmax(3rem,0.9fr)_minmax(3.5rem,1.1fr)_2.75rem]"
+                            : "grid-cols-[minmax(0,1.1fr)_minmax(3rem,0.9fr)_minmax(3.5rem,1.1fr)]",
                           s.units <= 0 && (s.onhand ?? 0) > 0
                             ? "bg-amber-500/[0.04]"
                             : undefined
@@ -191,11 +198,17 @@ export function SkuStoreBreakdownList({
                         </span>
                         <span
                           className={cn(
-                            "tabular-nums text-right",
-                            s.units > 0 ? "text-emerald-300/60" : "text-white/25"
+                            "tabular-nums text-right leading-tight",
+                            s.units > 0 ? "text-emerald-300/60" : "text-white/25",
+                            returned > 0 && "text-amber-200/80"
                           )}
+                          title={
+                            returned > 0
+                              ? `${formatPieceCount(s.units)} sold, ${formatPieceCount(returned)} returned — net $ includes both`
+                              : undefined
+                          }
                         >
-                          {formatPieceCount(s.units)}
+                          {soldLabel}
                         </span>
                         {showOnhand && (
                           <span

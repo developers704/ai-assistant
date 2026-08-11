@@ -108,7 +108,7 @@ function skuLinesCredited(
   const map = new Map<
     string,
     VendorModelSkuLine & {
-      storeSales: Map<string, { units: number; revenue: number }>;
+      storeSales: Map<string, { units: number; returned: number; revenue: number }>;
     }
   >();
   for (const r of rows) {
@@ -122,7 +122,10 @@ function skuLinesCredited(
       units: 0,
       revenue: 0,
       margin: 0,
-      storeSales: new Map<string, { units: number; revenue: number }>(),
+      storeSales: new Map<
+        string,
+        { units: number; returned: number; revenue: number }
+      >(),
     };
     const units = salesUnitsSold(r.quantity) * share;
     const revenueShare = r.netRevenue * share;
@@ -131,8 +134,14 @@ function skuLinesCredited(
     cur.margin = (cur.margin ?? 0) + r.margin * share;
     const store = r.storeName?.trim();
     if (store) {
-      const prev = cur.storeSales.get(store) ?? { units: 0, revenue: 0 };
+      const prev = cur.storeSales.get(store) ?? {
+        units: 0,
+        returned: 0,
+        revenue: 0,
+      };
       prev.units += units;
+      const q = Number(r.quantity ?? 0);
+      if (q < 0) prev.returned += Math.abs(q) * share;
       prev.revenue += revenueShare;
       cur.storeSales.set(store, prev);
     }

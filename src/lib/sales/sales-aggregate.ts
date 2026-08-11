@@ -15,21 +15,28 @@ import type {
   VendorModelSkuLine,
 } from "./sales-types";
 
-type StoreSaleStats = { units: number; revenue: number };
+type StoreSaleStats = { units: number; returned: number; revenue: number };
 
 /** Merge sold units / net with every onhand store for this SKU (0 sold still listed). */
 export function buildSkuStoreLines(
   sku: string,
   storeSales: Map<string, StoreSaleStats>
-): { name: string; units: number; revenue: number; onhand?: number }[] {
+): {
+  name: string;
+  units: number;
+  returned: number;
+  revenue: number;
+  onhand?: number;
+}[] {
   const merged = new Map<
     string,
-    { units: number; revenue: number; onhand: number | null }
+    { units: number; returned: number; revenue: number; onhand: number | null }
   >();
 
   for (const [name, stats] of storeSales) {
     merged.set(name, {
       units: stats.units,
+      returned: stats.returned,
       revenue: stats.revenue,
       onhand: lookupOnhandQty(sku, name),
     });
@@ -42,7 +49,7 @@ export function buildSkuStoreLines(
       if (cur) {
         cur.onhand = onhand;
       } else {
-        merged.set(store, { units: 0, revenue: 0, onhand });
+        merged.set(store, { units: 0, returned: 0, revenue: 0, onhand });
       }
     }
   }
@@ -52,6 +59,7 @@ export function buildSkuStoreLines(
     .map(([name, v]) => ({
       name,
       units: v.units,
+      returned: v.returned,
       revenue: v.revenue,
       ...(hasOnhand ? { onhand: v.onhand ?? 0 } : {}),
     }))
@@ -118,8 +126,14 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     }
     const store = r.storeName?.trim();
     if (store) {
-      const prev = cur.storeSales.get(store) ?? { units: 0, revenue: 0 };
+      const prev = cur.storeSales.get(store) ?? {
+        units: 0,
+        returned: 0,
+        revenue: 0,
+      };
       prev.units += units;
+      const q = Number(r.quantity ?? 0);
+      if (q < 0) prev.returned += Math.abs(q);
       prev.revenue += r.netRevenue;
       cur.storeSales.set(store, prev);
     }

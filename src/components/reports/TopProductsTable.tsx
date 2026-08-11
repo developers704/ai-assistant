@@ -27,7 +27,13 @@ export interface TopProductSkuLine {
   marginRate?: number;
   tagPrice?: number;
   onHandTotal?: number;
-  stores?: { name: string; units: number; revenue?: number; onhand?: number | null }[];
+  stores?: {
+    name: string;
+    units: number;
+    returned?: number;
+    revenue?: number;
+    onhand?: number | null;
+  }[];
 }
 
 export interface TopProductRow {

@@ -158,7 +158,10 @@ export interface SalesMetricSummary {
 /** Per-store units for a SKU under a vendor model. */
 export interface VendorModelSkuStoreLine {
   name: string;
+  /** Positive qty sold (returns not subtracted). */
   units: number;
+  /** Absolute return qty in the filter window (for Sold column clarity). */
+  returned?: number;
   /** Net sales (Total) at this store for this SKU in the filter window. */
   revenue?: number;
   /** Current on-hand qty at this store (omit when onhand file not loaded). */
