@@ -15,15 +15,24 @@ import type {
   VendorModelSkuLine,
 } from "./sales-types";
 
-/** Merge sold units with every onhand store for this SKU (0 sold still listed). */
+type StoreSaleStats = { units: number; revenue: number };
+
+/** Merge sold units / net with every onhand store for this SKU (0 sold still listed). */
 export function buildSkuStoreLines(
   sku: string,
-  storeUnits: Map<string, number>
-): { name: string; units: number; onhand?: number }[] {
-  const merged = new Map<string, { units: number; onhand: number | null }>();
+  storeSales: Map<string, StoreSaleStats>
+): { name: string; units: number; revenue: number; onhand?: number }[] {
+  const merged = new Map<
+    string,
+    { units: number; revenue: number; onhand: number | null }
+  >();
 
-  for (const [name, units] of storeUnits) {
-    merged.set(name, { units, onhand: lookupOnhandQty(sku, name) });
+  for (const [name, stats] of storeSales) {
+    merged.set(name, {
+      units: stats.units,
+      revenue: stats.revenue,
+      onhand: lookupOnhandQty(sku, name),
+    });
   }
 
   const onhandStores = listOnhandStoresForSku(sku);
@@ -33,7 +42,7 @@ export function buildSkuStoreLines(
       if (cur) {
         cur.onhand = onhand;
       } else {
-        merged.set(store, { units: 0, onhand });
+        merged.set(store, { units: 0, revenue: 0, onhand });
       }
     }
   }
@@ -43,11 +52,13 @@ export function buildSkuStoreLines(
     .map(([name, v]) => ({
       name,
       units: v.units,
+      revenue: v.revenue,
       ...(hasOnhand ? { onhand: v.onhand ?? 0 } : {}),
     }))
     .sort(
       (a, b) =>
         b.units - a.units ||
+        b.revenue - a.revenue ||
         (b.onhand ?? 0) - (a.onhand ?? 0) ||
         a.name.localeCompare(b.name)
     );
@@ -77,7 +88,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
   const map = new Map<
     string,
     VendorModelSkuLine & {
-      storeUnits: Map<string, number>;
+      storeSales: Map<string, StoreSaleStats>;
       missingWholesale?: boolean;
       /** Latest sale's Sales Amount (gross) — shown as "tag" on Top Models. */
       salesAmount?: number;
@@ -93,7 +104,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       units: 0,
       revenue: 0,
       margin: 0,
-      storeUnits: new Map<string, number>(),
+      storeSales: new Map<string, StoreSaleStats>(),
     };
     const units = salesUnitsSold(r.quantity);
     cur.units += units;
@@ -106,8 +117,11 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       cur.margin = (cur.margin ?? 0) + (r.netRevenue - signedWholesaleUnitCost(cost, r));
     }
     const store = r.storeName?.trim();
-    if (store && units > 0) {
-      cur.storeUnits.set(store, (cur.storeUnits.get(store) ?? 0) + units);
+    if (store) {
+      const prev = cur.storeSales.get(store) ?? { units: 0, revenue: 0 };
+      prev.units += units;
+      prev.revenue += r.netRevenue;
+      cur.storeSales.set(store, prev);
     }
     // Prefer latest sale's Sales Amount for the "tag $" label (not inventory Tag)
     const salesAmt = Math.abs(Number(r.grossSales) || 0);
@@ -121,8 +135,8 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     map.set(key, cur);
   }
   return [...map.values()]
-    .map(({ storeUnits, missingWholesale, salesAmount, lastSaleDate: _, ...line }) => {
-      const stores = buildSkuStoreLines(line.sku, storeUnits);
+    .map(({ storeSales, missingWholesale, salesAmount, lastSaleDate: _, ...line }) => {
+      const stores = buildSkuStoreLines(line.sku, storeSales);
       const hasOnhand = hasOnhandData();
       const onHandTotal = hasOnhand
         ? stores.reduce((sum, s) => sum + (s.onhand ?? 0), 0)

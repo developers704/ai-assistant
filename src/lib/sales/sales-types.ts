@@ -159,6 +159,8 @@ export interface SalesMetricSummary {
 export interface VendorModelSkuStoreLine {
   name: string;
   units: number;
+  /** Net sales (Total) at this store for this SKU in the filter window. */
+  revenue?: number;
   /** Current on-hand qty at this store (omit when onhand file not loaded). */
   onhand?: number | null;
 }

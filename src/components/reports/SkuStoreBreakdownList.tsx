@@ -7,6 +7,8 @@ import { formatCurrency, formatPieceCount, cn } from "@/lib/utils";
 export type SkuStoreBreakdownLine = {
   name: string;
   units: number;
+  /** Net sales at this store for this SKU. */
+  revenue?: number;
   onhand?: number | null;
 };
 
@@ -146,55 +148,70 @@ export function SkuStoreBreakdownList({
               <div className="mt-1 ml-3 overflow-hidden rounded-md ring-1 ring-white/8 bg-black/20 max-h-64 overflow-y-auto">
                 <div
                   className={cn(
-                    "sticky top-0 z-[1] grid gap-x-2 px-2 py-1 text-[9px] uppercase tracking-wide text-white/35 border-b border-white/8 bg-black/50 backdrop-blur-sm",
+                    "sticky top-0 z-[1] grid gap-x-1.5 sm:gap-x-2 px-2 py-1 text-[9px] uppercase tracking-wide text-white/35 border-b border-white/8 bg-black/50 backdrop-blur-sm",
                     showOnhand
-                      ? "grid-cols-[minmax(0,1.4fr)_3.25rem_3.5rem]"
-                      : "grid-cols-[minmax(0,1fr)_3.5rem]"
+                      ? "grid-cols-[minmax(0,1.2fr)_minmax(3.25rem,1fr)_2.75rem_3rem]"
+                      : "grid-cols-[minmax(0,1.2fr)_minmax(3.25rem,1fr)_2.75rem]"
                   )}
                 >
                   <span>Store</span>
+                  <span className="text-right">Net</span>
                   <span className="text-right">Sold</span>
                   {showOnhand && <span className="text-right">On hand</span>}
                 </div>
                 <ul className="divide-y divide-white/[0.04]">
-                  {line.stores.map((s) => (
-                    <li
-                      key={s.name}
-                      className={cn(
-                        "grid gap-x-2 items-baseline px-2 py-1 text-[10px] font-sans tracking-normal",
-                        showOnhand
-                          ? "grid-cols-[minmax(0,1.4fr)_3.25rem_3.5rem]"
-                          : "grid-cols-[minmax(0,1fr)_3.5rem]",
-                        s.units <= 0 && (s.onhand ?? 0) > 0
-                          ? "bg-amber-500/[0.04]"
-                          : undefined
-                      )}
-                    >
-                      <span className="truncate text-white/55" title={s.name}>
-                        {s.name}
-                      </span>
-                      <span
+                  {line.stores.map((s) => {
+                    const storeNet = Number(s.revenue) || 0;
+                    return (
+                      <li
+                        key={s.name}
                         className={cn(
-                          "tabular-nums text-right",
-                          s.units > 0 ? "text-emerald-300/60" : "text-white/25"
+                          "grid gap-x-1.5 sm:gap-x-2 items-baseline px-2 py-1 text-[10px] font-sans tracking-normal",
+                          showOnhand
+                            ? "grid-cols-[minmax(0,1.2fr)_minmax(3.25rem,1fr)_2.75rem_3rem]"
+                            : "grid-cols-[minmax(0,1.2fr)_minmax(3.25rem,1fr)_2.75rem]",
+                          s.units <= 0 && (s.onhand ?? 0) > 0
+                            ? "bg-amber-500/[0.04]"
+                            : undefined
                         )}
                       >
-                        {formatPieceCount(s.units)}
-                      </span>
-                      {showOnhand && (
+                        <span className="truncate text-white/55" title={s.name}>
+                          {s.name}
+                        </span>
                         <span
                           className={cn(
                             "tabular-nums text-right",
-                            (s.onhand ?? 0) > 0
-                              ? "text-amber-200/70"
-                              : "text-white/30"
+                            storeNet !== 0 ? "text-white/75" : "text-white/25"
+                          )}
+                          title={storeNet !== 0 ? formatCurrency(storeNet) : undefined}
+                        >
+                          {storeNet !== 0
+                            ? `$${formatMoneyCompact(storeNet)}`
+                            : "—"}
+                        </span>
+                        <span
+                          className={cn(
+                            "tabular-nums text-right",
+                            s.units > 0 ? "text-emerald-300/60" : "text-white/25"
                           )}
                         >
-                          {s.onhand != null ? formatOnhand(s.onhand) : "—"}
+                          {formatPieceCount(s.units)}
                         </span>
-                      )}
-                    </li>
-                  ))}
+                        {showOnhand && (
+                          <span
+                            className={cn(
+                              "tabular-nums text-right",
+                              (s.onhand ?? 0) > 0
+                                ? "text-amber-200/70"
+                                : "text-white/30"
+                            )}
+                          >
+                            {s.onhand != null ? formatOnhand(s.onhand) : "—"}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
