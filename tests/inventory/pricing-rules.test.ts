@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "@/lib/inventory/types";
 import { getVisibleDmCostPrice } from "@/lib/inventory/pricing";
-import { wholeCostFromRules } from "@/lib/inventory/whole-cost-rules";
+import { fixedWholeCostForSku, wholeCostFromRules } from "@/lib/inventory/whole-cost-rules";
 
 function makeItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
   return {
@@ -27,6 +27,21 @@ function makeItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
 }
 
 describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
+  it("fixed SKU cost overrides sheet formula (everyone)", () => {
+    expect(fixedWholeCostForSku("231611")).toBe(350);
+    expect(fixedWholeCostForSku("231618S-10")).toBe(275);
+    expect(fixedWholeCostForSku("231611Y")).toBe(350);
+    const item = makeItem({
+      sku: "231611",
+      department: "LADYS RING",
+      design: "NOVELLO",
+      class: "UV",
+      tagPrice: 499,
+      wholesaleCost: 56.7,
+    });
+    expect(getVisibleDmCostPrice(item)).toBe(350);
+  });
+
   it("sheet formula beats filled Whole Cost (Rado Tag/1.82+20)", () => {
     const item = makeItem({
       department: "RADO",

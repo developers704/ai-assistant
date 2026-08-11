@@ -1,6 +1,6 @@
 import { getVisibleDmCostPrice } from "@/lib/inventory/pricing";
 import { lookupInventory } from "@/lib/inventory/store";
-import { wholeCostFromRules } from "@/lib/inventory/whole-cost-rules";
+import { fixedWholeCostForSku, wholeCostFromRules } from "@/lib/inventory/whole-cost-rules";
 import type { InventoryItem } from "@/lib/inventory/types";
 import type { VendorPosRow } from "@/lib/reports/types";
 
@@ -43,15 +43,19 @@ function itemForCalculatorCost(
 
 /**
  * Wholesale unit cost for Top Vendor Models / calculator:
- * 1) Inventory Tag × CP Divisor sheet (preferred — sheet is truth)
+ * 0) Fixed SKU Whole Cost (owner list — everyone)
+ * 1) Inventory Tag × CP Divisor sheet
  * 2) Else filled Whole Cost / Individual Cost
- * 3) Else Sales Amount × same sheet (SKU not in onhand / no tag rule)
+ * 3) Else Sales Amount × same sheet
  */
 export function calculatorWholesaleUnitCost(
   sku: string,
   store?: string | null,
   saleRow?: SaleCostContext
 ): number | null {
+  const fixed = fixedWholeCostForSku(sku);
+  if (fixed != null) return fixed;
+
   const hit = lookupInventory(sku, store);
   if (hit?.item) {
     const merged = itemForCalculatorCost(hit.item, saleRow);
@@ -68,6 +72,7 @@ export function calculatorWholesaleUnitCost(
           design: saleRow.design,
           class: saleRow.productClass,
           subClass: saleRow.subClass,
+          sku,
         },
         salesAmount
       );

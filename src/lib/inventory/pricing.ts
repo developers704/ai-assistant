@@ -7,7 +7,7 @@ import type {
   ProductCategory,
   TierPricing,
 } from "./types";
-import { wholeCostFromRules } from "./whole-cost-rules";
+import { fixedWholeCostForSku, skuCostKey, wholeCostFromRules } from "./whole-cost-rules";
 
 const TIER_LABELS: Record<ManagerTier, string> = {
   dm: "District Manager (DM)",
@@ -81,7 +81,8 @@ const DIAMOND_DEPARTMENTS = new Set([
 ]);
 
 /**
- * UV / Ultimate Value + diamond → 0% for these SKUs (match Item # base before '-').
+ * UV / Ultimate Value + diamond → 0% for these SKUs (same owner list as fixed Whole Cost).
+ * Match by leading Item # digits (231618S / 231611Y → 231618 / 231611).
  */
 const UV_DIAMOND_ZERO_SKUS = new Set([
   "231611",
@@ -194,12 +195,16 @@ function hasUvOrUltimateValue(item: InventoryItem): boolean {
 }
 
 /**
- * DM Cost Price (CP Divisor sheet is source of truth):
- * 1) Sheet formula on Tag Price when a rule matches
- * 2) Else inventory Whole Cost if filled
- * 3) Else Individual Cost Value
+ * DM Cost Price:
+ * 1) Fixed SKU Whole Cost (owner list)
+ * 2) Sheet formula on Tag Price when a rule matches
+ * 3) Else inventory Whole Cost if filled
+ * 4) Else Individual Cost Value
  */
 export function getVisibleDmCostPrice(item: InventoryItem): number {
+  const fixed = fixedWholeCostForSku(item.sku);
+  if (fixed != null) return fixed;
+
   const tag = Number(item.tagPrice) || 0;
   if (tag > 0) {
     const fromRules = wholeCostFromRules(
@@ -208,6 +213,7 @@ export function getVisibleDmCostPrice(item: InventoryItem): number {
         design: item.design,
         class: item.class,
         subClass: item.subClass,
+        sku: item.sku,
       },
       tag
     );
@@ -236,7 +242,7 @@ function isUvDiamondSpecial(item: InventoryItem): boolean {
 }
 
 function isUvDiamondZeroSku(item: InventoryItem): boolean {
-  return UV_DIAMOND_ZERO_SKUS.has(skuBase(item.sku));
+  return UV_DIAMOND_ZERO_SKUS.has(skuCostKey(item.sku));
 }
 
 export function classifyProduct(item: InventoryItem): {
@@ -367,7 +373,7 @@ function buildRulesSummary(
 
   if (isUvDiamondSpecial(item)) {
     if (isUvDiamondZeroSku(item)) {
-      return `UV / Ultimate Value + diamond (SKU ${skuBase(item.sku)}) — 0% discount`;
+      return `UV / Ultimate Value + diamond (SKU ${skuCostKey(item.sku)}) — 0% discount`;
     }
     return "UV / Ultimate Value + diamond — 82% off (DM / CM / M)";
   }

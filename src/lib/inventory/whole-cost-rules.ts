@@ -3,8 +3,9 @@
  * - Onhand / price calculator (base = Tag Price)
  * - Sales report fallback (base = Sales Amount / grossSales)
  *
- * Priority = first match top → bottom (sheet order).
- * If inventory Whole Cost is already filled, callers must use that and skip this.
+ * Priority:
+ * 0) Fixed SKU Whole Cost (owner list — everyone)
+ * 1) First matching sheet rule top → bottom
  */
 
 export type WholeCostRuleFields = {
@@ -12,12 +13,47 @@ export type WholeCostRuleFields = {
   design?: string | null;
   class?: string | null;
   subClass?: string | null;
+  /** Item # / SKU — used for fixed-cost overrides */
+  sku?: string | null;
 };
 
 export type WholeCostRuleHit = {
   cost: number;
   ruleName: string;
 };
+
+/**
+ * Fixed Whole Cost by SKU (applies to everyone — overrides sheet formulas).
+ * Match by leading digits so POS variants 231618S / 231611Y still hit.
+ */
+export const FIXED_WHOLE_COST_BY_SKU: Record<string, number> = {
+  "231611": 350,
+  "231614": 350,
+  "231616": 499,
+  "231618": 275,
+  "231620": 400,
+  "231622": 215,
+  "231624": 675,
+  "230768": 940,
+  "232736": 150,
+};
+
+/** Leading numeric Item # (231618S-10 → 231618). */
+export function skuCostKey(sku: string | null | undefined): string {
+  const raw = String(sku ?? "")
+    .trim()
+    .toUpperCase();
+  if (!raw) return "";
+  return raw.match(/^(\d+)/)?.[1] ?? raw.split(/[-\s]/)[0] ?? "";
+}
+
+/** Fixed Whole Cost for SKU, or null. */
+export function fixedWholeCostForSku(sku: string | null | undefined): number | null {
+  const key = skuCostKey(sku);
+  if (!key) return null;
+  const n = FIXED_WHOLE_COST_BY_SKU[key];
+  return n != null && Number.isFinite(n) && n > 0 ? n : null;
+}
 
 function norm(value: unknown): string {
   return String(value ?? "")
@@ -142,11 +178,17 @@ function finish(cost: number, ruleName: string): WholeCostRuleHit | null {
 /**
  * Apply first matching Whole Cost rule to `basePrice`
  * (Tag Price for inventory, Sales Amount for sales fallback).
+ * Fixed SKU costs win over department/design formulas.
  */
 export function resolveWholeCostFromRules(
   fields: WholeCostRuleFields,
   basePrice: number
 ): WholeCostRuleHit | null {
+  const fixed = fixedWholeCostForSku(fields.sku);
+  if (fixed != null) {
+    return { cost: fixed, ruleName: `Fixed SKU ${skuCostKey(fields.sku)}` };
+  }
+
   const base = Number(basePrice);
   if (!Number.isFinite(base) || base <= 0) return null;
 

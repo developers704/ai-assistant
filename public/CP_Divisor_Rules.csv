@@ -1,5 +1,14 @@
 Priority,Match Column(s),Match Value / Condition,Whole Cost Formula,Rule Name,Inventory base,Sales fallback,Notes
-0,—,—,—,Policy,—,—,"Sheet formula ALWAYS wins over CSV Whole Cost when a rule matches. Filled Whole Cost used only if no rule matches."
+0,—,—,—,Policy,—,—,"1) Fixed SKU costs win for everyone. 2) Else sheet formula on Tag (inventory) / Sales Amount (sales). 3) Else CSV Whole Cost."
+0a,SKU,231611,350,Fixed SKU 231611,Fixed,Fixed,Novello UV halo ring
+0b,SKU,231614,350,Fixed SKU 231614,Fixed,Fixed,Novello UV halo pendant
+0c,SKU,231616,499,Fixed SKU 231616,Fixed,Fixed,Novello UV halo studs
+0d,SKU,231618,275,Fixed SKU 231618,Fixed,Fixed,Novello UV Cuban mens ring (231618S…)
+0e,SKU,231620,400,Fixed SKU 231620,Fixed,Fixed,Novello UV tennis bracelet
+0f,SKU,231622,215,Fixed SKU 231622,Fixed,Fixed,Novello UV hoops
+0g,SKU,231624,675,Fixed SKU 231624,Fixed,Fixed,Novello UV Cuban bracelet
+0h,SKU,230768,940,Fixed SKU 230768,Fixed,Fixed,10KT-UV AGI solitaire
+0i,SKU,232736,150,Fixed SKU 232736,Fixed,Fixed,Virgin Mary UV pendant
 1,Class + Design,Class = UV AND Design = GOLD JEWL/GOLD JEWEL,Tag Price / 1.3,Gold UV,Tag Price,Sales Amount,
 2,Design,LINKNLOCK,Tag Price / 2.75,Linknlock,Tag Price,Sales Amount,
 3,Design,LOVE,Tag Price / 2.75,Love Spell,Tag Price,Sales Amount,

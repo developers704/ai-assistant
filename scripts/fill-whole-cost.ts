@@ -90,19 +90,17 @@ function fillFile(inputPath: string, outputPath: string) {
     }
 
     const base = basePriceForRow(out);
-    if (base == null) {
-      stats.noRule++;
-      return out;
-    }
-
+    const skuField = Object.keys(out).find((k) => /^item\s*#$/i.test(k) || /^sku\s*#?$/i.test(k));
+    const sku = skuField ? out[skuField] : undefined;
     const hit = resolveWholeCostFromRules(
       {
         department: out.Department,
         design: out.Design,
         class: out.Class,
         subClass: out["Sub-Class"],
+        sku,
       },
-      base
+      base ?? 0
     );
     if (!hit) {
       stats.noRule++;
