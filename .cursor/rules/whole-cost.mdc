@@ -1,0 +1,21 @@
+---
+description: Whole Cost / Top Models margin — Gold JEWL+UV and Diamond+UV hard rules
+alwaysApply: true
+---
+
+# Whole Cost hard rules
+
+Single engine: `src/lib/inventory/whole-cost-rules.ts` (wired into price calculator DM cost, Top Vendor Models, sales CSV row margin when a rule matches, `scripts/fill-whole-cost.ts`). Prefer sheet/calculator cost over CSV Profit Amount whenever a rule hits.
+
+## Always (every surface, all historical sales)
+
+1. **Fixed SKU costs** (everyone) — see `FIXED_WHOLE_COST_BY_SKU` (231611→350, …). Match by leading Item # digits (`231618S` → `231618`).
+2. **Design `GOLD JEWL` / `GOLD JEWEL`** + description contains `UV` / `uv` / `ultimate value` (or Class `UV`) → **base ÷ 1.3**  
+   - Inventory / calculator: base = **Tag Price**  
+   - Sales fallback: base = **Sales Amount** (not Total/net)
+3. **Diamond** (diamond department **or** “diamond” in description) + UV / ultimate value in description → **base ÷ 8.8**  
+   - Except the fixed special SKUs above
+
+Do not invent other gold÷1.3 triggers (e.g. gold department alone without Design GOLD JEWL). Plain GOLD JEWL without UV → ÷ 4 (sheet).
+
+When changing these rules, update `whole-cost-rules.ts`, `public/CP_Divisor_Rules.csv`, and `tests/inventory/pricing-rules.test.ts`.

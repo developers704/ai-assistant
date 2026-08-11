@@ -72,6 +72,7 @@ export function calculatorWholesaleUnitCost(
           design: saleRow.design,
           class: saleRow.productClass,
           subClass: saleRow.subClass,
+          description: saleRow.description,
           sku,
         },
         salesAmount

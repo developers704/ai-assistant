@@ -80,6 +80,47 @@ assert(
   `${(radoMargin * 100).toFixed(1)}%`
 );
 
+console.log("hard rules");
+assert(
+  "GOLD JEWL + Ultimate Value → ÷1.3",
+  Math.abs(
+    (wholeCostFromRules(
+      {
+        design: "GOLD JEWL",
+        department: "GOLD CHAIN",
+        class: "10KT",
+        description: '10KT "ULTIMATE VALUE" YELLOW-GOLD D/C ROPE CHAIN',
+      },
+      2724
+    ) ?? 0) - 2724 / 1.3
+  ) < 0.01
+);
+assert(
+  "Diamond + UV in description → ÷8.8",
+  Math.abs(
+    (wholeCostFromRules(
+      {
+        sku: "999001",
+        department: "LADYS RING",
+        design: "NOVELLO",
+        description: "LAB-GROWN DIAMOND ULTIMATE VALUE HALO RING",
+      },
+      880
+    ) ?? 0) - 880 / 8.8
+  ) < 0.01
+);
+assert(
+  "fixed SKU wins over diamond UV ÷8.8",
+  (wholeCostFromRules(
+    {
+      sku: "231611",
+      department: "LADYS RING",
+      description: "DIAMOND ULTIMATE VALUE RING",
+    },
+    499
+  ) ?? 0) === 350
+);
+
 console.log("sales fallback");
 const bridal = wholesaleProfitForModelRows([
   row({
@@ -95,6 +136,24 @@ assert(
   "missing inventory uses Sales Amount / 8.8",
   bridal.profit != null && Math.abs(bridal.profit - (800 - 880 / 8.8)) < 0.01,
   `profit=${bridal.profit}`
+);
+
+const uvGold = wholesaleProfitForModelRows([
+  row({
+    sku: "SKU-UV-GOLD-CHAIN-XYZ",
+    department: "GOLD CHAIN",
+    design: "GOLD JEWL",
+    productClass: "10KT",
+    description: '10KT "ULTIMATE VALUE" YELLOW-GOLD D/C ROPE CHAIN (NO WARRANTY)',
+    grossSales: 2724,
+    netRevenue: 2724,
+  }),
+]);
+const uvGoldCost = 2724 / 1.3;
+assert(
+  "GOLD JEWL+UV sales margin uses ÷1.3",
+  uvGold.profit != null && Math.abs(uvGold.profit - (2724 - uvGoldCost)) < 0.01,
+  `profit=${uvGold.profit} rate=${uvGold.marginRate}`
 );
 
 if (failed) {

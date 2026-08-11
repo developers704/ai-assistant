@@ -27,6 +27,49 @@ function makeItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
 }
 
 describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
+  it("Gold JEWL + Ultimate Value in description → Tag ÷ 1.3", () => {
+    const item = makeItem({
+      sku: "239132-18",
+      department: "GOLD CHAIN",
+      design: "GOLD JEWL",
+      class: "10KT",
+      description: '10KT "ULTIMATE VALUE" YELLOW-GOLD D/C ROPE CHAIN (NO WARRANTY)',
+      tagPrice: 559,
+      wholesaleCost: 139.75,
+    });
+    expect(getVisibleDmCostPrice(item)).toBeCloseTo(559 / 1.3, 5);
+  });
+
+  it("Diamond + Ultimate Value in description → Tag ÷ 8.8 (non-special SKU)", () => {
+    expect(
+      wholeCostFromRules(
+        {
+          sku: "999001",
+          department: "LADYS RING",
+          design: "NOVELLO",
+          class: "14KT",
+          description: '14KT LAB-GROWN DIAMOND ULTIMATE VALUE HALO RING',
+        },
+        880
+      )
+    ).toBeCloseTo(880 / 8.8, 5);
+  });
+
+  it("fixed SKU cost overrides diamond UV ÷8.8", () => {
+    expect(
+      wholeCostFromRules(
+        {
+          sku: "231611",
+          department: "LADYS RING",
+          design: "NOVELLO",
+          class: "UV",
+          description: "LAB-GROWN DIAMOND ULTIMATE VALUE RBC HALO RING",
+        },
+        499
+      )
+    ).toBe(350);
+  });
+
   it("fixed SKU cost overrides sheet formula (everyone)", () => {
     expect(fixedWholeCostForSku("231611")).toBe(350);
     expect(fixedWholeCostForSku("231618S-10")).toBe(275);
@@ -68,6 +111,7 @@ describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
       class: "10KT",
       design: "GOLD JEWL",
       department: "GOLD ID",
+      description: "14KT YELLOW-GOLD D/C ROPE CHAIN (NO WARRANTY)",
       wholesaleCost: 0,
       tagPrice: 400,
     });

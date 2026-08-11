@@ -1,11 +1,15 @@
 /**
  * Whole Cost (CP) rules — single source of truth for:
  * - Onhand / price calculator (base = Tag Price)
- * - Sales report fallback (base = Sales Amount / grossSales)
+ * - Sales report fallback / all historical sales margins (base = Sales Amount)
  *
- * Priority:
- * 0) Fixed SKU Whole Cost (owner list — everyone)
- * 1) First matching sheet rule top → bottom
+ * HARD RULES (owner — always):
+ * 1) Fixed SKU list → fixed $ cost (everyone)
+ * 2) Design GOLD JEWL/GOLD JEWEL + (description UV / uv / ultimate value OR Class UV)
+ *    → base ÷ 1.3
+ * 3) Diamond (diamond dept OR "diamond" in description) + UV / ultimate value in description
+ *    → base ÷ 8.8 (fixed SKUs already handled above)
+ * Then remaining sheet rules (LINKNLOCK, gold÷4, watches, …).
  */
 
 export type WholeCostRuleFields = {
@@ -13,6 +17,7 @@ export type WholeCostRuleFields = {
   design?: string | null;
   class?: string | null;
   subClass?: string | null;
+  description?: string | null;
   /** Item # / SKU — used for fixed-cost overrides */
   sku?: string | null;
 };
@@ -76,7 +81,33 @@ const GOLD_DEPARTMENTS = new Set([
   "GOLD PNDTS",
   "GOLF PNDTS", // POS typo
   "GOLD RINGS",
+  "GOLD CHAIN",
 ]);
+
+/** Design GOLD JEWL / GOLD JEWEL (owner hard rule for ÷1.3 with UV). */
+function isGoldJewlDesign(design: string, designCompact: string): boolean {
+  return (
+    design === "GOLD JEWL" ||
+    design === "GOLD JEWEL" ||
+    designCompact === "GOLDJEWL" ||
+    designCompact === "GOLDJEWEL"
+  );
+}
+
+/** Class UV or description contains UV / ultimate value (any casing). */
+export function hasUvOrUltimateValueText(
+  productClass?: string | null,
+  description?: string | null
+): boolean {
+  if (norm(productClass) === "UV") return true;
+  const desc = String(description ?? "");
+  return /\buv\b/i.test(desc) || /ultimate\s*value/i.test(desc);
+}
+
+function isDiamondItem(department: string, description?: string | null): boolean {
+  if (DIAMOND_DEPARTMENTS.has(department)) return true;
+  return /diamond/i.test(String(description ?? ""));
+}
 
 const DIAMOND_DEPARTMENTS = new Set([
   "BANGLE",
@@ -199,15 +230,24 @@ export function resolveWholeCostFromRules(
   const deptCompact = compact(department);
   const designCompact = compact(design);
 
-  // 1. Gold UV — Class UV + Design GOLD JEWL/GOLD JEWEL
+  // 1. Design GOLD JEWL + UV / ultimate value (description or Class UV) → ÷ 1.3
   if (
-    productClass === "UV" &&
-    (design === "GOLD JEWL" || design === "GOLD JEWEL" || designCompact === "GOLDJEWL" || designCompact === "GOLDJEWEL")
+    isGoldJewlDesign(design, designCompact) &&
+    hasUvOrUltimateValueText(productClass, fields.description)
   ) {
-    return finish(base / 1.3, "Gold UV");
+    return finish(base / 1.3, "Gold JEWL + UV / Ultimate Value");
   }
 
-  // 2–9. Design rules
+  // 2. Diamond + UV / ultimate value in description → ÷ 8.8
+  //    (fixed special SKUs already returned above)
+  if (
+    isDiamondItem(department, fields.description) &&
+    hasUvOrUltimateValueText(productClass, fields.description)
+  ) {
+    return finish(base / 8.8, "Diamond + UV / Ultimate Value");
+  }
+
+  // 3–10. Design rules
   if (design === "LINKNLOCK" || designCompact === "LINKNLOCK") {
     return finish(base / 2.75, "Linknlock");
   }
@@ -233,37 +273,37 @@ export function resolveWholeCostFromRules(
     return finish(base / 8.8, "Birthstone Jewelry by design");
   }
 
-  // 10. Sub-Class BIRTHSTONE
+  // 11. Sub-Class BIRTHSTONE
   if (subClass === "BIRTHSTONE" || compact(subClass) === "BIRTHSTONE") {
     return finish(base / 8.8, "Birthstone Jewelry by subclass");
   }
 
-  // 11. Gold by design
+  // 12. Gold by design (no UV — plain GOLD JEWL / GOLD BANDS)
   if (GOLD_JEWL_DESIGNS.has(design) || designCompact === "GOLDJEWL" || designCompact === "GOLDJEWEL") {
     return finish(base / 4, "Gold by design");
   }
 
-  // 12. Gold by department (sheet list + GOLF PNDTS typo)
+  // 13. Gold by department
   if (GOLD_DEPARTMENTS.has(department)) {
     return finish(base / 4, "Gold by department");
   }
 
-  // 13. Tungsten — TUNGS BAND / contains TUNG
+  // 14. Tungsten
   if (department === "TUNGS BAND" || deptCompact.includes("TUNG")) {
     return finish(base * 0.06, "Tungsten");
   }
 
-  // 14. Triton
+  // 15. Triton
   if (department === "TRITON" || deptCompact === "TRITON") {
     return finish(base / 4, "Triton");
   }
 
-  // 15. Diamond departments / loose stone
+  // 16. Diamond departments (no UV in description — still ÷ 8.8 per sheet)
   if (DIAMOND_DEPARTMENTS.has(department)) {
     return finish(base / 8.8, "Diamond departments / loose stone");
   }
 
-  // 16+. Watch brands by Department (POS spellings)
+  // 17+. Watch brands by Department
   for (const rule of WATCH_DEPT_RULES) {
     if (rule.matchDept(department, deptCompact)) {
       return finish(rule.calc(base), rule.ruleName);

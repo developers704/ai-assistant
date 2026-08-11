@@ -137,12 +137,11 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
     const design = designCol ? String(rec[designCol] ?? "").trim() : "";
     const productClass = classCol ? String(rec[classCol] ?? "").trim() : "";
     const subClass = subClassCol ? String(rec[subClassCol] ?? "").trim() : "";
-    // Prefer CSV Profit Amount; else Whole Cost rules (inventory Tag, else Sales Amount).
-    // Daily uploads often omit Profit Amount — never fall back to Kash inventory cost.
+    // Prefer Whole Cost rules (GOLD JEWL+UV÷1.3, Diamond+UV÷8.8, watches, …)
+    // so all historical / daily sales match Top Models + calculator.
+    // Else CSV Profit Amount. Never fall back to Kash inventory cost alone.
     let margin = 0;
-    if (profitAmountCol && String(rec[profitAmountCol] ?? "").trim() !== "") {
-      margin = parseNumber(rec[profitAmountCol]);
-    } else if (sku) {
+    if (sku) {
       const calcCost = calculatorWholesaleUnitCost(sku, store, {
         description,
         department,
@@ -153,7 +152,13 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
         grossSales: gross,
         wholesaleCost,
       });
-      margin = calcCost != null ? net - calcCost : 0;
+      if (calcCost != null) {
+        margin = net - calcCost;
+      } else if (profitAmountCol && String(rec[profitAmountCol] ?? "").trim() !== "") {
+        margin = parseNumber(rec[profitAmountCol]);
+      }
+    } else if (profitAmountCol && String(rec[profitAmountCol] ?? "").trim() !== "") {
+      margin = parseNumber(rec[profitAmountCol]);
     }
 
     if (!store && !department && net === 0 && qty === 0) continue;

@@ -213,6 +213,7 @@ export function getVisibleDmCostPrice(item: InventoryItem): number {
         design: item.design,
         class: item.class,
         subClass: item.subClass,
+        description: item.description,
         sku: item.sku,
       },
       tag

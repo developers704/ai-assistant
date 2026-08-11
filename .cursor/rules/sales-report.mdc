@@ -49,8 +49,9 @@ When adding exclusions, update `src/lib/utils.ts` only.
 
 ## Profit / margin
 
-- When the CSV includes **Profit Amount**, use that column as row `margin` (do **not** recompute as Total − Inventory Cost). Margin % = Profit Amount ÷ Total.
-- Fallback only if Profit Amount is absent: `margin = Total − Inventory Cost`.
+- Prefer **Whole Cost rules** (`wholeCostFromRules` / `calculatorWholesaleUnitCost`) when a rule matches — GOLD JEWL+UV ÷1.3, Diamond+UV ÷8.8, watches, fixed SKUs, etc. Row margin = Total − unit cost (see `.cursor/rules/whole-cost.mdc`).
+- Else when the CSV includes **Profit Amount**, use that column as row `margin` (do **not** recompute as Total − Inventory Cost). Margin % = Profit Amount ÷ Total.
+- Last resort if neither applies: `margin = 0` (never use Kash inventory cost alone on sales lines).
 
 ## Bundled default report
 

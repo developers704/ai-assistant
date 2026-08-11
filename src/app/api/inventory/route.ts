@@ -98,8 +98,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Kash (admin) → Individual Cost Value. DMs use Whole Cost, except gold +
-  // UV/Ultimate Value (class or description) → Tag Price ÷ 1.3.
+  // Kash (admin) → Individual Cost Value. DMs use getVisibleDmCostPrice
+  // (fixed SKUs, GOLD JEWL+UV÷1.3, Diamond+UV÷8.8, sheet rules, else Whole Cost).
   let item = { ...result.item };
   let pricing = result.pricing;
   if (session.role === "dm") {
