@@ -1,26 +1,35 @@
 import { getVisibleDmCostPrice } from "@/lib/inventory/pricing";
 import { lookupInventory } from "@/lib/inventory/store";
+import { wholeCostFromRules } from "@/lib/inventory/whole-cost-rules";
 import type { InventoryItem } from "@/lib/inventory/types";
 import type { VendorPosRow } from "@/lib/reports/types";
 
+export type SaleCostContext = Pick<
+  VendorPosRow,
+  "description" | "department" | "design" | "productClass" | "subClass" | "netRevenue"
+> & {
+  /** Sales Amount (pre-discount). Required for sales-side formula fallback. */
+  grossSales?: number;
+  wholesaleCost?: number;
+};
+
 /**
  * Merge sales-line fields onto inventory so calculator rules still fire when
- * on-hand class/desc is thin (e.g. Ultimate Value only on the POS description).
+ * on-hand class/desc is thin.
  */
 function itemForCalculatorCost(
   item: InventoryItem,
-  saleRow?: Pick<
-    VendorPosRow,
-    "description" | "department" | "design" | "productClass" | "subClass" | "netRevenue"
-  >
+  saleRow?: SaleCostContext
 ): InventoryItem {
   if (!saleRow) return item;
   const tagPrice =
     item.tagPrice > 0
       ? item.tagPrice
-      : saleRow.netRevenue > 0
-        ? saleRow.netRevenue
-        : 0;
+      : (saleRow.grossSales ?? 0) > 0
+        ? saleRow.grossSales!
+        : saleRow.netRevenue > 0
+          ? saleRow.netRevenue
+          : 0;
   return {
     ...item,
     description: [item.description, saleRow.description].filter(Boolean).join(" "),
@@ -33,22 +42,39 @@ function itemForCalculatorCost(
 }
 
 /**
- * Same Cost Price the price calculator uses for wholesale / DM cost:
- * - Gold + UV / Ultimate Value → Tag ÷ 1.3
- * - Otherwise → inventory Whole Cost (fallback Individual Cost)
+ * Wholesale unit cost for Top Vendor Models / calculator:
+ * 1) Inventory Whole Cost if filled
+ * 2) Else Tag × CP Divisor sheet (via getVisibleDmCostPrice)
+ * 3) Else Sales Amount × same sheet (when inventory missing / no cost)
  */
 export function calculatorWholesaleUnitCost(
   sku: string,
   store?: string | null,
-  saleRow?: Pick<
-    VendorPosRow,
-    "description" | "department" | "design" | "productClass" | "subClass" | "netRevenue"
-  >
+  saleRow?: SaleCostContext
 ): number | null {
   const hit = lookupInventory(sku, store);
-  if (!hit?.item) return null;
-  const w = Number(getVisibleDmCostPrice(itemForCalculatorCost(hit.item, saleRow)));
-  return Number.isFinite(w) && w > 0 ? w : null;
+  if (hit?.item) {
+    const w = Number(getVisibleDmCostPrice(itemForCalculatorCost(hit.item, saleRow)));
+    if (Number.isFinite(w) && w > 0) return w;
+  }
+
+  if (saleRow) {
+    const salesAmount = Number(saleRow.grossSales) || 0;
+    if (salesAmount > 0) {
+      const fromSales = wholeCostFromRules(
+        {
+          department: saleRow.department,
+          design: saleRow.design,
+          class: saleRow.productClass,
+          subClass: saleRow.subClass,
+        },
+        salesAmount
+      );
+      if (fromSales != null && fromSales > 0) return fromSales;
+    }
+  }
+
+  return null;
 }
 
 /**

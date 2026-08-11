@@ -137,7 +137,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
     const design = designCol ? String(rec[designCol] ?? "").trim() : "";
     const productClass = classCol ? String(rec[classCol] ?? "").trim() : "";
     const subClass = subClassCol ? String(rec[subClassCol] ?? "").trim() : "";
-    // Prefer CSV Profit Amount; else price-calculator wholesale rules (Gold+UV → Tag÷1.3).
+    // Prefer CSV Profit Amount; else Whole Cost rules (inventory Tag, else Sales Amount).
     // Daily uploads often omit Profit Amount — never fall back to Kash inventory cost.
     let margin = 0;
     if (profitAmountCol && String(rec[profitAmountCol] ?? "").trim() !== "") {
@@ -150,6 +150,8 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
         productClass,
         subClass,
         netRevenue: net,
+        grossSales: gross,
+        wholesaleCost,
       });
       margin = calcCost != null ? net - calcCost : 0;
     }

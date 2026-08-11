@@ -7,6 +7,7 @@ import type {
   ProductCategory,
   TierPricing,
 } from "./types";
+import { wholeCostFromRules } from "./whole-cost-rules";
 
 const TIER_LABELS: Record<ManagerTier, string> = {
   dm: "District Manager (DM)",
@@ -193,20 +194,30 @@ function hasUvOrUltimateValue(item: InventoryItem): boolean {
 }
 
 /**
- * DM Cost Price: Whole Cost normally.
- * Gold + UV / Ultimate Value (class or description) → Tag Price ÷ 1.3
- * (not gold ÷4, and not Whole÷1.3 which double-counts a ÷4 Whole Cost).
+ * DM Cost Price:
+ * 1) Inventory Whole Cost when filled (never overwrite with formula)
+ * 2) Else CP Divisor sheet formula on Tag Price
+ * 3) Else Individual Cost Value
  */
 export function getVisibleDmCostPrice(item: InventoryItem): number {
-  if (isGold(item) && hasUvOrUltimateValue(item)) {
-    const tag = Number(item.tagPrice) || 0;
-    if (tag > 0) return tag / 1.3;
+  const wholesale = Number(item.wholesaleCost) || 0;
+  if (wholesale > 0) return wholesale;
+
+  const tag = Number(item.tagPrice) || 0;
+  if (tag > 0) {
+    const fromRules = wholeCostFromRules(
+      {
+        department: item.department,
+        design: item.design,
+        class: item.class,
+        subClass: item.subClass,
+      },
+      tag
+    );
+    if (fromRules != null && fromRules > 0) return fromRules;
   }
-  const base =
-    Number(item.wholesaleCost) > 0
-      ? Number(item.wholesaleCost)
-      : Number(item.costPrice) || 0;
-  return base;
+
+  return Number(item.costPrice) || 0;
 }
 
 function isUvGoldJewelZeroDiscount(item: InventoryItem): boolean {

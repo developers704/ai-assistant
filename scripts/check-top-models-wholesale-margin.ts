@@ -1,9 +1,9 @@
 /**
- * Self-check: Top Vendor Models uses price-calculator cost rules.
+ * Self-check: Whole Cost rules + Top Vendor Models sales fallback.
  * Run: npx tsx scripts/check-top-models-wholesale-margin.ts
  */
 import { getVisibleDmCostPrice } from "../src/lib/inventory/pricing";
-import { lookupInventory } from "../src/lib/inventory/store";
+import { wholeCostFromRules } from "../src/lib/inventory/whole-cost-rules";
 import {
   calculatorWholesaleUnitCost,
   wholesaleProfitForModelRows,
@@ -25,7 +25,7 @@ function row(partial: Partial<VendorPosRow> & { netRevenue: number }): VendorPos
     vendorModel: "VM-1",
     style: "",
     quantity: 3,
-    grossSales: partial.netRevenue,
+    grossSales: partial.grossSales ?? partial.netRevenue,
     discountAmount: 0,
     netRevenue: partial.netRevenue,
     inventoryCost: 50,
@@ -47,70 +47,72 @@ function assert(name: string, ok: boolean, detail?: string) {
   }
 }
 
-const missing = wholesaleProfitForModelRows([
-  row({ netRevenue: 500, sku: "SKU-NOT-IN-INVENTORY-XYZ" }),
-]);
-assert("missing wholesale hides margin", missing.profit == null && missing.marginRate == null);
-
-const lines = [
-  row({ netRevenue: 400, quantity: 5, sku: "A" }),
-  row({ netRevenue: 200, quantity: 1, sku: "A" }),
-];
-const simulatedProfit = lines.reduce((s, r) => s + (r.netRevenue - 100), 0);
-const simulatedRev = lines.reduce((s, r) => s + r.netRevenue, 0);
+console.log("whole-cost-rules");
 assert(
-  "qty ignored in formula (2 lines × unit cost, not × qty)",
-  simulatedProfit === 400 && Math.abs(simulatedProfit / simulatedRev - 400 / 600) < 1e-9,
-  `${simulatedProfit} / ${simulatedRev}`
+  "diamond LADYS RING = base/8.8",
+  Math.abs((wholeCostFromRules({ department: "LADYS RING" }, 880) ?? 0) - 100) < 1e-9
+);
+assert(
+  "MICHAEL KO = base/2+10",
+  Math.abs((wholeCostFromRules({ department: "MICHAEL KO" }, 200) ?? 0) - 110) < 1e-9
+);
+assert(
+  "filled Whole Cost wins over formula",
+  getVisibleDmCostPrice({
+    sku: "x",
+    description: "",
+    vendorModel: "",
+    vendor: "",
+    tagPrice: 1300,
+    costPrice: 0,
+    wholesaleCost: 99,
+    store: "",
+    onHand: 0,
+    department: "LADYS RING",
+    design: "",
+    class: "UV",
+    subClass: "",
+    avgWeight: 0,
+    brand: "",
+  }) === 99
 );
 
-const uv = lookupInventory("239139-20");
-if (uv) {
-  const cost = calculatorWholesaleUnitCost("239139-20", null, {
-    description: "10KT Ultimate Value Yellow-Gold D/c Rope Chain",
-    department: "GOLD CHAIN",
-    design: "GOLD JEWL",
-    productClass: "10KT",
-    subClass: "",
-    netRevenue: 989,
-  });
-  const expected = getVisibleDmCostPrice(uv.item);
-  assert(
-    "UV gold uses Tag÷1.3 (calculator rule)",
-    cost != null && Math.abs(cost - expected) < 0.01 && cost > 700,
-    `cost=${cost} expected=${expected} rawWhole=${uv.item.wholesaleCost}`
-  );
-  const pct = ((989 - (cost ?? 0)) / 989) * 100;
-  assert("UV gold margin ~23%", pct > 22 && pct < 24, `${pct.toFixed(1)}%`);
-  assert(
-    "raw Whole Cost would wrongly show ~75%",
-    uv.item.wholesaleCost > 0 && uv.item.wholesaleCost < 300,
-    String(uv.item.wholesaleCost)
-  );
-} else {
-  console.log("  · skip UV gold SKU check (239139-20 not in inventory)");
-}
+console.log("sales fallback");
+const bridal = wholesaleProfitForModelRows([
+  row({
+    sku: "SKU-NOT-IN-INVENTORY-XYZ",
+    department: "LADYS RING",
+    design: "OVANI",
+    productClass: "14KT",
+    grossSales: 880,
+    netRevenue: 800,
+  }),
+]);
+assert(
+  "missing inventory LADYS RING uses Sales Amount / 8.8",
+  bridal.profit != null &&
+    bridal.marginRate != null &&
+    Math.abs(bridal.profit - (800 - 880 / 8.8)) < 0.01,
+  `profit=${bridal.profit}`
+);
 
-// Non-UV gold (GOLD ID) should use Whole Cost, not Tag÷1.3
-const goldId = lookupInventory("177145-8");
-if (goldId) {
-  const cost = calculatorWholesaleUnitCost("177145-8", null, {
-    description: "14KT Yellow-Gold Franco Bracelet",
-    department: "GOLD ID",
-    design: goldId.item.design,
-    productClass: goldId.item.class,
-    subClass: "",
-    netRevenue: 1035,
-  });
-  const raw = goldId.item.wholesaleCost || goldId.item.costPrice;
-  assert(
-    "non-UV GOLD ID uses Whole Cost (not Tag÷1.3)",
-    cost != null && Math.abs(cost - raw) < 0.02,
-    `cost=${cost} whole=${raw} tagDiv13=${(goldId.item.tagPrice / 1.3).toFixed(2)}`
-  );
-} else {
-  console.log("  · skip GOLD ID SKU check (177145-8 not in inventory)");
-}
+const lines = [
+  row({ netRevenue: 400, quantity: 5, sku: "A", department: "EARRINGS", grossSales: 400 }),
+  row({ netRevenue: 200, quantity: 1, sku: "A", department: "EARRINGS", grossSales: 200 }),
+];
+// Both EARRINGS → /8.8 on sales amount when no inventory
+const p = wholesaleProfitForModelRows(lines);
+assert(
+  "qty ignored (unit cost per line, not × qty)",
+  p.profit != null &&
+    Math.abs(p.profit - (400 - 400 / 8.8 + 200 - 200 / 8.8)) < 0.01,
+  `profit=${p.profit}`
+);
 
-console.log(failed ? `\nFAILED: ${failed}` : "\n✓ top-models wholesale margin checks passed.");
-process.exit(failed ? 1 : 0);
+void calculatorWholesaleUnitCost;
+
+if (failed) {
+  console.error(`\n${failed} check(s) failed`);
+  process.exit(1);
+}
+console.log("\nOK");

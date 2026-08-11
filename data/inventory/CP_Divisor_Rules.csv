@@ -1,0 +1,26 @@
+Priority,Match Column(s),Match Value / Condition,Whole Cost Formula,Rule Name,Base (Inventory),Base (Sales fallback)
+1,Class + Design,Class = UV AND Design = GOLD JEWL/GOLD JEWEL,Tag Price / 1.3,Gold UV,Tag Price,Sales Amount
+2,Design,LINKNLOCK,Tag Price / 2.75,Linknlock,Tag Price,Sales Amount
+3,Design,LOVE,Tag Price / 2.75,Love Spell,Tag Price,Sales Amount
+4,Design,OROVENTI,Tag Price / 2.5,Oroventi,Tag Price,Sales Amount
+5,Design,CLOVER,Tag Price / 4,Clover gold,Tag Price,Sales Amount
+6,Design,AANIKA.V,Tag Price / 8.8,Aanika V,Tag Price,Sales Amount
+7,Design,PLAT JEWL,Tag Price / 4,Platinum Jewelry,Tag Price,Sales Amount
+8,Design,SILVER JEW,Tag Price / 4,Silver Jewelry,Tag Price,Sales Amount
+9,Design,B STONE,Tag Price / 8.8,Birthstone Jewelry by design,Tag Price,Sales Amount
+10,Sub-Class,BIRTHSTONE,Tag Price / 8.8,Birthstone Jewelry by subclass,Tag Price,Sales Amount
+11,Design,GOLD JEWL/GOLD JEWEL/GOLD BANDS,Tag Price / 4,Gold by design,Tag Price,Sales Amount
+12,Department,"GOLD BANDS, GOLD ID, GOLD HOOPS, GOLD PNDTS/GOLF PNDTS, GOLD RINGS",Tag Price / 4,Gold by department,Tag Price,Sales Amount
+13,Department,TUNGS BAND / value containing TUNG,Tag Price * 0.06,Tungsten,Tag Price,Sales Amount
+14,Department,TRITON,Tag Price / 4,Triton,Tag Price,Sales Amount
+15,Department,"BANGLE, EARRINGS, FANCY NECK, GENTS RING, LADYS RING, LADYS BRCL, MENS BRCLT, PENDANT, TRIO",Tag Price / 8.8,Diamond departments / loose stone,Tag Price,Sales Amount
+16,Department,RADO (POS),Tag Price / 1.82 + $20,Rado,Tag Price,Sales Amount
+17,Department,CARTIER (POS),Tag Price / 4,Cartier,Tag Price,Sales Amount
+18,Department,BRIGHT LINK (POS),Tag Price / 4,Bright Link,Tag Price,Sales Amount
+19,Department,MOVADO (POS),Tag Price / 1.82 + $20,Movado,Tag Price,Sales Amount
+20,Department,"MONT WATCH / MONT ACCES / Montblanc (POS)",Tag Price / 1.82 + $20,Mont Blank,Tag Price,Sales Amount
+21,Department,LONGINES (POS),Tag Price x 0.58 + $25,Longines,Tag Price,Sales Amount
+22,Department,BULOVA (POS),Tag Price x 0.48 + $15,Bulova,Tag Price,Sales Amount
+23,Department,MICHAEL KO / MICHAEL KORS (POS),Tag Price / 2 + $10,Michael Kors,Tag Price,Sales Amount
+24,Department,G-SHOCK (POS),Tag Price x 0.4825 + $15,G shock,Tag Price,Sales Amount
+25,Department,TISSOT (POS),Tag Price / 2 + $10,Tissot,Tag Price,Sales Amount
