@@ -95,15 +95,16 @@ export function getDefaultPermissionMapForRole(
   };
 }
 
-/** Built-in overrides applied after user/file overrides (Rozina default: no vendor). */
+/** Built-in overrides applied after user/file overrides (Rozina: never vendor). */
 function applyBuiltInFixes(
   username: string | null | undefined,
   map: UserPermissionMap,
-  vendorInfoExplicitlySet: boolean
+  _vendorInfoExplicitlySet: boolean
 ): UserPermissionMap {
   const key = normalizeUsername(username);
   const next = { ...map };
-  if (key === "rozina" && !vendorInfoExplicitlySet) {
+  // Rozina must never see vendor codes/names — ignore any override that turns it on.
+  if (key === "rozina") {
     next.vendor_info = false;
   }
   return next;
@@ -183,9 +184,11 @@ export function userHidesVendorInfo(user: {
   permissions?: Record<string, boolean> | null;
 } | null | undefined): boolean {
   if (!user) return false;
+  // Rozina: always hide (hard rule — not overridable in UI)
+  if (normalizeUsername(user.username) === "rozina") return true;
   if (user.authRole === "admin") return false;
   if (user.permissions && typeof user.permissions.vendor_info === "boolean") {
     return !user.permissions.vendor_info;
   }
-  return normalizeUsername(user.username) === "rozina";
+  return false;
 }

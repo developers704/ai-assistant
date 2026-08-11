@@ -130,6 +130,7 @@ function CompareSide({
   options,
   value,
   onChange,
+  hideVendors = false,
 }: {
   title: string;
   options: {
@@ -141,9 +142,11 @@ function CompareSide({
   };
   value: SliceFilters;
   onChange: (next: SliceFilters) => void;
+  hideVendors?: boolean;
 }) {
+  const dims = hideVendors ? DIMS.filter((d) => d.key !== "vendors") : DIMS;
   const chips: { key: DimKey; item: string }[] = [];
-  for (const dim of DIMS) {
+  for (const dim of dims) {
     for (const item of value[dim.key]) {
       chips.push({ key: dim.key, item });
     }
@@ -173,7 +176,7 @@ function CompareSide({
       )}
 
       <div className="flex flex-col gap-2">
-        {DIMS.map((dim) => {
+        {dims.map((dim) => {
           const opts = options[dim.optionsKey];
           if (!opts.length) return null;
           return (
@@ -206,6 +209,7 @@ type Props = {
   };
   defaultDateRange: SalesDateRangeValue | null;
   hideDatePicker?: boolean;
+  hideVendors?: boolean;
 };
 
 export function SalesComparePanel({
@@ -214,6 +218,7 @@ export function SalesComparePanel({
   options,
   defaultDateRange,
   hideDatePicker = false,
+  hideVendors = false,
 }: Props) {
   const [dateRange, setDateRange] = useState<SalesDateRangeValue | null>(defaultDateRange);
   const [left, setLeft] = useState<SliceFilters>(emptySlice);
@@ -227,13 +232,21 @@ export function SalesComparePanel({
     setDateRange(defaultDateRange);
   }, [defaultDateRange?.from, defaultDateRange?.to]);
 
+  useEffect(() => {
+    if (!hideVendors) return;
+    setLeft((prev) => (prev.vendors.length ? { ...prev, vendors: [] } : prev));
+    setRight((prev) => (prev.vendors.length ? { ...prev, vendors: [] } : prev));
+  }, [hideVendors]);
+
   const runCompare = async () => {
     setLoading(true);
     setError(null);
     try {
+      const leftFilters = hideVendors ? { ...left, vendors: [] } : left;
+      const rightFilters = hideVendors ? { ...right, vendors: [] } : right;
       const [leftSum, rightSum] = await Promise.all([
-        fetchSlice(dateRange, left),
-        fetchSlice(dateRange, right),
+        fetchSlice(dateRange, leftFilters),
+        fetchSlice(dateRange, rightFilters),
       ]);
       setA(leftSum);
       setB(rightSum);
@@ -315,8 +328,20 @@ export function SalesComparePanel({
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <CompareSide title="Side A" options={options} value={left} onChange={setLeft} />
-          <CompareSide title="Side B" options={options} value={right} onChange={setRight} />
+          <CompareSide
+            title="Side A"
+            options={options}
+            value={left}
+            onChange={setLeft}
+            hideVendors={hideVendors}
+          />
+          <CompareSide
+            title="Side B"
+            options={options}
+            value={right}
+            onChange={setRight}
+            hideVendors={hideVendors}
+          />
         </div>
 
         <Button

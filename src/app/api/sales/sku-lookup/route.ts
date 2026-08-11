@@ -19,6 +19,7 @@ import {
 } from "@/lib/sales/sku-lookup";
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { scopeStoresForUser } from "@/lib/auth/scope-stores";
+import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
 import { costPriceForRole } from "@/lib/sales/cost-price";
 
 function parseCsvRows(csv: string): VendorPosRow[] {
@@ -180,6 +181,7 @@ export async function GET(req: NextRequest) {
   const marginRate = netRevenue > 0 ? profit / netRevenue : 0;
   const variants = groupSalesLookupVariants(matchRows);
   const stores = [...byStore.values()].sort((a, b) => b.revenue - a.revenue);
+  const hideVendor = hidesVendorInfoFromPermissions(session.username);
 
   // For model-level lookups, surface the model as the primary id (matches Top 20 label).
   const displaySku =
@@ -197,7 +199,7 @@ export async function GET(req: NextRequest) {
     description: description || null,
     design: design || null,
     department: department || null,
-    vendor: vendor || null,
+    vendor: hideVendor ? null : vendor || null,
     productClass: productClass || null,
     matchType,
     units,

@@ -60,6 +60,9 @@ export function setPermissionMapForUser(
 export function hidesVendorInfoFromPermissions(
   username: string | null | undefined
 ): boolean {
+  const key = (username ?? "").trim().toLowerCase();
+  // Rozina: always hide vendor (hard rule)
+  if (key === "rozina") return true;
   const user = findAuthUser(username ?? "");
   if (user?.role === "admin") return false;
   const map = getPermissionMapForUser(username, user?.role ?? "dm");

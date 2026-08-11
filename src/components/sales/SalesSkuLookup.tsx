@@ -5,6 +5,8 @@ import { Search, Package } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProductThumb, ProductLightbox } from "@/components/reports/ProductImagePreview";
 import { formatCurrency, cn } from "@/lib/utils";
+import { userHidesVendorInfo } from "@/lib/auth/user-permissions";
+import { useApp } from "@/lib/store/app-context";
 import type { SalesDateRangeValue } from "@/components/sales/SalesDateRangePicker";
 
 type SkuLookupResult = {
@@ -52,6 +54,8 @@ function appendDateParams(params: URLSearchParams, range: SalesDateRangeValue | 
 }
 
 export function SalesSkuLookup({ dateRange }: { dateRange: SalesDateRangeValue | null }) {
+  const { state } = useApp();
+  const hideVendor = userHidesVendorInfo(state?.user);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +182,7 @@ export function SalesSkuLookup({ dateRange }: { dateRange: SalesDateRangeValue |
               <Fact label="Style #" value={result.style} />
               <Fact label="Design" value={result.design} />
               <Fact label="Department" value={result.department} />
-              <Fact label="Vendor" value={result.vendor} />
+              {!hideVendor && <Fact label="Vendor" value={result.vendor} />}
               <Fact label="Class" value={result.productClass} />
               {result.matchType === "vendorModel" && (
                 <Fact label="Match" value="Vendor model (same as Vendor Models list)" />

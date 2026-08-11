@@ -18,6 +18,8 @@ import { SalesSkuLookup } from "@/components/sales/SalesSkuLookup";
 import { SalesComparePanel } from "@/components/sales/SalesComparePanel";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
+import { userHidesVendorInfo } from "@/lib/auth/user-permissions";
+import { useApp } from "@/lib/store/app-context";
 import { ArrowLeft, GitCompareArrows } from "lucide-react";
 
 function rangeFromSearchParams(sp: {
@@ -60,6 +62,8 @@ export default function SalesLookupComparePage() {
 
 function SalesLookupCompareContent() {
   const searchParams = useSearchParams();
+  const { state } = useApp();
+  const hideVendors = userHidesVendorInfo(state?.user);
   const [dateRange, setDateRange] = useState<SalesDateRangeValue | null>(() =>
     rangeFromSearchParams(searchParams)
   );
@@ -102,7 +106,7 @@ function SalesLookupCompareContent() {
           stores: d.availableStores ?? [],
           departments: d.availableDepartments ?? [],
           designs: d.availableDesigns ?? [],
-          vendors: d.availableVendors ?? [],
+          vendors: hideVendors ? [] : (d.availableVendors ?? []),
           classes: d.availableClasses ?? [],
         });
         const dates: string[] = d.availableDates ?? [];
@@ -115,7 +119,7 @@ function SalesLookupCompareContent() {
         }
       })
       .finally(() => setLoading(false));
-  }, [dateRange?.from, dateRange?.to, refreshNonce]);
+  }, [dateRange?.from, dateRange?.to, refreshNonce, hideVendors]);
 
   const backHref = (() => {
     const params = new URLSearchParams();
@@ -171,6 +175,7 @@ function SalesLookupCompareContent() {
               reportRange={reportRange}
               defaultDateRange={dateRange}
               hideDatePicker
+              hideVendors={hideVendors}
               options={options}
             />
           </div>
