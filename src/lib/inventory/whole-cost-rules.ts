@@ -67,6 +67,11 @@ type WatchRule = {
  */
 const WATCH_DEPT_RULES: WatchRule[] = [
   {
+    ruleName: "Rolex",
+    calc: (b) => b / 4,
+    matchDept: (d, c) => d === "ROLEX" || c === "ROLEX",
+  },
+  {
     ruleName: "Rado",
     calc: (b) => b / 1.82 + 20,
     matchDept: (d, c) => d === "RADO" || c === "RADO",
