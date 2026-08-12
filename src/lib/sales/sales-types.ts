@@ -122,6 +122,11 @@ export interface SalesQueryInput {
     topProducts?: boolean;
     topVendorModels?: boolean;
     topSalesPeople?: boolean;
+    /**
+     * When true, Top Vendor Models includes soft-hidden rows (ITEM repairs, findings).
+     * Used for Rozina so she can see full sold-line breakdown by Total/net.
+     */
+    includeHiddenTopModels?: boolean;
     trends?: boolean;
   };
   display?: {

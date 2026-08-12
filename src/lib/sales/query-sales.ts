@@ -778,6 +778,7 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
       sortBy: productSort,
       limit,
       periodDays,
+      includeHiddenTopModels: include.includeHiddenTopModels === true,
     });
     if (!breakdowns.byVendorModel && groupBy.includes("vendor_model")) {
       breakdowns.byVendorModel = rankings.topVendorModels;

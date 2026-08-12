@@ -1,5 +1,5 @@
 import type { VendorPosRow } from "@/lib/reports/types";
-import { isHiddenFromTopVendorModelsRow } from "@/lib/utils";
+import { isHiddenFromTopVendorModelsRow, isItemPlaceholderSku } from "@/lib/utils";
 import { hasOnhandData } from "@/lib/inventory/onhand";
 import { groupRows } from "./sales-aggregate";
 import type { SalesBreakdownRow } from "./sales-types";
@@ -8,7 +8,11 @@ import {
   wholesaleProfitForModelRows,
 } from "./top-models-wholesale-margin";
 
-function rowsForTopModels(rows: VendorPosRow[]): VendorPosRow[] {
+function rowsForTopModels(
+  rows: VendorPosRow[],
+  includeHiddenTopModels?: boolean
+): VendorPosRow[] {
+  if (includeHiddenTopModels) return rows;
   return rows.filter((r) => !isHiddenFromTopVendorModelsRow(r));
 }
 
@@ -28,6 +32,10 @@ function applyWholesaleMargins(
   return models.map((m) => {
     const key = m.vendorModel || m.name;
     const modelRows = byKey.get(key) ?? [];
+    // ITEM / repair memos: keep CSV margin (often no calculator cost)
+    if (modelRows.some((r) => isItemPlaceholderSku(r.sku || r.itemNumber))) {
+      return m;
+    }
     const { profit } = wholesaleProfitForModelRows(modelRows);
     return { ...m, estimatedMargin: profit };
   });
@@ -40,11 +48,13 @@ export function getTopVendorModels(
     /** Cap results; omit for all vendor models (qty-sorted). */
     limit?: number | null;
     periodDays?: number;
+    /** Rozina: include ITEM / soft-hidden sold lines for full breakdown. */
+    includeHiddenTopModels?: boolean;
   }
 ): SalesBreakdownRow[] {
   // Warm onhand index once before SKU store lines attach lookups.
   hasOnhandData();
-  const filtered = rowsForTopModels(rows);
+  const filtered = rowsForTopModels(rows, opts?.includeHiddenTopModels);
   // Dashboard default: all models by pieces sold (revenue as tiebreaker).
   const sortBy =
     opts?.sortBy === "revenue"
@@ -59,7 +69,10 @@ export function getTopVendorModels(
       opts?.limit ?? null,
       sortBy,
       "desc",
-      { periodDays: opts?.periodDays }
+      {
+        periodDays: opts?.periodDays,
+        includeHiddenTopModels: opts?.includeHiddenTopModels,
+      }
     ),
     filtered
   );

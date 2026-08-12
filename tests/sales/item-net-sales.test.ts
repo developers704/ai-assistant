@@ -7,6 +7,9 @@ import {
   isItemPlaceholderSku,
 } from "@/lib/utils";
 import type { VendorPosRow } from "@/lib/reports/types";
+import { getTopVendorModels } from "@/lib/sales/sales-product-analysis";
+import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
+import { vendorModelGroupKey } from "@/lib/sales/top-models-wholesale-margin";
 
 function row(partial: Partial<VendorPosRow>): VendorPosRow {
   return {
@@ -132,5 +135,54 @@ describe("ITEM placeholder — Net Sales keep, Top Models hide", () => {
     expect(
       kept.filter((r) => !isHiddenFromTopVendorModelsRow(r)).reduce((s, r) => s + r.netRevenue, 0)
     ).toBe(503);
+  });
+
+  it("Rozina Top Vendor Models includes ITEM lines with Total/net breakdown", () => {
+    expect(showsAllSoldInTopVendorModels("rozina")).toBe(true);
+    expect(showsAllSoldInTopVendorModels("kash")).toBe(false);
+
+    const rows = [
+      row({
+        sku: "239135-16",
+        netRevenue: 199,
+        grossSales: 199,
+        quantity: 1,
+      }),
+      row({
+        sku: "ITEM",
+        itemNumber: "ITEM",
+        department: "",
+        vendorModel: "",
+        description: "SIZE RING TO 11",
+        netRevenue: 310,
+        grossSales: 310,
+        quantity: 1,
+      }),
+      row({
+        sku: "ITEM",
+        itemNumber: "ITEM",
+        department: "",
+        vendorModel: "",
+        description: "EXTENDER",
+        netRevenue: 25,
+        grossSales: 25,
+        quantity: 1,
+      }),
+    ];
+
+    const defaultModels = getTopVendorModels(rows, { limit: null });
+    expect(defaultModels.some((m) => m.name.startsWith("ITEM"))).toBe(false);
+    expect(defaultModels.reduce((s, m) => s + m.netSales, 0)).toBe(199);
+
+    const rozinaModels = getTopVendorModels(rows, {
+      limit: null,
+      includeHiddenTopModels: true,
+    });
+    const itemLines = rozinaModels.filter((m) => m.name.startsWith("ITEM ·"));
+    expect(itemLines).toHaveLength(2);
+    expect(itemLines.find((m) => m.name === "ITEM · SIZE RING TO 11")?.netSales).toBe(310);
+    expect(itemLines.find((m) => m.name === "ITEM · EXTENDER")?.netSales).toBe(25);
+    expect(rozinaModels.reduce((s, m) => s + m.netSales, 0)).toBe(534);
+    expect(vendorModelGroupKey(rows[1])).toBe("ITEM · SIZE RING TO 11");
   });
 });

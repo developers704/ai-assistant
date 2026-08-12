@@ -8,6 +8,7 @@ import {
   collapseCancelledSkuLegs,
   isPhantomZeroNetModel,
   signedWholesaleUnitCost,
+  vendorModelGroupKey,
 } from "./top-models-wholesale-margin";
 import type {
   SalesBreakdownRow,
@@ -240,7 +241,7 @@ function groupKey(row: VendorPosRow, by: SalesGroupBy): string {
     case "sku":
       return row.sku || row.itemNumber || "Unknown SKU";
     case "vendor_model":
-      return row.vendorModel || row.sku || row.itemNumber || "Unknown model";
+      return vendorModelGroupKey(row);
     case "salesperson":
       return "Unknown salesperson";
     default:
@@ -255,7 +256,7 @@ export function groupRows(
   limit: number | null = 50,
   sortBy: "netSales" | "unitsSold" | "estimatedMargin" = "netSales",
   sortDirection: "asc" | "desc" = "desc",
-  _opts?: { periodDays?: number }
+  opts?: { periodDays?: number; includeHiddenTopModels?: boolean }
 ): SalesBreakdownRow[] {
   if (by === "salesperson") {
     const credits = creditSalespersonRows(rows);
@@ -297,6 +298,7 @@ export function groupRows(
   for (const r of rows) {
     if (
       (by === "vendor_model" || by === "product" || by === "sku") &&
+      !opts?.includeHiddenTopModels &&
       isHiddenFromTopVendorModelsRow(r)
     ) {
       continue;
@@ -307,6 +309,8 @@ export function groupRows(
     if (!cur.imageDir && r.imageDir) cur.imageDir = r.imageDir;
     if (!cur.sku && (r.sku || r.itemNumber)) cur.sku = r.sku || r.itemNumber;
     if (!cur.vendorModel && r.vendorModel) cur.vendorModel = r.vendorModel;
+    // ITEM groups use description key as the model label for detail lookup
+    if (!cur.vendorModel && by === "vendor_model") cur.vendorModel = key;
     if (!cur.description && r.description) cur.description = r.description;
     map.set(key, cur);
   }

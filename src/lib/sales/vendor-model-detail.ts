@@ -3,6 +3,7 @@ import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import {
   collapseCancelledSkuLegs,
+  vendorModelGroupKey,
   wholesaleProfitForModelRows,
 } from "@/lib/sales/top-models-wholesale-margin";
 import { inclusivePeriodDays } from "@/lib/sales/inventory-metrics";
@@ -198,16 +199,19 @@ export function buildVendorModelDetail(
   opts?: {
     dateFrom?: string | null;
     dateTo?: string | null;
+    /** Rozina: allow ITEM / soft-hidden sold lines in the detail drawer. */
+    includeHiddenTopModels?: boolean;
   }
 ): VendorModelDetail | null {
   const needle = normKey(vendorModel);
   if (!needle) return null;
 
-  const modelRows = allRows.filter(
-    (r) =>
-      !isHiddenFromTopVendorModelsRow(r) &&
-      normKey(r.vendorModel || r.sku || r.itemNumber || "") === needle
-  );
+  const modelRows = allRows.filter((r) => {
+    if (!opts?.includeHiddenTopModels && isHiddenFromTopVendorModelsRow(r)) {
+      return false;
+    }
+    return normKey(vendorModelGroupKey(r)) === needle;
+  });
 
   let rows = modelRows;
 

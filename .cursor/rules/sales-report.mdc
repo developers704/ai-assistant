@@ -29,7 +29,7 @@ These rows are treated as **deleted** from the sales report. They must **not** a
 
 ## Soft-hidden from Top Vendor Models only
 
-These still count in Net Sales / store / vendor / department / salesperson totals, but must **not** appear in Top Vendor Models / top-product lists:
+These still count in Net Sales / store / vendor / department / salesperson totals, but must **not** appear in Top Vendor Models / top-product lists (except **Rozina** — see below):
 
 | Rule | Reason |
 |------|--------|
@@ -37,6 +37,8 @@ These still count in Net Sales / store / vendor / department / salesperson total
 | Vendor model `WG2787` | Hidden from top vendor models (still in net sales) |
 | Vendor model `WG670` | Threaded earring post — findings; hidden from top vendor models (still in net sales) |
 | Vendor model `2200-2218` | Screwback earring back / pad — findings; hidden from top vendor models (still in net sales) |
+
+**Rozina exception:** username `rozina` sees **all sold lines** in Top Vendor Models (incl. `ITEM` repairs/SPO), grouped as `ITEM · {description}` with Total/net, via `showsAllSoldInTopVendorModels()` + `includeHiddenTopModels`. Everyone else keeps soft-hide.
 
 ### Top Vendor Models — cancelled SKU legs (ranking only)
 

@@ -4,6 +4,7 @@ import { parseMultiParam } from "@/lib/sales/filter-params";
 import { buildVendorModelDetail } from "@/lib/sales/vendor-model-detail";
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { scopeStoresForUser } from "@/lib/auth/scope-stores";
+import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
 
 export const runtime = "nodejs";
 
@@ -58,6 +59,7 @@ export async function GET(req: Request) {
   const detail = buildVendorModelDetail(rows, vendorModel, {
     dateFrom,
     dateTo,
+    includeHiddenTopModels: showsAllSoldInTopVendorModels(session.username),
   });
 
   if (!detail) {

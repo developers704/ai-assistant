@@ -101,6 +101,11 @@ export function getDefaultPermissionMapForRole(
   };
 }
 
+/** Rozina sees every sold line in Top Vendor Models (incl. ITEM repairs) for full breakdown. */
+export function showsAllSoldInTopVendorModels(username?: string | null): boolean {
+  return normalizeUsername(username) === "rozina";
+}
+
 /** Built-in overrides applied after user/file overrides (Rozina: never vendor). */
 function applyBuiltInFixes(
   username: string | null | undefined,

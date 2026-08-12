@@ -31,6 +31,7 @@ import {
   scopeStoresForUser,
 } from "@/lib/auth/scope-stores";
 import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
+import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -96,6 +97,8 @@ async function queryDashboardSlice(opts: {
   classes?: string[];
   /** Comparison-only queries need all stores, not product top-20. */
   mode?: "dashboard" | "comparison";
+  /** Rozina: include ITEM / soft-hidden lines in Top Vendor Models. */
+  includeHiddenTopModels?: boolean;
 }): Promise<SalesQueryResult> {
   const isCompare = opts.mode === "comparison";
   const from = opts.dateFrom ?? opts.date;
@@ -132,6 +135,7 @@ async function queryDashboardSlice(opts: {
           topDesigns: true,
           topVendors: true,
           topClasses: true,
+          includeHiddenTopModels: opts.includeHiddenTopModels === true,
           // Dashboard uses vendor models (not separate product ranking).
           topVendorModels: true,
           topSalesPeople: true,
@@ -222,6 +226,9 @@ export async function GET(req: NextRequest) {
     const version = await ensureActiveSalesVersion();
     const shell = version ? loadUnifiedSalesShell(version) : null;
     if (shell) {
+      const includeHiddenTopModels = showsAllSoldInTopVendorModels(
+        session.username
+      );
       const slice = {
         date: filterDate,
         dateFrom: filterDateFrom,
@@ -231,6 +238,7 @@ export async function GET(req: NextRequest) {
         designs: filterDesigns,
         vendors: filterVendors,
         classes: filterClasses,
+        includeHiddenTopModels,
       };
       const result = await queryDashboardSlice({ ...slice, mode: "dashboard" });
 

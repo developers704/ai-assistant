@@ -38,6 +38,8 @@ import { readSessionFromCookies } from "@/lib/auth/session";
 import { scopeStoresForUser } from "@/lib/auth/scope-stores";
 import { sumCostPriceForRole } from "@/lib/sales/cost-price";
 import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
+import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
+import { vendorModelGroupKey } from "@/lib/sales/top-models-wholesale-margin";
 
 export const runtime = "nodejs";
 
@@ -180,6 +182,7 @@ export async function GET(req: Request) {
   const vendors = parseMultiParam(searchParams, "vendor", "vendors");
   const classes = parseMultiParam(searchParams, "class", "classes");
   const id = searchParams.get("id")?.trim() || undefined;
+  const includeHiddenTopModels = showsAllSoldInTopVendorModels(session.username);
 
   const allowed: RankDimension[] = [
     "store",
@@ -312,8 +315,8 @@ export async function GET(req: Request) {
     bump(byClass, r.productClass);
     bump(byVendor, r.vendor);
 
-    const model = r.vendorModel?.trim() || r.sku || r.itemNumber;
-    if (model && !isHiddenFromTopVendorModelsRow(r)) {
+    const model = vendorModelGroupKey(r);
+    if (model && (includeHiddenTopModels || !isHiddenFromTopVendorModelsRow(r))) {
       const ex = byModel.get(model) || {
         name: r.description || model,
         vendorModel: model,
