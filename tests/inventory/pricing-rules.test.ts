@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "@/lib/inventory/types";
-import { getVisibleDmCostPrice } from "@/lib/inventory/pricing";
+import {
+  calculatePricing,
+  classifyProduct,
+  getVisibleDmCostPrice,
+} from "@/lib/inventory/pricing";
 import { fixedWholeCostForSku, wholeCostFromRules } from "@/lib/inventory/whole-cost-rules";
 
 function makeItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
@@ -169,5 +173,53 @@ describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
 
   it("MICHAEL KO → Tag/2 + 10", () => {
     expect(wholeCostFromRules({ department: "MICHAEL KO" }, 200)).toBeCloseTo(110, 5);
+  });
+});
+
+describe("Manager discount tiers (GOLD JEWL vs diamond dept)", () => {
+  it("GOLD JEWL in GENTS RING → gold 65/60/55, not diamond 82/80/77.5", () => {
+    const item = makeItem({
+      sku: "240298",
+      department: "GENTS RING",
+      design: "GOLD JEWL",
+      class: "10K",
+      subClass: "NUGGET",
+      description: "10KT YELLOW-GOLD NUGGET CROSS MENS RING (NO WARRANTY)",
+      vendorModel: "NUGGET.CROSS. RING",
+      tagPrice: 2888,
+      costPrice: 722,
+    });
+    const classified = classifyProduct(item);
+    expect(classified.category).toBe("gold");
+    const pricing = calculatePricing(item);
+    expect(pricing.tiers.find((t) => t.tier === "dm")?.discountPercent).toBe(65);
+    expect(pricing.tiers.find((t) => t.tier === "cm")?.discountPercent).toBe(60);
+    expect(pricing.tiers.find((t) => t.tier === "m")?.discountPercent).toBe(55);
+    expect(pricing.tiers.find((t) => t.tier === "dm")?.cashPrice).toBeCloseTo(
+      2888 * 0.35,
+      2
+    );
+  });
+
+  it("GOLD JEWEL spelling + LADYS RING still gold 65%", () => {
+    const item = makeItem({
+      department: "LADYS RING",
+      design: "GOLD JEWEL",
+      class: "14KT",
+      description: "14KT YELLOW-GOLD RING",
+      tagPrice: 1000,
+    });
+    expect(classifyProduct(item).category).toBe("gold");
+    expect(calculatePricing(item).tiers.find((t) => t.tier === "dm")?.discountPercent).toBe(65);
+  });
+
+  it("Class UV + GOLD JEWL still 0% discount", () => {
+    const item = makeItem({
+      department: "GOLD ID",
+      design: "GOLD JEWL",
+      class: "UV",
+      tagPrice: 1000,
+    });
+    expect(calculatePricing(item).tiers.find((t) => t.tier === "dm")?.discountPercent).toBe(0);
   });
 });

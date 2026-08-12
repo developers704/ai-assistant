@@ -131,7 +131,10 @@ function isGShock(item: InventoryItem): boolean {
 function isGold(item: InventoryItem): boolean {
   const dept = normalizeDept(item.department);
   if (GOLD_DEPTS.some((g) => dept.includes(g) || dept === g)) return true;
-  if (/^GOLD JEWL$/i.test(item.design.trim())) return true;
+  const design = item.design.trim().toUpperCase();
+  if (design === "GOLD JEWL" || design === "GOLD JEWEL" || design === "GOLD BANDS") {
+    return true;
+  }
   if (/GOLD/i.test(item.department)) return true;
   return false;
 }
@@ -239,6 +242,11 @@ function isDiamondCategory(item: InventoryItem): boolean {
 }
 
 function isUvDiamondSpecial(item: InventoryItem): boolean {
+  // GOLD JEWL / GOLD JEWEL is gold pricing — never diamond UV 82% path
+  const design = item.design.trim().toUpperCase();
+  if (design === "GOLD JEWL" || design === "GOLD JEWEL" || design === "GOLD BANDS") {
+    return false;
+  }
   return hasUvOrUltimateValue(item) && isDiamondCategory(item);
 }
 
@@ -289,6 +297,16 @@ export function classifyProduct(item: InventoryItem): {
     };
   }
 
+  // Any GOLD JEWL / GOLD JEWEL / gold dept → gold discounts (65/60/55),
+  // before gemstone / diamond dept (GENTS RING, LADYS RING, …).
+  if (isGold(item)) {
+    return {
+      category: "gold",
+      categoryLabel: "Gold",
+      goldWeightGrams: getGoldAvgWeightGrams(item),
+    };
+  }
+
   if (isGemstone(item)) {
     return {
       category: "diamond_gemstone",
@@ -300,14 +318,6 @@ export function classifyProduct(item: InventoryItem): {
     return {
       category: "diamond_gemstone",
       categoryLabel: "Diamond Jewelry",
-    };
-  }
-
-  if (isGold(item)) {
-    return {
-      category: "gold",
-      categoryLabel: "Gold",
-      goldWeightGrams: getGoldAvgWeightGrams(item),
     };
   }
 
