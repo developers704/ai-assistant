@@ -10,6 +10,7 @@ Single engine: `src/lib/inventory/whole-cost-rules.ts` (wired into price calcula
 ## Always (every surface, all historical sales)
 
 1. **Fixed SKU costs** (everyone) — see `FIXED_WHOLE_COST_BY_SKU` (231611→350, …). Match by leading Item # digits (`231618S` → `231618`).
+1b. **SKU divisor overrides** — see `SKU_DIVISOR_OVERRIDE` (e.g. `240304` → base ÷ 8.8). Beats design/dept formulas (including GOLD JEWL ÷4).
 2. **Design `GOLD JEWL` / `GOLD JEWEL`** + description contains `UV` / `uv` / `ultimate value` (or Class `UV`) → **base ÷ 1.3**
 3. **Diamond** (diamond department **or** “diamond” in description) + UV / ultimate value in description → **base ÷ 8.8**  
    - Except the fixed special SKUs above

@@ -5,6 +5,7 @@
  *
  * HARD RULES (owner — always):
  * 1) Fixed SKU list → fixed $ cost (everyone)
+ * 1b) SKU divisor overrides (e.g. 240304 → base ÷ 8.8) — beats design/dept formulas
  * 2) Design GOLD JEWL/GOLD JEWEL + (description UV / uv / ultimate value OR Class UV)
  *    → base ÷ 1.3
  * 3) Diamond (diamond dept OR "diamond" in description) + UV / ultimate value in description
@@ -43,6 +44,14 @@ export const FIXED_WHOLE_COST_BY_SKU: Record<string, number> = {
   "232736": 150,
 };
 
+/**
+ * SKU-only divisor overrides (base ÷ N) — wins over design/dept formulas
+ * (e.g. GOLD JEWL ÷4). Match by leading Item # digits.
+ */
+export const SKU_DIVISOR_OVERRIDE: Record<string, number> = {
+  "240304": 8.8, // NUGGET.CROSS mens ring — owner: ÷8.8 only for this SKU
+};
+
 /** Leading numeric Item # (231618S-10 → 231618). */
 export function skuCostKey(sku: string | null | undefined): string {
   const raw = String(sku ?? "")
@@ -57,6 +66,14 @@ export function fixedWholeCostForSku(sku: string | null | undefined): number | n
   const key = skuCostKey(sku);
   if (!key) return null;
   const n = FIXED_WHOLE_COST_BY_SKU[key];
+  return n != null && Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** SKU divisor override (e.g. 8.8), or null. */
+export function skuDivisorOverride(sku: string | null | undefined): number | null {
+  const key = skuCostKey(sku);
+  if (!key) return null;
+  const n = SKU_DIVISOR_OVERRIDE[key];
   return n != null && Number.isFinite(n) && n > 0 ? n : null;
 }
 
@@ -222,6 +239,11 @@ export function resolveWholeCostFromRules(
 
   const base = Number(basePrice);
   if (!Number.isFinite(base) || base <= 0) return null;
+
+  const skuDiv = skuDivisorOverride(fields.sku);
+  if (skuDiv != null) {
+    return finish(base / skuDiv, `SKU ÷${skuDiv} ${skuCostKey(fields.sku)}`);
+  }
 
   const department = norm(fields.department);
   const design = norm(fields.design);

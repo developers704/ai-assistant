@@ -55,6 +55,34 @@ describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
     ).toBeCloseTo(880 / 8.8, 5);
   });
 
+  it("SKU 240304 only → Tag ÷ 8.8 (beats GOLD JEWL ÷4)", () => {
+    expect(
+      wholeCostFromRules(
+        {
+          sku: "240304",
+          department: "GENTS RING",
+          design: "GOLD JEWL",
+          class: "10KT",
+          description: "10KT Yellow-Gold Nugget Cross Mens Ring",
+        },
+        4125
+      )
+    ).toBeCloseTo(4125 / 8.8, 5);
+    // Other nugget SKUs still GOLD JEWL ÷4
+    expect(
+      wholeCostFromRules(
+        {
+          sku: "240298",
+          department: "GENTS RING",
+          design: "GOLD JEWL",
+          class: "10KT",
+          description: "10KT Yellow-Gold Nugget Cross Mens Ring",
+        },
+        2888
+      )
+    ).toBeCloseTo(2888 / 4, 5);
+  });
+
   it("fixed SKU cost overrides diamond UV ÷8.8", () => {
     expect(
       wholeCostFromRules(

@@ -9,6 +9,7 @@ Priority,Match Column(s),Match Value / Condition,Whole Cost Formula,Rule Name,In
 0g,SKU,231624,675,Fixed SKU 231624,Fixed,Fixed,Novello UV Cuban bracelet
 0h,SKU,230768,940,Fixed SKU 230768,Fixed,Fixed,10KT-UV AGI solitaire
 0i,SKU,232736,150,Fixed SKU 232736,Fixed,Fixed,Virgin Mary UV pendant
+0j,SKU,240304,Tag Price / 8.8,SKU ÷8.8 240304,Tag Price,Sales Amount,NUGGET.CROSS mens ring — SKU-only override (beats GOLD JEWL ÷4)
 1,Design + Description,"Design GOLD JEWL/GOLD JEWEL + UV/uv/ultimate value in description (or Class UV)",Tag Price / 1.3,Gold JEWL + UV / Ultimate Value,Tag Price,Sales Amount,HARD RULE — all sales + calculator
 1b,Department/Description + Description,"Diamond dept OR diamond in description + UV/ultimate value in description",Tag Price / 8.8,Diamond + UV / Ultimate Value,Tag Price,Sales Amount,HARD RULE — except fixed special SKUs
 2,Design,LINKNLOCK,Tag Price / 2.75,Linknlock,Tag Price,Sales Amount,
