@@ -39,7 +39,10 @@ import {
 } from "@/lib/sales/filter-params";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { useApp } from "@/lib/store/app-context";
-import { userHidesVendorInfo } from "@/lib/auth/user-permissions";
+import {
+  showsAllSoldInTopVendorModels,
+  userHidesVendorInfo,
+} from "@/lib/auth/user-permissions";
 import { TrendingUp, TrendingDown, Package, Store, LineChart, GitCompareArrows, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +92,9 @@ export default function SalesPage() {
   const searchParams = useSearchParams();
   const { state } = useApp();
   const hideVendors = userHidesVendorInfo(state?.user);
+  const includeHiddenTopModels = showsAllSoldInTopVendorModels(
+    state?.user?.username
+  );
   const detailTypeFromUrl = searchParams.get("detail");
   const detailValueFromUrl = searchParams.get("detailValue");
   const [summary, setSummary] = useState<SalesSummary | null>(null);
@@ -412,7 +418,9 @@ export default function SalesPage() {
     );
   }
 
-  const topProducts = sortTopProductsByUnits(filterTopProductSkus(summary.topProducts));
+  const topProducts = sortTopProductsByUnits(
+    filterTopProductSkus(summary.topProducts, { includeHiddenTopModels })
+  );
   const multiDayRange = Boolean(
     dateRange && dateRange.from && dateRange.to && dateRange.from !== dateRange.to
   );
@@ -765,6 +773,7 @@ export default function SalesPage() {
                 <TopProductsTable
                   products={topProducts}
                   showDateFilter={multiDayRange}
+                  includeHiddenTopModels={includeHiddenTopModels}
                   onVendorModelDetail={(p) =>
                     setVendorModelDetail({
                       vendorModel: p.vendorModel || p.itemNumber || p.name,

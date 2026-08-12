@@ -65,6 +65,8 @@ interface TopProductsTableProps {
   onVendorModelDetail?: (product: TopProductRow) => void;
   /** When true (multi-day range), show date multi-select like departments. */
   showDateFilter?: boolean;
+  /** Rozina: keep ITEM / soft-hidden sold lines in the table. */
+  includeHiddenTopModels?: boolean;
 }
 
 type SortKey = "date" | "qty" | "revenue" | "margin";
@@ -254,8 +256,9 @@ export function TopProductsTable({
   emptyLabel = "No product data in this report.",
   onVendorModelDetail,
   showDateFilter = false,
+  includeHiddenTopModels = false,
 }: TopProductsTableProps) {
-  const baseRows = filterTopProductSkus(products);
+  const baseRows = filterTopProductSkus(products, { includeHiddenTopModels });
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<VendorModelTextFilterMode>("include");
   const [deptFilter, setDeptFilter] = useState<string[]>([]);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   filterExcludedSalesRows,
+  filterTopProductSkus,
   isExcludedSalesRow,
   isExcludedSalesSku,
   isHiddenFromTopVendorModelsRow,
@@ -184,5 +185,21 @@ describe("ITEM placeholder — Net Sales keep, Top Models hide", () => {
     expect(itemLines.find((m) => m.name === "ITEM · EXTENDER")?.netSales).toBe(25);
     expect(rozinaModels.reduce((s, m) => s + m.netSales, 0)).toBe(534);
     expect(vendorModelGroupKey(rows[1])).toBe("ITEM · SIZE RING TO 11");
+  });
+
+  it("UI filterTopProductSkus keeps ITEM when includeHiddenTopModels", () => {
+    const products = [
+      { name: "Chain", itemNumber: "239135-16", vendorModel: "TD025", revenue: 199 },
+      {
+        name: "SIZE RING TO 11",
+        itemNumber: "ITEM",
+        vendorModel: "ITEM · SIZE RING TO 11",
+        revenue: 310,
+      },
+    ];
+    expect(filterTopProductSkus(products)).toHaveLength(1);
+    expect(
+      filterTopProductSkus(products, { includeHiddenTopModels: true })
+    ).toHaveLength(2);
   });
 });

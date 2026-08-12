@@ -410,13 +410,14 @@ export function filterExcludedSalesRows<
 
 export function filterTopProductSkus<
   T extends { itemNumber?: string; vendorModel?: string; sku?: string; name?: string; description?: string }
->(products: T[]): T[] {
+>(
+  products: T[],
+  opts?: { includeHiddenTopModels?: boolean }
+): T[] {
   return products.filter((p) => {
     const sku = p.itemNumber || p.sku || p.vendorModel;
-    if (isItemPlaceholderSku(sku)) return false;
+    // Hard exclusions always apply (watch winder, pads, CBE fee, etc.)
     if (isExcludedSalesVendorModel(p.vendorModel)) return false;
-    if (isHiddenFromTopVendorModelsVendorModel(p.vendorModel)) return false;
-    if (isHiddenFromTopVendorModelsVendorModel(p.itemNumber || p.sku)) return false;
     if (
       isExcludedSalesPadLine(p.name) ||
       isExcludedSalesPadLine(p.description) ||
@@ -424,7 +425,14 @@ export function filterTopProductSkus<
     ) {
       return false;
     }
-    return !isExcludedSalesSku(sku);
+    if (isExcludedSalesSku(sku)) return false;
+    // Soft-hide (ITEM repairs, findings) — skip for Rozina full sold breakdown
+    if (!opts?.includeHiddenTopModels) {
+      if (isItemPlaceholderSku(sku)) return false;
+      if (isHiddenFromTopVendorModelsVendorModel(p.vendorModel)) return false;
+      if (isHiddenFromTopVendorModelsVendorModel(p.itemNumber || p.sku)) return false;
+    }
+    return true;
   });
 }
 
