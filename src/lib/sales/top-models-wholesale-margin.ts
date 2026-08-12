@@ -88,7 +88,7 @@ export function signedWholesaleUnitCost(
 }
 
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
-export const TOP_MODELS_MARGIN_RULES_VERSION = 2;
+export const TOP_MODELS_MARGIN_RULES_VERSION = 4;
 
 function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
   const net = Number(row.netRevenue ?? 0);
@@ -112,58 +112,114 @@ function isSaleish(row: Pick<VendorPosRow, "quantity" | "netRevenue" | "grossSal
   return qty > 0 || net > 0 || gross > 0;
 }
 
-function cancelPairKey(
-  row: Pick<VendorPosRow, "storeName" | "date" | "sku" | "itemNumber" | "netRevenue" | "grossSales">
-): string | null {
-  const store = (row.storeName ?? "").trim().toLowerCase();
-  if (!store) return null;
-  const sku = (row.sku || row.itemNumber || "").trim().toUpperCase();
-  if (!sku) return null;
-  const amount = absAmountCents(row);
-  if (!(amount > 0)) return null;
-  const date = (row.date ?? "").trim().slice(0, 10);
-  return `${store}|${date}|${sku}|${amount}`;
+function dateNum(d: string | null | undefined): number {
+  const s = (d ?? "").trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return 0;
+  return Number(s.replace(/-/g, ""));
 }
 
-/**
- * Within one vendor-model / product group: drop matching sale↔return legs
- * (same store, calendar date, SKU, abs net). Does NOT change store Net Sales —
- * only product rankings / Top Vendor Models / model detail.
- */
-export function collapseCancelledSkuLegs<T extends VendorPosRow>(rows: T[]): T[] {
-  if (rows.length < 2) return rows;
+type CancelRow = Pick<
+  VendorPosRow,
+  "storeName" | "sku" | "itemNumber" | "netRevenue" | "grossSales" | "date" | "quantity"
+>;
 
-  const drop = new Set<number>();
+/** Exact cancel: same store + SKU + abs net. */
+function keyStoreSkuAmount(row: CancelRow): string | null {
+  const store = (row.storeName ?? "").trim().toLowerCase();
+  const sku = (row.sku || row.itemNumber || "").trim().toUpperCase();
+  const amount = absAmountCents(row);
+  if (!store || !sku || !(amount > 0)) return null;
+  return `ssa|${store}|${sku}|${amount}`;
+}
+
+/** Size / Y-suffix exchange within a model: same store + abs net (SKU may differ). */
+function keyStoreAmount(row: CancelRow): string | null {
+  const store = (row.storeName ?? "").trim().toLowerCase();
+  const amount = absAmountCents(row);
+  if (!store || !(amount > 0)) return null;
+  return `sa|${store}|${amount}`;
+}
+
+/** Cross-store cancel of the same piece: same SKU + abs net. */
+function keySkuAmount(row: CancelRow): string | null {
+  const sku = (row.sku || row.itemNumber || "").trim().toUpperCase();
+  const amount = absAmountCents(row);
+  if (!sku || !(amount > 0)) return null;
+  return `ska|${sku}|${amount}`;
+}
+
+function pairReturnsWithSales<T extends VendorPosRow>(
+  rows: T[],
+  drop: Set<number>,
+  usedPositive: Set<number>,
+  keyFn: (row: CancelRow) => string | null
+): void {
   const saleIndex = new Map<string, number[]>();
   for (let j = 0; j < rows.length; j++) {
-    if (!isSaleish(rows[j])) continue;
-    const key = cancelPairKey(rows[j]);
+    if (drop.has(j) || usedPositive.has(j) || !isSaleish(rows[j])) continue;
+    const key = keyFn(rows[j]);
     if (!key) continue;
     const list = saleIndex.get(key);
     if (list) list.push(j);
     else saleIndex.set(key, [j]);
   }
 
-  const usedPositive = new Set<number>();
   for (let i = 0; i < rows.length; i++) {
     if (drop.has(i) || !isReturnish(rows[i])) continue;
-    const key = cancelPairKey(rows[i]);
+    const key = keyFn(rows[i]);
     if (!key) continue;
+
+    const absNeg = Math.abs(Number(rows[i].quantity ?? 0));
+    const rd = dateNum(rows[i].date);
+    let bestJ = -1;
+    let bestScore = Infinity;
+
     for (const j of saleIndex.get(key) ?? []) {
       if (j === i || drop.has(j) || usedPositive.has(j)) continue;
       if (!isSaleish(rows[j])) continue;
-      const absNeg = Math.abs(Number(rows[i].quantity ?? 0));
       const absPos = Math.abs(Number(rows[j].quantity ?? 0));
       if (absNeg > 0 && absPos > 0 && absNeg !== absPos) continue;
+      const sd = dateNum(rows[j].date);
+      // Prefer sale on/before return, then closest in time
+      const score = sd <= rd ? rd - sd : 1_000_000 + (sd - rd);
+      if (score < bestScore) {
+        bestScore = score;
+        bestJ = j;
+      }
+    }
+
+    if (bestJ >= 0) {
       drop.add(i);
-      drop.add(j);
-      usedPositive.add(j);
-      break;
+      drop.add(bestJ);
+      usedPositive.add(bestJ);
     }
   }
+}
+
+/**
+ * Within one vendor-model / product group: drop matching sale↔return legs.
+ * Passes (any day in the filter window; prefers nearest prior sale):
+ *  1) same store + SKU + abs net
+ *  2) same store + abs net (size / Y-suffix exchange)
+ *  3) same SKU + abs net (cross-store cancel of the same piece)
+ * Does NOT change store Net Sales totals — Top Vendor Models / model detail only.
+ */
+export function collapseCancelledSkuLegs<T extends VendorPosRow>(rows: T[]): T[] {
+  if (rows.length < 2) return rows;
+
+  const drop = new Set<number>();
+  const usedPositive = new Set<number>();
+  pairReturnsWithSales(rows, drop, usedPositive, keyStoreSkuAmount);
+  pairReturnsWithSales(rows, drop, usedPositive, keyStoreAmount);
+  pairReturnsWithSales(rows, drop, usedPositive, keySkuAmount);
 
   if (!drop.size) return rows;
   return rows.filter((_, idx) => !drop.has(idx));
+}
+
+/** Drop ranking noise: units with essentially $0 net (return wash). */
+export function isPhantomZeroNetModel(units: number, revenue: number): boolean {
+  return units > 0 && Math.abs(revenue) < 1;
 }
 
 /**
@@ -194,7 +250,8 @@ export function wholesaleProfitForModelRows(rows: VendorPosRow[]): {
 
   return {
     profit,
-    marginRate: revenue > 0 ? profit / revenue : null,
+    // Hide wild % on return-wash / penny nets
+    marginRate: Math.abs(revenue) >= 1 ? profit / revenue : null,
   };
 }
 

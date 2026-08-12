@@ -40,7 +40,7 @@ These still count in Net Sales / store / vendor / department totals, but must **
 
 ### Top Vendor Models — cancelled SKU legs (ranking only)
 
-Cross-txn sale + exchange return of the **same SKU / same abs net / same store / same day** stays in **Net Sales** (global void-pair blocked). For **Top Vendor Models / model detail / SKU expand only**, `collapseCancelledSkuLegs()` drops both legs so phantom units and fake −% margins disappear. Does **not** change store Net Sales.
+Cross-txn / exchange returns stay in **Net Sales** (global void-pair rules unchanged). For **Top Vendor Models / model detail / SKU expand only**, `collapseCancelledSkuLegs()` drops matching sale↔return legs (**any day in the filter window**, prefers nearest prior sale): (1) same store + SKU + abs net, (2) same store + abs net (size / Y-suffix exchange), (3) same SKU + abs net (cross-store cancel). Also hide models with units &gt; 0 and |net| &lt; $1. Does **not** change store Net Sales totals.
 
 ### Implementation (do not bypass on upload)
 

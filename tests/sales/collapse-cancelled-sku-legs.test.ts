@@ -58,6 +58,90 @@ describe("collapseCancelledSkuLegs", () => {
     expect(out.reduce((s, r) => s + salesUnitsSold(r.quantity), 0)).toBe(1);
   });
 
+  it("cancels cross-day same-store same-SKU sale+return in the filter window", () => {
+    const rows = [
+      row({
+        date: "2026-08-04",
+        transactionId: "NO-SALE",
+        storeName: "VJ-NORTH",
+        sku: "231620S",
+        itemNumber: "231620S",
+        quantity: 1,
+        netRevenue: 599,
+        grossSales: 599,
+      }),
+      row({
+        date: "2026-08-08",
+        transactionId: "NO-RTN",
+        storeName: "VJ-NORTH",
+        sku: "231620S",
+        itemNumber: "231620S",
+        quantity: -1,
+        netRevenue: -599,
+        grossSales: -599,
+      }),
+      row({
+        date: "2026-08-09",
+        transactionId: "NO-KEEP",
+        storeName: "VJ-NORTH",
+        sku: "231620S",
+        itemNumber: "231620S",
+        quantity: 1,
+        netRevenue: 599,
+        grossSales: 599,
+      }),
+    ];
+    const out = collapseCancelledSkuLegs(rows);
+    expect(out).toHaveLength(1);
+    expect(out[0].transactionId).toBe("NO-KEEP");
+    expect(out.reduce((s, r) => s + r.netRevenue, 0)).toBeCloseTo(599);
+    expect(out.reduce((s, r) => s + salesUnitsSold(r.quantity), 0)).toBe(1);
+  });
+
+  it("cancels size/Y-suffix exchange (same store+net, different SKU)", () => {
+    const rows = [
+      row({
+        sku: "224125",
+        itemNumber: "224125",
+        quantity: 1,
+        netRevenue: 2011.43,
+        grossSales: 7499,
+      }),
+      row({
+        sku: "224125Y",
+        itemNumber: "224125Y",
+        quantity: -1,
+        netRevenue: -2011.43,
+        grossSales: -7499,
+      }),
+    ];
+    expect(collapseCancelledSkuLegs(rows)).toHaveLength(0);
+  });
+
+  it("cancels cross-store same-SKU return in Top Models", () => {
+    const rows = [
+      row({
+        date: "2026-07-13",
+        storeName: "VJ-ONT",
+        sku: "234946",
+        itemNumber: "234946",
+        quantity: 1,
+        netRevenue: 479,
+        grossSales: 479,
+      }),
+      row({
+        date: "2026-08-02",
+        storeName: "VJ-EAST",
+        sku: "234946",
+        itemNumber: "234946",
+        quantity: -1,
+        netRevenue: -479,
+        grossSales: -479,
+      }),
+    ];
+    expect(collapseCancelledSkuLegs(rows)).toHaveLength(0);
+  });
+
   it("does not change global Net Sales exclusion (exchange stay in filterExcludedSalesRows)", () => {
     const rows = [
       row({ transactionId: "FA-SALE", quantity: 1, netRevenue: 10909.09 }),

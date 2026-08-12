@@ -6,6 +6,7 @@ import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import {
   calculatorWholesaleUnitCost,
   collapseCancelledSkuLegs,
+  isPhantomZeroNetModel,
   signedWholesaleUnitCost,
   wholesaleProfitForModelRows,
 } from "@/lib/sales/top-models-wholesale-margin";
@@ -341,7 +342,11 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
         deptRevenue,
       };
     })
-    .filter((p) => p.units > 0 || Math.abs(p.revenue) >= 0.01);
+    .filter(
+      (p) =>
+        !isPhantomZeroNetModel(p.units, p.revenue) &&
+        (p.units > 0 || Math.abs(p.revenue) >= 0.01)
+    );
 
   const ranked = finalized.sort(
     (a, b) => b.units - a.units || b.revenue - a.revenue

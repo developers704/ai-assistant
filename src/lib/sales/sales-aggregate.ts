@@ -6,6 +6,7 @@ import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import {
   calculatorWholesaleUnitCost,
   collapseCancelledSkuLegs,
+  isPhantomZeroNetModel,
   signedWholesaleUnitCost,
 } from "./top-models-wholesale-margin";
 import type {
@@ -379,6 +380,7 @@ export function groupRows(
     };
   }).filter((item) => {
     if (by !== "vendor_model" && by !== "product" && by !== "sku") return true;
+    if (isPhantomZeroNetModel(item.unitsSold ?? 0, item.netSales ?? 0)) return false;
     return (item.unitsSold ?? 0) > 0 || Math.abs(item.netSales ?? 0) >= 0.01;
   });
 

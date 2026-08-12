@@ -237,6 +237,38 @@ assert(
   `rate=${wp.marginRate} profit=${wp.profit}`
 );
 
+const crossDay = collapseCancelledSkuLegs([
+  row({
+    date: "2026-08-04",
+    storeName: "VJ-NORTH",
+    sku: "231620S",
+    quantity: 1,
+    grossSales: 599,
+    netRevenue: 599,
+  }),
+  row({
+    date: "2026-08-08",
+    storeName: "VJ-NORTH",
+    sku: "231620S",
+    quantity: -1,
+    grossSales: -599,
+    netRevenue: -599,
+  }),
+  row({
+    date: "2026-08-09",
+    storeName: "VJ-NORTH",
+    sku: "231620S",
+    quantity: 1,
+    grossSales: 599,
+    netRevenue: 599,
+  }),
+]);
+assert(
+  "cross-day return cancels prior sale in Top Models",
+  crossDay.length === 1 && crossDay[0].date === "2026-08-09",
+  `len=${crossDay.length} date=${crossDay[0]?.date}`
+);
+
 if (failed) {
   console.error(`\n${failed} check(s) failed`);
   process.exit(1);
