@@ -15,7 +15,6 @@ These rows are treated as **deleted** from the sales report. They must **not** a
 
 | Rule | Reason |
 |------|--------|
-| `ITEM` | Placeholder / custom order / special order lines |
 | `250000` | CBE recycling fee |
 | Starts with `MLB-` | Mulberry lifetime / care plans |
 | `JVS-200940` | Watch battery service (repair, not product) |
@@ -23,17 +22,18 @@ These rows are treated as **deleted** from the sales report. They must **not** a
 | `WATCH WINDER`, `WATCH WINDER-1`, vendor model starts with `WATCH WINDER` | Complimentary / no-warranty watch winder (not product revenue) |
 | `229080` | White bag with blue ribbon — packaging / $0 sale lines |
 | Description / style / vendor model contains `Pad [s]` (case-insensitive) | Earring pad / screwback pad accessory lines — not jewelry product revenue |
-| Blank / empty **Department** | Incomplete line — drop the row |
+| Blank / empty **Department** (except Item # `ITEM`) | Incomplete line — drop the row. **`ITEM` memos keep blank dept and stay in Net Sales.** |
 | **Matched return / void pair** | Negative qty **or** negative amount + matching sale with **same store**, **same calendar date**, **same absolute Total/net**, same SKU/vendor model — drop **both** legs (prefer same Transaction #). Never void-pair across days (keeps daily nets aligned with Excel). |
 | **Exchange (same Transaction #, different SKU)** | After void-pair removal, keep negative-qty lines when that Transaction # still has a sale leg — Net Sales includes both (e.g. net 650 + (−324.83) = 325.17). **Units sold** count positive qty only. Cross-txn void pairing must not remove these exchange returns (could steal a real same-day sale of the same SKU). |
 | **Stand-alone returns (negative qty)** | After void-pair removal, drop negative-qty lines whose Transaction # has **no** remaining sale leg (sales dashboard is sales-only). |
 
 ## Soft-hidden from Top Vendor Models only
 
-These still count in Net Sales / store / vendor / department totals, but must **not** appear in Top Vendor Models / top-product lists:
+These still count in Net Sales / store / vendor / department / salesperson totals, but must **not** appear in Top Vendor Models / top-product lists:
 
 | Rule | Reason |
 |------|--------|
+| Item # / SKU `ITEM` | Repair / SPO / custom-order / finance memos — revenue stays in Net Sales; hide from Top Vendor Models only |
 | Vendor model `WG2787` | Hidden from top vendor models (still in net sales) |
 | Vendor model `WG670` | Threaded earring post — findings; hidden from top vendor models (still in net sales) |
 | Vendor model `2200-2218` | Screwback earring back / pad — findings; hidden from top vendor models (still in net sales) |

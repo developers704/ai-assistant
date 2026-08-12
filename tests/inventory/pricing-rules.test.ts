@@ -245,4 +245,25 @@ describe("Manager discount tiers (GOLD JEWL vs diamond dept)", () => {
     expect(rado.find((t) => t.tier === "cm")?.discountPercent).toBe(18);
     expect(rado.find((t) => t.tier === "m")?.discountPercent).toBe(18);
   });
+
+  it("watch discounts: Cartier/Bright Link 62/60/60; Mont Blanc/Tissot 25/25/25", () => {
+    const cartier = calculatePricing(makeItem({ department: "CARTIER", tagPrice: 1000 })).tiers;
+    expect(cartier.map((t) => t.discountPercent)).toEqual([62, 60, 60]);
+
+    const bright = calculatePricing(
+      makeItem({ department: "BRIGHT LINK", tagPrice: 1000 })
+    ).tiers;
+    expect(bright.map((t) => t.discountPercent)).toEqual([62, 60, 60]);
+
+    const mont = calculatePricing(makeItem({ department: "MONT WATCH", tagPrice: 1000 })).tiers;
+    expect(mont.map((t) => t.discountPercent)).toEqual([25, 25, 25]);
+
+    const montAcces = calculatePricing(
+      makeItem({ department: "MONT ACCES", tagPrice: 1000 })
+    ).tiers;
+    expect(montAcces.map((t) => t.discountPercent)).toEqual([25, 25, 25]);
+
+    const tissot = calculatePricing(makeItem({ department: "TISSOT", tagPrice: 1000 })).tiers;
+    expect(tissot.map((t) => t.discountPercent)).toEqual([25, 25, 25]);
+  });
 });

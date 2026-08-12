@@ -17,7 +17,9 @@ const TIER_LABELS: Record<ManagerTier, string> = {
 
 const WATCH_DISCOUNTS: Record<string, Record<ManagerTier, number>> = {
   ROLEX: { dm: 62, cm: 60, m: 60 },
-  // Gucci / Longines / Rado updated % are DM-only; CM/M keep prior flat rates
+  CARTIER: { dm: 62, cm: 60, m: 60 },
+  "BRIGHT LINK": { dm: 62, cm: 60, m: 60 },
+  // Gucci DM-only raise; CM/M keep prior
   GUCCI: { dm: 30, cm: 15, m: 15 },
   RADO: { dm: 18, cm: 18, m: 18 },
   LONGINES: { dm: 15, cm: 15, m: 15 },
@@ -25,6 +27,8 @@ const WATCH_DISCOUNTS: Record<string, Record<ManagerTier, number>> = {
   BULOVA: { dm: 25, cm: 25, m: 25 },
   "MICHAEL KO": { dm: 25, cm: 25, m: 25 },
   "G-SHOCK": { dm: 25, cm: 25, m: 25 },
+  "MONT WATCH": { dm: 25, cm: 25, m: 25 },
+  TISSOT: { dm: 25, cm: 25, m: 25 },
 };
 
 /** Whole gold — one tier for all gold (no under/over 20g split). */
@@ -153,29 +157,47 @@ function getBenchmarkFamilyLabel(item: InventoryItem): string | null {
   return null;
 }
 
+/** Map POS department → WATCH_DISCOUNTS key (Mont / Bright Link aliases). */
+function resolveWatchDiscountKey(department: string): string | null {
+  const d = normalizeDept(department);
+  if (!d) return null;
+  if (d in WATCH_DISCOUNTS) return d;
+  if (d.startsWith("MICHAEL")) return "MICHAEL KO";
+  const compact = d.replace(/[^A-Z0-9]/g, "");
+  if (compact === "BRIGHTLINK" || (compact.includes("BRIGHT") && compact.includes("LINK"))) {
+    return "BRIGHT LINK";
+  }
+  if (
+    d.startsWith("MONT ") ||
+    compact.startsWith("MONT") ||
+    compact.includes("MONTBLANC") ||
+    compact.includes("MONTBLANK")
+  ) {
+    return "MONT WATCH";
+  }
+  return null;
+}
+
 function isWatch(item: InventoryItem): boolean {
   if (isGShock(item)) return true;
-  const dept = normalizeDept(item.department);
-  if (dept in WATCH_DISCOUNTS) return true;
-  if (dept.startsWith("MICHAEL")) return true;
-  return dept === "WATCH";
+  if (resolveWatchDiscountKey(item.department)) return true;
+  return normalizeDept(item.department) === "WATCH";
 }
 
 function getWatchBrand(item: InventoryItem): string {
   if (isGShock(item)) return "G-SHOCK";
-  const dept = normalizeDept(item.department);
-  if (dept in WATCH_DISCOUNTS) return dept;
-  if (dept.startsWith("MICHAEL")) return "MICHAEL KO";
-  return dept;
+  return resolveWatchDiscountKey(item.department) ?? normalizeDept(item.department);
 }
 
 function getWatchDiscountPercents(
   watchBrand: string,
   item: InventoryItem
 ): Record<ManagerTier, number> {
+  const key =
+    (watchBrand in WATCH_DISCOUNTS ? watchBrand : null) ??
+    resolveWatchDiscountKey(item.department);
   return (
-    WATCH_DISCOUNTS[watchBrand] ??
-    WATCH_DISCOUNTS[normalizeDept(item.department)] ?? {
+    (key ? WATCH_DISCOUNTS[key] : undefined) ?? {
       dm: 0,
       cm: 0,
       m: 0,

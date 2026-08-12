@@ -21,9 +21,10 @@ export function formatPieceCount(units: number): string {
 /**
  * Rows removed from the sales report entirely (all aggregates + Top 20).
  * See .cursor/rules/sales-report.mdc
+ * NOTE: `ITEM` is NOT here — it stays in Net Sales / stores / salespersons;
+ * only soft-hidden from Top Vendor Models (repair / SPO / memo lines).
  */
 const EXCLUDED_SALES_SKUS = new Set([
-  "ITEM",
   "250000",
   "217365",
   "217286",
@@ -48,6 +49,11 @@ function normalizeSalesModelKey(value?: string | null): string {
     .toUpperCase()
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** POS placeholder / repair / SPO / finance memo line (Item # = ITEM). */
+export function isItemPlaceholderSku(sku?: string | null): boolean {
+  return normalizeSalesModelKey(sku) === "ITEM";
 }
 
 /** True when vendor model matches an excluded product (e.g. complimentary watch winder). */
@@ -93,21 +99,19 @@ export function isHiddenFromTopVendorModelsRow(row: {
   vendorModel?: string | null;
   style?: string | null;
 }): boolean {
-  if (isHiddenFromTopVendorModelsVendorModel(row.vendorModel)) return true;
+  // Repair / SPO / finance memos — keep in Net Sales, hide from Top Models only
   const sku =
     (row.sku ?? "").trim() ||
     (row.itemNumber ?? "").trim() ||
     (row.style ?? "").trim();
+  if (isItemPlaceholderSku(sku)) return true;
+  if (isHiddenFromTopVendorModelsVendorModel(row.vendorModel)) return true;
   return isHiddenFromTopVendorModelsVendorModel(sku);
 }
 
 /** @deprecated Use isExcludedSalesSku — kept for older call sites. */
 export function isExcludedTopProductSku(sku?: string | null): boolean {
-  return isExcludedSalesSku(sku);
-}
-
-export function isItemPlaceholderSku(sku?: string | null): boolean {
-  return isExcludedSalesSku(sku);
+  return isExcludedSalesSku(sku) || isItemPlaceholderSku(sku);
 }
 
 /** True when a parsed sales row should be dropped from the report. */
@@ -119,8 +123,16 @@ export function isExcludedSalesRow(row: {
   style?: string | null;
   description?: string | null;
 }): boolean {
+  const sku =
+    (row.sku ?? "").trim() ||
+    (row.itemNumber ?? "").trim() ||
+    (row.style ?? "").trim();
+  // ITEM memos often have blank Department — still count in Net Sales
+  const isItem = isItemPlaceholderSku(sku);
   const dept = (row.department ?? "").trim();
-  if (!dept || dept === "—" || /^uncategorized$/i.test(dept)) return true;
+  if (!isItem && (!dept || dept === "—" || /^uncategorized$/i.test(dept))) {
+    return true;
+  }
   if (isExcludedSalesVendorModel(row.vendorModel)) return true;
   if (
     isExcludedSalesPadLine(row.description) ||
@@ -129,15 +141,11 @@ export function isExcludedSalesRow(row: {
   ) {
     return true;
   }
-  const sku =
-    (row.sku ?? "").trim() ||
-    (row.itemNumber ?? "").trim() ||
-    (row.style ?? "").trim();
   return isExcludedSalesSku(sku);
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 11;
+export const SALES_EXCLUSION_RULES_VERSION = 12;
 
 type SalesReturnPairRow = {
   sku?: string | null;
@@ -404,6 +412,8 @@ export function filterTopProductSkus<
   T extends { itemNumber?: string; vendorModel?: string; sku?: string; name?: string; description?: string }
 >(products: T[]): T[] {
   return products.filter((p) => {
+    const sku = p.itemNumber || p.sku || p.vendorModel;
+    if (isItemPlaceholderSku(sku)) return false;
     if (isExcludedSalesVendorModel(p.vendorModel)) return false;
     if (isHiddenFromTopVendorModelsVendorModel(p.vendorModel)) return false;
     if (isHiddenFromTopVendorModelsVendorModel(p.itemNumber || p.sku)) return false;
@@ -414,7 +424,6 @@ export function filterTopProductSkus<
     ) {
       return false;
     }
-    const sku = p.itemNumber || p.sku || p.vendorModel;
     return !isExcludedSalesSku(sku);
   });
 }
