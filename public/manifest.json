@@ -3,7 +3,7 @@
   "name": "Valliani Athena",
   "short_name": "Athena",
   "description": "Valliani Athena — executive assistance",
-  "start_url": "/chat",
+  "start_url": "/sales",
   "display": "standalone",
   "background_color": "#1e2733",
   "theme_color": "#1e2733",
