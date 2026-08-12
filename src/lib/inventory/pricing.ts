@@ -17,9 +17,10 @@ const TIER_LABELS: Record<ManagerTier, string> = {
 
 const WATCH_DISCOUNTS: Record<string, Record<ManagerTier, number>> = {
   ROLEX: { dm: 62, cm: 60, m: 60 },
-  GUCCI: { dm: 15, cm: 15, m: 15 },
+  // Gucci / Longines / Rado updated % are DM-only; CM/M keep prior flat rates
+  GUCCI: { dm: 30, cm: 15, m: 15 },
   RADO: { dm: 18, cm: 18, m: 18 },
-  LONGINES: { dm: 18, cm: 18, m: 18 },
+  LONGINES: { dm: 15, cm: 15, m: 15 },
   MOVADO: { dm: 25, cm: 25, m: 25 },
   BULOVA: { dm: 25, cm: 25, m: 25 },
   "MICHAEL KO": { dm: 25, cm: 25, m: 25 },

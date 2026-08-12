@@ -222,4 +222,27 @@ describe("Manager discount tiers (GOLD JEWL vs diamond dept)", () => {
     });
     expect(calculatePricing(item).tiers.find((t) => t.tier === "dm")?.discountPercent).toBe(0);
   });
+
+  it("watch discounts: Gucci/Longines/Rado updated % are DM-only", () => {
+    const gucci = calculatePricing(
+      makeItem({ department: "GUCCI", design: "WATCH", tagPrice: 1000 })
+    ).tiers;
+    expect(gucci.find((t) => t.tier === "dm")?.discountPercent).toBe(30);
+    expect(gucci.find((t) => t.tier === "cm")?.discountPercent).toBe(15);
+    expect(gucci.find((t) => t.tier === "m")?.discountPercent).toBe(15);
+
+    const longines = calculatePricing(
+      makeItem({ department: "LONGINES", design: "WATCH", tagPrice: 1000 })
+    ).tiers;
+    expect(longines.find((t) => t.tier === "dm")?.discountPercent).toBe(15);
+    expect(longines.find((t) => t.tier === "cm")?.discountPercent).toBe(15);
+    expect(longines.find((t) => t.tier === "m")?.discountPercent).toBe(15);
+
+    const rado = calculatePricing(
+      makeItem({ department: "RADO", design: "WATCH", tagPrice: 1000 })
+    ).tiers;
+    expect(rado.find((t) => t.tier === "dm")?.discountPercent).toBe(18);
+    expect(rado.find((t) => t.tier === "cm")?.discountPercent).toBe(18);
+    expect(rado.find((t) => t.tier === "m")?.discountPercent).toBe(18);
+  });
 });
