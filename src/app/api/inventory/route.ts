@@ -7,8 +7,9 @@ import {
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { calculatePricing, getVisibleDmCostPrice } from "@/lib/inventory/pricing";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
+import { canSeeRealInventoryCost } from "@/lib/auth/user-permissions";
 import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
-import { saveOnhandCsv, invalidateOnhandCache } from "@/lib/inventory/onhand";
+import { invalidateOnhandCache } from "@/lib/inventory/onhand";
 
 export const runtime = "nodejs";
 
@@ -47,16 +48,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { rowCount } = saveInventoryCsv(csvText, file.name);
-    // Same sheet drives Top Vendor Models on-hand.
-    try {
-      saveOnhandCsv(csvText);
-    } catch {
-      invalidateOnhandCache();
-    }
+    // Fills Whole Cost + writes calculator + sales onhand copies.
+    const { rowCount, wholeCostStats } = saveInventoryCsv(csvText, file.name);
+    invalidateOnhandCache();
     return NextResponse.json({
       ok: true,
       rowCount,
+      wholeCostStats,
       status: getInventoryStatus(),
     });
   } catch (err) {
@@ -98,11 +96,11 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Kash (admin) → Individual Cost Value. DMs use getVisibleDmCostPrice
-  // (fixed SKUs, GOLD JEWL+UV÷1.3, Diamond+UV÷8.8, sheet rules, else Whole Cost).
+  // Kash / Ross → real Individual Cost Value.
+  // Everyone else → Whole Cost (fixed SKUs, GOLD JEWL+UV÷1.3, Diamond+UV÷8.8, sheet rules).
   let item = { ...result.item };
   let pricing = result.pricing;
-  if (session.role === "dm") {
+  if (!canSeeRealInventoryCost(session.username)) {
     const visibleCost = getVisibleDmCostPrice(item);
     if (visibleCost > 0) {
       item = { ...item, costPrice: visibleCost };

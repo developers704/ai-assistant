@@ -13,6 +13,7 @@ import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
 import { resolveWholeCostFromRules } from "../src/lib/inventory/whole-cost-rules";
+import { normalizeAndFillOnhandCsv } from "../src/lib/inventory/normalize-onhand-csv";
 
 const args = process.argv.slice(2).filter((a) => a !== "--blank-only");
 const blankOnly = process.argv.includes("--blank-only");
@@ -52,7 +53,7 @@ function basePriceForRow(row: Record<string, string>): number | null {
   return null;
 }
 
-function fillFile(inputPath: string, outputPath: string) {
+function fillSalesFile(inputPath: string, outputPath: string) {
   if (!fs.existsSync(inputPath)) {
     console.error("Skip (missing):", inputPath);
     return null;
@@ -64,10 +65,8 @@ function fillFile(inputPath: string, outputPath: string) {
     transformHeader: (h) => h.trim(),
   });
 
-  if (!parsed.meta.fields?.includes("Whole Cost")) {
-    console.error("Skip (no Whole Cost column):", inputPath);
-    return null;
-  }
+  const fields = [...(parsed.meta.fields ?? [])];
+  if (!fields.includes("Whole Cost")) fields.push("Whole Cost");
 
   const stats = {
     inputPath,
@@ -83,6 +82,9 @@ function fillFile(inputPath: string, outputPath: string) {
 
   const rows = parsed.data.map((row) => {
     const out = { ...row };
+    for (const f of fields) {
+      if (out[f] === undefined) out[f] = "";
+    }
     const existingBlank = isBlankWholeCost(out["Whole Cost"]);
     if (blankOnly && !existingBlank) {
       stats.unchanged++;
@@ -124,12 +126,11 @@ function fillFile(inputPath: string, outputPath: string) {
   });
 
   const csv = Papa.unparse({
-    fields: parsed.meta.fields!,
-    data: rows.map((r) => parsed.meta.fields!.map((f) => r[f] ?? "")),
+    fields,
+    data: rows.map((r) => fields.map((f) => r[f] ?? "")),
   });
   try {
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    // Write temp then rename — avoids some OneDrive locks on direct overwrite
     const tmp = `${outputPath}.${process.pid}.tmp.csv`;
     fs.writeFileSync(tmp, csv, "utf8");
     fs.renameSync(tmp, outputPath);
@@ -147,10 +148,39 @@ function fillFile(inputPath: string, outputPath: string) {
   };
 }
 
+function fillOnhandFile(filePath: string) {
+  if (!fs.existsSync(filePath)) {
+    console.error("Skip (missing):", filePath);
+    return null;
+  }
+  const raw = fs.readFileSync(filePath, "utf8");
+  const { csv, stats } = normalizeAndFillOnhandCsv(raw, { blankOnly });
+  try {
+    const tmp = `${filePath}.${process.pid}.tmp.csv`;
+    fs.writeFileSync(tmp, csv, "utf8");
+    fs.renameSync(tmp, filePath);
+  } catch (e) {
+    return {
+      inputPath: filePath,
+      outputPath: filePath,
+      ...stats,
+      error: e instanceof Error ? e.message : String(e),
+      bytes: 0,
+    };
+  }
+  return {
+    inputPath: filePath,
+    outputPath: filePath,
+    ...stats,
+    error: null as string | null,
+    bytes: fs.statSync(filePath).size,
+  };
+}
+
 if (onhandMode || args[0] === "--onhand") {
   const results = [];
   for (const file of ONHAND_TARGETS) {
-    const r = fillFile(file, file);
+    const r = fillOnhandFile(file);
     if (r) results.push(r);
   }
   console.log(JSON.stringify({ mode: "onhand-overwrite", blankOnly, results }, null, 2));
@@ -161,6 +191,6 @@ if (onhandMode || args[0] === "--onhand") {
   const outputPath =
     args[1] ??
     inputPath.replace(/\.csv$/i, "_FILLED.csv");
-  const r = fillFile(inputPath, outputPath);
+  const r = fillSalesFile(inputPath, outputPath);
   console.log(JSON.stringify({ mode: "single", blankOnly, result: r }, null, 2));
 }

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { parseInventoryCsv } from "./parse-csv";
 import { calculatePricing } from "./pricing";
+import { normalizeAndFillOnhandCsv } from "./normalize-onhand-csv";
 import type { InventoryItem } from "./types";
 
 const INVENTORY_DIR = path.join(process.cwd(), ".data", "inventory");
@@ -128,18 +129,29 @@ export function getInventoryStatus(): {
 
 export function saveInventoryCsv(csvText: string, fileName?: string): {
   rowCount: number;
+  wholeCostStats?: ReturnType<typeof normalizeAndFillOnhandCsv>["stats"];
 } {
   ensureDir();
-  const items = parseInventoryCsv(csvText);
+  const { csv: filled, stats: wholeCostStats } = normalizeAndFillOnhandCsv(csvText);
+  const items = parseInventoryCsv(filled);
   if (items.length === 0) {
     throw new Error("No valid inventory rows found. Check CSV format and columns.");
   }
 
-  fs.writeFileSync(INVENTORY_FILE, csvText, "utf-8");
   if (!fs.existsSync(DATA_INVENTORY_DIR)) {
     fs.mkdirSync(DATA_INVENTORY_DIR, { recursive: true });
   }
-  fs.writeFileSync(DATA_INVENTORY_SEED, csvText, "utf-8");
+
+  // Replace every live + seed copy so calculator + sales onhand stay in sync.
+  for (const target of [
+    INVENTORY_FILE,
+    ONHAND_FILE,
+    DATA_INVENTORY_SEED,
+    DATA_INVENTORY_WHOLE_COST,
+  ]) {
+    fs.writeFileSync(target, filled, "utf-8");
+  }
+
   if (fileName) {
     fs.writeFileSync(
       path.join(INVENTORY_DIR, "source-name.txt"),
@@ -150,7 +162,7 @@ export function saveInventoryCsv(csvText: string, fileName?: string): {
 
   cache = null;
   const index = loadIndex();
-  return { rowCount: index?.rowCount ?? items.length };
+  return { rowCount: index?.rowCount ?? items.length, wholeCostStats };
 }
 
 export function lookupInventory(

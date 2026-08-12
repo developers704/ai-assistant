@@ -25,6 +25,12 @@ export function canManageDmPermissions(username?: string | null): boolean {
   return normalizeUsername(username) === "kash";
 }
 
+/** Kash + Ross see real Individual Cost Value; everyone else sees Whole Cost. */
+export function canSeeRealInventoryCost(username?: string | null): boolean {
+  const u = normalizeUsername(username);
+  return u === "kash" || u === "ross";
+}
+
 export const USER_PERMISSION_SECTIONS: Array<{
   key: UserPermissionKey;
   label: string;
