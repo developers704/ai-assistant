@@ -9,13 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import {
-  COMMISSION_MODE_LABELS,
-  COMMISSION_RATES,
   FINANCING_PLAN_LABELS,
   calculateFinancedPrice,
-  calculateGrandTotal,
-  commissionDollars,
-  type CommissionMode,
 } from "@/lib/inventory/pricing";
 import {
   type FinancingPlan,
@@ -69,8 +64,6 @@ export default function CalculatorPage() {
   const [selectedTier, setSelectedTier] = useState<ManagerTier>("m");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [financingPlan, setFinancingPlan] = useState<FinancingPlan>("6_months");
-  /** Empty = no commission until user picks Regular or Goal. */
-  const [commissionMode, setCommissionMode] = useState<CommissionMode | "">("");
   const [preview, setPreview] = useState<{
     src: string;
     alt: string;
@@ -104,7 +97,6 @@ export default function CalculatorPage() {
     setLoading(true);
     setError(null);
     setResult(null);
-    setCommissionMode("");
 
     try {
       const res = await fetch(
@@ -170,23 +162,7 @@ export default function CalculatorPage() {
     [selectedCashPrice, paymentMethod, financingPlan]
   );
 
-  const commissionPercent =
-    commissionMode === "" ? 0 : COMMISSION_RATES[commissionMode];
-  const commissionAmt = useMemo(
-    () =>
-      commissionPercent > 0
-        ? commissionDollars(financing.financedPrice, commissionPercent)
-        : 0,
-    [financing.financedPrice, commissionPercent]
-  );
-
-  const grandTotal = useMemo(
-    () =>
-      commissionPercent > 0
-        ? calculateGrandTotal(financing.financedPrice, commissionPercent)
-        : financing.financedPrice,
-    [financing.financedPrice, commissionPercent]
-  );
+  const grandTotal = financing.financedPrice;
 
   return (
     <PageShell accent="amber">
@@ -195,7 +171,7 @@ export default function CalculatorPage() {
             gradient
             eyebrow="Pricing"
             title="Price Calculator"
-            subtitle="SKU lookup · manager tiers · financing · commission"
+            subtitle="SKU lookup · manager tiers · financing"
             action={
               <div className="flex items-center gap-2">
                 {inventoryLoaded === true && (
@@ -455,35 +431,11 @@ export default function CalculatorPage() {
                       <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/20">
                         <Calculator size={16} className="text-amber-300" />
                       </span>
-                      Final Amount · Commission
+                      Final Amount
                     </CardTitle>
                   </CardHeader>
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-ink-secondary mb-1.5">
-                        Commission
-                      </label>
-                      <select
-                        id="commission-mode"
-                        value={commissionMode}
-                        onChange={(e) =>
-                          setCommissionMode(
-                            e.target.value as CommissionMode | ""
-                          )
-                        }
-                        className={selectClass}
-                      >
-                        <option value="">No commission</option>
-                        <option value="regular">
-                          {COMMISSION_MODE_LABELS.regular}
-                        </option>
-                        <option value="goal">
-                          {COMMISSION_MODE_LABELS.goal}
-                        </option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-2 text-sm border-t border-white/10 pt-3">
+                    <div className="space-y-2 text-sm">
                       <Row label="Tag price" value={money(result.item.tagPrice)} />
                       <Row
                         label={`After discount (${selectedTier.toUpperCase()})`}
@@ -495,12 +447,6 @@ export default function CalculatorPage() {
                           value={money(financing.financedPrice)}
                         />
                       )}
-                      {commissionMode !== "" ? (
-                        <Row
-                          label={`${commissionMode === "goal" ? "Goal" : "Regular"} (${commissionPercent}%)`}
-                          value={money(commissionAmt)}
-                        />
-                      ) : null}
                     </div>
 
                     <div className="rounded-xl bg-amber-500/10 px-4 py-4 ring-1 ring-amber-400/20">
