@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
+import { SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
 import { TOP_MODELS_MARGIN_RULES_VERSION } from "@/lib/sales/top-models-wholesale-margin";
 import {
   getLatestReportMeta,
@@ -111,31 +111,30 @@ export async function refreshSalesData(options?: {
         skipEmptyLines: true,
       });
       const { rows: rawRows } = parseVendorPosRows(parsed.data ?? []);
-      const validRows = filterExcludedSalesRows(rawRows);
-      const rejectedRows = rawRows.length - validRows.length;
-      if (!validRows.length) {
+      // Full CSV for Net Sales / stores. Top Models soft-hides at query/UI layer.
+      if (!rawRows.length) {
         return {
           success: false,
           dataVersion: pointer.activeVersion,
-          rowsProcessed: rawRows.length,
+          rowsProcessed: 0,
           validRows: 0,
-          rejectedRows,
+          rejectedRows: 0,
           dateRange: { from: null, to: null },
           generatedAt,
           warnings,
-          errors: ["No valid sales rows after normalization and exclusions."],
+          errors: ["No sales rows after parse."],
         };
       }
 
       const availableDates = [
-        ...new Set(validRows.map((r) => r.date).filter(Boolean)),
+        ...new Set(rawRows.map((r) => r.date).filter(Boolean)),
       ].sort();
 
       const dataVersion = makeDataVersion();
       const snapshot = buildSalesDashboardSnapshot({
         dataVersion,
-        rows: validRows,
-        rejectedCount: rejectedRows,
+        rows: rawRows,
+        rejectedCount: 0,
         fileName: meta.fileName,
         fileHash,
         warnings,
@@ -148,8 +147,8 @@ export async function refreshSalesData(options?: {
           success: false,
           dataVersion: pointer.activeVersion,
           rowsProcessed: rawRows.length,
-          validRows: validRows.length,
-          rejectedRows,
+          validRows: 0,
+          rejectedRows: 0,
           dateRange: snapshot.source.dateRange,
           generatedAt,
           warnings,
@@ -163,8 +162,8 @@ export async function refreshSalesData(options?: {
           success: false,
           dataVersion: pointer.activeVersion,
           rowsProcessed: rawRows.length,
-          validRows: validRows.length,
-          rejectedRows,
+          validRows: 0,
+          rejectedRows: 0,
           dateRange: snapshot.source.dateRange,
           generatedAt,
           warnings,
@@ -185,14 +184,13 @@ export async function refreshSalesData(options?: {
           refreshedAt: generatedAt,
           dataThrough: snapshot.dataThrough,
           rowCount: rawRows.length,
-          validRowCount: validRows.length,
-          rejectedRowCount: rejectedRows,
+          validRowCount: rawRows.length,
+          rejectedRowCount: 0,
           dateRange: snapshot.source.dateRange,
           availableDates,
           warnings,
         },
         snapshot: validated.data,
-        // Store raw parsed rows; query layer filters (Rozina can skip for full CSV).
         rows: rawRows,
         rejectedRows: [],
         validationReport: { ok: true, reconciledNetSales: snapshot.summary.netSales },
@@ -211,8 +209,8 @@ export async function refreshSalesData(options?: {
         success: true,
         dataVersion,
         rowsProcessed: rawRows.length,
-        validRows: validRows.length,
-        rejectedRows,
+        validRows: rawRows.length,
+        rejectedRows: 0,
         dateRange: snapshot.source.dateRange,
         generatedAt,
         warnings,

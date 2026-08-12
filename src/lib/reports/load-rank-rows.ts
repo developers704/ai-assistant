@@ -7,19 +7,20 @@ import {
 } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import type { VendorPosRow } from "@/lib/reports/types";
-import { filterExcludedSalesRows } from "@/lib/utils";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import {
   readActivePointer,
   readNormalizedRows,
 } from "@/lib/sales/data/version-store";
 
-/** Load normalized sales rows for rank / detail APIs. */
+/**
+ * Load sales rows for rank / detail APIs.
+ * Full CSV for Net Sales / store totals (no hard exclusions).
+ */
 export function loadRankRows(
   reportId?: string,
-  opts?: { skipSalesExclusions?: boolean }
+  _opts?: { skipSalesExclusions?: boolean }
 ): VendorPosRow[] | null {
-  const skip = opts?.skipSalesExclusions === true;
   const latestMeta = getLatestReportMeta();
   const useVersion =
     isSalesUnifiedIntelligenceEnabled() &&
@@ -29,9 +30,7 @@ export function loadRankRows(
     const pointer = readActivePointer();
     if (pointer.activeVersion) {
       const versionRows = readNormalizedRows(pointer.activeVersion);
-      if (versionRows?.length) {
-        return skip ? versionRows : filterExcludedSalesRows(versionRows);
-      }
+      if (versionRows?.length) return versionRows;
     }
   }
 
@@ -48,6 +47,5 @@ export function loadRankRows(
     header: true,
     skipEmptyLines: true,
   });
-  const rows = parseVendorPosRows(parsed.data ?? []).rows;
-  return skip ? rows : filterExcludedSalesRows(rows);
+  return parseVendorPosRows(parsed.data ?? []).rows;
 }

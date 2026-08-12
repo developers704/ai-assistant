@@ -140,8 +140,6 @@ export interface SalesQueryInput {
   userMessage?: string;
   /** When true, ignore previous sales memory and start fresh. */
   resetContext?: boolean;
-  /** Rozina: use raw CSV rows (skip exclusion / void-pair filters). */
-  skipSalesExclusions?: boolean;
   /**
    * When true, treat store/department/design/vendor/class filters as exact
    * UI values (no chat/voice fuzzy matching). Used by the Sales Dashboard.

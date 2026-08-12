@@ -1,5 +1,4 @@
 import Papa from "papaparse";
-import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
 import {
   getLatestReportMeta,
   readReportCsv,
@@ -43,20 +42,16 @@ import { getActiveSalesContext } from "./active-context";
 import { formatReportDateLong } from "@/lib/reports/date-utils";
 
 /**
- * Normalized version rows are raw (post-parse). Apply exclusions unless Rozina
- * requests the full CSV list.
+ * Net Sales / stores use full CSV rows (repairs, SPO, battery, ITEM, etc.).
+ * Top Vendor Models soft-hides separately for non-Rozina.
  */
-function rowsFromActiveVersion(
-  version: string,
-  skipExclusions?: boolean
-): VendorPosRow[] | null {
+function rowsFromActiveVersion(version: string): VendorPosRow[] | null {
   const versionRows = readNormalizedRows(version);
   if (!versionRows?.length) return null;
-  if (skipExclusions) return versionRows;
-  return filterExcludedSalesRows(versionRows);
+  return versionRows;
 }
 
-function loadReportRows(opts?: { skipSalesExclusions?: boolean }): {
+function loadReportRows(): {
   rows: VendorPosRow[];
   reportName: string | null;
   reportStart: string | null;
@@ -65,11 +60,10 @@ function loadReportRows(opts?: { skipSalesExclusions?: boolean }): {
   dataVersion: string | null;
   refreshedAt: string | null;
 } | null {
-  const skip = opts?.skipSalesExclusions === true;
   if (isSalesUnifiedIntelligenceEnabled()) {
     const pointer = readActivePointer();
     const clean = pointer.activeVersion
-      ? rowsFromActiveVersion(pointer.activeVersion, skip)
+      ? rowsFromActiveVersion(pointer.activeVersion)
       : null;
     if (clean?.length) {
       const meta = pointer.activeVersion
@@ -99,10 +93,9 @@ function loadReportRows(opts?: { skipSalesExclusions?: boolean }): {
     skipEmptyLines: true,
   });
   const { rows } = parseVendorPosRows(parsed.data ?? []);
-  const clean = skip ? rows : filterExcludedSalesRows(rows);
-  const dates = [...new Set(clean.map((r) => r.date).filter(Boolean))].sort();
+  const dates = [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
   return {
-    rows: clean,
+    rows,
     reportName: latest.meta.label,
     reportStart: latest.meta.dateRange?.from ?? dates[0] ?? null,
     reportEnd: latest.meta.dateRange?.to ?? dates[dates.length - 1] ?? null,
@@ -438,9 +431,7 @@ function inferCompareEntityType(
  * Never invents figures. Used by chat, voice, dashboard sync, and analyst routing.
  */
 export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryResult> {
-  const loaded = loadReportRows({
-    skipSalesExclusions: rawInput.skipSalesExclusions === true,
-  });
+  const loaded = loadReportRows();
   if (!loaded) {
     return {
       ok: false,

@@ -99,8 +99,6 @@ async function queryDashboardSlice(opts: {
   mode?: "dashboard" | "comparison";
   /** Rozina: include ITEM / soft-hidden lines in Top Vendor Models. */
   includeHiddenTopModels?: boolean;
-  /** Rozina: raw CSV rows (no exclusion / void-pair filters). */
-  skipSalesExclusions?: boolean;
 }): Promise<SalesQueryResult> {
   const isCompare = opts.mode === "comparison";
   const from = opts.dateFrom ?? opts.date;
@@ -117,7 +115,6 @@ async function queryDashboardSlice(opts: {
     classes: opts.classes?.length ? opts.classes : undefined,
     resetContext: true,
     exactFilters: true,
-    skipSalesExclusions: opts.skipSalesExclusions === true,
     /** Dashboard top models; Rozina gets a higher cap for full CSV breakdown. */
     limit: isCompare ? 500 : opts.includeHiddenTopModels ? 500 : 100,
     sortBy: "quantity",
@@ -229,7 +226,6 @@ export async function GET(req: NextRequest) {
     const version = await ensureActiveSalesVersion();
     const shell = version ? loadUnifiedSalesShell(version) : null;
     if (shell) {
-      const fullCsvForUser = showsAllSoldInTopVendorModels(session.username);
       const slice = {
         date: filterDate,
         dateFrom: filterDateFrom,
@@ -239,8 +235,8 @@ export async function GET(req: NextRequest) {
         designs: filterDesigns,
         vendors: filterVendors,
         classes: filterClasses,
-        includeHiddenTopModels: fullCsvForUser,
-        skipSalesExclusions: fullCsvForUser,
+        // Net Sales = full CSV for everyone; only Rozina sees ITEM/JVV in Top Models
+        includeHiddenTopModels: showsAllSoldInTopVendorModels(session.username),
       };
       const result = await queryDashboardSlice({ ...slice, mode: "dashboard" });
 

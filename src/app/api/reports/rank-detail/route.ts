@@ -1,21 +1,13 @@
 import { NextResponse } from "next/server";
-import Papa from "papaparse";
-import {
-  getLatestReportMeta,
-  getLatestReportWithSummary,
-  getReportMeta,
-  readReportCsv,
-} from "@/lib/reports/store";
-import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import {
-  filterExcludedSalesRows,
   isExcludedSalesSku,
   isHiddenFromTopVendorModelsRow,
   salesUnitsSold,
 } from "@/lib/utils";
 import { buildSkuStoreLines } from "@/lib/sales/sales-aggregate";
 import type { RankDimension, VendorPosRow } from "@/lib/reports/types";
+import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 import { dimensionValue } from "@/lib/reports/rank-dimension";
 import {
@@ -27,12 +19,6 @@ import {
   resolveSalespersonLabelWithCode,
 } from "@/lib/sales/salesperson-directory";
 import type { VendorModelSkuLine } from "@/lib/sales/sales-types";
-import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
-import {
-  readActivePointer,
-  readNormalizedRows,
-  readVersionMetadata,
-} from "@/lib/sales/data/version-store";
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { scopeStoresForUser } from "@/lib/auth/scope-stores";
 import { sumCostPriceForRole } from "@/lib/sales/cost-price";
@@ -64,43 +50,6 @@ function resolveSalespersonCode(value: string): string {
   const paren = raw.match(/\(([A-Za-z0-9_.-]+)\)\s*$/);
   if (paren) return paren[1].toUpperCase();
   return raw.toUpperCase();
-}
-
-function loadRankRows(
-  reportId?: string,
-  opts?: { skipSalesExclusions?: boolean }
-): VendorPosRow[] | null {
-  const skip = opts?.skipSalesExclusions === true;
-  const latestMeta = getLatestReportMeta();
-  const useVersion =
-    isSalesUnifiedIntelligenceEnabled() &&
-    (!reportId || !latestMeta || reportId === latestMeta.id);
-
-  if (useVersion) {
-    const pointer = readActivePointer();
-    if (pointer.activeVersion) {
-      const versionRows = readNormalizedRows(pointer.activeVersion);
-      if (versionRows?.length) {
-        return skip ? versionRows : filterExcludedSalesRows(versionRows);
-      }
-    }
-  }
-
-  let csv: string | null = null;
-  if (reportId) {
-    if (!getReportMeta(reportId)) return null;
-    csv = readReportCsv(reportId);
-  } else {
-    const latest = getLatestReportWithSummary();
-    csv = latest?.csv ?? null;
-  }
-  if (!csv) return null;
-  const parsed = Papa.parse<Record<string, unknown>>(csv, {
-    header: true,
-    skipEmptyLines: true,
-  });
-  const rows = parseVendorPosRows(parsed.data ?? []).rows;
-  return skip ? rows : filterExcludedSalesRows(rows);
 }
 
 function skuLinesCredited(
@@ -200,9 +149,7 @@ export async function GET(req: Request) {
     );
   }
 
-  let rows = loadRankRows(id, {
-    skipSalesExclusions: includeHiddenTopModels,
-  });
+  let rows = loadRankRows(id);
   if (!rows) {
     return NextResponse.json(
       { error: id ? "Report not found" : "No report available" },

@@ -1,5 +1,5 @@
 import type { SalesSummary } from "@/types";
-import { filterExcludedSalesRows, isExcludedSalesRow, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
+import { isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import { normalizeSalesImageDir, resolveProductImageUrl } from "@/lib/reports/product-image";
 import { isValidIsoDate, parseReportFilterDate, shiftIsoToSameWeekdayLastYear, shiftIsoYears } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
@@ -174,7 +174,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       date: date ?? "",
       transactionId: txnId,
       storeName: store || "Unknown store",
-      // Keep blank — excluded later by filterExcludedSalesRows (do not invent "Uncategorized")
+      // Keep blank department (ITEM / JVV repairs) — do not invent "Uncategorized"
       department,
       design,
       itemNumber,
@@ -268,7 +268,7 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
   >();
 
   for (const r of rows) {
-    if (isExcludedSalesRow(r)) continue;
+    // Soft-hide only (ITEM / JVV / findings) — Net Sales keeps every CSV line
     if (isHiddenFromTopVendorModelsRow(r)) continue;
 
     const sku = r.sku?.trim() ?? "";
@@ -417,7 +417,8 @@ export function summarizeVendorPos(
       .replace(/[\u2010-\u2015\u2212]/g, "-")
       .replace(/\s+/g, " ");
 
-  let periodRows = filterExcludedSalesRows(rows);
+  // Net Sales / stores = full CSV (repairs, SPO, battery, ITEM). Top Models soft-hides separately.
+  let periodRows = rows;
   let compareRows: VendorPosRow[] = [];
 
   const rangeFrom = opts.filterDateFrom;
@@ -432,18 +433,18 @@ export function summarizeVendorPos(
     // Same weekday pattern last year (Mon vs Mon), not same calendar date.
     const lyFrom = shiftIsoToSameWeekdayLastYear(from);
     const lyTo = shiftIsoToSameWeekdayLastYear(to);
-    compareRows = filterExcludedSalesRows(rows).filter(
+    compareRows = rows.filter(
       (r) => r.date && r.date >= lyFrom && r.date <= lyTo
     );
   } else if (opts.filterDate) {
     periodRows = periodRows.filter((r) => r.date === opts.filterDate);
     const lyDate = shiftIsoToSameWeekdayLastYear(opts.filterDate);
-    compareRows = filterExcludedSalesRows(rows).filter((r) => r.date === lyDate);
+    compareRows = rows.filter((r) => r.date === lyDate);
   } else if (opts.period === "daily" && dates.length === 1) {
     periodRows = periodRows.filter((r) => r.date === dateTo);
     if (dateTo) {
       const lyDate = shiftIsoToSameWeekdayLastYear(dateTo);
-      compareRows = filterExcludedSalesRows(rows).filter((r) => r.date === lyDate);
+      compareRows = rows.filter((r) => r.date === lyDate);
     }
   }
 

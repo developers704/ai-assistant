@@ -102,8 +102,8 @@ export function getDefaultPermissionMapForRole(
 }
 
 /**
- * Rozina: full CSV sales — no exclusions, every sold line in Top Vendor Models
- * (ITEM / JVV repairs, findings, etc.) with Total/net.
+ * Rozina: every sold line in Top Vendor Models (ITEM / JVV / findings).
+ * Net Sales is already full CSV for all users; this only unlocks Top Models soft-hides.
  */
 export function showsAllSoldInTopVendorModels(username?: string | null): boolean {
   return normalizeUsername(username) === "rozina";

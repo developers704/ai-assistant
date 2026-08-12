@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { filterExcludedSalesRows } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { ensureActiveSalesVersion } from "@/lib/sales/refresh/service";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import {
   readActivePointer,
   readNormalizedRows,
-  readVersionMetadata,
 } from "@/lib/sales/data/version-store";
 import { getLatestReportMeta, readReportCsv } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
@@ -27,7 +25,7 @@ function parseCsvRows(csv: string): VendorPosRow[] {
     header: true,
     skipEmptyLines: true,
   });
-  return filterExcludedSalesRows(parseVendorPosRows(parsed.data ?? []).rows);
+  return parseVendorPosRows(parsed.data ?? []).rows;
 }
 
 function loadRows(): VendorPosRow[] {
@@ -50,10 +48,7 @@ function loadRows(): VendorPosRow[] {
       if (reportRows > 0 && versionRows.length < Math.max(50, reportRows * 0.25)) {
         return fromCsv();
       }
-      const versionMeta = pointer.activeVersion
-        ? readVersionMetadata(pointer.activeVersion)
-        : null;
-      return filterExcludedSalesRows(versionRows);
+      return versionRows;
     }
   }
   return fromCsv();
