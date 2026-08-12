@@ -192,7 +192,8 @@ export async function refreshSalesData(options?: {
           warnings,
         },
         snapshot: validated.data,
-        rows: validRows,
+        // Store raw parsed rows; query layer filters (Rozina can skip for full CSV).
+        rows: rawRows,
         rejectedRows: [],
         validationReport: { ok: true, reconciledNetSales: snapshot.summary.netSales },
       });

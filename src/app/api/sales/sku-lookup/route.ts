@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
+import { filterExcludedSalesRows } from "@/lib/utils";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { ensureActiveSalesVersion } from "@/lib/sales/refresh/service";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
@@ -53,9 +53,6 @@ function loadRows(): VendorPosRow[] {
       const versionMeta = pointer.activeVersion
         ? readVersionMetadata(pointer.activeVersion)
         : null;
-      if (versionMeta?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION) {
-        return versionRows;
-      }
       return filterExcludedSalesRows(versionRows);
     }
   }

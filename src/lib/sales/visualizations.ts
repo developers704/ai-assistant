@@ -1,4 +1,4 @@
-import { filterExcludedSalesRows, SALES_EXCLUSION_RULES_VERSION } from "@/lib/utils";
+import { filterExcludedSalesRows } from "@/lib/utils";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import { getLatestReportMeta, getLatestReportWithSummary } from "@/lib/reports/store";
 import { datesInIsoRange, isValidIsoDate } from "@/lib/reports/date-utils";
@@ -73,10 +73,8 @@ function loadAllRows(): { rows: VendorPosRow[]; reportLabel: string | null } {
       const versionRows = readNormalizedRows(pointer.activeVersion);
       if (versionRows?.length) {
         const meta = readVersionMetadata(pointer.activeVersion);
-        const rows =
-          meta?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION
-            ? versionRows
-            : filterExcludedSalesRows(versionRows);
+        // Version rows are raw; always apply current exclusion rules.
+        const rows = filterExcludedSalesRows(versionRows);
         const report = getLatestReportMeta();
         return {
           rows,

@@ -6,6 +6,7 @@ import {
   isExcludedSalesSku,
   isHiddenFromTopVendorModelsRow,
   isItemPlaceholderSku,
+  isRepairServiceMemoSku,
 } from "@/lib/utils";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { getTopVendorModels } from "@/lib/sales/sales-product-analysis";
@@ -185,6 +186,22 @@ describe("ITEM placeholder — Net Sales keep, Top Models hide", () => {
     expect(itemLines.find((m) => m.name === "ITEM · EXTENDER")?.netSales).toBe(25);
     expect(rozinaModels.reduce((s, m) => s + m.netSales, 0)).toBe(534);
     expect(vendorModelGroupKey(rows[1])).toBe("ITEM · SIZE RING TO 11");
+  });
+
+  it("JVV blank-dept repair tickets stay in Net Sales like ITEM", () => {
+    const jvv = row({
+      sku: "JVV-202548",
+      itemNumber: "JVV-202548",
+      department: "",
+      vendorModel: "",
+      description: "GOLD WATCH 2 LINKS AND WATCH BATTERY",
+      netRevenue: 170,
+      grossSales: 170,
+    });
+    expect(isRepairServiceMemoSku("JVV-202548")).toBe(true);
+    expect(isExcludedSalesRow(jvv)).toBe(false);
+    expect(isHiddenFromTopVendorModelsRow(jvv)).toBe(true);
+    expect(filterExcludedSalesRows([jvv])).toHaveLength(1);
   });
 
   it("UI filterTopProductSkus keeps ITEM when includeHiddenTopModels", () => {

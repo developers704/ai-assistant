@@ -101,7 +101,10 @@ export function getDefaultPermissionMapForRole(
   };
 }
 
-/** Rozina sees every sold line in Top Vendor Models (incl. ITEM repairs) for full breakdown. */
+/**
+ * Rozina: full CSV sales — no exclusions, every sold line in Top Vendor Models
+ * (ITEM / JVV repairs, findings, etc.) with Total/net.
+ */
 export function showsAllSoldInTopVendorModels(username?: string | null): boolean {
   return normalizeUsername(username) === "rozina";
 }

@@ -13,7 +13,6 @@ import {
   isExcludedSalesSku,
   isHiddenFromTopVendorModelsRow,
   salesUnitsSold,
-  SALES_EXCLUSION_RULES_VERSION,
 } from "@/lib/utils";
 import { buildSkuStoreLines } from "@/lib/sales/sales-aggregate";
 import type { RankDimension, VendorPosRow } from "@/lib/reports/types";
@@ -67,7 +66,11 @@ function resolveSalespersonCode(value: string): string {
   return raw.toUpperCase();
 }
 
-function loadRankRows(reportId?: string): VendorPosRow[] | null {
+function loadRankRows(
+  reportId?: string,
+  opts?: { skipSalesExclusions?: boolean }
+): VendorPosRow[] | null {
+  const skip = opts?.skipSalesExclusions === true;
   const latestMeta = getLatestReportMeta();
   const useVersion =
     isSalesUnifiedIntelligenceEnabled() &&
@@ -78,11 +81,7 @@ function loadRankRows(reportId?: string): VendorPosRow[] | null {
     if (pointer.activeVersion) {
       const versionRows = readNormalizedRows(pointer.activeVersion);
       if (versionRows?.length) {
-        const versionMeta = readVersionMetadata(pointer.activeVersion);
-        if (versionMeta?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION) {
-          return versionRows;
-        }
-        return filterExcludedSalesRows(versionRows);
+        return skip ? versionRows : filterExcludedSalesRows(versionRows);
       }
     }
   }
@@ -100,7 +99,8 @@ function loadRankRows(reportId?: string): VendorPosRow[] | null {
     header: true,
     skipEmptyLines: true,
   });
-  return filterExcludedSalesRows(parseVendorPosRows(parsed.data ?? []).rows);
+  const rows = parseVendorPosRows(parsed.data ?? []).rows;
+  return skip ? rows : filterExcludedSalesRows(rows);
 }
 
 function skuLinesCredited(
@@ -200,7 +200,9 @@ export async function GET(req: Request) {
     );
   }
 
-  let rows = loadRankRows(id);
+  let rows = loadRankRows(id, {
+    skipSalesExclusions: includeHiddenTopModels,
+  });
   if (!rows) {
     return NextResponse.json(
       { error: id ? "Report not found" : "No report available" },

@@ -1,6 +1,11 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { isExcludedSalesSku, isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
+import {
+  isExcludedSalesSku,
+  isHiddenFromTopVendorModelsRow,
+  isRepairServiceMemoSku,
+  salesUnitsSold,
+} from "@/lib/utils";
 import { hasOnhandData, listOnhandStoresForSku, lookupOnhandQty } from "@/lib/inventory/onhand";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import {
@@ -157,9 +162,13 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       const onHandTotal = hasOnhand
         ? stores.reduce((sum, s) => sum + (s.onhand ?? 0), 0)
         : null;
-      const margin = missingWholesale ? undefined : line.margin;
+      const hideMargin = isRepairServiceMemoSku(line.sku);
+      const margin = hideMargin || missingWholesale ? undefined : line.margin;
       const marginRate =
-        !missingWholesale && line.revenue > 0 && margin != null
+        !hideMargin &&
+        !missingWholesale &&
+        line.revenue > 0 &&
+        margin != null
           ? margin / line.revenue
           : undefined;
       return {
@@ -319,9 +328,11 @@ export function groupRows(
   const list: (SalesBreakdownRow & { _modelRows?: VendorPosRow[] })[] = [
     ...map.entries(),
   ].map(([name, v]) => {
-    // Top models / product / sku: cancel same-day SKU sale+return legs before metrics
+    // Top models / product / sku: cancel sale+return legs before metrics.
+    // Rozina (includeHiddenTopModels): keep every CSV leg — no cancel collapse.
     const metricRows =
-      by === "vendor_model" || by === "product" || by === "sku"
+      (by === "vendor_model" || by === "product" || by === "sku") &&
+      !opts?.includeHiddenTopModels
         ? collapseCancelledSkuLegs(v.rows)
         : v.rows;
     const s = summarizeRows(metricRows);

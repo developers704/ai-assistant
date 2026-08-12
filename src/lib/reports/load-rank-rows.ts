@@ -7,19 +7,19 @@ import {
 } from "@/lib/reports/store";
 import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
 import type { VendorPosRow } from "@/lib/reports/types";
-import {
-  filterExcludedSalesRows,
-  SALES_EXCLUSION_RULES_VERSION,
-} from "@/lib/utils";
+import { filterExcludedSalesRows } from "@/lib/utils";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import {
   readActivePointer,
   readNormalizedRows,
-  readVersionMetadata,
 } from "@/lib/sales/data/version-store";
 
 /** Load normalized sales rows for rank / detail APIs. */
-export function loadRankRows(reportId?: string): VendorPosRow[] | null {
+export function loadRankRows(
+  reportId?: string,
+  opts?: { skipSalesExclusions?: boolean }
+): VendorPosRow[] | null {
+  const skip = opts?.skipSalesExclusions === true;
   const latestMeta = getLatestReportMeta();
   const useVersion =
     isSalesUnifiedIntelligenceEnabled() &&
@@ -30,11 +30,7 @@ export function loadRankRows(reportId?: string): VendorPosRow[] | null {
     if (pointer.activeVersion) {
       const versionRows = readNormalizedRows(pointer.activeVersion);
       if (versionRows?.length) {
-        const versionMeta = readVersionMetadata(pointer.activeVersion);
-        if (versionMeta?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION) {
-          return versionRows;
-        }
-        return filterExcludedSalesRows(versionRows);
+        return skip ? versionRows : filterExcludedSalesRows(versionRows);
       }
     }
   }
@@ -52,5 +48,6 @@ export function loadRankRows(reportId?: string): VendorPosRow[] | null {
     header: true,
     skipEmptyLines: true,
   });
-  return filterExcludedSalesRows(parseVendorPosRows(parsed.data ?? []).rows);
+  const rows = parseVendorPosRows(parsed.data ?? []).rows;
+  return skip ? rows : filterExcludedSalesRows(rows);
 }

@@ -79,6 +79,7 @@ const DESKTOP_METRICS =
   "grid grid-cols-[4.75rem_2.75rem_3.25rem_5rem_3rem] gap-x-2.5";
 
 function formatMarginPct(rate: number | undefined | null): string {
+  // Repair / memo lines pass null → red hyphen (see MetricsBlock marginClass)
   if (rate == null || !Number.isFinite(rate)) return "—";
   return `${(rate * 100).toFixed(0)}%`;
 }

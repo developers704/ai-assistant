@@ -1,5 +1,8 @@
 import type { VendorPosRow } from "@/lib/reports/types";
-import { isHiddenFromTopVendorModelsRow, isItemPlaceholderSku } from "@/lib/utils";
+import {
+  isHiddenFromTopVendorModelsRow,
+  isRepairServiceMemoSku,
+} from "@/lib/utils";
 import { hasOnhandData } from "@/lib/inventory/onhand";
 import { groupRows } from "./sales-aggregate";
 import type { SalesBreakdownRow } from "./sales-types";
@@ -32,9 +35,9 @@ function applyWholesaleMargins(
   return models.map((m) => {
     const key = m.vendorModel || m.name;
     const modelRows = byKey.get(key) ?? [];
-    // ITEM / repair memos: keep CSV margin (often no calculator cost)
-    if (modelRows.some((r) => isItemPlaceholderSku(r.sku || r.itemNumber))) {
-      return m;
+    // ITEM / JVV repairs: no margin % in Top Models (UI shows red —)
+    if (modelRows.some((r) => isRepairServiceMemoSku(r.sku || r.itemNumber))) {
+      return { ...m, estimatedMargin: null };
     }
     const { profit } = wholesaleProfitForModelRows(modelRows);
     return { ...m, estimatedMargin: profit };

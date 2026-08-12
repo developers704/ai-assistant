@@ -26,7 +26,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "vendorModel is required" }, { status: 400 });
   }
 
-  let rows = loadRankRows(id);
+  const fullCsv = showsAllSoldInTopVendorModels(session.username);
+  let rows = loadRankRows(id, { skipSalesExclusions: fullCsv });
   if (!rows) {
     return NextResponse.json(
       { error: id ? "Report not found" : "No report available" },
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
   const detail = buildVendorModelDetail(rows, vendorModel, {
     dateFrom,
     dateTo,
-    includeHiddenTopModels: showsAllSoldInTopVendorModels(session.username),
+    includeHiddenTopModels: fullCsv,
   });
 
   if (!detail) {

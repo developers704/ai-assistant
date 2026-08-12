@@ -56,6 +56,18 @@ export function isItemPlaceholderSku(sku?: string | null): boolean {
   return normalizeSalesModelKey(sku) === "ITEM";
 }
 
+/**
+ * Repair / service / memo lines that stay in Net Sales even with blank Department.
+ * ITEM memos + store repair tickets (JVV-*).
+ */
+export function isRepairServiceMemoSku(sku?: string | null): boolean {
+  const normalized = normalizeSalesModelKey(sku);
+  if (!normalized) return false;
+  if (normalized === "ITEM") return true;
+  if (normalized.startsWith("JVV-")) return true;
+  return false;
+}
+
 /** True when vendor model matches an excluded product (e.g. complimentary watch winder). */
 export function isExcludedSalesVendorModel(vendorModel?: string | null): boolean {
   const normalized = normalizeSalesModelKey(vendorModel);
@@ -99,12 +111,12 @@ export function isHiddenFromTopVendorModelsRow(row: {
   vendorModel?: string | null;
   style?: string | null;
 }): boolean {
-  // Repair / SPO / finance memos — keep in Net Sales, hide from Top Models only
+  // Repair / SPO / finance / JVV tickets — keep in Net Sales, hide from Top Models only
   const sku =
     (row.sku ?? "").trim() ||
     (row.itemNumber ?? "").trim() ||
     (row.style ?? "").trim();
-  if (isItemPlaceholderSku(sku)) return true;
+  if (isRepairServiceMemoSku(sku)) return true;
   if (isHiddenFromTopVendorModelsVendorModel(row.vendorModel)) return true;
   return isHiddenFromTopVendorModelsVendorModel(sku);
 }
@@ -127,10 +139,10 @@ export function isExcludedSalesRow(row: {
     (row.sku ?? "").trim() ||
     (row.itemNumber ?? "").trim() ||
     (row.style ?? "").trim();
-  // ITEM memos often have blank Department — still count in Net Sales
-  const isItem = isItemPlaceholderSku(sku);
+  // ITEM / JVV repair tickets often have blank Department — still count in Net Sales
+  const keepBlankDept = isRepairServiceMemoSku(sku);
   const dept = (row.department ?? "").trim();
-  if (!isItem && (!dept || dept === "—" || /^uncategorized$/i.test(dept))) {
+  if (!keepBlankDept && (!dept || dept === "—" || /^uncategorized$/i.test(dept))) {
     return true;
   }
   if (isExcludedSalesVendorModel(row.vendorModel)) return true;
@@ -145,7 +157,7 @@ export function isExcludedSalesRow(row: {
 }
 
 /** Bump when exclusion / return-pair rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 12;
+export const SALES_EXCLUSION_RULES_VERSION = 13;
 
 type SalesReturnPairRow = {
   sku?: string | null;
@@ -414,9 +426,10 @@ export function filterTopProductSkus<
   products: T[],
   opts?: { includeHiddenTopModels?: boolean }
 ): T[] {
+  // Rozina: show every sold line the API returned (full CSV breakdown)
+  if (opts?.includeHiddenTopModels) return products;
   return products.filter((p) => {
     const sku = p.itemNumber || p.sku || p.vendorModel;
-    // Hard exclusions always apply (watch winder, pads, CBE fee, etc.)
     if (isExcludedSalesVendorModel(p.vendorModel)) return false;
     if (
       isExcludedSalesPadLine(p.name) ||
@@ -426,12 +439,9 @@ export function filterTopProductSkus<
       return false;
     }
     if (isExcludedSalesSku(sku)) return false;
-    // Soft-hide (ITEM repairs, findings) — skip for Rozina full sold breakdown
-    if (!opts?.includeHiddenTopModels) {
-      if (isItemPlaceholderSku(sku)) return false;
-      if (isHiddenFromTopVendorModelsVendorModel(p.vendorModel)) return false;
-      if (isHiddenFromTopVendorModelsVendorModel(p.itemNumber || p.sku)) return false;
-    }
+    if (isRepairServiceMemoSku(sku)) return false;
+    if (isHiddenFromTopVendorModelsVendorModel(p.vendorModel)) return false;
+    if (isHiddenFromTopVendorModelsVendorModel(p.itemNumber || p.sku)) return false;
     return true;
   });
 }

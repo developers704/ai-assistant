@@ -3,7 +3,7 @@ import { lookupInventory } from "@/lib/inventory/store";
 import { fixedWholeCostForSku, wholeCostFromRules } from "@/lib/inventory/whole-cost-rules";
 import type { InventoryItem } from "@/lib/inventory/types";
 import type { VendorPosRow } from "@/lib/reports/types";
-import { isItemPlaceholderSku } from "@/lib/utils";
+import { isItemPlaceholderSku, isRepairServiceMemoSku } from "@/lib/utils";
 
 export type SaleCostContext = Pick<
   VendorPosRow,
@@ -258,10 +258,14 @@ export function wholesaleProfitForModelRows(rows: VendorPosRow[]): {
 
 export function vendorModelGroupKey(row: VendorPosRow): string {
   const sku = (row.sku || row.itemNumber || "").trim();
+  const desc = (row.description || "").trim() || "Repair / memo";
   // ITEM repairs/SPO/memos: one Top Models row per description so Total/net breaks down
   if (isItemPlaceholderSku(sku)) {
-    const desc = (row.description || "").trim() || "Repair / memo";
     return `ITEM · ${desc}`;
+  }
+  // JVV repair tickets: one row per ticket + description (Total/net)
+  if (isRepairServiceMemoSku(sku)) {
+    return `${sku} · ${desc}`;
   }
   return row.vendorModel || sku || "Unknown model";
 }

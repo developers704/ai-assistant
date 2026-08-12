@@ -42,18 +42,21 @@ import { readActivePointer, readNormalizedRows, readVersionMetadata } from "./da
 import { getActiveSalesContext } from "./active-context";
 import { formatReportDateLong } from "@/lib/reports/date-utils";
 
-/** Use cached cleaned rows when exclusion rules version matches; otherwise re-filter. */
-function rowsFromActiveVersion(version: string): VendorPosRow[] | null {
+/**
+ * Normalized version rows are raw (post-parse). Apply exclusions unless Rozina
+ * requests the full CSV list.
+ */
+function rowsFromActiveVersion(
+  version: string,
+  skipExclusions?: boolean
+): VendorPosRow[] | null {
   const versionRows = readNormalizedRows(version);
   if (!versionRows?.length) return null;
-  const meta = readVersionMetadata(version);
-  if (meta?.exclusionRulesVersion === SALES_EXCLUSION_RULES_VERSION) {
-    return versionRows;
-  }
+  if (skipExclusions) return versionRows;
   return filterExcludedSalesRows(versionRows);
 }
 
-function loadReportRows(): {
+function loadReportRows(opts?: { skipSalesExclusions?: boolean }): {
   rows: VendorPosRow[];
   reportName: string | null;
   reportStart: string | null;
@@ -62,10 +65,11 @@ function loadReportRows(): {
   dataVersion: string | null;
   refreshedAt: string | null;
 } | null {
+  const skip = opts?.skipSalesExclusions === true;
   if (isSalesUnifiedIntelligenceEnabled()) {
     const pointer = readActivePointer();
     const clean = pointer.activeVersion
-      ? rowsFromActiveVersion(pointer.activeVersion)
+      ? rowsFromActiveVersion(pointer.activeVersion, skip)
       : null;
     if (clean?.length) {
       const meta = pointer.activeVersion
@@ -95,7 +99,7 @@ function loadReportRows(): {
     skipEmptyLines: true,
   });
   const { rows } = parseVendorPosRows(parsed.data ?? []);
-  const clean = filterExcludedSalesRows(rows);
+  const clean = skip ? rows : filterExcludedSalesRows(rows);
   const dates = [...new Set(clean.map((r) => r.date).filter(Boolean))].sort();
   return {
     rows: clean,
@@ -434,7 +438,9 @@ function inferCompareEntityType(
  * Never invents figures. Used by chat, voice, dashboard sync, and analyst routing.
  */
 export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryResult> {
-  const loaded = loadReportRows();
+  const loaded = loadReportRows({
+    skipSalesExclusions: rawInput.skipSalesExclusions === true,
+  });
   if (!loaded) {
     return {
       ok: false,
