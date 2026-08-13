@@ -18,6 +18,10 @@ type Hit = {
   description: string;
   salesAmount: number;
   discAmt: number;
+  soldTotal: number;
+  cashPrice: number;
+  ceilingAmount: number;
+  surchargePercent: number;
   givenPct: number;
   allowedPct: number;
   overagePct: number;
@@ -83,7 +87,7 @@ export default function DiscountingPage() {
       <PageShellHeader>
         <PageHeader
           title="Discounting"
-          subtitle="High discounts vs Price Calculator limits — Managers, Corporate Managers, District Managers"
+          subtitle="Total sold vs Price Calculator ceiling (approver tier + pay method) — DM / CM / Manager"
         />
       </PageShellHeader>
       <PageShellBody>
@@ -155,7 +159,7 @@ export default function DiscountingPage() {
           </div>
         ) : !data?.hits?.length ? (
           <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/10 px-6 py-10 text-center text-sm text-white/45">
-            No high discounts for Manager / CM / DM approvers on this day.
+            No overages — every line Total is within its Price Calculator ceiling (or missing APP / paycode / months).
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl ring-1 ring-white/10">
@@ -165,8 +169,8 @@ export default function DiscountingPage() {
                   <th className="px-3 py-2.5 font-medium">Store</th>
                   <th className="px-3 py-2.5 font-medium">SKU</th>
                   <th className="px-3 py-2.5 font-medium">Approver</th>
-                  <th className="px-3 py-2.5 font-medium">Given</th>
-                  <th className="px-3 py-2.5 font-medium">Allowed</th>
+                  <th className="px-3 py-2.5 font-medium">Sold</th>
+                  <th className="px-3 py-2.5 font-medium">Ceiling</th>
                   <th className="px-3 py-2.5 font-medium">Overage</th>
                   <th className="px-3 py-2.5 font-medium">Pay</th>
                   <th className="px-3 py-2.5 font-medium">Txn</th>
@@ -190,25 +194,33 @@ export default function DiscountingPage() {
                       <span className="text-white/35 text-xs ml-1">({h.approver.code})</span>
                     </td>
                     <td className="px-3 py-2.5 text-amber-200/90 whitespace-nowrap">
-                      {h.givenPct.toFixed(1)}%
-                      <div className="text-[11px] text-white/35">{formatCurrency(h.discAmt)}</div>
+                      {formatCurrency(h.soldTotal ?? h.salesAmount - h.discAmt)}
+                      <div className="text-[11px] text-white/35">
+                        disc {formatCurrency(h.discAmt)}
+                      </div>
                     </td>
                     <td className="px-3 py-2.5 text-white/60 whitespace-nowrap">
-                      {h.allowedPct.toFixed(1)}%
+                      {formatCurrency(h.ceilingAmount ?? 0)}
+                      <div className="text-[11px] text-white/35">
+                        cash {formatCurrency(h.cashPrice ?? 0)}
+                        {h.surchargePercent
+                          ? ` + ${h.surchargePercent}%`
+                          : ""}
+                      </div>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 text-rose-300">
                         <AlertTriangle size={12} />
-                        +{h.overagePct.toFixed(1)}%
+                        {formatCurrency(h.overageDollars)}
                       </span>
                       <div className="text-[11px] text-rose-200/50">
-                        {formatCurrency(h.overageDollars)}
+                        +{h.overagePct.toFixed(1)}%
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-white/55 text-xs">
                       {h.payChannelLabel}
                       {h.financingMonths ? (
-                        <div className="text-white/35">{h.financingMonths} mo</div>
+                        <div className="text-white/35">{h.financingMonths}/0</div>
                       ) : null}
                       {h.payCode ? (
                         <div className="font-mono text-[10px] text-white/30">{h.payCode}</div>
@@ -225,8 +237,12 @@ export default function DiscountingPage() {
         )}
 
         <p className={cn("mt-4 text-[11px] text-white/30 max-w-3xl")}>
-          Flags when Disc Amt ÷ Sales Amount exceeds Price Calculator allowed % for the APP
-          approver’s tier (Manager / Corporate Manager / District Manager). Codes come from{" "}
+          Flags when line <span className="text-white/40">Total</span> exceeds the Price
+          Calculator final for that APP approver’s tier + single pay method (cash / CC /
+          IdDeal / financing / lease / Affirm). Pay Codes matched by Transaction # from{" "}
+          <code className="text-white/40">data/discounting/paycodes/</code>. Multi-tender
+          (cash+CC, etc.) ignored for now. Missing APP / paycode / financing months → not
+          shown. Approvers:{" "}
           <code className="text-white/40">data/discounting/approvers.csv</code>.
         </p>
       </PageShellBody>

@@ -1,18 +1,27 @@
-import type { InventoryItem, ManagerTier } from "@/lib/inventory/types";
-import { getAllowedDiscountPercent } from "@/lib/inventory/pricing";
+import type { FinancingPlan, InventoryItem, ManagerTier } from "@/lib/inventory/types";
+import {
+  calculateFinancedPrice,
+  calculatePricing,
+} from "@/lib/inventory/pricing";
 import { lookupInventory } from "@/lib/inventory/store";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { parseApprovalFromDescriptions } from "@/lib/discounting/parse-approval";
-import { pickApproverForV1, DEFAULT_DISCOUNTING_ROLES, type ApproverEntry } from "@/lib/discounting/approvers";
+import {
+  pickApproverForV1,
+  DEFAULT_DISCOUNTING_ROLES,
+  type ApproverEntry,
+} from "@/lib/discounting/approvers";
 import { loadTxnPackageMemos } from "@/lib/discounting/load-txn-memos";
+import { loadTxnPayCodes } from "@/lib/discounting/load-txn-paycodes";
 import {
   normalizePayCode,
   PAY_CHANNEL_LABELS,
   type PayChannel,
 } from "@/lib/discounting/pay-codes";
 
-const PCT_EPSILON = 0.05;
+/** Ignore sub-cent noise when comparing Total vs calculator ceiling. */
+const DOLLAR_EPSILON = 0.01;
 
 /** Soft-hide from Discounting overage table (still in sales). Restore by removing SKU. */
 const HIDDEN_DISCOUNT_SKUS = new Set(["731903468252"]);
@@ -21,6 +30,16 @@ function isHiddenDiscountSku(sku: string): boolean {
   const key = sku.trim().replace(/v$/i, "");
   return HIDDEN_DISCOUNT_SKUS.has(key);
 }
+
+const MONTHS_TO_PLAN: Record<number, FinancingPlan> = {
+  6: "6_months",
+  12: "12_months",
+  18: "18_months",
+  24: "24_months",
+  36: "36_months",
+  48: "48_months",
+  60: "60_months",
+};
 
 export type HighDiscountHit = {
   date: string;
@@ -31,12 +50,24 @@ export type HighDiscountHit = {
   design: string;
   department: string;
   description: string;
+  /** Sales Amount (gross / tag side). */
   salesAmount: number;
   discAmt: number;
-  givenPct: number;
-  allowedPct: number;
-  overagePct: number;
+  /** Line Total / net sold. */
+  soldTotal: number;
+  /** Calculator cash price for approver tier. */
+  cashPrice: number;
+  /** Calculator final for this single tender (cash/CC/financing/lease/affirm). */
+  ceilingAmount: number;
+  surchargePercent: number;
+  /** soldTotal − ceilingAmount when over. */
   overageDollars: number;
+  /** Overage as % of ceiling. */
+  overagePct: number;
+  /** Legacy display: disc % off sales amount. */
+  givenPct: number;
+  /** Legacy display: allowed off-tag % for tier. */
+  allowedPct: number;
   payChannel: PayChannel;
   payChannelLabel: string;
   payCode: string;
@@ -51,6 +82,7 @@ export type DetectHighDiscountsResult = {
   scannedProductLines: number;
   skippedNoApprover: number;
   skippedNoPricing: number;
+  skippedNoPay: number;
   availableDates: string[];
   filterDate: string | null;
 };
@@ -101,11 +133,83 @@ function isProductDiscountLine(row: VendorPosRow): boolean {
   if (isHiddenDiscountSku(sku)) return false;
   if (row.grossSales <= 0) return false;
   if (!(row.discountAmount > 0)) return false;
-  // Skip pure APP/FIN memo lines that somehow have amounts
   if (/^\s*(APP|FIN)\b/i.test(row.description) && !row.design && row.grossSales < 1) {
     return false;
   }
   return true;
+}
+
+function tierCashPrice(item: InventoryItem, tier: ManagerTier): {
+  cashPrice: number;
+  allowedPct: number;
+  rulesSummary: string;
+} {
+  const pricing = calculatePricing(item);
+  const t = pricing.tiers.find((x) => x.tier === tier);
+  return {
+    cashPrice: t?.cashPrice ?? 0,
+    allowedPct: t?.discountPercent ?? 0,
+    rulesSummary: pricing.rulesSummary,
+  };
+}
+
+/**
+ * Single-tender calculator ceiling.
+ * Financing requires months (12/0 → 12_months → 7% surcharge).
+ * Missing pay channel or months → null (do not flag).
+ */
+export function calculatorCeilingAmount(
+  cashPrice: number,
+  channel: PayChannel,
+  financingMonths: number | null
+): { ceiling: number; surchargePercent: number } | null {
+  if (!(cashPrice > 0)) return null;
+  if (channel === "unknown") return null;
+
+  if (channel === "cash") {
+    return { ceiling: cashPrice, surchargePercent: 0 };
+  }
+
+  if (channel === "credit_card") {
+    const { financedPrice, surchargePercent } = calculateFinancedPrice(
+      cashPrice,
+      "credit_card",
+      "12_months"
+    );
+    return { ceiling: financedPrice, surchargePercent };
+  }
+
+  if (channel === "lease") {
+    const { financedPrice, surchargePercent } = calculateFinancedPrice(
+      cashPrice,
+      "lease",
+      "12_months"
+    );
+    return { ceiling: financedPrice, surchargePercent };
+  }
+
+  if (channel === "affirm") {
+    const { financedPrice, surchargePercent } = calculateFinancedPrice(
+      cashPrice,
+      "affirm",
+      "12_months"
+    );
+    return { ceiling: financedPrice, surchargePercent };
+  }
+
+  if (channel === "financing") {
+    if (financingMonths == null) return null;
+    const plan = MONTHS_TO_PLAN[financingMonths];
+    if (!plan) return null;
+    const { financedPrice, surchargePercent } = calculateFinancedPrice(
+      cashPrice,
+      "financing",
+      plan
+    );
+    return { ceiling: financedPrice, surchargePercent };
+  }
+
+  return null;
 }
 
 export function detectHighDiscounts(options?: {
@@ -123,16 +227,16 @@ export function detectHighDiscounts(options?: {
 
   const dates = [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
   const effectiveDate =
-    filterDate ||
-    (dates.length ? dates[dates.length - 1] : null);
+    filterDate || (dates.length ? dates[dates.length - 1] : null);
 
   const scoped = rows.filter((r) => {
     if (effectiveDate && r.date !== effectiveDate) return false;
-    if (filterStore && r.storeName.trim().toUpperCase() !== filterStore) return false;
+    if (filterStore && r.storeName.trim().toUpperCase() !== filterStore) {
+      return false;
+    }
     return true;
   });
 
-  // Product lines from filtered sales; ITEM APP/FIN memos reattached by Transaction #
   const descByTxn = new Map<string, string[]>();
   const payByTxn = new Map<string, string>();
   for (const r of scoped) {
@@ -160,20 +264,42 @@ export function detectHighDiscounts(options?: {
     if (!payByTxn.has(tid)) payByTxn.set(tid, pay);
   }
 
+  // Daily paycode export (Transaction # → single-tender Pay Codes). Wins over sales CSV.
+  const payOverlay = loadTxnPayCodes();
+
   const hits: HighDiscountHit[] = [];
   let scannedProductLines = 0;
   let skippedNoApprover = 0;
   let skippedNoPricing = 0;
+  let skippedNoPay = 0;
 
   for (const row of scoped) {
     if (!isProductDiscountLine(row)) continue;
     scannedProductLines++;
 
     const tid = row.transactionId;
-    const approval = parseApprovalFromDescriptions(descByTxn.get(tid) ?? [row.description]);
+    const approval = parseApprovalFromDescriptions(
+      descByTxn.get(tid) ?? [row.description]
+    );
     const approver = pickApproverForV1(approval.approverCodes);
     if (!approver || !roles.has(approver.role)) {
       skippedNoApprover++;
+      continue;
+    }
+
+    // Prefer paycode overlay (Aug 11 file, …); else sales/memo pay. Multi-tender → skip.
+    const payRaw =
+      payOverlay.get(tid) ||
+      row.payCode?.trim() ||
+      payByTxn.get(tid) ||
+      "";
+    if (!payRaw) {
+      skippedNoPay++;
+      continue;
+    }
+    const payChannel = normalizePayCode(payRaw);
+    if (payChannel === "unknown") {
+      skippedNoPay++;
       continue;
     }
 
@@ -182,9 +308,6 @@ export function detectHighDiscounts(options?: {
       skippedNoPricing++;
       continue;
     }
-
-    const allowedPct = getAllowedDiscountPercent(resolved.item, approver.role);
-    // Unpriced / zero-rule products: do not invent a high-discount flag
     if (
       resolved.source === "sales_row" &&
       !row.department &&
@@ -195,15 +318,33 @@ export function detectHighDiscounts(options?: {
       continue;
     }
 
+    const { cashPrice, allowedPct, rulesSummary } = tierCashPrice(
+      resolved.item,
+      approver.role
+    );
+    if (!(cashPrice > 0)) {
+      skippedNoPricing++;
+      continue;
+    }
+
+    const ceiling = calculatorCeilingAmount(
+      cashPrice,
+      payChannel,
+      approval.financingMonths
+    );
+    if (!ceiling) {
+      // Financing without months (or unsupported term) — do not show
+      skippedNoPay++;
+      continue;
+    }
+
+    const soldTotal = row.netRevenue;
+    if (soldTotal <= ceiling.ceiling + DOLLAR_EPSILON) continue;
+
+    const overageDollars = soldTotal - ceiling.ceiling;
     const salesAmount = row.grossSales;
     const discAmt = row.discountAmount;
     const givenPct = salesAmount > 0 ? (discAmt / salesAmount) * 100 : 0;
-    if (givenPct <= allowedPct + PCT_EPSILON) continue;
-
-    const payRaw = row.payCode?.trim() || payByTxn.get(tid) || "";
-    const payChannel = normalizePayCode(payRaw);
-    const overagePct = givenPct - allowedPct;
-    const overageDollars = salesAmount * (overagePct / 100);
 
     hits.push({
       date: row.date,
@@ -216,15 +357,21 @@ export function detectHighDiscounts(options?: {
       description: row.description,
       salesAmount,
       discAmt,
+      soldTotal,
+      cashPrice,
+      ceilingAmount: ceiling.ceiling,
+      surchargePercent: ceiling.surchargePercent,
+      overageDollars,
+      overagePct:
+        ceiling.ceiling > 0 ? (overageDollars / ceiling.ceiling) * 100 : 0,
       givenPct,
       allowedPct,
-      overagePct,
-      overageDollars,
       payChannel,
       payChannelLabel: PAY_CHANNEL_LABELS[payChannel],
       payCode: payRaw,
       financingMonths: approval.financingMonths,
       approver,
+      rulesSummary,
       approvalHints: approval.rawHits,
     });
   }
@@ -236,6 +383,7 @@ export function detectHighDiscounts(options?: {
     scannedProductLines,
     skippedNoApprover,
     skippedNoPricing,
+    skippedNoPay,
     availableDates: dates,
     filterDate: effectiveDate,
   };
@@ -247,7 +395,7 @@ export function formatHighDiscountsMarkdown(
 ): string {
   const dateLabel = result.filterDate ?? "all dates";
   if (!result.hits.length) {
-    return `**High discounts** (${dateLabel}): none found above calculator limits for Manager / CM / DM approvers.`;
+    return `**High discounts** (${dateLabel}): none — all Totals within Price Calculator ceilings for APP + paycode.`;
   }
   const lines = [
     `**High discounts** — ${dateLabel} (${result.hits.length} flag${result.hits.length === 1 ? "" : "s"})`,
@@ -256,10 +404,10 @@ export function formatHighDiscountsMarkdown(
   for (const h of result.hits.slice(0, limit)) {
     lines.push(
       `- **${h.store}** · ${h.sku} · txn \`${h.transactionId}\` · ${h.approver.name} (${h.approver.code})` +
-        `\n  Given **${h.givenPct.toFixed(1)}%** vs allowed **${h.allowedPct.toFixed(1)}%**` +
-        ` · Disc $${h.discAmt.toFixed(2)} on $${h.salesAmount.toFixed(2)}` +
+        `\n  Sold **$${h.soldTotal.toFixed(2)}** vs ceiling **$${h.ceilingAmount.toFixed(2)}**` +
+        ` · over +$${h.overageDollars.toFixed(2)}` +
         ` · ${h.payChannelLabel}` +
-        (h.financingMonths ? ` · ${h.financingMonths} mo` : "")
+        (h.financingMonths ? ` · ${h.financingMonths}/0` : "")
     );
   }
   if (result.hits.length > limit) {

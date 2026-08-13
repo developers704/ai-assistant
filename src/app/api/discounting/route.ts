@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
       scannedProductLines: result.scannedProductLines,
       skippedNoApprover: result.skippedNoApprover,
       skippedNoPricing: result.skippedNoPricing,
+      skippedNoPay: result.skippedNoPay,
       count: result.hits.length,
       hits: result.hits,
     });

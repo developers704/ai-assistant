@@ -11,6 +11,12 @@ import {
   resolveApprover,
 } from "../src/lib/discounting/approvers";
 import { getAllowedDiscountPercent } from "../src/lib/inventory/pricing";
+import { calculatorCeilingAmount } from "../src/lib/discounting/detect-high-discounts";
+import {
+  isSingleTenderPayCode,
+  loadTxnPayCodes,
+  parseTxnPayCodesCsv,
+} from "../src/lib/discounting/load-txn-paycodes";
 import type { InventoryItem } from "../src/lib/inventory/types";
 
 assert.equal(normalizePayCode("CASH"), "cash");
@@ -101,9 +107,41 @@ const diamondish: InventoryItem = {
 const dmPct = getAllowedDiscountPercent(diamondish, "dm");
 assert.ok(dmPct > 0, "calculator must return allowed %");
 
-const salesAmount = 1000;
-const discAmt = salesAmount * ((dmPct + 5) / 100);
-const givenPct = (discAmt / salesAmount) * 100;
-assert.ok(givenPct > dmPct + 0.05, "overage fixture");
+// Owner case: pearl 162088Y — DM cash + IdDeal 12/0 → ceiling ~$924; sold $1011.49 flags
+const pearlTag = 4799;
+const dmCash = pearlTag * (1 - 0.82); // 863.82
+assert.ok(Math.abs(dmCash - 863.82) < 0.01);
+const ceil12 = calculatorCeilingAmount(dmCash, "financing", 12);
+assert.ok(ceil12);
+assert.ok(Math.abs(ceil12!.ceiling - 924.2874) < 0.02, `12/0 ceiling got ${ceil12!.ceiling}`);
+assert.equal(ceil12!.surchargePercent, 7);
+const sold = 1011.49;
+assert.ok(sold > ceil12!.ceiling + 0.01, "sale over ceiling → flag");
+assert.equal(calculatorCeilingAmount(dmCash, "financing", null), null); // no months → skip
+assert.equal(calculatorCeilingAmount(dmCash, "unknown", 12), null); // no paycode → skip
 
-console.log("check-high-discounts: ok", { dmPct, givenPct: givenPct.toFixed(2) });
+// Paycode overlay V1: single tender only
+assert.equal(isSingleTenderPayCode("VJON-IDEAL,"), true);
+assert.equal(isSingleTenderPayCode("VJF-IDDEAL,"), true);
+assert.equal(isSingleTenderPayCode("VJPB-CASH,"), true);
+assert.equal(isSingleTenderPayCode("VJON-CC,"), true);
+assert.equal(isSingleTenderPayCode("VJCL-CASH,VJCL-CC,"), false);
+assert.equal(isSingleTenderPayCode("BB-IDDEAL,BB-SYNC,"), false);
+const samplePayCsv = `Transaction  #,Pay Codes
+ON-10292259,"VJON-IDEAL,"
+CL-10290979,"VJCL-CASH,VJCL-CC,"
+`;
+const parsedPay = parseTxnPayCodesCsv(samplePayCsv);
+assert.equal(parsedPay.get("ON-10292259"), "VJON-IDEAL");
+assert.equal(parsedPay.has("CL-10290979"), false);
+const overlay = loadTxnPayCodes(true);
+assert.ok(overlay.has("ON-10292259"), "Aug 11 paycode file must include pearl txn");
+assert.equal(normalizePayCode(overlay.get("ON-10292259")), "financing");
+
+console.log("check-high-discounts: ok", {
+  dmPct,
+  ceiling12: ceil12!.ceiling.toFixed(2),
+  overage: (sold - ceil12!.ceiling).toFixed(2),
+  overlaySize: overlay.size,
+  pearlPay: overlay.get("ON-10292259"),
+});
