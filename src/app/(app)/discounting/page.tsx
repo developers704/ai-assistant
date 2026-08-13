@@ -237,13 +237,12 @@ export default function DiscountingPage() {
         )}
 
         <p className={cn("mt-4 text-[11px] text-white/30 max-w-3xl")}>
-          Flags when line <span className="text-white/40">Total</span> exceeds the Price
-          Calculator final for that APP approver’s tier + single pay method (cash / CC /
-          IdDeal / financing / lease / Affirm). Pay Codes matched by Transaction # from{" "}
-          <code className="text-white/40">data/discounting/paycodes/</code>. Multi-tender
-          (cash+CC, etc.) ignored for now. Missing APP / paycode / financing months → not
-          shown. Approvers:{" "}
-          <code className="text-white/40">data/discounting/approvers.csv</code>.
+          Single-tender: line <span className="text-white/40">Total</span> vs calculator
+          ceiling. Multi-tender (cash/CC + financing): package DM cash + Mulberry − down
+          payment → finance surcharge vs <span className="text-white/40">Payment Amt</span>{" "}
+          from paycode CSV. APP missing → DM ceiling; store owner name (e.g. Serra → AJ).
+          Returns ignored for now. Paycodes:{" "}
+          <code className="text-white/40">data/discounting/paycodes/</code>.
         </p>
       </PageShellBody>
     </PageShell>

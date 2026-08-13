@@ -5,6 +5,7 @@ import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils"
 import {
   clearTxnPayCodesCache,
   parseTxnPayCodesCsv,
+  parseTxnPaySplitsCsv,
 } from "@/lib/discounting/load-txn-paycodes";
 
 function paycodesDir(): string {
@@ -59,11 +60,13 @@ export function saveTxnPaycodesCsv(
   fileName: string;
   date: string;
   singleTenderTxnCount: number;
+  txnSplitCount: number;
 } {
   const text = csvText.trim();
   if (!text) throw new Error("Paycode file is empty");
 
   const map = parseTxnPayCodesCsv(text);
+  const splits = parseTxnPaySplitsCsv(text);
   const date =
     (opts?.preferredDate && isValidIsoDate(opts.preferredDate)
       ? opts.preferredDate
@@ -81,5 +84,6 @@ export function saveTxnPaycodesCsv(
     fileName,
     date,
     singleTenderTxnCount: map.size,
+    txnSplitCount: splits.size,
   };
 }

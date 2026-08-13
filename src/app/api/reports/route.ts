@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
       fileName: string;
       date: string;
       singleTenderTxnCount: number;
+      txnSplitCount: number;
     } | null = null;
     if (wantsSales && paycodeFile && paycodeFile.size > 0) {
       const payName = paycodeFile.name.toLowerCase();
@@ -151,7 +152,7 @@ export async function POST(req: NextRequest) {
 
     const mergedDays = mergeInfo?.newDates?.join(", ") ?? null;
     const payNote = paycodeSaved
-      ? ` Paycodes saved (${paycodeSaved.fileName}, ${paycodeSaved.singleTenderTxnCount} single-tender txns).`
+      ? ` Paycodes saved (${paycodeSaved.fileName}, ${paycodeSaved.txnSplitCount} txns, ${paycodeSaved.singleTenderTxnCount} single-tender).`
       : "";
     return NextResponse.json({
       report: meta,

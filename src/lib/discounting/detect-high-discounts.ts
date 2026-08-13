@@ -1,5 +1,6 @@
 import type { FinancingPlan, InventoryItem, ManagerTier } from "@/lib/inventory/types";
 import {
+  CREDIT_CARD_SURCHARGE_PERCENT,
   calculateFinancedPrice,
   calculatePricing,
 } from "@/lib/inventory/pricing";
@@ -12,8 +13,14 @@ import {
   DEFAULT_DISCOUNTING_ROLES,
   type ApproverEntry,
 } from "@/lib/discounting/approvers";
+import { resolveStoreDmOwner } from "@/lib/discounting/store-dm-owners";
 import { loadTxnPackageMemos } from "@/lib/discounting/load-txn-memos";
-import { loadTxnPayCodes } from "@/lib/discounting/load-txn-paycodes";
+import {
+  loadTxnPayCodes,
+  loadTxnPaySplits,
+  summarizePaySplit,
+  type TxnPaySplit,
+} from "@/lib/discounting/load-txn-paycodes";
 import {
   normalizePayCode,
   PAY_CHANNEL_LABELS,
@@ -53,14 +60,14 @@ export type HighDiscountHit = {
   /** Sales Amount (gross / tag side). */
   salesAmount: number;
   discAmt: number;
-  /** Line Total / net sold. */
+  /** Line Total / net sold (or package sold for multi-tender). */
   soldTotal: number;
-  /** Calculator cash price for approver tier. */
+  /** Calculator cash price for approver tier (package cash for multi). */
   cashPrice: number;
-  /** Calculator final for this single tender (cash/CC/financing/lease/affirm). */
+  /** Calculator final / max allowed financing for multi-tender. */
   ceilingAmount: number;
   surchargePercent: number;
-  /** soldTotal − ceilingAmount when over. */
+  /** soldTotal − ceilingAmount (or financePaid − maxFinance for multi). */
   overageDollars: number;
   /** Overage as % of ceiling. */
   overagePct: number;
@@ -139,6 +146,22 @@ function isProductDiscountLine(row: VendorPosRow): boolean {
   return true;
 }
 
+function isItemPlaceholder(sku: string): boolean {
+  return sku.trim().toUpperCase() === "ITEM";
+}
+
+function isMulberryLine(row: VendorPosRow): boolean {
+  const sku = (row.sku || row.itemNumber || "").trim().toUpperCase();
+  if (sku.startsWith("MLB")) return true;
+  return /mulberry/i.test(row.description || "");
+}
+
+function isReturnRow(row: VendorPosRow): boolean {
+  if (row.quantity < 0) return true;
+  if (row.netRevenue < 0) return true;
+  return false;
+}
+
 function tierCashPrice(item: InventoryItem, tier: ManagerTier): {
   cashPrice: number;
   allowedPct: number;
@@ -212,6 +235,58 @@ export function calculatorCeilingAmount(
   return null;
 }
 
+/** CC Payment Amt → cash-equivalent toward package cash ceiling. */
+export function ccToCashEquivalent(ccPaid: number): number {
+  if (!(ccPaid > 0)) return 0;
+  return ccPaid / (1 + CREDIT_CARD_SURCHARGE_PERCENT / 100);
+}
+
+/**
+ * Multi-tender: package cash − cash − CC(cash-eq) → remaining × finance surcharge.
+ * Compare result to actual financing Payment Amt from paycode CSV.
+ */
+export function multiTenderMaxFinance(opts: {
+  packageCash: number;
+  cashPaid: number;
+  ccPaid: number;
+  financeChannel: PayChannel;
+  financingMonths: number | null;
+}): { maxFinance: number; surchargePercent: number; remainingCash: number } | null {
+  const ccEq = ccToCashEquivalent(opts.ccPaid);
+  const remainingCash = Math.max(
+    0,
+    opts.packageCash - opts.cashPaid - ccEq
+  );
+  if (!(remainingCash > 0)) {
+    return { maxFinance: 0, surchargePercent: 0, remainingCash: 0 };
+  }
+  const ceiling = calculatorCeilingAmount(
+    remainingCash,
+    opts.financeChannel,
+    opts.financingMonths
+  );
+  if (!ceiling) return null;
+  return {
+    maxFinance: ceiling.ceiling,
+    surchargePercent: ceiling.surchargePercent,
+    remainingCash,
+  };
+}
+
+function resolveApproverForTxn(
+  approverCodes: string[],
+  store: string,
+  roles: Set<ManagerTier>
+): ApproverEntry | null {
+  const fromApp = pickApproverForV1(approverCodes);
+  if (fromApp && roles.has(fromApp.role)) return fromApp;
+  // APP missing: store territory DM / Rozina; ceiling uses their role (DM → dm tier)
+  const fromStore = resolveStoreDmOwner(store);
+  if (fromStore && roles.has(fromStore.role)) return fromStore;
+  // Serra → AJ is dm; Rozina is cm — if we need DM tier math but CM name, still OK via role
+  return null;
+}
+
 export function detectHighDiscounts(options?: {
   filterDate?: string | null;
   filterStore?: string | null;
@@ -234,11 +309,14 @@ export function detectHighDiscounts(options?: {
     if (filterStore && r.storeName.trim().toUpperCase() !== filterStore) {
       return false;
     }
+    // Returns ignored for now
+    if (isReturnRow(r)) return false;
     return true;
   });
 
   const descByTxn = new Map<string, string[]>();
   const payByTxn = new Map<string, string>();
+  const rowsByTxn = new Map<string, VendorPosRow[]>();
   for (const r of scoped) {
     const tid = r.transactionId || "";
     if (!tid) continue;
@@ -248,6 +326,9 @@ export function detectHighDiscounts(options?: {
     if (r.payCode?.trim() && !payByTxn.has(tid)) {
       payByTxn.set(tid, r.payCode.trim());
     }
+    const bag = rowsByTxn.get(tid) ?? [];
+    bag.push(r);
+    rowsByTxn.set(tid, bag);
   }
   const memos = loadTxnPackageMemos({
     filterDate: effectiveDate,
@@ -264,7 +345,7 @@ export function detectHighDiscounts(options?: {
     if (!payByTxn.has(tid)) payByTxn.set(tid, pay);
   }
 
-  // Daily paycode export (Transaction # → single-tender Pay Codes). Wins over sales CSV.
+  const paySplits = loadTxnPaySplits();
   const payOverlay = loadTxnPayCodes();
 
   const hits: HighDiscountHit[] = [];
@@ -273,31 +354,190 @@ export function detectHighDiscounts(options?: {
   let skippedNoPricing = 0;
   let skippedNoPay = 0;
 
+  const multiTxnIds = new Set<string>();
+
+  // ── Multi-tender packages (cash|CC + financing) ──
+  for (const [tid, split] of paySplits) {
+    const summary = summarizePaySplit(split);
+    if (!summary.isMultiTender || !summary.financeChannel) continue;
+    const txnRows = rowsByTxn.get(tid);
+    if (!txnRows?.length) continue;
+
+    const store = txnRows[0]!.storeName;
+    const approval = parseApprovalFromDescriptions(
+      descByTxn.get(tid) ?? txnRows.map((r) => r.description)
+    );
+    const approver = resolveApproverForTxn(
+      approval.approverCodes,
+      store,
+      roles
+    );
+    if (!approver) {
+      skippedNoApprover++;
+      continue;
+    }
+
+    // Financing needs months; lease/affirm do not
+    if (
+      summary.financeChannel === "financing" &&
+      approval.financingMonths == null
+    ) {
+      skippedNoPay++;
+      continue;
+    }
+
+    let packageCash = 0;
+    let mulberryFace = 0;
+    let packageSold = 0;
+    let packageDisc = 0;
+    let packageGross = 0;
+    const skuLabels: string[] = [];
+    let allowedPct = 0;
+    let rulesSummary = "";
+
+    for (const row of txnRows) {
+      const sku = (row.sku || row.itemNumber || "").trim();
+      if (!sku || isItemPlaceholder(sku)) continue;
+      if (isHiddenDiscountSku(sku)) continue;
+      if (row.netRevenue <= 0 && row.grossSales <= 0) continue;
+
+      if (isMulberryLine(row)) {
+        mulberryFace += Math.max(0, row.netRevenue);
+        packageSold += Math.max(0, row.netRevenue);
+        packageGross += Math.max(0, row.grossSales);
+        continue;
+      }
+
+      // Jewelry / product lines in the package
+      if (!(row.grossSales > 0)) continue;
+      const resolved = resolveItem(row);
+      if (!resolved) {
+        skippedNoPricing++;
+        continue;
+      }
+      if (
+        resolved.source === "sales_row" &&
+        !row.department &&
+        !row.design &&
+        !row.productClass
+      ) {
+        skippedNoPricing++;
+        continue;
+      }
+
+      // APP missing → DM tier via store owner (AJ = dm). APP present → that role.
+      const tier: ManagerTier =
+        approval.approverCodes.length > 0 ? approver.role : "dm";
+      const priced = tierCashPrice(resolved.item, tier);
+      if (!(priced.cashPrice > 0)) {
+        skippedNoPricing++;
+        continue;
+      }
+
+      packageCash += priced.cashPrice;
+      packageSold += Math.max(0, row.netRevenue);
+      packageDisc += Math.max(0, row.discountAmount);
+      packageGross += Math.max(0, row.grossSales);
+      skuLabels.push(sku);
+      scannedProductLines++;
+      allowedPct = Math.max(allowedPct, priced.allowedPct);
+      if (priced.rulesSummary) rulesSummary = priced.rulesSummary;
+    }
+
+    packageCash += mulberryFace;
+    if (!(packageCash > 0) || !skuLabels.length) continue;
+
+    const maxFin = multiTenderMaxFinance({
+      packageCash,
+      cashPaid: summary.cashPaid,
+      ccPaid: summary.ccPaid,
+      financeChannel: summary.financeChannel,
+      financingMonths: approval.financingMonths,
+    });
+    if (!maxFin) {
+      skippedNoPay++;
+      continue;
+    }
+
+    multiTxnIds.add(tid);
+
+    if (summary.financePaid <= maxFin.maxFinance + DOLLAR_EPSILON) continue;
+
+    const overageDollars = summary.financePaid - maxFin.maxFinance;
+    hits.push({
+      date: txnRows[0]!.date,
+      store,
+      transactionId: tid,
+      sku: skuLabels.join("+"),
+      itemNumber: skuLabels[0] || "",
+      design: "",
+      department: "",
+      description: `Multi-tender package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""})`,
+      salesAmount: packageGross,
+      discAmt: packageDisc,
+      soldTotal: packageSold,
+      cashPrice: packageCash,
+      ceilingAmount: maxFin.maxFinance,
+      surchargePercent: maxFin.surchargePercent,
+      overageDollars,
+      overagePct:
+        maxFin.maxFinance > 0
+          ? (overageDollars / maxFin.maxFinance) * 100
+          : 0,
+      givenPct: packageGross > 0 ? (packageDisc / packageGross) * 100 : 0,
+      allowedPct,
+      payChannel: summary.financeChannel,
+      payChannelLabel: `Split · ${PAY_CHANNEL_LABELS[summary.financeChannel]}`,
+      payCode: summary.payCodeLabel,
+      financingMonths: approval.financingMonths,
+      approver,
+      rulesSummary,
+      approvalHints: approval.rawHits,
+    });
+  }
+
+  // ── Single-tender lines ──
   for (const row of scoped) {
     if (!isProductDiscountLine(row)) continue;
+    const tid = row.transactionId;
+    if (multiTxnIds.has(tid)) continue;
     scannedProductLines++;
 
-    const tid = row.transactionId;
     const approval = parseApprovalFromDescriptions(
       descByTxn.get(tid) ?? [row.description]
     );
-    const approver = pickApproverForV1(approval.approverCodes);
+    const approver = resolveApproverForTxn(
+      approval.approverCodes,
+      row.storeName,
+      roles
+    );
     if (!approver || !roles.has(approver.role)) {
       skippedNoApprover++;
       continue;
     }
 
-    // Prefer paycode overlay (Aug 11 file, …); else sales/memo pay. Multi-tender → skip.
-    const payRaw =
-      payOverlay.get(tid) ||
-      row.payCode?.trim() ||
-      payByTxn.get(tid) ||
-      "";
-    if (!payRaw) {
-      skippedNoPay++;
-      continue;
+    const split = paySplits.get(tid) as TxnPaySplit | undefined;
+    const splitSummary = split ? summarizePaySplit(split) : null;
+
+    let payRaw = "";
+    let payChannel: PayChannel = "unknown";
+
+    if (splitSummary?.singleChannel) {
+      payRaw = splitSummary.payCodeLabel;
+      payChannel = splitSummary.singleChannel;
+    } else {
+      payRaw =
+        payOverlay.get(tid) ||
+        row.payCode?.trim() ||
+        payByTxn.get(tid) ||
+        "";
+      if (!payRaw) {
+        skippedNoPay++;
+        continue;
+      }
+      payChannel = normalizePayCode(payRaw);
     }
-    const payChannel = normalizePayCode(payRaw);
+
     if (payChannel === "unknown") {
       skippedNoPay++;
       continue;
@@ -318,9 +558,11 @@ export function detectHighDiscounts(options?: {
       continue;
     }
 
+    const tier: ManagerTier =
+      approval.approverCodes.length > 0 ? approver.role : "dm";
     const { cashPrice, allowedPct, rulesSummary } = tierCashPrice(
       resolved.item,
-      approver.role
+      tier
     );
     if (!(cashPrice > 0)) {
       skippedNoPricing++;
@@ -333,7 +575,6 @@ export function detectHighDiscounts(options?: {
       approval.financingMonths
     );
     if (!ceiling) {
-      // Financing without months (or unsupported term) — do not show
       skippedNoPay++;
       continue;
     }

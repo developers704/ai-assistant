@@ -11,12 +11,20 @@ import {
   resolveApprover,
 } from "../src/lib/discounting/approvers";
 import { getAllowedDiscountPercent } from "../src/lib/inventory/pricing";
-import { calculatorCeilingAmount } from "../src/lib/discounting/detect-high-discounts";
+import {
+  calculatorCeilingAmount,
+  ccToCashEquivalent,
+  multiTenderMaxFinance,
+} from "../src/lib/discounting/detect-high-discounts";
 import {
   isSingleTenderPayCode,
   loadTxnPayCodes,
+  loadTxnPaySplits,
   parseTxnPayCodesCsv,
+  parseTxnPaySplitsCsv,
+  summarizePaySplit,
 } from "../src/lib/discounting/load-txn-paycodes";
+import { resolveStoreDmOwner } from "../src/lib/discounting/store-dm-owners";
 import type { InventoryItem } from "../src/lib/inventory/types";
 
 assert.equal(normalizePayCode("CASH"), "cash");
@@ -138,10 +146,65 @@ const overlay = loadTxnPayCodes(true);
 assert.ok(overlay.has("ON-10292259"), "Aug 11 paycode file must include pearl txn");
 assert.equal(normalizePayCode(overlay.get("ON-10292259")), "financing");
 
+// Store DM owners — Serra → AJ
+assert.equal(resolveStoreDmOwner("VJ-SERRA")?.code, "AJ");
+assert.equal(resolveStoreDmOwner("VJ-SERRA")?.name, "Akber Jivani");
+assert.equal(resolveStoreDmOwner("VJ-BAKER")?.code, "AJ");
+
+// Multi-tender formula: cash + IDDEAL 60/0 (owner example ~2130 package)
+assert.ok(Math.abs(ccToCashEquivalent(140) - 140 / 1.035) < 0.001);
+const cashMix = multiTenderMaxFinance({
+  packageCash: 2130,
+  cashPaid: 140,
+  ccPaid: 0,
+  financeChannel: "financing",
+  financingMonths: 60,
+});
+assert.ok(cashMix);
+assert.ok(Math.abs(cashMix!.remainingCash - 1990) < 0.01);
+assert.ok(Math.abs(cashMix!.maxFinance - 1990 * 1.32) < 0.05);
+assert.equal(cashMix!.surchargePercent, 32);
+assert.ok(3100 > cashMix!.maxFinance + 0.01, "IDDEAL 3100 > max → flag");
+
+const ccMix = multiTenderMaxFinance({
+  packageCash: 2130,
+  cashPaid: 0,
+  ccPaid: 140,
+  financeChannel: "financing",
+  financingMonths: 60,
+});
+assert.ok(ccMix);
+const ccEq = 140 / 1.035;
+assert.ok(Math.abs(ccMix!.remainingCash - (2130 - ccEq)) < 0.05);
+assert.ok(Math.abs(ccMix!.maxFinance - (2130 - ccEq) * 1.32) < 0.1);
+
+// Payment-export shape (multi-row + Payment Amt)
+const payExport = `Store,Transaction  #,Type,Pay Code,Payment Amt
+VJ-SERRA,VS-10292075,"Sales,",VJS-CASH,140.27
+VJ-SERRA,VS-10292075,"Sales,",VJS-IDDEAL,"3,100.00"
+`;
+const splits = parseTxnPaySplitsCsv(payExport);
+const vs = splits.get("VS-10292075");
+assert.ok(vs);
+const vsSum = summarizePaySplit(vs!);
+assert.equal(vsSum.isMultiTender, true);
+assert.ok(Math.abs(vsSum.cashPaid - 140.27) < 0.001);
+assert.ok(Math.abs(vsSum.financePaid - 3100) < 0.001);
+assert.equal(vsSum.financeChannel, "financing");
+
+const liveSplits = loadTxnPaySplits(true);
+if (liveSplits.has("VS-10292075")) {
+  const live = summarizePaySplit(liveSplits.get("VS-10292075")!);
+  assert.equal(live.isMultiTender, true);
+  assert.ok(live.financePaid >= 3100 - 0.01);
+}
+
 console.log("check-high-discounts: ok", {
   dmPct,
   ceiling12: ceil12!.ceiling.toFixed(2),
   overage: (sold - ceil12!.ceiling).toFixed(2),
   overlaySize: overlay.size,
   pearlPay: overlay.get("ON-10292259"),
+  cashMaxFin: cashMix!.maxFinance.toFixed(2),
+  ccMaxFin: ccMix!.maxFinance.toFixed(2),
 });
