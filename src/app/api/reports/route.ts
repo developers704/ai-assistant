@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
   const reportPeriod = String(formData.get("reportPeriod") ?? "").trim() || undefined;
   const reportCategory = String(formData.get("reportCategory") ?? "").trim() || undefined;
   const uploadMode = String(formData.get("uploadMode") ?? "").trim() || undefined;
+  const paycodeFile = formData.get("paycodeFile") as File | null;
   let csvText = await file.text();
 
   if (!csvText.trim()) {
@@ -106,6 +107,32 @@ export async function POST(req: NextRequest) {
       dateRange: saveDateRange,
     });
 
+    // Optional companion paycode CSV (Transaction # → Pay Codes) for Discounting V1
+    let paycodeSaved: {
+      fileName: string;
+      date: string;
+      singleTenderTxnCount: number;
+    } | null = null;
+    if (wantsSales && paycodeFile && paycodeFile.size > 0) {
+      const payName = paycodeFile.name.toLowerCase();
+      if (!payName.endsWith(".csv")) {
+        return NextResponse.json(
+          { error: "Paycode file must be CSV." },
+          { status: 400 }
+        );
+      }
+      const payText = await paycodeFile.text();
+      const { saveTxnPaycodesCsv } = await import(
+        "@/lib/discounting/save-txn-paycodes"
+      );
+      const preferredDate =
+        mergeInfo?.newDates?.sort().at(-1) ??
+        meta.dateRange?.to ??
+        summary.dateRange?.to ??
+        null;
+      paycodeSaved = saveTxnPaycodesCsv(payText, { preferredDate });
+    }
+
     // New store-sales upload becomes the live source for dashboard / chat / voice
     const isLiveSales =
       meta.schema === "store_sales" || meta.reportCategory === "sales";
@@ -123,6 +150,9 @@ export async function POST(req: NextRequest) {
     }
 
     const mergedDays = mergeInfo?.newDates?.join(", ") ?? null;
+    const payNote = paycodeSaved
+      ? ` Paycodes saved (${paycodeSaved.fileName}, ${paycodeSaved.singleTenderTxnCount} single-tender txns).`
+      : "";
     return NextResponse.json({
       report: meta,
       summary,
@@ -138,13 +168,14 @@ export async function POST(req: NextRequest) {
             dateRange: mergeInfo.dateRange,
           }
         : null,
+      paycode: paycodeSaved,
       dataVersion: dataVersion ?? readActivePointer().activeVersion,
       dateRange: meta.dateRange ?? summary.dateRange ?? null,
       message: mergeInfo
-        ? `Appended ${mergeInfo.newDates.length} day(s) (${mergedDays}) into the live sales report (${mergeInfo.totalRows.toLocaleString()} rows total). Dashboard, chat, and voice now use the combined file.`
+        ? `Appended ${mergeInfo.newDates.length} day(s) (${mergedDays}) into the live sales report (${mergeInfo.totalRows.toLocaleString()} rows total). Dashboard, chat, and voice now use the combined file.${payNote}`
         : isLiveSales
-          ? "Saved as the latest sales report. Sales Dashboard, chat, and voice will use this file."
-          : "Report saved.",
+          ? `Saved as the latest sales report. Sales Dashboard, chat, and voice will use this file.${payNote}`
+          : `Report saved.${payNote}`,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to save report";

@@ -1,6 +1,7 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 import {
   isHiddenFromTopVendorModelsRow,
+  isItemPlaceholderSku,
   isRepairServiceMemoSku,
 } from "@/lib/utils";
 import { hasOnhandData } from "@/lib/inventory/onhand";
@@ -33,7 +34,12 @@ function applyWholesaleMargins(
   }
 
   return models.map((m) => {
-    const key = m.vendorModel || m.name;
+    // ITEM rows display vendorModel="ITEM" + description; lookup still uses group key
+    const key =
+      (m.vendorModel === "ITEM" || isItemPlaceholderSku(m.sku)) &&
+      (m.description || m.name)
+        ? `ITEM · ${(m.description || m.name).trim()}`
+        : m.vendorModel || m.name;
     const modelRows = byKey.get(key) ?? [];
     // ITEM / JVV repairs: no margin % in Top Models (UI shows red —)
     if (modelRows.some((r) => isRepairServiceMemoSku(r.sku || r.itemNumber))) {

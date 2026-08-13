@@ -512,8 +512,19 @@ export function TopProductsTable({
         ) : (
           <ul className="max-h-[min(48rem,75vh)] overflow-y-auto divide-y divide-white/5">
             {rows.map((product, i) => {
-              const displayName = formatProductDisplayName(product.name);
-              const model = product.vendorModel?.trim() || product.itemNumber || "—";
+              // Rozina ITEM/SPO rows: never show "ITEM · description" in the model column
+              const rawModel = product.vendorModel?.trim() || "";
+              const itemSplit = rawModel.match(/^ITEM\s*[·\-]\s*(.+)$/i);
+              const isItemSku =
+                (product.itemNumber || "").trim().toUpperCase() === "ITEM" ||
+                rawModel.toUpperCase() === "ITEM" ||
+                Boolean(itemSplit);
+              const model = isItemSku
+                ? "ITEM"
+                : rawModel || product.itemNumber || "—";
+              const displayName = formatProductDisplayName(
+                itemSplit?.[1]?.trim() || product.name
+              );
               const rowKey = `${product.vendorModel ?? ""}|${product.itemNumber ?? ""}|${product.name}|${i}`;
               const marginRate =
                 product.marginRate ??

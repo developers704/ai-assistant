@@ -180,10 +180,10 @@ describe("ITEM placeholder — Net Sales keep, Top Models hide", () => {
       limit: null,
       includeHiddenTopModels: true,
     });
-    const itemLines = rozinaModels.filter((m) => m.name.startsWith("ITEM ·"));
+    const itemLines = rozinaModels.filter((m) => m.vendorModel === "ITEM");
     expect(itemLines).toHaveLength(2);
-    expect(itemLines.find((m) => m.name === "ITEM · SIZE RING TO 11")?.netSales).toBe(310);
-    expect(itemLines.find((m) => m.name === "ITEM · EXTENDER")?.netSales).toBe(25);
+    expect(itemLines.find((m) => m.vendorModel === "ITEM" && m.name === "SIZE RING TO 11")?.netSales).toBe(310);
+    expect(itemLines.find((m) => m.vendorModel === "ITEM" && m.name === "EXTENDER")?.netSales).toBe(25);
     expect(rozinaModels.reduce((s, m) => s + m.netSales, 0)).toBe(534);
     expect(vendorModelGroupKey(rows[1])).toBe("ITEM · SIZE RING TO 11");
   });

@@ -25,7 +25,7 @@ These still count in Net Sales / store / vendor / department / salesperson total
 | Vendor model `WG670` | Threaded earring post — findings; hidden from top vendor models (still in net sales) |
 | Vendor model `2200-2218` | Screwback earring back / pad — findings; hidden from top vendor models (still in net sales) |
 
-**Rozina exception:** username `rozina` sees **all sold lines** in Top Vendor Models (incl. `ITEM` / `JVV-*`), grouped with Total/net, via `showsAllSoldInTopVendorModels()` + `includeHiddenTopModels`. Margin on repair/memo lines shows as red `—`. Everyone else keeps soft-hide on Top Models only.
+**Rozina exception:** username `rozina` sees **all sold lines** in Top Vendor Models (incl. `ITEM` / `JVV-*`), grouped with Total/net, via `showsAllSoldInTopVendorModels()` + `includeHiddenTopModels`. Margin on repair/memo lines shows as red `—`. Everyone else keeps soft-hide on Top Models only. **ITEM display:** vendor-model column shows only `ITEM`; description stays in the product/description column (no `ITEM · {desc}` duplication). Grouping key internally remains `ITEM · {description}`.
 
 ### Top Vendor Models — cancelled SKU legs (ranking only)
 

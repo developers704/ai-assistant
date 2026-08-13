@@ -368,8 +368,14 @@ export function groupRows(
       if (dates.size) saleDates = [...dates].sort();
     }
 
+    // ITEM · {desc} groups (Rozina Top Models): model column = "ITEM", product = description only
+    const itemDesc = name.match(/^ITEM\s*[·\-]\s*(.+)$/i)?.[1]?.trim();
+    const displayName = itemDesc || name;
+    const displayModel = itemDesc ? "ITEM" : v.vendorModel;
+    const displayDescription = itemDesc || v.description;
+
     return {
-      name,
+      name: displayName,
       netSales: s.netSales ?? 0,
       grossSales: s.grossSales ?? 0,
       discounts: s.discounts ?? 0,
@@ -380,8 +386,8 @@ export function groupRows(
       imageDir: v.imageDir,
       imageUrl: resolveProductImageUrl(v.imageDir),
       sku: v.sku,
-      vendorModel: v.vendorModel,
-      description: v.description,
+      vendorModel: displayModel,
+      description: displayDescription,
       department,
       lastSaleDate,
       saleDates,

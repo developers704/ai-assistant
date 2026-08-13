@@ -133,7 +133,9 @@ export default function AnalystPage() {
   const [bootstrapping, setBootstrapping] = useState(true);
   const [metaExpanded, setMetaExpanded] = useState(true);
   const [lastUploadNote, setLastUploadNote] = useState<string | null>(null);
+  const [paycodeFile, setPaycodeFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const paycodeRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -271,6 +273,9 @@ export default function AnalystPage() {
     form.append("reportPeriod", reportPeriod);
     form.append("reportCategory", reportCategory);
     form.append("uploadMode", uploadMode);
+    if (reportCategory === "sales" && paycodeFile) {
+      form.append("paycodeFile", paycodeFile);
+    }
     const res = await fetch("/api/reports", { method: "POST", body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to save report");
@@ -286,6 +291,8 @@ export default function AnalystPage() {
       });
     }
     setLastUploadNote(typeof data.message === "string" ? data.message : null);
+    setPaycodeFile(null);
+    if (paycodeRef.current) paycodeRef.current.value = "";
     return {
       reportId: data.report?.id as string | undefined,
       appended: Boolean(data.appended),
@@ -648,6 +655,30 @@ export default function AnalystPage() {
                       Replace overwrites the live Dashboard with this file only (previous days are
                       dropped from the live report).
                     </p>
+                  )}
+                  {reportCategory === "sales" && (
+                    <label
+                      className="flex flex-col items-center gap-1 text-[11px] text-ink-secondary max-w-md mx-auto"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="text-white/45">
+                        Optional: paycode CSV (Transaction # → Pay Codes) for Discounting
+                      </span>
+                      <input
+                        ref={paycodeRef}
+                        type="file"
+                        accept=".csv"
+                        className="block w-full max-w-xs text-[11px] text-white/50 file:mr-2 file:rounded-lg file:border-0 file:bg-white/10 file:px-2 file:py-1 file:text-white/80"
+                        onChange={(e) => {
+                          setPaycodeFile(e.target.files?.[0] ?? null);
+                        }}
+                      />
+                      {paycodeFile ? (
+                        <span className="text-emerald-300/80 truncate max-w-xs">
+                          {paycodeFile.name}
+                        </span>
+                      ) : null}
+                    </label>
                   )}
                   {lastUploadNote && (
                     <p className="text-[11px] text-emerald-300/90 max-w-md mx-auto leading-relaxed px-3 py-2 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-400/20">

@@ -76,26 +76,36 @@ export function reportSummaryFromQueryResult(
   }));
 
   const topProducts = (result.rankings?.topVendorModels ?? result.rankings?.topProducts ?? []).map(
-    (r) => ({
-      name: r.description || r.vendorModel || r.name,
-      itemNumber: r.sku,
-      vendorModel: r.vendorModel || r.name,
-      imageDir: r.imageDir,
-      imageUrl: r.imageUrl ?? resolveProductImageUrl(r.imageDir),
-      revenue: r.netSales,
-      units: r.unitsSold,
-      // null estimatedMargin → hide margin (missing calculator Whole Cost)
-      margin: r.estimatedMargin ?? undefined,
-      marginRate:
-        r.estimatedMargin != null && r.netSales > 0
-          ? r.estimatedMargin / r.netSales
-          : undefined,
-      department: r.department,
-      lastSaleDate: r.lastSaleDate,
-      saleDates: r.saleDates,
-      onHandTotal: r.onHandTotal,
-      skus: r.skus,
-    })
+    (r) => {
+      const isItem =
+        r.vendorModel === "ITEM" ||
+        (r.sku || "").trim().toUpperCase() === "ITEM";
+      // ITEM memos: model column = ITEM, product = description (no double text)
+      const description =
+        r.description ||
+        (isItem ? r.name : "") ||
+        r.name;
+      return {
+        name: isItem ? description : r.description || r.vendorModel || r.name,
+        itemNumber: r.sku,
+        vendorModel: isItem ? "ITEM" : r.vendorModel || r.name,
+        imageDir: r.imageDir,
+        imageUrl: r.imageUrl ?? resolveProductImageUrl(r.imageDir),
+        revenue: r.netSales,
+        units: r.unitsSold,
+        // null estimatedMargin → hide margin (missing calculator Whole Cost)
+        margin: r.estimatedMargin ?? undefined,
+        marginRate:
+          r.estimatedMargin != null && r.netSales > 0
+            ? r.estimatedMargin / r.netSales
+            : undefined,
+        department: r.department,
+        lastSaleDate: r.lastSaleDate,
+        saleDates: r.saleDates,
+        onHandTotal: r.onHandTotal,
+        skus: r.skus,
+      };
+    }
   );
 
   const dateFrom = result.query.resolvedDateRange.startDate;

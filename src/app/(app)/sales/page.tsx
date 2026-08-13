@@ -776,7 +776,11 @@ export default function SalesPage() {
                   includeHiddenTopModels={includeHiddenTopModels}
                   onVendorModelDetail={(p) =>
                     setVendorModelDetail({
-                      vendorModel: p.vendorModel || p.itemNumber || p.name,
+                      // ITEM memos: detail lookup key is still "ITEM · {description}"
+                      vendorModel:
+                        p.vendorModel === "ITEM" && p.name
+                          ? `ITEM · ${p.name}`
+                          : p.vendorModel || p.itemNumber || p.name,
                       description: p.name,
                       imageUrl: p.imageUrl,
                       imageDir: p.imageDir,
