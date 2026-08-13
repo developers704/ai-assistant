@@ -24,10 +24,10 @@ import {
 const DOLLAR_EPSILON = 0.01;
 
 /** Soft-hide from Discounting overage table (still in sales). Restore by removing SKU. */
-const HIDDEN_DISCOUNT_SKUS = new Set(["731903468252"]);
+const HIDDEN_DISCOUNT_SKUS = new Set(["731903468252", "225392-18"]);
 
 function isHiddenDiscountSku(sku: string): boolean {
-  const key = sku.trim().replace(/v$/i, "");
+  const key = sku.trim().replace(/v$/i, "").toUpperCase();
   return HIDDEN_DISCOUNT_SKUS.has(key);
 }
 
