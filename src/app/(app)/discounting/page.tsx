@@ -237,11 +237,10 @@ export default function DiscountingPage() {
         )}
 
         <p className={cn("mt-4 text-[11px] text-white/30 max-w-3xl")}>
-          Single-tender: line <span className="text-white/40">Total</span> vs calculator
-          ceiling. Multi-tender (cash/CC + financing): package DM cash + Mulberry − down
-          payment → finance surcharge vs <span className="text-white/40">Payment Amt</span>{" "}
-          from paycode CSV. APP missing → DM ceiling; store owner name (e.g. Serra → AJ).
-          Returns ignored for now. Paycodes:{" "}
+          Line sales: Total vs calculator. Finance packages: calculated (jewelry + Mulberry
+          × term %) vs paycode <span className="text-white/40">Payment Amt</span> (ceiling).
+          Flag when calculated &gt; Payment Amt. APP missing → DM + store owner (Serra → AJ).
+          Returns ignored. Paycodes:{" "}
           <code className="text-white/40">data/discounting/paycodes/</code>.
         </p>
       </PageShellBody>

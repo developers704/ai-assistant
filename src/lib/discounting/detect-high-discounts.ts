@@ -64,10 +64,14 @@ export type HighDiscountHit = {
   soldTotal: number;
   /** Calculator cash price for approver tier (package cash for multi). */
   cashPrice: number;
-  /** Calculator final / max allowed financing for multi-tender. */
+  /** Calculator final (line) — or paycode Payment Amt for finance packages. */
   ceilingAmount: number;
   surchargePercent: number;
-  /** soldTotal − ceilingAmount (or financePaid − maxFinance for multi). */
+  /**
+   * Overage dollars.
+   * Line / single-tender: soldTotal − calculator ceiling.
+   * Finance package (paycode Payment Amt): calculated − Payment Amt when calculated is higher.
+   */
   overageDollars: number;
   /** Overage as % of ceiling. */
   overagePct: number;
@@ -242,8 +246,9 @@ export function ccToCashEquivalent(ccPaid: number): number {
 }
 
 /**
- * Multi-tender: package cash − cash − CC(cash-eq) → remaining × finance surcharge.
- * Compare result to actual financing Payment Amt from paycode CSV.
+ * Multi-tender: package cash − cash − CC(cash-eq) → remaining × finance surcharge
+ * = calculated financed amount. Ceiling to compare against = paycode Payment Amt.
+ * Flag when calculated > Payment Amt.
  */
 export function multiTenderMaxFinance(opts: {
   packageCash: number;
@@ -461,9 +466,12 @@ export function detectHighDiscounts(options?: {
 
     multiTxnIds.add(tid);
 
-    if (summary.financePaid <= maxFin.maxFinance + DOLLAR_EPSILON) continue;
+    // Ceiling = paycode Payment Amt; flag when calculated > Payment Amt
+    const paymentCeiling = summary.financePaid;
+    const calculated = maxFin.maxFinance;
+    if (calculated <= paymentCeiling + DOLLAR_EPSILON) continue;
 
-    const overageDollars = summary.financePaid - maxFin.maxFinance;
+    const overageDollars = calculated - paymentCeiling;
     hits.push({
       date: txnRows[0]!.date,
       store,
@@ -472,18 +480,16 @@ export function detectHighDiscounts(options?: {
       itemNumber: skuLabels[0] || "",
       design: "",
       department: "",
-      description: `Multi-tender package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""})`,
+      description: `Multi-tender package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""}) · calc $${calculated.toFixed(0)}`,
       salesAmount: packageGross,
       discAmt: packageDisc,
-      soldTotal: packageSold,
+      soldTotal: calculated,
       cashPrice: packageCash,
-      ceilingAmount: maxFin.maxFinance,
+      ceilingAmount: paymentCeiling,
       surchargePercent: maxFin.surchargePercent,
       overageDollars,
       overagePct:
-        maxFin.maxFinance > 0
-          ? (overageDollars / maxFin.maxFinance) * 100
-          : 0,
+        paymentCeiling > 0 ? (overageDollars / paymentCeiling) * 100 : 0,
       givenPct: packageGross > 0 ? (packageDisc / packageGross) * 100 : 0,
       allowedPct,
       payChannel: summary.financeChannel,
@@ -599,9 +605,12 @@ export function detectHighDiscounts(options?: {
 
     multiTxnIds.add(tid);
 
-    if (summary.financePaid <= ceiling.ceiling + DOLLAR_EPSILON) continue;
+    // Ceiling = paycode Payment Amt; flag when calculated > Payment Amt
+    const paymentCeiling = summary.financePaid;
+    const calculated = ceiling.ceiling;
+    if (calculated <= paymentCeiling + DOLLAR_EPSILON) continue;
 
-    const overageDollars = summary.financePaid - ceiling.ceiling;
+    const overageDollars = calculated - paymentCeiling;
     hits.push({
       date: txnRows[0]!.date,
       store,
@@ -610,18 +619,16 @@ export function detectHighDiscounts(options?: {
       itemNumber: skuLabels[0] || "",
       design: "",
       department: "",
-      description: `Finance package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""})`,
+      description: `Finance package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""}) · calc $${calculated.toFixed(0)}`,
       salesAmount: packageGross,
       discAmt: packageDisc,
-      soldTotal: packageSold,
+      soldTotal: calculated,
       cashPrice: packageCash,
-      ceilingAmount: ceiling.ceiling,
+      ceilingAmount: paymentCeiling,
       surchargePercent: ceiling.surchargePercent,
       overageDollars,
       overagePct:
-        ceiling.ceiling > 0
-          ? (overageDollars / ceiling.ceiling) * 100
-          : 0,
+        paymentCeiling > 0 ? (overageDollars / paymentCeiling) * 100 : 0,
       givenPct: packageGross > 0 ? (packageDisc / packageGross) * 100 : 0,
       allowedPct,
       payChannel: summary.financeChannel,

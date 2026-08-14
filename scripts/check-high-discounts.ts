@@ -175,7 +175,11 @@ assert.ok(cashMix);
 assert.ok(Math.abs(cashMix!.remainingCash - 1990) < 0.01);
 assert.ok(Math.abs(cashMix!.maxFinance - 1990 * 1.32) < 0.05);
 assert.equal(cashMix!.surchargePercent, 32);
-assert.ok(3100 > cashMix!.maxFinance + 0.01, "IDDEAL 3100 > max → flag");
+// New rule: ceiling = Payment Amt; flag only if calculated > Payment Amt
+assert.ok(
+  cashMix!.maxFinance < 3100,
+  "calc 2627 < Payment Amt 3100 → under, no flag"
+);
 
 const ccMix = multiTenderMaxFinance({
   packageCash: 2130,

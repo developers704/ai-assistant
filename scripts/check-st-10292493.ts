@@ -1,5 +1,5 @@
 /**
- * Verify ST-10292493 Synchrony package math + parse fixes.
+ * Verify ST-10292493: SYN Payment Amt is ceiling; calc under → no flag.
  * Run: npx tsx scripts/check-st-10292493.ts
  */
 import assert from "node:assert/strict";
@@ -29,22 +29,15 @@ assert.equal(resolveApprover("TL")?.role, "cm");
 
 const r = detectHighDiscounts({ filterDate: "2026-08-12" });
 const hits = r.hits.filter((h) => h.transactionId === "ST-10292493");
-assert.equal(hits.length, 1, "one package flag, not per-SKU");
-const hit = hits[0]!;
-assert.equal(hit.financingMonths, 48);
-assert.equal(hit.surchargePercent, 28);
-assert.ok(hit.sku.includes("226859Y") && hit.sku.includes("197438-8"));
-assert.ok(hit.ceilingAmount > 6000 && hit.ceilingAmount < 9000);
-assert.ok(hit.overageDollars > 2000, `overage ${hit.overageDollars}`);
-assert.equal(hit.approver.code, "TL");
+// calc ~$6.7–7.5k < Payment Amt $10,445.97 → under, no flag
+assert.equal(
+  hits.length,
+  0,
+  "ST-10292493 must NOT flag (calculated under Syn Payment Amt)"
+);
 
 console.log("check-st-10292493: ok", {
-  cash: hit.cashPrice.toFixed(2),
-  ceiling: hit.ceilingAmount.toFixed(2),
   synPaid: 10445.97,
-  overage: hit.overageDollars.toFixed(2),
-  months: hit.financingMonths,
-  surcharge: hit.surchargePercent,
-  approver: `${hit.approver.name} (${hit.approver.role})`,
-  sku: hit.sku,
+  flagged: false,
+  totalFlags: r.hits.length,
 });
