@@ -32,10 +32,16 @@ function uniq(codes: string[]): string[] {
 }
 
 function extractMonths(text: string): number | null {
-  // .../36/0 or "36/0" or "/6/"
-  const slash = text.match(/(?:^|[/\s])(6|12|18|24|36|48|60)(?:\/|\s|$)/);
-  if (slash) {
-    const n = Number(slash[1]);
+  // Prefer explicit finance terms only: "48/0", "SYN 48/0", "FIN/.../36/0"
+  // Do NOT match Mulberry "36 Month" or "SIZE 6".
+  const term0 = text.match(/\b(6|12|18|24|36|48|60)\s*\/\s*0\b/);
+  if (term0) {
+    const n = Number(term0[1]);
+    if (MONTHS.has(n)) return n;
+  }
+  const finSlash = text.match(/\/(6|12|18|24|36|48|60)\//);
+  if (finSlash) {
+    const n = Number(finSlash[1]);
     if (MONTHS.has(n)) return n;
   }
   return null;

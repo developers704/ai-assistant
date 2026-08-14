@@ -78,6 +78,17 @@ const appPkg = parseApprovalFromDescriptions([
 assert.ok(appPkg.approverCodes.includes("EG"));
 assert.equal(appPkg.financingMonths, 36);
 
+// SYN 48/0 must win over Mulberry "36 Month" / "SIZE 6"
+const appSyn48 = parseApprovalFromDescriptions([
+  "Mulberry 36 Month Care Plan ($1,500-$1,999.99)",
+  "SYN 48/0 APP TL",
+  "CUSTOM RING SIZE 6",
+]);
+assert.equal(appSyn48.financingMonths, 48);
+assert.ok(appSyn48.approverCodes.includes("TL"));
+assert.equal(resolveApprover("TL")?.name, "Kevin / Thanh");
+assert.equal(resolveApprover("TL")?.role, "cm");
+
 const approvers = loadApprovers(true);
 assert.ok(approvers.has("SM2"));
 assert.ok(approvers.has("AJ"));

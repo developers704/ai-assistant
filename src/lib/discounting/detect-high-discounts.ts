@@ -496,6 +496,144 @@ export function detectHighDiscounts(options?: {
     });
   }
 
+  // ── Single financing/lease/affirm with Payment Amt: package vs payment ──
+  for (const [tid, split] of paySplits) {
+    if (multiTxnIds.has(tid)) continue;
+    const summary = summarizePaySplit(split);
+    if (summary.isMultiTender) continue;
+    if (!summary.financeChannel || !(summary.financePaid > 0)) continue;
+    if (summary.singleChannel !== summary.financeChannel) continue;
+
+    const txnRows = rowsByTxn.get(tid);
+    if (!txnRows?.length) continue;
+
+    const store = txnRows[0]!.storeName;
+    const approval = parseApprovalFromDescriptions(
+      descByTxn.get(tid) ?? txnRows.map((r) => r.description)
+    );
+    const approver = resolveApproverForTxn(
+      approval.approverCodes,
+      store,
+      roles
+    );
+    if (!approver) {
+      skippedNoApprover++;
+      continue;
+    }
+    if (
+      summary.financeChannel === "financing" &&
+      approval.financingMonths == null
+    ) {
+      skippedNoPay++;
+      continue;
+    }
+
+    let packageCash = 0;
+    let mulberryFace = 0;
+    let packageSold = 0;
+    let packageDisc = 0;
+    let packageGross = 0;
+    const skuLabels: string[] = [];
+    let allowedPct = 0;
+    let rulesSummary = "";
+
+    for (const row of txnRows) {
+      const sku = (row.sku || row.itemNumber || "").trim();
+      if (!sku || isItemPlaceholder(sku)) continue;
+      if (isHiddenDiscountSku(sku)) continue;
+      if (row.netRevenue <= 0 && row.grossSales <= 0) continue;
+
+      if (isMulberryLine(row)) {
+        mulberryFace += Math.max(0, row.netRevenue);
+        packageSold += Math.max(0, row.netRevenue);
+        packageGross += Math.max(0, row.grossSales);
+        continue;
+      }
+
+      if (!(row.grossSales > 0)) continue;
+      const resolved = resolveItem(row);
+      if (!resolved) {
+        skippedNoPricing++;
+        continue;
+      }
+      if (
+        resolved.source === "sales_row" &&
+        !row.department &&
+        !row.design &&
+        !row.productClass
+      ) {
+        skippedNoPricing++;
+        continue;
+      }
+
+      const tier: ManagerTier =
+        approval.approverCodes.length > 0 ? approver.role : "dm";
+      const priced = tierCashPrice(resolved.item, tier);
+      if (!(priced.cashPrice > 0)) {
+        skippedNoPricing++;
+        continue;
+      }
+
+      packageCash += priced.cashPrice;
+      packageSold += Math.max(0, row.netRevenue);
+      packageDisc += Math.max(0, row.discountAmount);
+      packageGross += Math.max(0, row.grossSales);
+      skuLabels.push(sku);
+      scannedProductLines++;
+      allowedPct = Math.max(allowedPct, priced.allowedPct);
+      if (priced.rulesSummary) rulesSummary = priced.rulesSummary;
+    }
+
+    packageCash += mulberryFace;
+    if (!(packageCash > 0) || !skuLabels.length) continue;
+
+    const ceiling = calculatorCeilingAmount(
+      packageCash,
+      summary.financeChannel,
+      approval.financingMonths
+    );
+    if (!ceiling) {
+      skippedNoPay++;
+      continue;
+    }
+
+    multiTxnIds.add(tid);
+
+    if (summary.financePaid <= ceiling.ceiling + DOLLAR_EPSILON) continue;
+
+    const overageDollars = summary.financePaid - ceiling.ceiling;
+    hits.push({
+      date: txnRows[0]!.date,
+      store,
+      transactionId: tid,
+      sku: skuLabels.join("+"),
+      itemNumber: skuLabels[0] || "",
+      design: "",
+      department: "",
+      description: `Finance package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""})`,
+      salesAmount: packageGross,
+      discAmt: packageDisc,
+      soldTotal: packageSold,
+      cashPrice: packageCash,
+      ceilingAmount: ceiling.ceiling,
+      surchargePercent: ceiling.surchargePercent,
+      overageDollars,
+      overagePct:
+        ceiling.ceiling > 0
+          ? (overageDollars / ceiling.ceiling) * 100
+          : 0,
+      givenPct: packageGross > 0 ? (packageDisc / packageGross) * 100 : 0,
+      allowedPct,
+      payChannel: summary.financeChannel,
+      payChannelLabel: PAY_CHANNEL_LABELS[summary.financeChannel],
+      payCode: summary.payCodeLabel,
+      financingMonths: approval.financingMonths,
+      approver,
+      rulesSummary,
+      approvalHints: approval.rawHits,
+    });
+  }
+
   // ── Single-tender lines ──
   for (const row of scoped) {
     if (!isProductDiscountLine(row)) continue;
