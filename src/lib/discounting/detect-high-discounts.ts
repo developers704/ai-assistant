@@ -307,11 +307,22 @@ export function detectHighDiscounts(options?: {
   const filterDate = options?.filterDate?.trim() || null;
   const filterStore = options?.filterStore?.trim().toUpperCase() || null;
 
-  const dates = [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
+  // Discounting only keeps the newest month (rolls forward as days append)
+  const activeMonth = rows.reduce(
+    (max, r) => (r.date && r.date.slice(0, 7) > max ? r.date.slice(0, 7) : max),
+    ""
+  );
+  const monthRows = activeMonth
+    ? rows.filter((r) => r.date?.slice(0, 7) === activeMonth)
+    : rows;
+
+  const dates = [
+    ...new Set(monthRows.map((r) => r.date).filter(Boolean)),
+  ].sort();
   const effectiveDate =
     filterDate || (dates.length ? dates[dates.length - 1] : null);
 
-  const inWindow = rows.filter((r) => {
+  const inWindow = monthRows.filter((r) => {
     if (effectiveDate && r.date !== effectiveDate) return false;
     if (filterStore && r.storeName.trim().toUpperCase() !== filterStore) {
       return false;

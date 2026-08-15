@@ -10,34 +10,41 @@ import { parseVendorPosRows } from "@/lib/reports/vendor-pos";
  * Same Transaction # package includes Item # = ITEM memo lines
  * (APP/EG, FINANCE SYNCHRONY 36/0). Those SKUs are excluded from
  * sales totals — re-read the live CSV so Discounting can join them.
+ *
+ * Only the newest month is kept (Discounting window) and the parse is
+ * cached per CSV identity — the live seed is ~28MB, far too slow to
+ * re-parse on every request.
  */
-export function loadTxnPackageMemos(options?: {
-  filterDate?: string | null;
-  filterStore?: string | null;
-}): {
+
+type MemoMaps = {
   descByTxn: Map<string, string[]>;
   payByTxn: Map<string, string>;
-} {
+};
+
+let cacheKey: string | null = null;
+let cached: MemoMaps | null = null;
+
+function monthOf(date: string): string {
+  return date.slice(0, 7);
+}
+
+function buildMemoMaps(csv: string): MemoMaps {
   const descByTxn = new Map<string, string[]>();
   const payByTxn = new Map<string, string>();
-
-  const meta = getLatestReportMeta();
-  const csv = meta
-    ? readReportCsv(meta.id)
-    : getLatestReportWithSummary()?.csv ?? null;
-  if (!csv) return { descByTxn, payByTxn };
 
   const parsed = Papa.parse<Record<string, unknown>>(csv, {
     header: true,
     skipEmptyLines: true,
   });
   const { rows } = parseVendorPosRows(parsed.data ?? []);
-  const filterDate = options?.filterDate?.trim() || null;
-  const filterStore = options?.filterStore?.trim().toUpperCase() || null;
+
+  let activeMonth = "";
+  for (const r of rows) {
+    if (r.date && monthOf(r.date) > activeMonth) activeMonth = monthOf(r.date);
+  }
 
   for (const r of rows) {
-    if (filterDate && r.date !== filterDate) continue;
-    if (filterStore && r.storeName.trim().toUpperCase() !== filterStore) continue;
+    if (!r.date || monthOf(r.date) !== activeMonth) continue;
     const tid = (r.transactionId || "").trim();
     if (!tid) continue;
 
@@ -58,4 +65,27 @@ export function loadTxnPackageMemos(options?: {
   }
 
   return { descByTxn, payByTxn };
+}
+
+export function clearTxnMemoCache(): void {
+  cacheKey = null;
+  cached = null;
+}
+
+export function loadTxnPackageMemos(_options?: {
+  filterDate?: string | null;
+  filterStore?: string | null;
+}): MemoMaps {
+  const meta = getLatestReportMeta();
+  const csv = meta
+    ? readReportCsv(meta.id)
+    : getLatestReportWithSummary()?.csv ?? null;
+  if (!csv) return { descByTxn: new Map(), payByTxn: new Map() };
+
+  const key = `${meta?.id ?? "latest"}:${csv.length}`;
+  if (cached && cacheKey === key) return cached;
+
+  cached = buildMemoMaps(csv);
+  cacheKey = key;
+  return cached;
 }

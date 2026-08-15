@@ -49,6 +49,20 @@ function detectPaycodeFileDate(csvText: string): string | null {
   return [...dates].sort().at(-1) ?? null;
 }
 
+/** Discounting keeps the current month only — drop older daily paycode files. */
+function prunePaycodesBeforeMonth(dir: string, keepMonth: string): string[] {
+  const removed: string[] = [];
+  for (const file of fs.readdirSync(dir)) {
+    const m = file.match(/^(\d{4}-\d{2})-\d{2}\.csv$/i);
+    if (!m) continue;
+    if (m[1] < keepMonth) {
+      fs.unlinkSync(path.join(dir, file));
+      removed.push(file);
+    }
+  }
+  return removed;
+}
+
 /**
  * Persist a daily paycode CSV under data/discounting/paycodes/{YYYY-MM-DD}.csv
  * and clear the in-memory overlay cache.
@@ -78,6 +92,7 @@ export function saveTxnPaycodesCsv(
   fs.mkdirSync(dir, { recursive: true });
   const fileName = `${date}.csv`;
   fs.writeFileSync(path.join(dir, fileName), text, "utf8");
+  prunePaycodesBeforeMonth(dir, date.slice(0, 7));
   clearTxnPayCodesCache();
 
   return {
