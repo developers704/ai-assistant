@@ -141,6 +141,7 @@ function resolveItem(row: VendorPosRow): {
 function isProductDiscountLine(row: VendorPosRow): boolean {
   const sku = (row.sku || row.itemNumber || "").trim();
   if (!sku) return false;
+  if (isReturnRow(row)) return false;
   if (isHiddenDiscountSku(sku)) return false;
   if (row.grossSales <= 0) return false;
   if (!(row.discountAmount > 0)) return false;
@@ -160,6 +161,7 @@ function isMulberryLine(row: VendorPosRow): boolean {
   return /mulberry/i.test(row.description || "");
 }
 
+/** Qty −1 (or any negative qty) = return — ignore in Discounting. */
 function isReturnRow(row: VendorPosRow): boolean {
   if (row.quantity < 0) return true;
   if (row.netRevenue < 0) return true;
