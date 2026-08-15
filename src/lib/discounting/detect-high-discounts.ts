@@ -311,15 +311,22 @@ export function detectHighDiscounts(options?: {
   const effectiveDate =
     filterDate || (dates.length ? dates[dates.length - 1] : null);
 
-  const scoped = rows.filter((r) => {
+  const inWindow = rows.filter((r) => {
     if (effectiveDate && r.date !== effectiveDate) return false;
     if (filterStore && r.storeName.trim().toUpperCase() !== filterStore) {
       return false;
     }
-    // Returns ignored for now
-    if (isReturnRow(r)) return false;
     return true;
   });
+
+  // Any Qty −1 leg = return / exchange package — skip the whole transaction
+  const returnTxnIds = new Set(
+    inWindow.filter(isReturnRow).map((r) => r.transactionId).filter(Boolean)
+  );
+
+  const scoped = inWindow.filter(
+    (r) => !isReturnRow(r) && !returnTxnIds.has(r.transactionId)
+  );
 
   const descByTxn = new Map<string, string[]>();
   const payByTxn = new Map<string, string>();
