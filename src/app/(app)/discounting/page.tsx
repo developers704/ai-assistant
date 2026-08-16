@@ -237,10 +237,10 @@ export default function DiscountingPage() {
         )}
 
         <p className={cn("mt-4 text-[11px] text-white/30 max-w-3xl")}>
-          Line sales: Total vs calculator. Finance packages: calculated (jewelry + Mulberry
-          × term %) vs paycode <span className="text-white/40">Payment Amt</span> (ceiling).
-          Flag when calculated &gt; Payment Amt. APP missing → DM + store owner (Serra → AJ).
-          Returns ignored. Paycodes:{" "}
+          Payment Amt is the ceiling. Cash: package minimum; CC: package minimum ×
+          103.5%; financing: package minimum × term %. Flag only when calculated &gt;{" "}
+          <span className="text-white/40">Payment Amt</span>. APP missing → DM + store
+          owner (Serra → AJ). Returns ignored. Paycodes:{" "}
           <code className="text-white/40">data/discounting/paycodes/</code>.
         </p>
       </PageShellBody>

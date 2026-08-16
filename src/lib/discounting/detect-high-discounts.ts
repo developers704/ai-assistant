@@ -522,13 +522,20 @@ export function detectHighDiscounts(options?: {
     });
   }
 
-  // ── Single financing/lease/affirm with Payment Amt: package vs payment ──
+  // ── Single payment with Payment Amt: package calculation vs payment ──
   for (const [tid, split] of paySplits) {
     if (multiTxnIds.has(tid)) continue;
     const summary = summarizePaySplit(split);
     if (summary.isMultiTender) continue;
-    if (!summary.financeChannel || !(summary.financePaid > 0)) continue;
-    if (summary.singleChannel !== summary.financeChannel) continue;
+    const singleChannel = summary.singleChannel;
+    if (!singleChannel) continue;
+    const paymentAmount =
+      singleChannel === "cash"
+        ? summary.cashPaid
+        : singleChannel === "credit_card"
+          ? summary.ccPaid
+          : summary.financePaid;
+    if (!(paymentAmount > 0)) continue;
 
     const txnRows = rowsByTxn.get(tid);
     if (!txnRows?.length) continue;
@@ -547,7 +554,7 @@ export function detectHighDiscounts(options?: {
       continue;
     }
     if (
-      summary.financeChannel === "financing" &&
+      singleChannel === "financing" &&
       approval.financingMonths == null
     ) {
       skippedNoPay++;
@@ -615,7 +622,7 @@ export function detectHighDiscounts(options?: {
 
     const ceiling = calculatorCeilingAmount(
       packageCash,
-      summary.financeChannel,
+      singleChannel,
       approval.financingMonths
     );
     if (!ceiling) {
@@ -626,7 +633,7 @@ export function detectHighDiscounts(options?: {
     multiTxnIds.add(tid);
 
     // Ceiling = paycode Payment Amt; flag when calculated > Payment Amt
-    const paymentCeiling = summary.financePaid;
+    const paymentCeiling = paymentAmount;
     const calculated = ceiling.ceiling;
     if (calculated <= paymentCeiling + DOLLAR_EPSILON) continue;
 
@@ -639,7 +646,7 @@ export function detectHighDiscounts(options?: {
       itemNumber: skuLabels[0] || "",
       design: "",
       department: "",
-      description: `Finance package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""}) · calc $${calculated.toFixed(0)}`,
+      description: `${PAY_CHANNEL_LABELS[singleChannel]} package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""}) · calc $${calculated.toFixed(0)}`,
       salesAmount: packageGross,
       discAmt: packageDisc,
       soldTotal: calculated,
@@ -651,8 +658,8 @@ export function detectHighDiscounts(options?: {
         paymentCeiling > 0 ? (overageDollars / paymentCeiling) * 100 : 0,
       givenPct: packageGross > 0 ? (packageDisc / packageGross) * 100 : 0,
       allowedPct,
-      payChannel: summary.financeChannel,
-      payChannelLabel: PAY_CHANNEL_LABELS[summary.financeChannel],
+      payChannel: singleChannel,
+      payChannelLabel: PAY_CHANNEL_LABELS[singleChannel],
       payCode: summary.payCodeLabel,
       financingMonths: approval.financingMonths,
       approver,
