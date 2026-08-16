@@ -6,7 +6,7 @@ import { PageShell, PageShellHeader, PageShellBody } from "@/components/layout/P
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn, formatCurrency } from "@/lib/utils";
-import { AlertTriangle, Loader2, Percent, RefreshCw } from "lucide-react";
+import { AlertTriangle, Loader2, Mail, Percent, RefreshCw } from "lucide-react";
 
 type Hit = {
   date: string;
@@ -52,6 +52,8 @@ export default function DiscountingPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailNotice, setEmailNotice] = useState<string | null>(null);
 
   const load = useCallback(async (opts?: { date?: string; store?: string }) => {
     setLoading(true);
@@ -77,6 +79,44 @@ export default function DiscountingPage() {
     void load();
   }, [load]);
 
+  const sendTestEmails = useCallback(async () => {
+    setEmailBusy(true);
+    setEmailNotice(null);
+    try {
+      const res = await fetch("/api/discounting/email-alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: date || undefined }),
+      });
+      const json = (await res.json()) as {
+        error?: string;
+        results?: Array<{
+          recipient: string;
+          approver: string;
+          hitCount: number;
+          sent: boolean;
+          skippedDuplicate?: boolean;
+          error?: string;
+        }>;
+      };
+      if (!res.ok) throw new Error(json.error || "Failed to send alerts");
+      const parts = (json.results ?? []).map((r) => {
+        if (r.sent) return `${r.approver} → ${r.recipient} (${r.hitCount} overages)`;
+        if (r.skippedDuplicate) return `${r.approver}: already sent`;
+        return `${r.approver}: ${r.error || "not sent"}`;
+      });
+      setEmailNotice(
+        parts.length
+          ? parts.join(" · ")
+          : "No AJ/Shaun overages for this date — nothing to email."
+      );
+    } catch (e) {
+      setEmailNotice(e instanceof Error ? e.message : "Failed to send alerts");
+    } finally {
+      setEmailBusy(false);
+    }
+  }, [date]);
+
   const storeOptions = useMemo(() => {
     const fromHits = data?.stores ?? [];
     return fromHits;
@@ -87,7 +127,7 @@ export default function DiscountingPage() {
       <PageShellHeader>
         <PageHeader
           title="Discounting"
-          subtitle="Total sold vs Price Calculator ceiling (approver tier + pay method) — DM / CM / Manager"
+          subtitle="Calculated package vs paycode Payment Amt — DM / CM / Manager"
         />
       </PageShellHeader>
       <PageShellBody>
@@ -139,6 +179,16 @@ export default function DiscountingPage() {
             {loading ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
             <span className="ml-1.5">Refresh</span>
           </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => void sendTestEmails()}
+            disabled={emailBusy || loading}
+          >
+            {emailBusy ? <Loader2 className="animate-spin" size={14} /> : <Mail size={14} />}
+            <span className="ml-1.5">Send test email</span>
+          </Button>
           {data && (
             <Badge variant="warning" className="mb-0.5">
               <Percent size={12} className="mr-1" />
@@ -152,6 +202,11 @@ export default function DiscountingPage() {
             {error}
           </div>
         )}
+        {emailNotice && (
+          <div className="mb-4 rounded-xl bg-amber-500/10 ring-1 ring-amber-400/30 px-4 py-3 text-sm text-amber-100">
+            {emailNotice}
+          </div>
+        )}
 
         {loading && !data ? (
           <div className="flex items-center gap-2 text-white/40 text-sm py-12 justify-center">
@@ -159,7 +214,7 @@ export default function DiscountingPage() {
           </div>
         ) : !data?.hits?.length ? (
           <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/10 px-6 py-10 text-center text-sm text-white/45">
-            No overages — every line Total is within its Price Calculator ceiling (or missing APP / paycode / months).
+            No overages — every calculated package is within its paycode Payment Amt.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl ring-1 ring-white/10">
@@ -169,7 +224,7 @@ export default function DiscountingPage() {
                   <th className="px-3 py-2.5 font-medium">Store</th>
                   <th className="px-3 py-2.5 font-medium">SKU</th>
                   <th className="px-3 py-2.5 font-medium">Approver</th>
-                  <th className="px-3 py-2.5 font-medium">Sold</th>
+                  <th className="px-3 py-2.5 font-medium">Calc</th>
                   <th className="px-3 py-2.5 font-medium">Ceiling</th>
                   <th className="px-3 py-2.5 font-medium">Overage</th>
                   <th className="px-3 py-2.5 font-medium">Pay</th>
@@ -218,13 +273,10 @@ export default function DiscountingPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-white/55 text-xs">
-                      {h.payChannelLabel}
-                      {h.financingMonths ? (
-                        <div className="text-white/35">{h.financingMonths}/0</div>
-                      ) : null}
-                      {h.payCode ? (
-                        <div className="font-mono text-[10px] text-white/30">{h.payCode}</div>
-                      ) : null}
+                      <span className="font-mono text-[10px] text-white/50">
+                        {h.payCode || h.payChannelLabel}
+                        {h.financingMonths ? ` · ${h.financingMonths}/0` : ""}
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 font-mono text-[11px] text-white/40">
                       {h.transactionId}
