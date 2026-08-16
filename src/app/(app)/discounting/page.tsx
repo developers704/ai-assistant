@@ -52,8 +52,8 @@ export default function DiscountingPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [emailBusy, setEmailBusy] = useState(false);
-  const [emailNotice, setEmailNotice] = useState<string | null>(null);
+  const [emailBusyRow, setEmailBusyRow] = useState<string | null>(null);
+  const [emailStatus, setEmailStatus] = useState<Record<string, string>>({});
 
   const load = useCallback(async (opts?: { date?: string; store?: string }) => {
     setLoading(true);
@@ -79,14 +79,19 @@ export default function DiscountingPage() {
     void load();
   }, [load]);
 
-  const sendTestEmails = useCallback(async () => {
-    setEmailBusy(true);
-    setEmailNotice(null);
+  const sendRowEmail = useCallback(async (hit: Hit) => {
+    const rowKey = `${hit.transactionId}|${hit.sku}`;
+    setEmailBusyRow(rowKey);
+    setEmailStatus((prev) => ({ ...prev, [rowKey]: "" }));
     try {
       const res = await fetch("/api/discounting/email-alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: date || undefined }),
+        body: JSON.stringify({
+          date: date || undefined,
+          transactionId: hit.transactionId,
+          sku: hit.sku,
+        }),
       });
       const json = (await res.json()) as {
         error?: string;
@@ -100,20 +105,20 @@ export default function DiscountingPage() {
         }>;
       };
       if (!res.ok) throw new Error(json.error || "Failed to send alerts");
-      const parts = (json.results ?? []).map((r) => {
-        if (r.sent) return `${r.approver} → ${r.recipient} (${r.hitCount} overages)`;
-        if (r.skippedDuplicate) return `${r.approver}: already sent`;
-        return `${r.approver}: ${r.error || "not sent"}`;
-      });
-      setEmailNotice(
-        parts.length
-          ? parts.join(" · ")
-          : "No AJ/Shaun overages for this date — nothing to email."
-      );
+      const result = json.results?.[0];
+      const status = result?.sent
+        ? "Sent"
+        : result?.skippedDuplicate
+          ? "Already sent"
+          : result?.error || "No email configured";
+      setEmailStatus((prev) => ({ ...prev, [rowKey]: status }));
     } catch (e) {
-      setEmailNotice(e instanceof Error ? e.message : "Failed to send alerts");
+      setEmailStatus((prev) => ({
+        ...prev,
+        [rowKey]: e instanceof Error ? e.message : "Failed",
+      }));
     } finally {
-      setEmailBusy(false);
+      setEmailBusyRow(null);
     }
   }, [date]);
 
@@ -179,16 +184,6 @@ export default function DiscountingPage() {
             {loading ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
             <span className="ml-1.5">Refresh</span>
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => void sendTestEmails()}
-            disabled={emailBusy || loading}
-          >
-            {emailBusy ? <Loader2 className="animate-spin" size={14} /> : <Mail size={14} />}
-            <span className="ml-1.5">Send test email</span>
-          </Button>
           {data && (
             <Badge variant="warning" className="mb-0.5">
               <Percent size={12} className="mr-1" />
@@ -202,12 +197,6 @@ export default function DiscountingPage() {
             {error}
           </div>
         )}
-        {emailNotice && (
-          <div className="mb-4 rounded-xl bg-amber-500/10 ring-1 ring-amber-400/30 px-4 py-3 text-sm text-amber-100">
-            {emailNotice}
-          </div>
-        )}
-
         {loading && !data ? (
           <div className="flex items-center gap-2 text-white/40 text-sm py-12 justify-center">
             <Loader2 className="animate-spin" size={16} /> Scanning sales…
@@ -229,6 +218,7 @@ export default function DiscountingPage() {
                   <th className="px-3 py-2.5 font-medium">Overage</th>
                   <th className="px-3 py-2.5 font-medium">Pay</th>
                   <th className="px-3 py-2.5 font-medium">Txn</th>
+                  <th className="px-3 py-2.5 font-medium">Email</th>
                 </tr>
               </thead>
               <tbody>
@@ -280,6 +270,32 @@ export default function DiscountingPage() {
                     </td>
                     <td className="px-3 py-2.5 font-mono text-[11px] text-white/40">
                       {h.transactionId}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {emailStatus[`${h.transactionId}|${h.sku}`] ? (
+                        <span
+                          className="text-[10px] text-white/45"
+                          title={emailStatus[`${h.transactionId}|${h.sku}`]}
+                        >
+                          {emailStatus[`${h.transactionId}|${h.sku}`]}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-white/60 hover:bg-white/[0.08] hover:text-white disabled:opacity-40"
+                          onClick={() => void sendRowEmail(h)}
+                          disabled={
+                            emailBusyRow === `${h.transactionId}|${h.sku}`
+                          }
+                        >
+                          {emailBusyRow === `${h.transactionId}|${h.sku}` ? (
+                            <Loader2 className="animate-spin" size={11} />
+                          ) : (
+                            <Mail size={11} />
+                          )}
+                          Send
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

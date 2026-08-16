@@ -141,6 +141,8 @@ export type DiscountingEmailResult = {
 export async function sendDiscountingEmailAlerts(options?: {
   filterDate?: string | null;
   dryRun?: boolean;
+  transactionId?: string | null;
+  sku?: string | null;
 }): Promise<DiscountingEmailResult[]> {
   const result = detectHighDiscounts({
     filterDate: options?.filterDate ?? null,
@@ -150,6 +152,13 @@ export async function sendDiscountingEmailAlerts(options?: {
 
   const grouped = new Map<string, { recipient: AlertRecipient; hits: HighDiscountHit[] }>();
   for (const hit of result.hits) {
+    if (
+      options?.transactionId &&
+      hit.transactionId !== options.transactionId
+    ) {
+      continue;
+    }
+    if (options?.sku && hit.sku !== options.sku) continue;
     const recipient = recipientForHit(hit);
     if (!recipient) continue;
     const group = grouped.get(recipient.key) ?? { recipient, hits: [] };

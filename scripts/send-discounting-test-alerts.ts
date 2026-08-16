@@ -11,11 +11,16 @@ import { sendDiscountingEmailAlerts } from "../src/lib/discounting/email-alerts"
 const dryRun = process.argv.includes("--dry-run");
 const date =
   process.argv.find((arg) => /^\d{4}-\d{2}-\d{2}$/.test(arg)) ?? null;
+const transactionId =
+  process.argv.find((arg) => arg.startsWith("--txn="))?.slice(6) ?? null;
+const sku = process.argv.find((arg) => arg.startsWith("--sku="))?.slice(6) ?? null;
 
 async function main() {
   const results = await sendDiscountingEmailAlerts({
     filterDate: date,
     dryRun,
+    transactionId,
+    sku,
   });
 
   console.log(JSON.stringify({ dryRun, results }, null, 2));

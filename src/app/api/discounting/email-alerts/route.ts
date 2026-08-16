@@ -26,6 +26,8 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     date?: string;
     dryRun?: boolean;
+    transactionId?: string;
+    sku?: string;
   };
   const date = body.date?.trim() || null;
   if (date && !isValidIsoDate(date)) {
@@ -38,6 +40,8 @@ export async function POST(req: Request) {
   const results = await sendDiscountingEmailAlerts({
     filterDate: date,
     dryRun: body.dryRun === true,
+    transactionId: body.transactionId?.trim() || null,
+    sku: body.sku?.trim() || null,
   });
 
   return NextResponse.json({
