@@ -27,7 +27,26 @@ async function main() {
     fs.readFileSync(seedPath, "utf-8"),
     fs.readFileSync(dailyPath, "utf-8")
   );
-  fs.writeFileSync(seedPath, result.csvText, "utf-8");
+  // OneDrive often EBUSY-locks Sales-Report.csv; write tmp then copy with retries.
+  const tmpPath = `${seedPath}.tmp`;
+  fs.writeFileSync(tmpPath, result.csvText, "utf-8");
+  let lastErr: unknown = null;
+  for (let i = 0; i < 10; i++) {
+    try {
+      fs.copyFileSync(tmpPath, seedPath);
+      lastErr = null;
+      break;
+    } catch (err) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
+  try {
+    fs.unlinkSync(tmpPath);
+  } catch {
+    /* ignore */
+  }
+  if (lastErr) throw lastErr;
 
   if (fs.existsSync(reportsDir)) {
     for (const name of fs.readdirSync(reportsDir)) {
