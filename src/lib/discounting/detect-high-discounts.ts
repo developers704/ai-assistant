@@ -1,9 +1,5 @@
 import type { FinancingPlan, InventoryItem, ManagerTier } from "@/lib/inventory/types";
-import {
-  CREDIT_CARD_SURCHARGE_PERCENT,
-  calculateFinancedPrice,
-  calculatePricing,
-} from "@/lib/inventory/pricing";
+import { calculateFinancedPrice, calculatePricing } from "@/lib/inventory/pricing";
 import { lookupInventory } from "@/lib/inventory/store";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
@@ -200,12 +196,7 @@ export function calculatorCeilingAmount(
   }
 
   if (channel === "credit_card") {
-    const { financedPrice, surchargePercent } = calculateFinancedPrice(
-      cashPrice,
-      "credit_card",
-      "12_months"
-    );
-    return { ceiling: financedPrice, surchargePercent };
+    return { ceiling: cashPrice, surchargePercent: 0 };
   }
 
   if (channel === "lease") {
@@ -241,14 +232,14 @@ export function calculatorCeilingAmount(
   return null;
 }
 
-/** CC Payment Amt → cash-equivalent toward package cash ceiling. */
+/** CC Payment Amt counts at face value toward package cash (same as cash). */
 export function ccToCashEquivalent(ccPaid: number): number {
   if (!(ccPaid > 0)) return 0;
-  return ccPaid / (1 + CREDIT_CARD_SURCHARGE_PERCENT / 100);
+  return ccPaid;
 }
 
 /**
- * Multi-tender: package cash − cash − CC(cash-eq) → remaining × finance surcharge
+ * Multi-tender: package cash − cash − CC → remaining × finance surcharge
  * = calculated financed amount. Ceiling to compare against = paycode Payment Amt.
  * Flag when calculated > Payment Amt.
  */
@@ -259,10 +250,9 @@ export function multiTenderMaxFinance(opts: {
   financeChannel: PayChannel;
   financingMonths: number | null;
 }): { maxFinance: number; surchargePercent: number; remainingCash: number } | null {
-  const ccEq = ccToCashEquivalent(opts.ccPaid);
   const remainingCash = Math.max(
     0,
-    opts.packageCash - opts.cashPaid - ccEq
+    opts.packageCash - opts.cashPaid - opts.ccPaid
   );
   if (!(remainingCash > 0)) {
     return { maxFinance: 0, surchargePercent: 0, remainingCash: 0 };
@@ -522,19 +512,32 @@ export function detectHighDiscounts(options?: {
     });
   }
 
-  // ── Single payment with Payment Amt: package calculation vs payment ──
+  // ── Single / cash+CC payment with Payment Amt: package calculation vs payment ──
   for (const [tid, split] of paySplits) {
     if (multiTxnIds.has(tid)) continue;
     const summary = summarizePaySplit(split);
     if (summary.isMultiTender) continue;
-    const singleChannel = summary.singleChannel;
-    if (!singleChannel) continue;
-    const paymentAmount =
-      singleChannel === "cash"
-        ? summary.cashPaid
-        : singleChannel === "credit_card"
-          ? summary.ccPaid
-          : summary.financePaid;
+
+    const isCashCcSplit =
+      summary.cashPaid > 0 &&
+      summary.ccPaid > 0 &&
+      !(summary.financePaid > 0);
+
+    let singleChannel = summary.singleChannel;
+    let paymentAmount = 0;
+    if (isCashCcSplit) {
+      paymentAmount = summary.cashPaid + summary.ccPaid;
+      singleChannel = "cash";
+    } else if (singleChannel) {
+      paymentAmount =
+        singleChannel === "cash"
+          ? summary.cashPaid
+          : singleChannel === "credit_card"
+            ? summary.ccPaid
+            : summary.financePaid;
+    } else {
+      continue;
+    }
     if (!(paymentAmount > 0)) continue;
 
     const txnRows = rowsByTxn.get(tid);
@@ -646,7 +649,7 @@ export function detectHighDiscounts(options?: {
       itemNumber: skuLabels[0] || "",
       design: "",
       department: "",
-      description: `${PAY_CHANNEL_LABELS[singleChannel]} package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""}) · calc $${calculated.toFixed(0)}`,
+      description: `${isCashCcSplit ? "Cash + CC" : PAY_CHANNEL_LABELS[singleChannel]} package (${skuLabels.length} SKU${skuLabels.length === 1 ? "" : "s"}${mulberryFace > 0 ? " + Mulberry" : ""}) · calc $${calculated.toFixed(0)}`,
       salesAmount: packageGross,
       discAmt: packageDisc,
       soldTotal: calculated,
@@ -659,7 +662,9 @@ export function detectHighDiscounts(options?: {
       givenPct: packageGross > 0 ? (packageDisc / packageGross) * 100 : 0,
       allowedPct,
       payChannel: singleChannel,
-      payChannelLabel: PAY_CHANNEL_LABELS[singleChannel],
+      payChannelLabel: isCashCcSplit
+        ? "Split · Cash + CC"
+        : PAY_CHANNEL_LABELS[singleChannel],
       payCode: summary.payCodeLabel,
       financingMonths: approval.financingMonths,
       approver,

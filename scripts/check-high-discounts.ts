@@ -163,7 +163,7 @@ assert.equal(resolveStoreDmOwner("VJ-SERRA")?.name, "Akber Jivani");
 assert.equal(resolveStoreDmOwner("VJ-BAKER")?.code, "AJ");
 
 // Multi-tender formula: cash + IDDEAL 60/0 (owner example ~2130 package)
-assert.ok(Math.abs(ccToCashEquivalent(140) - 140 / 1.035) < 0.001);
+assert.equal(ccToCashEquivalent(140), 140);
 const cashMix = multiTenderMaxFinance({
   packageCash: 2130,
   cashPaid: 140,
@@ -189,9 +189,8 @@ const ccMix = multiTenderMaxFinance({
   financingMonths: 60,
 });
 assert.ok(ccMix);
-const ccEq = 140 / 1.035;
-assert.ok(Math.abs(ccMix!.remainingCash - (2130 - ccEq)) < 0.05);
-assert.ok(Math.abs(ccMix!.maxFinance - (2130 - ccEq) * 1.32) < 0.1);
+assert.ok(Math.abs(ccMix!.remainingCash - (2130 - 140)) < 0.05);
+assert.ok(Math.abs(ccMix!.maxFinance - (2130 - 140) * 1.32) < 0.1);
 
 // Payment-export shape (multi-row + Payment Amt)
 const payExport = `Store,Transaction  #,Type,Pay Code,Payment Amt

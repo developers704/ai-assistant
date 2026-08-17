@@ -305,8 +305,9 @@ export default function DiscountingPage() {
         )}
 
         <p className={cn("mt-4 text-[11px] text-white/30 max-w-3xl")}>
-          Payment Amt is the ceiling. Cash: package minimum; CC: package minimum ×
-          103.5%; financing: package minimum × term %. Flag only when calculated &gt;{" "}
+          Payment Amt is the ceiling. Cash / CC: package minimum (same rule); cash+CC
+          ceiling = cash Payment Amt + CC Payment Amt; financing: package minimum × term
+          %. Flag only when calculated &gt;{" "}
           <span className="text-white/40">Payment Amt</span>. APP missing → DM + store
           owner (Serra → AJ). Returns ignored. Paycodes:{" "}
           <code className="text-white/40">data/discounting/paycodes/</code>.

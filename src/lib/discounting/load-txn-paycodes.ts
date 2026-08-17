@@ -193,7 +193,7 @@ export function clearTxnPayCodesCache(): void {
   cachedSingle = null;
 }
 
-/** Cash + CC paid (CC as cash-equivalent) and financing/lease/affirm totals. */
+/** Cash + CC paid and financing/lease/affirm totals. CC counts at face value (same as cash). */
 export function summarizePaySplit(split: TxnPaySplit): {
   cashPaid: number;
   ccPaid: number;

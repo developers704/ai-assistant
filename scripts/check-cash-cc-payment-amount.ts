@@ -19,7 +19,7 @@ assert.ok(cashCalc.ceiling < 1609.19, "cash calculated < Payment Amt → no flag
 
 const ccCalc = calculatorCeilingAmount(3226.65, "credit_card", null);
 assert.ok(ccCalc);
-assert.ok(Math.abs(ccCalc.ceiling - 3339.58) < 0.02);
+assert.ok(Math.abs(ccCalc.ceiling - 3226.65) < 0.02);
 assert.ok(ccCalc.ceiling < 5000, "CC calculated < Payment Amt → no flag");
 
 const splits = loadTxnPaySplits(true);

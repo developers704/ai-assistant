@@ -82,9 +82,10 @@ Drop **product** rows where **Total** is `0`. **Keep** `$0` Total **Item # = ITE
 When a companion paycode CSV has `Payment Amt`, compare the full transaction package calculation (all product calculator minimums + Mulberry Total) to that payment amount — **not** to the sales-line Total:
 
 - Cash only: calculated = package minimum
-- CC only: calculated = package minimum × 1.035
+- CC only: calculated = package minimum (same as cash — no 3.5% surcharge)
+- Cash + CC (no financing): calculated = package minimum; ceiling = cash Payment Amt + CC Payment Amt
 - Financing only: calculated = package minimum × financing-term multiplier
-- Cash/CC + financing: subtract cash and CC cash-equivalent (`CC ÷ 1.035`) from package minimum, then apply the financing term to the remainder
+- Cash/CC + financing: subtract cash and CC Payment Amt from package minimum, then apply the financing term to the remainder; ceiling = financing Payment Amt only
 - Flag only when **calculated > matching Payment Amt**; overage = calculated − Payment Amt
 - Any transaction containing a Qty `-1` / negative return leg is excluded entirely
 - Keep only the newest sales month in Discounting; paycode uploads prune older-month paycode files
