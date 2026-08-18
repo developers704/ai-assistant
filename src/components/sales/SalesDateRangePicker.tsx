@@ -114,6 +114,8 @@ export function SalesDateRangePicker({
   const [draftTo, setDraftTo] = useState<string | null>(value?.to ?? null);
   const [focusIso, setFocusIso] = useState<string | null>(value?.to ?? value?.from ?? null);
   const rootRef = useRef<HTMLDivElement>(null);
+  /** After From pick: reopen To without resetting drafts from applied value. */
+  const skipDraftResetRef = useRef(false);
 
   const availableSet = useMemo(
     () => new Set(availableDates.filter(isValidIsoDate)),
@@ -129,7 +131,9 @@ export function SalesDateRangePicker({
   });
 
   function openCalendar(field: ActiveField) {
-    const fresh = openField == null;
+    const fresh = openField == null && !skipDraftResetRef.current;
+    if (skipDraftResetRef.current) skipDraftResetRef.current = false;
+
     const nextFrom = fresh ? (value?.from ?? null) : draftFrom;
     const nextTo = fresh ? (value?.to ?? null) : draftTo;
     if (fresh) {
@@ -139,12 +143,14 @@ export function SalesDateRangePicker({
     setOpenField(field);
     setPanelMode("days");
     const seed =
-      (field === "from" ? nextFrom : nextTo) ||
-      nextFrom ||
-      nextTo ||
-      sortedAvail[sortedAvail.length - 1] ||
-      reportRange?.to ||
-      null;
+      field === "to" && !nextTo
+        ? nextFrom
+        : (field === "from" ? nextFrom : nextTo) ||
+          nextFrom ||
+          nextTo ||
+          sortedAvail[sortedAvail.length - 1] ||
+          reportRange?.to ||
+          null;
     setFocusIso(seed);
     const p = seed ? parseIso(seed) : null;
     if (p) setView({ y: p.y, m: p.m });
@@ -214,13 +220,15 @@ export function SalesDateRangePicker({
         : previewFrom
       : previewTo;
 
-  /** From picker: single start day. To picker: full draft range. */
+  /** From: single day only. To: one from marker until end day picked, then show range. */
   const inSelection = (iso: string) => {
     if (openField === "from") return iso === draftFrom;
+    if (!draftTo) return iso === draftFrom;
     return Boolean(rangeFrom && rangeTo && iso >= rangeFrom && iso <= rangeTo);
   };
   const isEdge = (iso: string) => {
     if (openField === "from") return iso === draftFrom;
+    if (!draftTo) return iso === draftFrom;
     return Boolean(rangeFrom && rangeTo && (iso === rangeFrom || iso === rangeTo));
   };
 
@@ -234,15 +242,10 @@ export function SalesDateRangePicker({
 
     if (openField === "from") {
       setDraftFrom(iso);
-      if (draftTo && draftTo < iso) setDraftTo(null);
-
-      // From picked → jump straight to To (no Done click).
-      setOpenField("to");
-      setPanelMode("days");
-      const toSeed = draftTo && draftTo >= iso ? draftTo : iso;
-      setFocusIso(toSeed);
-      const p = parseIso(toSeed);
-      if (p) setView({ y: p.y, m: p.m });
+      setDraftTo(null);
+      setOpenField(null);
+      skipDraftResetRef.current = true;
+      requestAnimationFrame(() => openCalendar("to"));
       return;
     }
 
