@@ -26,7 +26,7 @@ import {
   type VendorModelDetailSelection,
 } from "@/components/reports/VendorModelDetailDrawer";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
-import { isValidIsoDate } from "@/lib/reports/date-utils";
+import { isValidIsoDate, yoyCompareLabelForRange } from "@/lib/reports/date-utils";
 import {
   SalesDateRangePicker,
   type SalesDateRangeValue,
@@ -435,10 +435,7 @@ export default function SalesPage() {
     (a, b) => b.revenue - a.revenue || a.name.localeCompare(b.name)
   );
   const maxStoreRevenue = Math.max(...storePerformance.map((s) => s.revenue), 1);
-  const yoyCompareLabel =
-    dateRange && dateRange.from !== dateRange.to
-      ? "vs same weekday last year"
-      : "vs same weekday last year";
+  const yoyCompareLabel = yoyCompareLabelForRange(dateRange);
 
   const openRank = (dimension: RankDimension, value: string) => {
     setRankDetail({ dimension, value });

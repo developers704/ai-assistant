@@ -245,6 +245,27 @@ export function isoToUsDate(iso: string): string {
   return `${Number(m)}/${Number(d)}/${y}`;
 }
 
+const WEEKDAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+] as const;
+
+/** Sales dashboard YoY caption — single day names the weekday; ranges use period wording. */
+export function yoyCompareLabelForRange(
+  range: { from: string; to: string } | null | undefined
+): string {
+  if (!range || range.from !== range.to) {
+    return "vs same time period last year";
+  }
+  const day = WEEKDAY_NAMES[new Date(`${range.from}T12:00:00`).getDay()]!;
+  return `vs same last year ${day}`;
+}
+
 /** Every calendar day from `from` to `to` inclusive (ISO dates). */
 export function datesInIsoRange(from: string, to: string): string[] {
   if (!isValidIsoDate(from) || !isValidIsoDate(to)) return [];
