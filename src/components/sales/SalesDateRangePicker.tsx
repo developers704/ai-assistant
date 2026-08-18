@@ -234,25 +234,30 @@ export function SalesDateRangePicker({
 
     if (openField === "from") {
       setDraftFrom(iso);
-      // Start date only — clear To if it would be before the new From
       if (draftTo && draftTo < iso) setDraftTo(null);
+
+      // From picked → jump straight to To (no Done click).
+      setOpenField("to");
+      setPanelMode("days");
+      const toSeed = draftTo && draftTo >= iso ? draftTo : iso;
+      setFocusIso(toSeed);
+      const p = parseIso(toSeed);
+      if (p) setView({ y: p.y, m: p.m });
       return;
     }
 
+    const from = draftFrom;
+    if (!from) return;
+
     setDraftTo(iso);
+    applyDraft(from, iso);
+    setOpenField(null);
+    setPanelMode("days");
   };
 
   const pickMonth = (month: number) => {
     setView((v) => ({ y: v.y, m: month }));
     setPanelMode("days");
-  };
-
-  const canDone = Boolean(draftFrom && draftTo);
-
-  const done = () => {
-    if (!draftFrom || !draftTo) return;
-    applyDraft(draftFrom, draftTo);
-    setOpenField(null);
   };
 
   const fieldIso =
@@ -532,27 +537,6 @@ export function SalesDateRangePicker({
                 </div>
               </>
             )}
-
-            <div className="mt-3 flex justify-center border-t border-white/10 pt-2">
-              <button
-                type="button"
-                onClick={done}
-                disabled={!canDone}
-                title={
-                  canDone
-                    ? "Apply date range to Sales"
-                    : "Select both Date From and To, then Done"
-                }
-                className={cn(
-                  "min-w-[4.5rem] rounded-md px-4 py-1.5 text-[12px] font-medium ring-1",
-                  canDone
-                    ? "text-white/90 ring-sky-400/40 bg-sky-500/25 hover:bg-sky-500/35"
-                    : "cursor-not-allowed text-white/35 ring-white/10 bg-white/[0.04]"
-                )}
-              >
-                Done
-              </button>
-            </div>
           </div>
         </div>
       )}
