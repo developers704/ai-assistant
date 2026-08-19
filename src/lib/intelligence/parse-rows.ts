@@ -107,6 +107,7 @@ export function parseIntelligenceCsv(csvText: string): IntelligenceRow[] {
       customerPhone:
         (colPhone ? String(rec[colPhone] ?? "").trim() : "") ||
         (colHome ? String(rec[colHome] ?? "").trim() : ""),
+      customerId: "",
     };
     row.customerId = customerKey(row);
     out.push(row);

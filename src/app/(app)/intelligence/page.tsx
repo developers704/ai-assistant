@@ -378,8 +378,8 @@ export default function IntelligencePage() {
                       </thead>
                       <tbody>
                         {report.bestStoreByDesign.map((r) => (
-                          <tr key={r.department} className="border-t border-white/5">
-                            <td className="px-4 py-2 text-white/80">{r.department}</td>
+                          <tr key={r.design} className="border-t border-white/5">
+                            <td className="px-4 py-2 text-white/80">{r.design}</td>
                             <td className="px-4 py-2 text-violet-200">{r.store}</td>
                             <td
                               className={cn(

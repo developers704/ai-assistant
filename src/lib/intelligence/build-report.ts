@@ -486,7 +486,12 @@ export function buildIntelligenceReport(
     storeByDepartment: deptMatrix.cells.slice(0, 80),
     storeByDesign: designMatrix.cells.slice(0, 80),
     bestStoreByDepartment: deptMatrix.bestByDim.slice(0, 15),
-    bestStoreByDesign: designMatrix.bestByDim.slice(0, 15),
+    bestStoreByDesign: designMatrix.bestByDim.slice(0, 15).map((r) => ({
+      design: r.department,
+      store: r.store,
+      index: r.index,
+      netSales: r.netSales,
+    })),
     salespersons,
     customers: {
       retention: retentionCore,
