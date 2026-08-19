@@ -266,6 +266,30 @@ export function yoyCompareLabelForRange(
   return `vs same last year ${day}`;
 }
 
+/**
+ * YoY compare window for sales dashboards.
+ * Returns null when the loaded report has no prior-year baseline (compare would
+ * overlap the dataset start or fall entirely on/after reportStart).
+ */
+export function priorYearCompareWindow(
+  from: string,
+  to: string,
+  reportStart: string | null | undefined
+): { from: string; to: string } | null {
+  if (!isValidIsoDate(from) || !isValidIsoDate(to)) return null;
+  const start = from <= to ? from : to;
+  const end = from <= to ? to : from;
+  const lyFrom = shiftIsoToSameWeekdayLastYear(start);
+  const lyTo = shiftIsoToSameWeekdayLastYear(end);
+  if (!reportStart || !isValidIsoDate(reportStart)) {
+    return { from: lyFrom, to: lyTo };
+  }
+  if (lyFrom >= reportStart) return null;
+  const cappedTo = lyTo >= reportStart ? shiftIsoDays(reportStart, -1) : lyTo;
+  if (cappedTo < lyFrom) return null;
+  return { from: lyFrom, to: cappedTo };
+}
+
 /** Every calendar day from `from` to `to` inclusive (ISO dates). */
 export function datesInIsoRange(from: string, to: string): string[] {
   if (!isValidIsoDate(from) || !isValidIsoDate(to)) return [];

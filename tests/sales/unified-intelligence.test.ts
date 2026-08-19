@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import { summarizeRows, filterRows, groupRows } from "@/lib/sales/sales-aggregate";
 import { resolveDateRange, detectRelativeDate, todayIso, addDays } from "@/lib/sales/sales-date-resolver";
+import { datesInIsoRange, priorYearCompareWindow } from "@/lib/reports/date-utils";
 import { buildSalesDashboardSnapshot } from "@/lib/sales/snapshot/builder";
 import { salesDashboardSnapshotSchema } from "@/lib/sales/snapshot/schema";
 import { SALES_METRICS } from "@/lib/sales/metrics/definitions";
@@ -116,6 +117,25 @@ describe("sales date resolver", () => {
       dates
     );
     expect(resolved.dates).toEqual(["2026-07-10", "2026-07-11"]);
+    expect(resolved.startDate).toBe("2026-07-10");
+    expect(resolved.endDate).toBe("2026-07-11");
+  });
+
+  it("keeps full requested bounds for long custom ranges (Jan 2025–Aug 2026)", () => {
+    const available = datesInIsoRange("2025-01-01", "2026-08-17");
+    const resolved = resolveDateRange(
+      { type: "custom", startDate: "2025-01-01", endDate: "2026-08-18" },
+      available
+    );
+    expect(resolved.startDate).toBe("2025-01-01");
+    expect(resolved.endDate).toBe("2026-08-17");
+    expect(resolved.dates.length).toBeGreaterThan(500);
+  });
+
+  it("returns null YoY window when report starts Jan 2025", () => {
+    expect(
+      priorYearCompareWindow("2025-01-01", "2026-08-18", "2025-01-01")
+    ).toBeNull();
   });
 });
 

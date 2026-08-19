@@ -1,7 +1,7 @@
 import type { SalesSummary } from "@/types";
 import { isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import { normalizeSalesImageDir, resolveProductImageUrl } from "@/lib/reports/product-image";
-import { isValidIsoDate, parseReportFilterDate, shiftIsoToSameWeekdayLastYear, shiftIsoYears } from "@/lib/reports/date-utils";
+import { isValidIsoDate, parseReportFilterDate, priorYearCompareWindow, shiftIsoYears } from "@/lib/reports/date-utils";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import {
   calculatorWholesaleUnitCost,
@@ -430,21 +430,25 @@ export function summarizeVendorPos(
     const from = rangeFrom <= rangeTo ? rangeFrom : rangeTo;
     const to = rangeFrom <= rangeTo ? rangeTo : rangeFrom;
     periodRows = periodRows.filter((r) => r.date && r.date >= from && r.date <= to);
-    // Same weekday pattern last year (Mon vs Mon), not same calendar date.
-    const lyFrom = shiftIsoToSameWeekdayLastYear(from);
-    const lyTo = shiftIsoToSameWeekdayLastYear(to);
-    compareRows = rows.filter(
-      (r) => r.date && r.date >= lyFrom && r.date <= lyTo
-    );
+    const compare = priorYearCompareWindow(from, to, dateFrom);
+    compareRows = compare
+      ? rows.filter(
+          (r) => r.date && r.date >= compare.from && r.date <= compare.to
+        )
+      : [];
   } else if (opts.filterDate) {
     periodRows = periodRows.filter((r) => r.date === opts.filterDate);
-    const lyDate = shiftIsoToSameWeekdayLastYear(opts.filterDate);
-    compareRows = rows.filter((r) => r.date === lyDate);
+    const compare = priorYearCompareWindow(opts.filterDate, opts.filterDate, dateFrom);
+    compareRows = compare
+      ? rows.filter((r) => r.date && r.date >= compare.from && r.date <= compare.to)
+      : [];
   } else if (opts.period === "daily" && dates.length === 1) {
     periodRows = periodRows.filter((r) => r.date === dateTo);
     if (dateTo) {
-      const lyDate = shiftIsoToSameWeekdayLastYear(dateTo);
-      compareRows = rows.filter((r) => r.date === lyDate);
+      const compare = priorYearCompareWindow(dateTo, dateTo, dateFrom);
+      compareRows = compare
+        ? rows.filter((r) => r.date && r.date >= compare.from && r.date <= compare.to)
+        : [];
     }
   }
 

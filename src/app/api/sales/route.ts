@@ -9,7 +9,7 @@ import type { StoredReportMeta } from "@/lib/reports/types";
 import {
   isValidIsoDate,
   parseReportFilterDate,
-  shiftIsoToSameWeekdayLastYear,
+  priorYearCompareWindow,
 } from "@/lib/reports/date-utils";
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import { querySales } from "@/lib/sales/query-sales";
@@ -245,27 +245,41 @@ export async function GET(req: NextRequest) {
       let previousWeek: SalesQueryResult | null = null;
 
       if (filterDateFrom && filterDateTo) {
-        const lyFrom = shiftIsoToSameWeekdayLastYear(filterDateFrom);
-        const lyTo = shiftIsoToSameWeekdayLastYear(filterDateTo);
-        previousDay = await queryDashboardSlice({
-          ...slice,
-          date: undefined,
-          dateFrom: lyFrom,
-          dateTo: lyTo,
-          mode: "comparison",
-        });
+        const reportStart =
+          shell.availableDates[0] ?? result.availability.reportStartDate ?? null;
+        const compare = priorYearCompareWindow(
+          filterDateFrom,
+          filterDateTo,
+          reportStart
+        );
+        if (compare) {
+          previousDay = await queryDashboardSlice({
+            ...slice,
+            date: undefined,
+            dateFrom: compare.from,
+            dateTo: compare.to,
+            mode: "comparison",
+          });
+        }
       } else if (filterDate) {
-        const lyDate = shiftIsoToSameWeekdayLastYear(filterDate);
-        previousDay = await queryDashboardSlice({
-          ...slice,
-          date: lyDate,
-          dateFrom: lyDate,
-          dateTo: lyDate,
-          mode: "comparison",
-        });
+        const reportStart =
+          shell.availableDates[0] ?? result.availability.reportStartDate ?? null;
+        const compare = priorYearCompareWindow(filterDate, filterDate, reportStart);
+        if (compare) {
+          previousDay = await queryDashboardSlice({
+            ...slice,
+            date: compare.from,
+            dateFrom: compare.from,
+            dateTo: compare.to,
+            mode: "comparison",
+          });
+        }
 
         const weekAgo = shiftIsoDate(filterDate, -7);
-        if (shell.availableDates.includes(weekAgo) && weekAgo !== lyDate) {
+        if (
+          shell.availableDates.includes(weekAgo) &&
+          weekAgo !== compare?.from
+        ) {
           previousWeek = await queryDashboardSlice({
             ...slice,
             date: weekAgo,

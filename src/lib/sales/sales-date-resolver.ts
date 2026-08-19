@@ -1,4 +1,8 @@
-import { extractSalesDateFromMessage, isValidIsoDate } from "@/lib/reports/date-utils";
+import {
+  datesInIsoRange,
+  extractSalesDateFromMessage,
+  isValidIsoDate,
+} from "@/lib/reports/date-utils";
 import type { SalesDateRangeInput, SalesDateRangeType, SalesResolvedDateRange } from "./sales-types";
 
 const BUSINESS_TZ = process.env.BUSINESS_TIMEZONE || "America/Los_Angeles";
@@ -56,14 +60,7 @@ function startOfWeek(iso: string): string {
 
 function datesBetween(start: string, end: string): string[] {
   if (!start || !end) return [];
-  const out: string[] = [];
-  let cur = start;
-  let guard = 0;
-  while (cur <= end && guard++ < 400) {
-    out.push(cur);
-    cur = addDays(cur, 1);
-  }
-  return out;
+  return datesInIsoRange(start <= end ? start : end, start <= end ? end : start);
 }
 
 function labelRange(start: string | null, end: string | null, type: string): string {
@@ -220,34 +217,40 @@ export function resolveDateRange(
   if (start && !end) end = start;
   if (end && !start) start = end;
 
-  const requested = datesBetween(start!, end!);
+  const rangeStart = start! <= end! ? start! : end!;
+  const rangeEnd = start! <= end! ? end! : start!;
+  const effectiveStart =
+    reportStart && rangeStart < reportStart ? reportStart : rangeStart;
+  const effectiveEnd = reportEnd && rangeEnd > reportEnd ? reportEnd : rangeEnd;
+
+  const requested = datesBetween(rangeStart, rangeEnd);
   const availableSet = new Set(sorted);
   // Prefer discrete days present in the report; fall back to any report days
   // inside the inclusive calendar window (handles sparse lists / list mismatches).
   let intersecting = requested.filter((d) => availableSet.has(d));
-  if (intersecting.length === 0 && start && end) {
-    intersecting = sorted.filter((d) => d >= start! && d <= end!);
+  if (intersecting.length === 0) {
+    intersecting = sorted.filter((d) => d >= effectiveStart && d <= effectiveEnd);
   }
 
   if (intersecting.length === 0) {
     return {
       type: type as SalesResolvedDateRange["type"],
-      startDate: start,
-      endDate: end,
-      label: labelRange(start, end, String(type)),
+      startDate: rangeStart,
+      endDate: rangeEnd,
+      label: labelRange(rangeStart, rangeEnd, String(type)),
       dates: [],
       unavailableReason:
         reportStart && reportEnd
-          ? `The loaded report covers ${reportStart} through ${reportEnd}, so ${labelRange(start, end, String(type))} is not available.`
-          : `Requested dates ${labelRange(start, end, String(type))} are not in the loaded report.`,
+          ? `The loaded report covers ${reportStart} through ${reportEnd}, so ${labelRange(rangeStart, rangeEnd, String(type))} is not available.`
+          : `Requested dates ${labelRange(rangeStart, rangeEnd, String(type))} are not in the loaded report.`,
     };
   }
 
   return {
     type: type as SalesResolvedDateRange["type"],
-    startDate: intersecting[0],
-    endDate: intersecting[intersecting.length - 1],
-    label: labelRange(intersecting[0], intersecting[intersecting.length - 1], String(type)),
+    startDate: effectiveStart,
+    endDate: effectiveEnd,
+    label: labelRange(effectiveStart, effectiveEnd, String(type)),
     dates: intersecting,
   };
 }
