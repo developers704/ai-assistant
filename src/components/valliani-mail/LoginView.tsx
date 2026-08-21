@@ -39,7 +39,7 @@ export function MailLoginView({
             </div>
           </div>
           <h1 className="text-ink text-2xl sm:text-[1.65rem] font-semibold tracking-[0.04em]">
-            Valliani Mails
+            E-Mails
           </h1>
           <p className="mt-1.5 text-sm text-ink-muted tracking-wide">
             Connect your mailbox
