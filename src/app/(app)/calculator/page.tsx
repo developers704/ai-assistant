@@ -30,9 +30,6 @@ import {
 } from "lucide-react";
 import { ProductThumb, ProductLightbox } from "@/components/reports/ProductImagePreview";
 
-const selectClass =
-  "select-dark w-full px-4 py-2.5 rounded-2xl backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400/40";
-
 const money = (n: number) =>
   isFinite(n)
     ? n.toLocaleString("en-US", {
@@ -41,6 +38,29 @@ const money = (n: number) =>
         maximumFractionDigits: 2,
       })
     : "$0.00";
+
+const PAYMENT_METHOD_TABS: {
+  id: PaymentMethod;
+  label: string;
+  hint?: string;
+}[] = [
+  { id: "cash", label: "Cash", hint: "No surcharge" },
+  { id: "credit_card", label: "Credit Card", hint: "3.5%" },
+  { id: "financing", label: "Financing", hint: "No-interest terms" },
+  {
+    id: "lease",
+    label: "Progressive / Acima / UOwn / Kefene",
+    hint: "5%",
+  },
+  { id: "affirm", label: "Affirm", hint: "12%" },
+];
+
+const FINANCING_PLAN_TABS = (
+  Object.keys(FINANCING_PLAN_LABELS) as FinancingPlan[]
+).map((plan) => ({
+  id: plan,
+  label: FINANCING_PLAN_LABELS[plan],
+}));
 
 interface LookupResponse {
   item: InventoryItem;
@@ -367,46 +387,30 @@ export default function CalculatorPage() {
                   </CardHeader>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+                      <p className="block text-sm font-medium text-ink-secondary mb-2">
                         Payment type
-                      </label>
-                      <select
+                      </p>
+                      <OptionTabs
+                        options={PAYMENT_METHOD_TABS}
                         value={paymentMethod}
-                        onChange={(e) =>
-                          setPaymentMethod(e.target.value as PaymentMethod)
-                        }
-                        className={selectClass}
-                      >
-                        <option value="cash">Cash</option>
-                        <option value="credit_card">Credit Card — 3.5%</option>
-                        <option value="financing">Financing</option>
-                        <option value="lease">
-                          Progressive / Acima / UOwn / Kefene — 5%
-                        </option>
-                        <option value="affirm">Affirm — 12%</option>
-                      </select>
+                        onChange={setPaymentMethod}
+                        columns="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+                        activeClassName="bg-indigo-500/20 ring-indigo-400/40"
+                      />
                     </div>
 
                     {paymentMethod === "financing" && (
                       <div>
-                        <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+                        <p className="block text-sm font-medium text-ink-secondary mb-2">
                           Financing term
-                        </label>
-                        <select
+                        </p>
+                        <OptionTabs
+                          options={FINANCING_PLAN_TABS}
                           value={financingPlan}
-                          onChange={(e) =>
-                            setFinancingPlan(e.target.value as FinancingPlan)
-                          }
-                          className={selectClass}
-                        >
-                          {(Object.keys(FINANCING_PLAN_LABELS) as FinancingPlan[]).map(
-                            (plan) => (
-                              <option key={plan} value={plan}>
-                                {FINANCING_PLAN_LABELS[plan]}
-                              </option>
-                            )
-                          )}
-                        </select>
+                          onChange={setFinancingPlan}
+                          columns="grid-cols-1 sm:grid-cols-2"
+                          activeClassName="bg-violet-500/20 ring-violet-400/40"
+                        />
                       </div>
                     )}
 
@@ -507,6 +511,53 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between gap-3 py-1">
       <span className="text-ink-secondary">{label}</span>
       <span className="font-medium text-ink tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function OptionTabs<T extends string>({
+  options,
+  value,
+  onChange,
+  columns = "grid-cols-2",
+  activeClassName = "bg-indigo-500/20 ring-indigo-400/40",
+}: {
+  options: { id: T; label: string; hint?: string }[];
+  value: T;
+  onChange: (id: T) => void;
+  columns?: string;
+  activeClassName?: string;
+}) {
+  return (
+    <div className={cn("grid gap-2", columns)}>
+      {options.map((option) => {
+        const active = value === option.id;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            className={cn(
+              "rounded-2xl px-3.5 py-3 text-left ring-1 transition-all",
+              active
+                ? activeClassName
+                : "bg-white/5 ring-white/10 hover:bg-white/10"
+            )}
+          >
+            <span
+              className={cn(
+                "block text-sm font-medium leading-snug",
+                active ? "text-ink" : "text-ink-secondary"
+              )}
+            >
+              {option.label}
+            </span>
+            {option.hint && (
+              <span className="mt-1 block text-[11px] text-ink-muted">{option.hint}</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
