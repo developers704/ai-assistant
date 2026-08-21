@@ -25,6 +25,8 @@ import {
   isComposeEmailToPerson,
   composeEmailHasBody,
   buildComposeEmailPrompt,
+  parseEmailRecipient,
+  resolveEmailRecipient,
 } from "@/lib/ai/email-compose";
 import {
   meetingRequestNeedsTime,
@@ -194,7 +196,20 @@ export async function tryRoutedResponse(
   }
 
   if (routed === "email.draft" && isComposeEmailToPerson(message)) {
-    if (!composeEmailHasBody(message) && !ui?.selectedEmailId) {
+    const recipientQuery = parseEmailRecipient(message);
+    const resolvedEmail = recipientQuery
+      ? resolveEmailRecipient(recipientQuery, state, state.emails)
+      : null;
+    const contactOnly =
+      !!recipientQuery &&
+      resolvedEmail?.status !== "ok" &&
+      state.contacts.some((c) => {
+        const q = recipientQuery.toLowerCase();
+        const n = c.name.toLowerCase();
+        return n === q || n.startsWith(q) || q.startsWith(n.split(" ")[0] ?? "");
+      });
+
+    if ((!composeEmailHasBody(message) || contactOnly) && !ui?.selectedEmailId) {
       const prompt = buildComposeEmailPrompt(message, state);
       recordNavigationOffer("/email", "compose email");
       return {

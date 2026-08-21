@@ -13,6 +13,7 @@ export type RoutedIntent =
   | "discounting.high"
   | "contacts.search"
   | "task.create"
+  | "task.list"
   | "task.delete"
   | "news.gold"
   | "news.industry"
@@ -301,7 +302,10 @@ export function routeIntent(input: IntentRouteInput): RoutedIntent {
   }
 
   if (/\bcall\b/i.test(lower) && MALL_HINT.test(lower)) return "store.call";
-  if (/\b(contact|phone number|call )\b/i.test(lower)) return "contacts.search";
+  if (/\b(contact|phone number|call |find\b)/i.test(lower)) return "contacts.search";
+  if (/\b(list|show|what are)\b[\s\S]{0,24}\b(reminders?|tasks?|to-?dos?)\b/i.test(lower)) {
+    return "task.list";
+  }
   if (/\b(remind|add task|create task|to-do)\b/i.test(lower)) return "task.create";
   if (/\b(delete task|remove task|cancel task)\b/i.test(lower)) return "task.delete";
   if (/\b(industry|jewelry|jewellery|market)\b.*\bnews\b/i.test(lower) || /\bnews\b.*\b(market|industry|jewelry|jewellery)\b/i.test(lower)) {
@@ -392,6 +396,7 @@ export function intentToTool(intent: RoutedIntent): string | null {
     "discounting.high": "get_high_discounts",
     "contacts.search": "list_contacts",
     "task.create": "add_task",
+    "task.list": "list_tasks",
     "task.delete": "delete_task",
     "news.gold": "get_metal_rates",
     "news.industry": "get_industry_news",
