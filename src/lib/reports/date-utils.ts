@@ -268,26 +268,34 @@ export function yoyCompareLabelForRange(
 
 /**
  * YoY compare window for sales dashboards.
- * Returns null when the loaded report has no prior-year baseline (compare would
- * overlap the dataset start or fall entirely on/after reportStart).
+ * Shifts the selected range back one year (same weekday), then keeps only days
+ * strictly before the selected `from` so the baseline never overlaps the
+ * current filter. Returns null when that window is empty or entirely before
+ * the loaded report (no prior-year rows possible → UI shows 0%).
  */
 export function priorYearCompareWindow(
   from: string,
   to: string,
-  reportStart: string | null | undefined
+  reportStart?: string | null
 ): { from: string; to: string } | null {
   if (!isValidIsoDate(from) || !isValidIsoDate(to)) return null;
   const start = from <= to ? from : to;
   const end = from <= to ? to : from;
   const lyFrom = shiftIsoToSameWeekdayLastYear(start);
   const lyTo = shiftIsoToSameWeekdayLastYear(end);
-  if (!reportStart || !isValidIsoDate(reportStart)) {
-    return { from: lyFrom, to: lyTo };
-  }
-  if (lyFrom >= reportStart) return null;
-  const cappedTo = lyTo >= reportStart ? shiftIsoDays(reportStart, -1) : lyTo;
+  // Never compare against days that fall inside the selected period.
+  const beforeSelection = shiftIsoDays(start, -1);
+  const cappedTo = lyTo < beforeSelection ? lyTo : beforeSelection;
   if (cappedTo < lyFrom) return null;
-  return { from: lyFrom, to: cappedTo };
+  if (reportStart && isValidIsoDate(reportStart) && cappedTo < reportStart) {
+    return null;
+  }
+  const cappedFrom =
+    reportStart && isValidIsoDate(reportStart) && lyFrom < reportStart
+      ? reportStart
+      : lyFrom;
+  if (cappedFrom > cappedTo) return null;
+  return { from: cappedFrom, to: cappedTo };
 }
 
 /** Every calendar day from `from` to `to` inclusive (ISO dates). */

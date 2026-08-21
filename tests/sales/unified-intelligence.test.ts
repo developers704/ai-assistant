@@ -137,6 +137,12 @@ describe("sales date resolver", () => {
       priorYearCompareWindow("2025-01-01", "2026-08-18", "2025-01-01")
     ).toBeNull();
   });
+
+  it("keeps prior-year Jan when filtering Jan 2026", () => {
+    expect(
+      priorYearCompareWindow("2026-01-01", "2026-01-31", "2025-01-01")
+    ).toEqual({ from: "2025-01-02", to: "2025-02-01" });
+  });
 });
 
 describe("sales aliases", () => {
