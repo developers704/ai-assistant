@@ -17,10 +17,21 @@ export {
 };
 
 export async function readSessionFromCookies(): Promise<SessionPayload | null> {
-  const jar = await cookies();
-  const token = jar.get(AUTH_COOKIE)?.value;
-  if (!token) return null;
-  return verifySessionToken(token);
+  try {
+    const jar = await cookies();
+    const token = jar.get(AUTH_COOKIE)?.value;
+    if (!token) return null;
+    return verifySessionToken(token);
+  } catch (err) {
+    // Scripts and unit tests import app code outside a Next.js request (e.g. test:chat).
+    if (
+      err instanceof Error &&
+      err.message.includes("was called outside a request scope")
+    ) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function readSessionFromRequest(
