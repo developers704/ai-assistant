@@ -33,7 +33,19 @@ const NAME_STOP = new Set([
   "and",
   "with",
   "please",
+  "tomorrow",
+  "today",
+  "tonight",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
 ]);
+
+const TIME_TOKEN = /\d{1,2}(:\d{2})?\s*(am|pm)\b/i;
 
 const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
 
@@ -46,6 +58,7 @@ function extractNameTokens(rest: string): string | null {
   for (const w of words) {
     const clean = w.replace(/[.,!?;:]+$/g, "");
     if (!clean || NAME_STOP.has(clean.toLowerCase())) break;
+    if (TIME_TOKEN.test(clean)) break;
     if (EMAIL_RE.test(clean)) break;
     if (!/^[A-Za-z][A-Za-z'.-]*$/.test(clean)) break;
     nameWords.push(clean);

@@ -83,7 +83,7 @@ export function FolderSidebar({
     >
       <div className="px-1.5 pb-3">
         <h2 className="text-[22px] lg:text-xl font-bold text-white tracking-tight">
-          Valliani Mail
+          E-Mails
         </h2>
         <p className="text-[13px] lg:text-[11px] text-white/50 mt-1 truncate">
           {userEmail}

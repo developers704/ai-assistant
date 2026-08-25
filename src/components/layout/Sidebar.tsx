@@ -51,7 +51,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/chat", label: "AI Chat", icon: MessageSquare, palette: "violet" },
   { href: "/news", label: "News & Markets", icon: Newspaper, palette: "sky" },
   { href: "/email", label: "Email", icon: Mail, palette: "indigo" },
-  { href: "/valliani-mail", label: "Valliani Mails", icon: Inbox, palette: "sky" },
+  { href: "/valliani-mail", label: "E-Mails", icon: Inbox, palette: "sky" },
   { href: "/calendar", label: "Calendar & Tasks", icon: Calendar, palette: "rose" },
   { href: "/stores", label: "Stores Map & Info", icon: MapPinned, palette: "violet" },
   { href: "/calculator", label: "Price Calculator", icon: Calculator, palette: "amber" },
@@ -74,7 +74,7 @@ const ALL_NAV_ITEMS: Record<string, NavItem> = {
   "/email": { href: "/email", label: "Email", icon: Mail, palette: "indigo" },
   "/valliani-mail": {
     href: "/valliani-mail",
-    label: "Valliani Mails",
+    label: "E-Mails",
     icon: Inbox,
     palette: "sky",
   },
