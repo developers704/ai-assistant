@@ -213,6 +213,28 @@ export default function CalculatorPage() {
 
   const hasCustomerOfferInput = customerOfferInput.trim().length > 0;
 
+  const skuLookupRow = (
+    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
+      <Input
+        label="SKU Number"
+        placeholder="Enter SKU #"
+        value={sku}
+        onChange={(e) => setSku(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && lookupSku()}
+      />
+      <div className="flex items-end">
+        <Button
+          className="w-full md:w-auto"
+          onClick={lookupSku}
+          disabled={loading || !sku.trim()}
+        >
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+          Look Up SKU
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <PageShell accent="amber">
         <PageShellHeader>
@@ -220,7 +242,7 @@ export default function CalculatorPage() {
             gradient
             eyebrow="Pricing"
             title="Price Calculator"
-            subtitle="SKU lookup · customer offer · manager tiers"
+            subtitle="Customer offer · manager tiers · financing"
             action={
               <div className="flex items-center gap-2">
                 {inventoryLoaded === true && (
@@ -273,67 +295,40 @@ export default function CalculatorPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/20">
-                  <Search size={16} className="text-sky-300" />
-                </span>
-                SKU Lookup
-              </CardTitle>
+              <CardTitle>Calculator mode</CardTitle>
             </CardHeader>
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
-              <Input
-                label="SKU Number"
-                placeholder="Enter SKU #"
-                value={sku}
-                onChange={(e) => setSku(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && lookupSku()}
-              />
-              <div className="flex items-end">
-                <Button
-                  className="w-full md:w-auto"
-                  onClick={lookupSku}
-                  disabled={loading || !sku.trim()}
-                >
-                  {loading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Search size={16} />
-                  )}
-                  Look Up SKU
-                </Button>
-              </div>
-            </div>
-            {error && (
-              <p className="mt-3 text-sm text-accent-rose">{error}</p>
-            )}
+            <OptionTabs
+              options={CALCULATOR_MODE_TABS}
+              value={calculatorMode}
+              onChange={setCalculatorMode}
+              columns="grid-cols-1 sm:grid-cols-2"
+              activeClassName="bg-amber-500/20 ring-amber-400/40"
+            />
           </Card>
 
-          {result && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Calculator mode</CardTitle>
-                </CardHeader>
-                <OptionTabs
-                  options={CALCULATOR_MODE_TABS}
-                  value={calculatorMode}
-                  onChange={setCalculatorMode}
-                  columns="grid-cols-1 sm:grid-cols-2"
-                  activeClassName="bg-amber-500/20 ring-amber-400/40"
-                />
-              </Card>
+          {calculatorMode === "customer_offer" ? (
+            <Card className="ring-1 ring-amber-400/15">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/20">
+                    <HandCoins size={16} className="text-amber-300" />
+                  </span>
+                  Customer Offer
+                </CardTitle>
+              </CardHeader>
 
-              {calculatorMode === "customer_offer" ? (
-                <Card className="ring-1 ring-amber-400/15">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/20">
-                        <HandCoins size={16} className="text-amber-300" />
-                      </span>
-                      Customer Offer
-                    </CardTitle>
-                  </CardHeader>
-                  <div className="flex flex-col sm:flex-row gap-4 mb-5">
+              {skuLookupRow}
+              {error && <p className="mt-3 text-sm text-accent-rose">{error}</p>}
+
+              {!result && !loading && (
+                <p className="mt-4 text-sm text-ink-muted">
+                  Enter a SKU above to load tag price and whole cost.
+                </p>
+              )}
+
+              {result && (
+                <>
+                  <div className="flex flex-col sm:flex-row gap-4 mt-5 mb-5">
                     <ProductThumb
                       imageDir={result.item.imageDir}
                       imageUrl={result.imageUrl}
@@ -416,8 +411,32 @@ export default function CalculatorPage() {
                       )}
                     </div>
                   </div>
-                </Card>
-              ) : (
+                </>
+              )}
+            </Card>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/20">
+                      <DollarSign size={16} className="text-emerald-300" />
+                    </span>
+                    Standard Pricing
+                  </CardTitle>
+                </CardHeader>
+
+                {skuLookupRow}
+                {error && <p className="mt-3 text-sm text-accent-rose">{error}</p>}
+
+                {!result && !loading && (
+                  <p className="mt-4 text-sm text-ink-muted">
+                    Enter a SKU above to see tiers, financing, and final amount.
+                  </p>
+                )}
+              </Card>
+
+              {result && (
                 <>
               <Card>
                 <CardHeader>
