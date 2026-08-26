@@ -50,12 +50,7 @@ const DIAMOND_DISCOUNTS: Record<ManagerTier, number> = {
   m: 77.5,
 };
 
-/** UV / Ultimate Value + diamond — flat 82% (except zero-discount SKUs). */
-const UV_DIAMOND_DISCOUNTS: Record<ManagerTier, number> = {
-  dm: 82,
-  cm: 82,
-  m: 82,
-};
+/** UV / Ultimate Value + diamond uses DIAMOND_DISCOUNTS (except fixed zero-discount SKUs). */
 
 const ZERO_DISCOUNTS: Record<ManagerTier, number> = { dm: 0, cm: 0, m: 0 };
 
@@ -360,7 +355,7 @@ function getDiscountPercents(
   }
 
   if (isUvDiamondSpecial(item)) {
-    return isUvDiamondZeroSku(item) ? ZERO_DISCOUNTS : UV_DIAMOND_DISCOUNTS;
+    return isUvDiamondZeroSku(item) ? ZERO_DISCOUNTS : DIAMOND_DISCOUNTS;
   }
 
   if (category === "watch" && watchBrand) {
@@ -409,7 +404,7 @@ function buildRulesSummary(
     if (isUvDiamondZeroSku(item)) {
       return `UV / Ultimate Value + diamond (SKU ${skuCostKey(item.sku)}) — 0% discount`;
     }
-    return "UV / Ultimate Value + diamond — 82% off (DM / CM / M)";
+    return `UV / Ultimate Value + diamond — ${formatTierSummary(discounts)}`;
   }
 
   const fixedDesign = getFixedDesignCollection(item);

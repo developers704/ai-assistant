@@ -177,6 +177,36 @@ describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
 });
 
 describe("Manager discount tiers (GOLD JEWL vs diamond dept)", () => {
+  it("UV + diamond (non-special SKU) → DM 82 / CM 80 / M 77.5", () => {
+    const pricing = calculatePricing(
+      makeItem({
+        sku: "999001",
+        department: "EARRINGS",
+        design: "NOVELLO",
+        class: "10KT",
+        description: '10KT"UV-NOVELLO" LABGROWN DIAMOND STUDS',
+        tagPrice: 10000,
+      })
+    );
+    expect(pricing.tiers.map((t) => t.discountPercent)).toEqual([82, 80, 77.5]);
+    expect(pricing.tiers.find((t) => t.tier === "m")?.cashPrice).toBeCloseTo(10000 * 0.225, 2);
+    expect(pricing.rulesSummary).toMatch(/UV \/ Ultimate Value \+ diamond/);
+  });
+
+  it("UV + diamond special SKU still 0% discount", () => {
+    const pricing = calculatePricing(
+      makeItem({
+        sku: "231618S",
+        department: "LADYS RING",
+        design: "NOVELLO",
+        class: "14KT",
+        description: "UV diamond ring",
+        tagPrice: 5000,
+      })
+    );
+    expect(pricing.tiers.map((t) => t.discountPercent)).toEqual([0, 0, 0]);
+  });
+
   it("GOLD JEWL in GENTS RING → gold 65/60/55, not diamond 82/80/77.5", () => {
     const item = makeItem({
       sku: "240298",

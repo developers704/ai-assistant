@@ -70,7 +70,7 @@ assert(
   { dm: 0, cm: 0, m: 0 }
 );
 assert(
-  "UV + diamond → 82%",
+  "UV + diamond → DM 82 / CM 80 / M 77.5",
   tiers(
     item({
       sku: "D1",
@@ -78,10 +78,10 @@ assert(
       department: "PENDANT",
     })
   ),
-  { dm: 82, cm: 82, m: 82 }
+  { dm: 82, cm: 80, m: 77.5 }
 );
 assert(
-  "Ultimate Value + diamond → 82%",
+  "Ultimate Value + diamond → DM 82 / CM 80 / M 77.5",
   tiers(
     item({
       sku: "D2",
@@ -89,7 +89,7 @@ assert(
       department: "EARRINGS",
     })
   ),
-  { dm: 82, cm: 82, m: 82 }
+  { dm: 82, cm: 80, m: 77.5 }
 );
 assert(
   "UV diamond exception SKU → 0%",
