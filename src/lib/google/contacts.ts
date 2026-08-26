@@ -79,3 +79,24 @@ export async function fetchGoogleContacts(
 
   return contacts.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
+
+function contactDedupeKey(contact: Contact): string {
+  const email = contact.email?.trim().toLowerCase();
+  if (email) return `e:${email}`;
+  const phone = contact.phone?.replace(/\D/g, "");
+  if (phone) return `p:${phone}`;
+  return `n:${contact.name.trim().toLowerCase()}`;
+}
+
+/** Team directory first, then Google contacts that are not already listed. */
+export function mergeContactLists(team: Contact[], google: Contact[]): Contact[] {
+  const merged = [...team];
+  const seen = new Set(team.map(contactDedupeKey));
+  for (const contact of google) {
+    const key = contactDedupeKey(contact);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(contact);
+  }
+  return merged.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}

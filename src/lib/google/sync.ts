@@ -4,7 +4,7 @@ import { isGoogleConnected, getGoogleTokens } from "./token-store";
 import { getAuthenticatedClient } from "./client";
 import { fetchGmailInbox } from "./gmail";
 import { fetchGoogleCalendarEvents } from "./calendar";
-import { fetchGoogleContacts } from "./contacts";
+import { fetchGoogleContacts, mergeContactLists } from "./contacts";
 import { sortEmails } from "@/lib/email-utils";
 import { filterCalendarEvents } from "@/lib/calendar-utils";
 import {
@@ -110,7 +110,7 @@ export async function getEnrichedState(options?: {
       ...base,
       emails: cached.emails,
       events: filterCalendarEvents(cached.events),
-      contacts: cached.contacts,
+      contacts: mergeContactLists(base.contacts, cached.contacts),
       integrations: {
         ...integrations,
         google: cached.integration,
@@ -125,7 +125,7 @@ export async function getEnrichedState(options?: {
       ...base,
       events: [],
       emails: [],
-      contacts: [],
+      contacts: base.contacts,
       integrations: { ...integrations, google: integration },
     };
   }
@@ -181,7 +181,7 @@ export async function getEnrichedState(options?: {
       ...base,
       emails: sortedEmails,
       events: filteredEvents,
-      contacts: googleResult.contacts,
+      contacts: mergeContactLists(base.contacts, googleResult.contacts),
       integrations: {
         ...integrations,
         google: syncedIntegration,

@@ -276,7 +276,9 @@ export default function ContactsPage() {
                 </div>
                 {filteredContacts.length === 0 ? (
                   <p className="text-sm text-ink-muted text-center py-8 px-2">
-                    No contacts match “{search.trim()}”.
+                    {search.trim()
+                      ? `No contacts match “${search.trim()}”.`
+                      : "No contacts loaded yet. Refresh the page — team directory should appear shortly."}
                   </p>
                 ) : (
                   filteredContacts.map((contact) => {

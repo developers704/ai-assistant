@@ -1,6 +1,7 @@
 import type { AppState, CalendarEvent, Contact, Email, GoogleIntegration } from "@/types";
 import fs from "fs";
 import path from "path";
+import { mergeContactLists } from "./contacts";
 
 interface GoogleCacheEntry {
   emails: Email[];
@@ -102,7 +103,7 @@ export function applyGoogleCacheToState(base: AppState): AppState {
     ...base,
     emails: cached.emails,
     events: cached.events,
-    contacts: cached.contacts,
+    contacts: mergeContactLists(base.contacts, cached.contacts),
     integrations: {
       ...base.integrations,
       google: cached.integration,

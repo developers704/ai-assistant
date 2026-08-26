@@ -69,8 +69,8 @@ const FINANCING_PLAN_TABS = (
 type CalculatorMode = "pricing" | "customer_offer";
 
 const CALCULATOR_MODE_TABS: { id: CalculatorMode; label: string; hint: string }[] = [
-  { id: "pricing", label: "Standard Pricing", hint: "Tiers · financing · final amount" },
   { id: "customer_offer", label: "Customer Offer", hint: "Whole cost floor · profit / loss" },
+  { id: "pricing", label: "Standard Pricing", hint: "Tiers · financing · final amount" },
 ];
 
 interface LookupResponse {
@@ -94,7 +94,7 @@ export default function CalculatorPage() {
   const [uploading, setUploading] = useState(false);
 
   const [selectedTier, setSelectedTier] = useState<ManagerTier>("m");
-  const [calculatorMode, setCalculatorMode] = useState<CalculatorMode>("pricing");
+  const [calculatorMode, setCalculatorMode] = useState<CalculatorMode>("customer_offer");
   const [customerOfferInput, setCustomerOfferInput] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [financingPlan, setFinancingPlan] = useState<FinancingPlan>("6_months");
@@ -220,7 +220,7 @@ export default function CalculatorPage() {
             gradient
             eyebrow="Pricing"
             title="Price Calculator"
-            subtitle="SKU lookup · manager tiers · financing"
+            subtitle="SKU lookup · customer offer · manager tiers"
             action={
               <div className="flex items-center gap-2">
                 {inventoryLoaded === true && (
@@ -312,63 +312,6 @@ export default function CalculatorPage() {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/20">
-                      <Tag size={16} className="text-violet-300" />
-                    </span>
-                    SKU Details
-                  </CardTitle>
-                </CardHeader>
-                <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                  <ProductThumb
-                    imageDir={result.item.imageDir}
-                    imageUrl={result.imageUrl}
-                    alt={result.item.description || result.item.sku}
-                    subtitle={result.item.vendorModel || result.item.sku}
-                    onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
-                  />
-                  <p className="text-sm text-ink-secondary leading-relaxed flex-1">
-                    {result.item.description || "—"}
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                  <Detail label="Item #" value={result.item.sku} />
-                  <Detail
-                    label="Vendor model #"
-                    value={result.item.vendorModel || "—"}
-                  />
-                  {!result.hideVendor && (
-                    <Detail label="Vendor" value={result.item.vendor || "—"} />
-                  )}
-                  <Detail label="Department" value={result.item.department || "—"} />
-                  <Detail label="Design" value={result.item.design || "—"} />
-                  <Detail label="Class" value={result.item.class || "—"} />
-                  <Detail label="Sub-Class" value={result.item.subClass || "—"} />
-                  <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
-                  <Detail label="Cost Price" value={money(result.item.costPrice)} />
-                  <Detail
-                    label="Avg Weight (g)"
-                    value={
-                      Number.isFinite(result.item.avgWeight)
-                        ? String(result.item.avgWeight)
-                        : "—"
-                    }
-                  />
-                  <Detail
-                    label="Create Date"
-                    value={result.item.createDate || "—"}
-                  />
-                  <Detail
-                    label="On hand (all stores)"
-                    value={String(result.onHandTotal ?? 0)}
-                  />
-                  <Detail label="Category" value={result.pricing.categoryLabel} />
-                </div>
-                <p className="mt-3 text-xs text-ink-muted">{result.pricing.rulesSummary}</p>
-              </Card>
-
-              <Card>
-                <CardHeader>
                   <CardTitle>Calculator mode</CardTitle>
                 </CardHeader>
                 <OptionTabs
@@ -390,6 +333,25 @@ export default function CalculatorPage() {
                       Customer Offer
                     </CardTitle>
                   </CardHeader>
+                  <div className="flex flex-col sm:flex-row gap-4 mb-5">
+                    <ProductThumb
+                      imageDir={result.item.imageDir}
+                      imageUrl={result.imageUrl}
+                      alt={result.item.description || result.item.sku}
+                      subtitle={result.item.vendorModel || result.item.sku}
+                      onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
+                    />
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <p className="text-sm text-ink-secondary leading-relaxed">
+                        {result.item.description || "—"}
+                      </p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+                        <span>SKU {result.item.sku}</span>
+                        {result.item.vendorModel && <span>Model {result.item.vendorModel}</span>}
+                        <span>{result.pricing.categoryLabel}</span>
+                      </div>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -457,6 +419,63 @@ export default function CalculatorPage() {
                 </Card>
               ) : (
                 <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/20">
+                      <Tag size={16} className="text-violet-300" />
+                    </span>
+                    SKU Details
+                  </CardTitle>
+                </CardHeader>
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                  <ProductThumb
+                    imageDir={result.item.imageDir}
+                    imageUrl={result.imageUrl}
+                    alt={result.item.description || result.item.sku}
+                    subtitle={result.item.vendorModel || result.item.sku}
+                    onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
+                  />
+                  <p className="text-sm text-ink-secondary leading-relaxed flex-1">
+                    {result.item.description || "—"}
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                  <Detail label="Item #" value={result.item.sku} />
+                  <Detail
+                    label="Vendor model #"
+                    value={result.item.vendorModel || "—"}
+                  />
+                  {!result.hideVendor && (
+                    <Detail label="Vendor" value={result.item.vendor || "—"} />
+                  )}
+                  <Detail label="Department" value={result.item.department || "—"} />
+                  <Detail label="Design" value={result.item.design || "—"} />
+                  <Detail label="Class" value={result.item.class || "—"} />
+                  <Detail label="Sub-Class" value={result.item.subClass || "—"} />
+                  <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
+                  <Detail label="Cost Price" value={money(result.item.costPrice)} />
+                  <Detail
+                    label="Avg Weight (g)"
+                    value={
+                      Number.isFinite(result.item.avgWeight)
+                        ? String(result.item.avgWeight)
+                        : "—"
+                    }
+                  />
+                  <Detail
+                    label="Create Date"
+                    value={result.item.createDate || "—"}
+                  />
+                  <Detail
+                    label="On hand (all stores)"
+                    value={String(result.onHandTotal ?? 0)}
+                  />
+                  <Detail label="Category" value={result.pricing.categoryLabel} />
+                </div>
+                <p className="mt-3 text-xs text-ink-muted">{result.pricing.rulesSummary}</p>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
