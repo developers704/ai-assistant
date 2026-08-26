@@ -10,7 +10,10 @@ import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import {
   FINANCING_PLAN_LABELS,
+  calculateCustomerOfferProfit,
   calculateFinancedPrice,
+  CUSTOMER_OFFER_COMMISSION_PERCENT,
+  CUSTOMER_OFFER_TAX_PERCENT,
 } from "@/lib/inventory/pricing";
 import {
   type FinancingPlan,
@@ -21,6 +24,7 @@ import {
 } from "@/lib/inventory/types";
 import {
   Calculator,
+  HandCoins,
   Loader2,
   Search,
   Upload,
@@ -62,8 +66,16 @@ const FINANCING_PLAN_TABS = (
   label: FINANCING_PLAN_LABELS[plan],
 }));
 
+type CalculatorMode = "pricing" | "customer_offer";
+
+const CALCULATOR_MODE_TABS: { id: CalculatorMode; label: string; hint: string }[] = [
+  { id: "pricing", label: "Standard Pricing", hint: "Tiers · financing · final amount" },
+  { id: "customer_offer", label: "Customer Offer", hint: "Whole cost floor · profit / loss" },
+];
+
 interface LookupResponse {
   item: InventoryItem;
+  wholeCost?: number;
   pricing: PricingResult;
   stores?: { name: string; onhand: number }[];
   onHandTotal?: number;
@@ -82,6 +94,8 @@ export default function CalculatorPage() {
   const [uploading, setUploading] = useState(false);
 
   const [selectedTier, setSelectedTier] = useState<ManagerTier>("m");
+  const [calculatorMode, setCalculatorMode] = useState<CalculatorMode>("pricing");
+  const [customerOfferInput, setCustomerOfferInput] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [financingPlan, setFinancingPlan] = useState<FinancingPlan>("6_months");
   const [preview, setPreview] = useState<{
@@ -117,6 +131,7 @@ export default function CalculatorPage() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setCustomerOfferInput("");
 
     try {
       const res = await fetch(
@@ -183,6 +198,20 @@ export default function CalculatorPage() {
   );
 
   const grandTotal = financing.financedPrice;
+
+  const wholeCost = result?.wholeCost ?? 0;
+
+  const customerOfferAmount = useMemo(() => {
+    const parsed = parseFloat(customerOfferInput.replace(/[,$]/g, ""));
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  }, [customerOfferInput]);
+
+  const customerOffer = useMemo(
+    () => calculateCustomerOfferProfit(wholeCost, customerOfferAmount),
+    [wholeCost, customerOfferAmount]
+  );
+
+  const hasCustomerOfferInput = customerOfferInput.trim().length > 0;
 
   return (
     <PageShell accent="amber">
@@ -340,6 +369,96 @@ export default function CalculatorPage() {
 
               <Card>
                 <CardHeader>
+                  <CardTitle>Calculator mode</CardTitle>
+                </CardHeader>
+                <OptionTabs
+                  options={CALCULATOR_MODE_TABS}
+                  value={calculatorMode}
+                  onChange={setCalculatorMode}
+                  columns="grid-cols-1 sm:grid-cols-2"
+                  activeClassName="bg-amber-500/20 ring-amber-400/40"
+                />
+              </Card>
+
+              {calculatorMode === "customer_offer" ? (
+                <Card className="ring-1 ring-amber-400/15">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/20">
+                        <HandCoins size={16} className="text-amber-300" />
+                      </span>
+                      Customer Offer
+                    </CardTitle>
+                  </CardHeader>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
+                        <Detail label="Whole Cost" value={money(wholeCost)} highlight />
+                      </div>
+                      <Input
+                        label="Customer Offer"
+                        placeholder="Enter offer amount"
+                        inputMode="decimal"
+                        value={customerOfferInput}
+                        onChange={(e) => setCustomerOfferInput(e.target.value)}
+                      />
+                      <p className="text-xs text-ink-muted">
+                        Floor = whole cost + {CUSTOMER_OFFER_TAX_PERCENT}% tax +{" "}
+                        {CUSTOMER_OFFER_COMMISSION_PERCENT}% commission (each on whole cost).
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="rounded-xl bg-white/5 px-4 py-3 text-sm ring-1 ring-white/10 space-y-1">
+                        <Row label="Whole cost" value={money(customerOffer.wholeCost)} />
+                        <Row
+                          label={`Tax (${CUSTOMER_OFFER_TAX_PERCENT}%)`}
+                          value={money(customerOffer.tax)}
+                        />
+                        <Row
+                          label={`Commission (${CUSTOMER_OFFER_COMMISSION_PERCENT}%)`}
+                          value={money(customerOffer.commission)}
+                        />
+                        <Row label="Floor (minimum)" value={money(customerOffer.floor)} bold />
+                      </div>
+
+                      {hasCustomerOfferInput && (
+                        <div
+                          className={cn(
+                            "rounded-xl px-4 py-4 ring-1",
+                            customerOffer.isLoss
+                              ? "bg-accent-rose/10 ring-accent-rose/30"
+                              : "bg-emerald-500/10 ring-emerald-400/20"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-base font-semibold text-ink">
+                              {customerOffer.isLoss ? "Loss" : "Profit"}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-2xl font-bold tabular-nums",
+                                customerOffer.isLoss ? "text-accent-rose" : "text-emerald-300"
+                              )}
+                            >
+                              {customerOffer.isLoss ? "−" : "+"}
+                              {money(Math.abs(customerOffer.profit))}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs text-ink-muted">
+                            Customer offer {money(customerOffer.customerOffer)} − floor{" "}
+                            {money(customerOffer.floor)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ) : (
+                <>
+              <Card>
+                <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/20">
                       <DollarSign size={16} className="text-emerald-300" />
@@ -466,6 +585,8 @@ export default function CalculatorPage() {
                   </div>
                 </Card>
               </div>
+                </>
+              )}
             </>
           )}
         </PageShellBody>
@@ -506,11 +627,21 @@ function Detail({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({
+  label,
+  value,
+  bold,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 py-1">
-      <span className="text-ink-secondary">{label}</span>
-      <span className="font-medium text-ink tabular-nums">{value}</span>
+      <span className={cn("text-ink-secondary", bold && "font-medium text-ink")}>{label}</span>
+      <span className={cn("font-medium text-ink tabular-nums", bold && "font-semibold")}>
+        {value}
+      </span>
     </div>
   );
 }

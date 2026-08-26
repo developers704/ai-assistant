@@ -112,6 +112,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     item: hideVendor ? { ...item, vendor: "" } : item,
+    wholeCost: getVisibleDmCostPrice(result.item),
     pricing,
     stores: result.stores,
     onHandTotal: result.onHandTotal,

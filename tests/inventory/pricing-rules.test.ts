@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "@/lib/inventory/types";
 import {
+  calculateCustomerOfferProfit,
   calculatePricing,
   classifyProduct,
   getVisibleDmCostPrice,
@@ -295,5 +296,23 @@ describe("Manager discount tiers (GOLD JEWL vs diamond dept)", () => {
 
     const tissot = calculatePricing(makeItem({ department: "TISSOT", tagPrice: 1000 })).tiers;
     expect(tissot.map((t) => t.discountPercent)).toEqual([25, 25, 25]);
+  });
+});
+
+describe("Customer offer profit", () => {
+  it("floor = whole cost + 10% tax + 5% commission; profit = offer − floor", () => {
+    const result = calculateCustomerOfferProfit(1500, 2350);
+    expect(result.tax).toBeCloseTo(150, 5);
+    expect(result.commission).toBeCloseTo(75, 5);
+    expect(result.floor).toBeCloseTo(1725, 5);
+    expect(result.profit).toBeCloseTo(625, 5);
+    expect(result.isLoss).toBe(false);
+  });
+
+  it("shows loss when offer is below floor", () => {
+    const result = calculateCustomerOfferProfit(1500, 1700);
+    expect(result.floor).toBeCloseTo(1725, 5);
+    expect(result.profit).toBeCloseTo(-25, 5);
+    expect(result.isLoss).toBe(true);
   });
 });

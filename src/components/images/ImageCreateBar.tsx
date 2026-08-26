@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { ImagePlus, Loader2, X, Camera } from "lucide-react";
 
@@ -12,6 +12,35 @@ export interface ReferenceItem {
 
 const MAX_REFS = 8;
 const MAX_BYTES = 20 * 1024 * 1024;
+
+function clipboardImageFiles(data: DataTransfer | null | undefined): File[] {
+  if (!data) return [];
+
+  const files: File[] = [];
+  if (data.items?.length) {
+    for (const item of Array.from(data.items)) {
+      if (item.kind !== "file") continue;
+      const file = item.getAsFile();
+      if (!file) continue;
+      if (file.type.startsWith("image/")) {
+        files.push(file);
+        continue;
+      }
+      // Windows/macOS screenshots often arrive with an empty MIME type.
+      if (!file.type && file.size > 0) {
+        files.push(new File([file], `pasted-${Date.now()}.png`, { type: "image/png" }));
+      }
+    }
+  }
+
+  if (files.length === 0 && data.files?.length) {
+    for (const file of Array.from(data.files)) {
+      if (file.type.startsWith("image/")) files.push(file);
+    }
+  }
+
+  return files;
+}
 
 interface ImageCreateBarProps {
   prompt: string;
@@ -43,8 +72,9 @@ export function ImageCreateBar({
   const [dragOver, setDragOver] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const addFiles = (list: FileList | File[] | null | undefined) => {
+  const addFiles = useCallback((list: FileList | File[] | null | undefined) => {
     if (!list?.length) return;
     setLocalError(null);
     const next = [...refs];
@@ -54,11 +84,30 @@ export function ImageCreateBar({
         setLocalError("Each image must be under 20MB.");
         continue;
       }
-      if (!f.type.startsWith("image/")) continue;
+      if (!f.type.startsWith("image/")) {
+        if (!f.type && f.size > 0) {
+          next.push({
+            id: crypto.randomUUID(),
+            file: new File([f], f.name || `image-${Date.now()}.png`, { type: "image/png" }),
+            preview: URL.createObjectURL(f),
+          });
+        }
+        continue;
+      }
       next.push({ id: crypto.randomUUID(), file: f, preview: URL.createObjectURL(f) });
     }
     onRefsChange(next);
-  };
+  }, [refs, onRefsChange]);
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const files = clipboardImageFiles(e.clipboardData);
+      if (!files.length) return;
+      e.preventDefault();
+      addFiles(files);
+    },
+    [addFiles]
+  );
 
   const removeRef = (id: string) => {
     onRefsChange(
@@ -99,6 +148,8 @@ export function ImageCreateBar({
           setDragOver(false);
           addFiles(e.dataTransfer.files);
         }}
+        onPaste={handlePaste}
+        onClick={() => textareaRef.current?.focus()}
       >
         <div className="relative overflow-hidden rounded-[1.65rem] bg-[#121a28]/95 backdrop-blur-2xl">
           {/* Ambient inner glow */}
@@ -135,10 +186,12 @@ export function ImageCreateBar({
             )}
 
             <textarea
+              ref={textareaRef}
               value={prompt}
               onChange={(e) => onPromptChange(e.target.value)}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
+              onPaste={handlePaste}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canCreate) {
                   e.preventDefault();

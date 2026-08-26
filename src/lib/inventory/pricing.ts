@@ -557,3 +557,39 @@ export function commissionDollars(
 ): number {
   return financedPrice * (commissionPercent / 100);
 }
+
+/** Fixed add-ons on whole cost for customer-offer profit floor. */
+export const CUSTOMER_OFFER_TAX_PERCENT = 10;
+export const CUSTOMER_OFFER_COMMISSION_PERCENT = 5;
+
+export interface CustomerOfferResult {
+  wholeCost: number;
+  tax: number;
+  commission: number;
+  floor: number;
+  customerOffer: number;
+  profit: number;
+  isLoss: boolean;
+}
+
+/** Floor = whole cost + 10% tax + 5% commission (each on whole cost, not compounded). */
+export function calculateCustomerOfferProfit(
+  wholeCost: number,
+  customerOffer: number
+): CustomerOfferResult {
+  const safeWhole = Math.max(0, wholeCost);
+  const safeOffer = Math.max(0, customerOffer);
+  const tax = safeWhole * (CUSTOMER_OFFER_TAX_PERCENT / 100);
+  const commission = safeWhole * (CUSTOMER_OFFER_COMMISSION_PERCENT / 100);
+  const floor = safeWhole + tax + commission;
+  const profit = safeOffer - floor;
+  return {
+    wholeCost: safeWhole,
+    tax,
+    commission,
+    floor,
+    customerOffer: safeOffer,
+    profit,
+    isLoss: profit < 0,
+  };
+}
