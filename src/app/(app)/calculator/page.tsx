@@ -69,7 +69,7 @@ const FINANCING_PLAN_TABS = (
 type CalculatorMode = "pricing" | "customer_offer";
 
 const CALCULATOR_MODE_TABS: { id: CalculatorMode; label: string; hint: string }[] = [
-  { id: "customer_offer", label: "Customer Offer", hint: "Whole cost floor · profit / loss" },
+  { id: "customer_offer", label: "Customer Offer", hint: "Cost price floor · profit / loss" },
   { id: "pricing", label: "Standard Pricing", hint: "Tiers · financing · final amount" },
 ];
 
@@ -322,7 +322,7 @@ export default function CalculatorPage() {
 
               {!result && !loading && (
                 <p className="mt-4 text-sm text-ink-muted">
-                  Enter a SKU above to load tag price and whole cost.
+                  Enter a SKU above to load tag price and cost price.
                 </p>
               )}
 
@@ -351,7 +351,7 @@ export default function CalculatorPage() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
-                        <Detail label="Whole Cost" value={money(wholeCost)} highlight />
+                        <Detail label="Cost Price" value={money(wholeCost)} highlight />
                       </div>
                       <Input
                         label="Customer Offer"
@@ -361,14 +361,14 @@ export default function CalculatorPage() {
                         onChange={(e) => setCustomerOfferInput(e.target.value)}
                       />
                       <p className="text-xs text-ink-muted">
-                        Floor = whole cost + {CUSTOMER_OFFER_TAX_PERCENT}% tax +{" "}
-                        {CUSTOMER_OFFER_COMMISSION_PERCENT}% commission (each on whole cost).
+                        Floor = cost price + {CUSTOMER_OFFER_TAX_PERCENT}% tax +{" "}
+                        {CUSTOMER_OFFER_COMMISSION_PERCENT}% commission (each on cost price).
                       </p>
                     </div>
 
                     <div className="space-y-3">
                       <div className="rounded-xl bg-white/5 px-4 py-3 text-sm ring-1 ring-white/10 space-y-1">
-                        <Row label="Whole cost" value={money(customerOffer.wholeCost)} />
+                        <Row label="Cost price" value={money(customerOffer.wholeCost)} />
                         <Row
                           label={`Tax (${CUSTOMER_OFFER_TAX_PERCENT}%)`}
                           value={money(customerOffer.tax)}
