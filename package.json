@@ -50,6 +50,7 @@
     "recharts": "^3.8.1",
     "rss-parser": "^3.13.0",
     "uuid": "^11.0.3",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
