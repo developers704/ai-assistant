@@ -18,6 +18,7 @@ export type CompanyLink = {
   displayUrl: string;
   icon: LucideIcon;
   accent: string;
+  
 };
 
 /** Official Valliani company & brand destinations for quick open. */
