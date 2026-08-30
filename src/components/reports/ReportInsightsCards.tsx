@@ -90,6 +90,15 @@ export function ReportInsightsCards({
       )}
 
       <div className={`grid gap-4 ${compact ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
+        {isStoreSales && summary.paymentMethods && summary.paymentMethods.length > 0 && (
+          <ListCard
+            title="Paycodes"
+            icon={CreditCard}
+            iconColor="text-indigo-300"
+            items={summary.paymentMethods}
+            onItemClick={onRankClick ? (name) => onRankClick("paycode", name) : undefined}
+          />
+        )}
         {isFinancing && summary.paymentMethods && summary.paymentMethods.length > 0 && (
           <ListCard title="Payment methods" icon={CreditCard} iconColor="text-indigo-300" items={summary.paymentMethods} />
         )}

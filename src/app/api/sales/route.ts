@@ -20,6 +20,7 @@ import {
 import { setActiveSalesContext, clearActiveSalesContext } from "@/lib/sales/active-context";
 import {
   readActivePointer,
+  readNormalizedRows,
   readVersionMetadata,
   readVersionSnapshot,
 } from "@/lib/sales/data/version-store";
@@ -32,6 +33,8 @@ import {
 } from "@/lib/auth/scope-stores";
 import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
 import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
+import { listPaycodes, uniqueSubClasses } from "@/lib/sales/paycode-overlay";
+import { listSalespeopleFromRows } from "@/lib/sales/salesperson-credit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -95,6 +98,9 @@ async function queryDashboardSlice(opts: {
   designs?: string[];
   vendors?: string[];
   classes?: string[];
+  subclasses?: string[];
+  paycodes?: string[];
+  salespeople?: string[];
   /** Comparison-only queries need all stores, not product top-20. */
   mode?: "dashboard" | "comparison";
   /** Rozina: include ITEM / soft-hidden lines in Top Vendor Models. */
@@ -113,6 +119,9 @@ async function queryDashboardSlice(opts: {
     designs: opts.designs?.length ? opts.designs : undefined,
     vendors: opts.vendors?.length ? opts.vendors : undefined,
     classes: opts.classes?.length ? opts.classes : undefined,
+    subclasses: opts.subclasses?.length ? opts.subclasses : undefined,
+    paycodes: opts.paycodes?.length ? opts.paycodes : undefined,
+    salespeople: opts.salespeople?.length ? opts.salespeople : undefined,
     resetContext: true,
     exactFilters: true,
     /** Dashboard top models; Rozina gets a higher cap for full CSV breakdown. */
@@ -135,6 +144,7 @@ async function queryDashboardSlice(opts: {
           topDesigns: true,
           topVendors: true,
           topClasses: true,
+          topPaycodes: true,
           includeHiddenTopModels: opts.includeHiddenTopModels === true,
           // Dashboard uses vendor models (not separate product ranking).
           topVendorModels: true,
@@ -184,6 +194,9 @@ export async function GET(req: NextRequest) {
     ? []
     : parseMultiParam(sp, "vendor", "vendors");
   const filterClasses = parseMultiParam(sp, "class", "classes");
+  const filterSubclasses = parseMultiParam(sp, "subclass", "subclasses");
+  const filterPaycodes = parseMultiParam(sp, "paycode", "paycodes");
+  const filterSalespeople = parseMultiParam(sp, "salesperson", "salespeople");
 
   if (dateParam && (!singleDate || !isValidIsoDate(singleDate))) {
     return NextResponse.json({ error: "Invalid date. Use MM/DD/YY or YYYY-MM-DD." }, { status: 400 });
@@ -235,6 +248,9 @@ export async function GET(req: NextRequest) {
         designs: filterDesigns,
         vendors: filterVendors,
         classes: filterClasses,
+        subclasses: filterSubclasses,
+        paycodes: filterPaycodes,
+        salespeople: filterSalespeople,
         // Net Sales = full CSV for everyone; only Rozina sees ITEM/JVV in Top Models
         includeHiddenTopModels: showsAllSoldInTopVendorModels(session.username),
       };
@@ -300,6 +316,8 @@ export async function GET(req: NextRequest) {
           (r) => !/top vendor/i.test(r)
         );
       }
+      const versionRows = version ? readNormalizedRows(version) ?? [] : [];
+      const salespeople = listSalespeopleFromRows(versionRows);
       return NextResponse.json(
         {
           summary,
@@ -315,7 +333,10 @@ export async function GET(req: NextRequest) {
           availableDepartments: shell.availableDepartments,
           availableDesigns: shell.availableDesigns,
           availableClasses: shell.availableClasses,
+          availableSubClasses: uniqueSubClasses(versionRows),
           availableVendors: hideVendors ? [] : shell.availableVendors,
+          availablePaycodes: listPaycodes(),
+          availableSalespeople: salespeople.map((s) => s.label),
           filterDate: filterDate ?? null,
           filterDateFrom: filterDateFrom ?? null,
           filterDateTo: filterDateTo ?? null,
@@ -324,6 +345,9 @@ export async function GET(req: NextRequest) {
           filterDesigns,
           filterVendors,
           filterClasses,
+          filterSubclasses,
+          filterPaycodes,
+          filterSalespeople,
           filterStore: filterStores[0] ?? null,
           filterDepartment: filterDepartments[0] ?? null,
           filterDesign: filterDesigns[0] ?? null,

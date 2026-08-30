@@ -10,8 +10,10 @@ export type RankDimension =
   | "vendor"
   | "design"
   | "class"
+  | "subclass"
   | "vendorModel"
-  | "salesperson";
+  | "salesperson"
+  | "paycode";
 
 export interface VendorPosRow {
   date: string;

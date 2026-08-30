@@ -22,6 +22,7 @@ export const DEFAULT_INCLUDE: NonNullable<SalesQueryInput["include"]> = {
   topProducts: true,
   topVendorModels: true,
   topSalesPeople: true,
+  topPaycodes: true,
 };
 
 export function emptyFilters() {
@@ -34,9 +35,12 @@ export function emptyFilters() {
     designs: [] as string[],
     vendors: [] as string[],
     classes: [] as string[],
+    subclasses: [] as string[],
     products: [] as string[],
     skus: [] as string[],
     vendorModels: [] as string[],
+    paycodes: [] as string[],
+    salespeople: [] as string[],
   };
 }
 
