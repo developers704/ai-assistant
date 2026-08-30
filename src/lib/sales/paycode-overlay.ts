@@ -271,7 +271,10 @@ export function applySalespersonFilter(
     for (const code of needles) {
       if (!rowIncludesSalesperson(r, code)) continue;
       const share = salespersonShare(r, code);
-      out.push(scaleRow(r, share));
+      out.push({
+        ...scaleRow(r, share),
+        salespersons: `${code}/100%`,
+      });
       break;
     }
   }

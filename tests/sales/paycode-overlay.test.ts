@@ -154,6 +154,7 @@ describe("applySalespersonFilter", () => {
     expect(sn).toHaveLength(1);
     expect(sn[0]!.netRevenue).toBeCloseTo(65, 5);
     expect(sn[0]!.quantity).toBeCloseTo(1.3, 5);
+    expect(sn[0]!.salespersons).toBe("SN/100%");
   });
 });
 
