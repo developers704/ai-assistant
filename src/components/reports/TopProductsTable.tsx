@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Fragment, type CSSProperties, type ReactNode } from "react";
 import {
   formatCurrency,
   formatPieceCount,
@@ -17,7 +17,7 @@ import {
   buildVendorModelSearchText,
   type VendorModelTextFilterMode,
 } from "@/lib/sales/vendor-model-text-filter";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Columns3 } from "lucide-react";
 
 export interface TopProductSkuLine {
   sku: string;
@@ -71,12 +71,51 @@ interface TopProductsTableProps {
 
 type SortKey = "date" | "qty" | "revenue" | "margin";
 type SortDir = "asc" | "desc";
+export type MetricColumn = "dept" | "date" | "qty" | "revenue" | "margin";
+
+const ALL_METRIC_COLUMNS: { key: MetricColumn; label: string; width: string }[] = [
+  { key: "dept", label: "Dept", width: "4.75rem" },
+  { key: "date", label: "Date", width: "2.75rem" },
+  { key: "qty", label: "Qty", width: "3.25rem" },
+  { key: "revenue", label: "Revenue", width: "5rem" },
+  { key: "margin", label: "Margin", width: "3rem" },
+];
+
+const COLUMN_STORAGE_KEY = "athena.top-products.columns";
+
+function defaultVisibleColumns(): MetricColumn[] {
+  return ALL_METRIC_COLUMNS.map((c) => c.key);
+}
+
+function loadVisibleColumns(): MetricColumn[] {
+  if (typeof window === "undefined") return defaultVisibleColumns();
+  try {
+    const raw = window.localStorage.getItem(COLUMN_STORAGE_KEY);
+    if (!raw) return defaultVisibleColumns();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return defaultVisibleColumns();
+    const allowed = new Set(ALL_METRIC_COLUMNS.map((c) => c.key));
+    const next = parsed.filter((k): k is MetricColumn => allowed.has(k as MetricColumn));
+    return next.length ? next : defaultVisibleColumns();
+  } catch {
+    return defaultVisibleColumns();
+  }
+}
+
+function metricsGridStyle(visible: MetricColumn[]): CSSProperties {
+  const widths = Object.fromEntries(ALL_METRIC_COLUMNS.map((c) => [c.key, c.width])) as Record<
+    MetricColumn,
+    string
+  >;
+  return {
+    display: "grid",
+    gridTemplateColumns: visible.map((k) => widths[k]).join(" "),
+    columnGap: "0.625rem",
+  };
+}
 
 const DESKTOP_ROW_GRID =
   "sm:grid-cols-[2rem_3.5rem_5.5rem_minmax(0,1fr)_auto]";
-/** Dept · Date · Qty · Revenue · Margin — aligned with sort headers */
-const DESKTOP_METRICS =
-  "grid grid-cols-[4.75rem_2.75rem_3.25rem_5rem_3rem] gap-x-2.5";
 
 function formatMarginPct(rate: number | undefined | null): string {
   // Repair / memo lines pass null → red hyphen (see MetricsBlock marginClass)
@@ -98,6 +137,7 @@ function MetricsBlock({
   department,
   dateLabel,
   mobile,
+  visible,
 }: {
   units: number;
   revenue: number;
@@ -106,6 +146,7 @@ function MetricsBlock({
   department?: string;
   dateLabel?: string;
   mobile?: boolean;
+  visible: MetricColumn[];
 }) {
   const marginClass =
     marginRate != null && marginRate >= 0.5
@@ -116,11 +157,62 @@ function MetricsBlock({
   const dept = department?.trim() || "—";
   const date = dateLabel?.trim() || "—";
 
+  const show = (key: MetricColumn) => visible.includes(key);
+  const cells: { key: MetricColumn; node: ReactNode }[] = [
+    {
+      key: "dept",
+      node: (
+        <span className="text-[11px] text-white/70 truncate text-right" title={dept}>
+          {dept}
+        </span>
+      ),
+    },
+    {
+      key: "date",
+      node: (
+        <span className="text-[11px] text-white/70 tabular-nums text-right" title={date}>
+          {date}
+        </span>
+      ),
+    },
+    {
+      key: "qty",
+      node: (
+        <span className="text-sm font-semibold text-emerald-300/90 tabular-nums text-right">
+          {formatPieceCount(units)}
+        </span>
+      ),
+    },
+    {
+      key: "revenue",
+      node: (
+        <span className="font-medium text-ink text-sm tabular-nums text-right">
+          {formatCurrency(revenue)}
+        </span>
+      ),
+    },
+    {
+      key: "margin",
+      node: (
+        <span
+          className={cn("text-sm font-semibold tabular-nums text-right", marginClass)}
+          title={
+            profit != null
+              ? `Profit ${formatCurrency(profit)} on ${formatCurrency(revenue)} net`
+              : "Profit ÷ Net sales"
+          }
+        >
+          {formatMarginPct(marginRate)}
+        </span>
+      ),
+    },
+  ];
+
   if (mobile) {
-    return (
-      <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
-          <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-2.5 py-2">
+    const meta = (
+      [
+        show("dept") ? (
+          <div key="dept" className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-2.5 py-2">
             <span className="block text-[10px] font-medium uppercase tracking-wide text-white/40">
               Dept
             </span>
@@ -128,15 +220,21 @@ function MetricsBlock({
               {dept}
             </span>
           </div>
-          <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-2.5 py-2">
+        ) : null,
+        show("date") ? (
+          <div key="date" className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-2.5 py-2">
             <span className="block text-[10px] font-medium uppercase tracking-wide text-white/40">
               Date
             </span>
             <span className="mt-0.5 block tabular-nums text-white/80">{date}</span>
           </div>
-        </div>
-        <div className="grid grid-cols-3 divide-x divide-white/10 rounded-xl bg-white/[0.04] ring-1 ring-white/10 overflow-hidden">
-          <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+        ) : null,
+      ] as const
+    ).filter(Boolean);
+    const nums = (
+      [
+        show("qty") ? (
+          <div key="qty" className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
             <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
               Qty
             </span>
@@ -144,7 +242,9 @@ function MetricsBlock({
               {formatPieceCount(units)}
             </span>
           </div>
-          <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+        ) : null,
+        show("revenue") ? (
+          <div key="revenue" className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
             <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
               Revenue
             </span>
@@ -152,7 +252,9 @@ function MetricsBlock({
               {formatCurrency(revenue)}
             </span>
           </div>
-          <div className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+        ) : null,
+        show("margin") ? (
+          <div key="margin" className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
             <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
               Margin
             </span>
@@ -167,35 +269,34 @@ function MetricsBlock({
               {formatMarginPct(marginRate)}
             </span>
           </div>
-        </div>
+        ) : null,
+      ] as const
+    ).filter(Boolean);
+
+    return (
+      <div className="space-y-2">
+        {meta.length > 0 && (
+          <div className={cn("grid gap-2 text-[11px]", meta.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+            {meta}
+          </div>
+        )}
+        {nums.length > 0 && (
+          <div
+            className="grid divide-x divide-white/10 rounded-xl bg-white/[0.04] ring-1 ring-white/10 overflow-hidden"
+            style={{ gridTemplateColumns: `repeat(${nums.length}, minmax(0, 1fr))` }}
+          >
+            {nums}
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className={DESKTOP_METRICS}>
-      <span className="text-[11px] text-white/70 truncate text-right" title={dept}>
-        {dept}
-      </span>
-      <span className="text-[11px] text-white/70 tabular-nums text-right" title={date}>
-        {date}
-      </span>
-      <span className="text-sm font-semibold text-emerald-300/90 tabular-nums text-right">
-        {formatPieceCount(units)}
-      </span>
-      <span className="font-medium text-ink text-sm tabular-nums text-right">
-        {formatCurrency(revenue)}
-      </span>
-      <span
-        className={cn("text-sm font-semibold tabular-nums text-right", marginClass)}
-        title={
-          profit != null
-            ? `Profit ${formatCurrency(profit)} on ${formatCurrency(revenue)} net`
-            : "Profit ÷ Net sales"
-        }
-      >
-        {formatMarginPct(marginRate)}
-      </span>
+    <div style={metricsGridStyle(visible)}>
+      {cells.filter((c) => show(c.key)).map((c) => (
+        <Fragment key={c.key}>{c.node}</Fragment>
+      ))}
     </div>
   );
 }
@@ -266,6 +367,8 @@ export function TopProductsTable({
   const [dateFilter, setDateFilter] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<SortKey>("qty");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [visibleCols, setVisibleCols] = useState<MetricColumn[] | null>(null);
+  const [columnsOpen, setColumnsOpen] = useState(false);
   /** Expanded SKU per vendor-model row (shared mobile/desktop). */
   const [openSkuByRow, setOpenSkuByRow] = useState<Record<string, string | null>>({});
   const [preview, setPreview] = useState<{
@@ -273,6 +376,29 @@ export function TopProductsTable({
     alt: string;
     subtitle?: string;
   } | null>(null);
+
+  const columns = visibleCols ?? defaultVisibleColumns();
+
+  useEffect(() => {
+    setVisibleCols(loadVisibleColumns());
+  }, []);
+
+  useEffect(() => {
+    if (!visibleCols || typeof window === "undefined") return;
+    window.localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(visibleCols));
+  }, [visibleCols]);
+
+  const toggleColumn = (key: MetricColumn) => {
+    setVisibleCols((prev) => {
+      const current = prev ?? defaultVisibleColumns();
+      if (current.includes(key)) {
+        if (current.length <= 1) return current;
+        return current.filter((k) => k !== key);
+      }
+      const order = ALL_METRIC_COLUMNS.map((c) => c.key);
+      return order.filter((k) => k === key || current.includes(k));
+    });
+  };
 
   // Close expanded SKU store details on any click outside the SKU detail UI
   useEffect(() => {
@@ -394,6 +520,49 @@ export function TopProductsTable({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setColumnsOpen((o) => !o)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white/[0.04] px-2.5 py-1.5 text-[12px] font-medium text-white/70 ring-1 ring-white/10 hover:bg-white/[0.07] hover:text-white"
+              aria-expanded={columnsOpen}
+            >
+              <Columns3 size={13} />
+              Columns
+            </button>
+            {columnsOpen && (
+              <>
+                <button
+                  type="button"
+                  className="fixed inset-0 z-20 cursor-default"
+                  aria-label="Close columns menu"
+                  onClick={() => setColumnsOpen(false)}
+                />
+                <div className="absolute right-0 z-30 mt-1 w-44 rounded-xl bg-[#141c2b] p-2 ring-1 ring-white/15 shadow-xl">
+                  <p className="px-1.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                    Show / hide
+                  </p>
+                  {ALL_METRIC_COLUMNS.map((col) => {
+                    const on = columns.includes(col.key);
+                    return (
+                      <label
+                        key={col.key}
+                        className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1.5 text-[13px] text-white/80 hover:bg-white/[0.06]"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => toggleColumn(col.key)}
+                          className="accent-sky-400"
+                        />
+                        {col.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
           {canFilterDates && dateOptions.length > 0 ? (
             <SalesMultiSelectFilter
               label="dates"
@@ -431,37 +600,47 @@ export function TopProductsTable({
               />
             ) : null}
           </div>
-          <div className={DESKTOP_METRICS}>
-            <span className="text-ink-muted text-right">Dept</span>
-            <SortHeader
-              label="Date"
-              active={sortKey === "date"}
-              dir={sortDir}
-              onClick={() => toggleSort("date")}
-              className="justify-end w-full"
-            />
-            <SortHeader
-              label="Qty"
-              active={sortKey === "qty"}
-              dir={sortDir}
-              onClick={() => toggleSort("qty")}
-              className="justify-end w-full"
-            />
-            <SortHeader
-              label="Revenue"
-              active={sortKey === "revenue"}
-              dir={sortDir}
-              onClick={() => toggleSort("revenue")}
-              className="justify-end w-full"
-            />
-            <SortHeader
-              label="Margin"
-              active={sortKey === "margin"}
-              dir={sortDir}
-              onClick={() => toggleSort("margin")}
-              className="justify-end w-full"
-              title="Profit ÷ Net sales"
-            />
+          <div style={metricsGridStyle(columns)}>
+            {columns.includes("dept") && (
+              <span className="text-ink-muted text-right">Dept</span>
+            )}
+            {columns.includes("date") && (
+              <SortHeader
+                label="Date"
+                active={sortKey === "date"}
+                dir={sortDir}
+                onClick={() => toggleSort("date")}
+                className="justify-end w-full"
+              />
+            )}
+            {columns.includes("qty") && (
+              <SortHeader
+                label="Qty"
+                active={sortKey === "qty"}
+                dir={sortDir}
+                onClick={() => toggleSort("qty")}
+                className="justify-end w-full"
+              />
+            )}
+            {columns.includes("revenue") && (
+              <SortHeader
+                label="Revenue"
+                active={sortKey === "revenue"}
+                dir={sortDir}
+                onClick={() => toggleSort("revenue")}
+                className="justify-end w-full"
+              />
+            )}
+            {columns.includes("margin") && (
+              <SortHeader
+                label="Margin"
+                active={sortKey === "margin"}
+                dir={sortDir}
+                onClick={() => toggleSort("margin")}
+                className="justify-end w-full"
+                title="Profit ÷ Net sales"
+              />
+            )}
           </div>
         </div>
 
@@ -486,7 +665,9 @@ export function TopProductsTable({
                 ["revenue", "Rev"],
                 ["margin", "Margin"],
               ] as [SortKey, string][]
-            ).map(([key, label]) => (
+            )
+              .filter(([key]) => columns.includes(key))
+              .map(([key, label]) => (
               <button
                 key={key}
                 type="button"
@@ -639,6 +820,7 @@ export function TopProductsTable({
                         profit={product.margin}
                         department={product.department}
                         dateLabel={formatModelDate(product)}
+                        visible={columns}
                       />
                       {onVendorModelDetail && (
                         <button
@@ -668,6 +850,7 @@ export function TopProductsTable({
                         profit={product.margin}
                         department={product.department}
                         dateLabel={formatModelDate(product)}
+                        visible={columns}
                       />
                     </div>
                   </div>

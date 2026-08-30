@@ -8,8 +8,10 @@ export const UNKNOWN_BY_DIMENSION: Record<RankDimension, string> = {
   vendor: "Unknown vendor",
   design: "Unknown design",
   class: "Unknown class",
+  subclass: "Unknown subclass",
   vendorModel: "Unknown model",
   salesperson: "Unknown salesperson",
+  paycode: "Unknown paycode",
 };
 
 export function isBlankDimension(raw: string): boolean {
@@ -35,6 +37,12 @@ export function dimensionValue(row: VendorPosRow, dimension: RankDimension): str
       break;
     case "class":
       raw = row.productClass;
+      break;
+    case "subclass":
+      raw = row.subClass;
+      break;
+    case "paycode":
+      raw = row.payCode ?? "";
       break;
     case "vendorModel":
       raw = row.vendorModel;

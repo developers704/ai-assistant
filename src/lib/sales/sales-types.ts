@@ -38,10 +38,12 @@ export type SalesGroupBy =
   | "design"
   | "vendor"
   | "class"
+  | "subclass"
   | "product"
   | "sku"
   | "vendor_model"
-  | "salesperson";
+  | "salesperson"
+  | "paycode";
 
 export type SalesEntityType =
   | "store"
@@ -80,9 +82,12 @@ export interface SalesQueryFilters {
   designs: string[];
   vendors: string[];
   classes: string[];
+  subclasses: string[];
   products: string[];
   skus: string[];
   vendorModels: string[];
+  paycodes: string[];
+  salespeople: string[];
 }
 
 export interface SalesQueryInput {
@@ -95,9 +100,12 @@ export interface SalesQueryInput {
   designs?: string[];
   vendors?: string[];
   classes?: string[];
+  subclasses?: string[];
   products?: string[];
   skus?: string[];
   vendorModels?: string[];
+  paycodes?: string[];
+  salespeople?: string[];
   metrics?: SalesMetric[];
   groupBy?: SalesGroupBy[];
   sortBy?: string;
@@ -127,6 +135,7 @@ export interface SalesQueryInput {
      * Used for Rozina so she can see full sold-line breakdown by Total/net.
      */
     includeHiddenTopModels?: boolean;
+    topPaycodes?: boolean;
     trends?: boolean;
   };
   display?: {
@@ -273,11 +282,13 @@ export interface SalesQueryResult {
     byDesign?: SalesBreakdownRow[];
     byVendor?: SalesBreakdownRow[];
     byClass?: SalesBreakdownRow[];
+    bySubclass?: SalesBreakdownRow[];
     byProduct?: SalesBreakdownRow[];
     bySku?: SalesBreakdownRow[];
     byVendorModel?: SalesBreakdownRow[];
     byDate?: SalesBreakdownRow[];
     bySalesperson?: SalesBreakdownRow[];
+    byPaycode?: SalesBreakdownRow[];
   };
   rankings?: {
     topStores?: SalesBreakdownRow[];
@@ -286,6 +297,8 @@ export interface SalesQueryResult {
     topDesigns?: SalesBreakdownRow[];
     topVendors?: SalesBreakdownRow[];
     topClasses?: SalesBreakdownRow[];
+    topSubClasses?: SalesBreakdownRow[];
+    topPaycodes?: SalesBreakdownRow[];
     topProducts?: SalesBreakdownRow[];
     topVendorModels?: SalesBreakdownRow[];
     topSalesPeople?: SalesBreakdownRow[];

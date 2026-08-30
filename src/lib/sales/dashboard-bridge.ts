@@ -157,6 +157,13 @@ export function reportSummaryFromQueryResult(
     topDesigns: mapRank(result.rankings?.topDesigns ?? result.breakdowns?.byDesign),
     topVendors: mapRank(result.rankings?.topVendors ?? result.breakdowns?.byVendor),
     topClasses: mapRank(result.rankings?.topClasses ?? result.breakdowns?.byClass),
+    topSubClasses: mapRank(result.breakdowns?.bySubclass),
+    paymentMethods: (result.rankings?.topPaycodes ?? []).map((r) => ({
+      name: r.name,
+      revenue: r.netSales,
+      units: r.unitsSold,
+      share: r.share ?? 0,
+    })),
     topSalesPeople: mapRank(
       result.rankings?.topSalesPeople ?? result.breakdowns?.bySalesperson
     ),

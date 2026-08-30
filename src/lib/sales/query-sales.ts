@@ -40,6 +40,11 @@ import { isSalesUnifiedIntelligenceEnabled } from "./flags";
 import { readActivePointer, readNormalizedRows, readVersionMetadata } from "./data/version-store";
 import { getActiveSalesContext } from "./active-context";
 import { formatReportDateLong } from "@/lib/reports/date-utils";
+import {
+  applyPaycodeFilter,
+  applySalespersonFilter,
+  paycodeTotalsForRows,
+} from "@/lib/sales/paycode-overlay";
 
 /**
  * Net Sales / stores use full CSV rows (repairs, SPO, battery, ITEM, etc.).
@@ -635,10 +640,19 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     designs: norm.filters.designs,
     vendors: norm.filters.vendors,
     classes: norm.filters.classes,
+    subclasses: input.subclasses,
     skus: norm.filters.skus,
     vendorModels: norm.filters.vendorModels,
     products: norm.filters.products,
   });
+
+  if (input.salespeople?.length) {
+    filtered = applySalespersonFilter(filtered, input.salespeople);
+  }
+  const paycodeRankSource = filtered;
+  if (input.paycodes?.length) {
+    filtered = applyPaycodeFilter(filtered, input.paycodes);
+  }
 
   const warnings = [...norm.warnings];
   const msgLower = (input.userMessage ?? "").toLowerCase();
@@ -704,6 +718,21 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   const rankings: NonNullable<SalesQueryResult["rankings"]> = {};
 
   const ensureGroup = (g: SalesGroupBy) => {
+    if (g === "paycode") {
+      breakdowns.byPaycode = paycodeTotalsForRows(paycodeRankSource)
+        .slice(0, limit ?? 50)
+        .map((p) => ({
+          name: p.name,
+          netSales: p.revenue,
+          grossSales: p.revenue,
+          discounts: 0,
+          unitsSold: 0,
+          transactions: 0,
+          estimatedMargin: 0,
+          share: p.share,
+        }));
+      return;
+    }
     const rows = groupRows(filtered, g, limit);
     switch (g) {
       case "store":
@@ -720,6 +749,9 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
         break;
       case "class":
         breakdowns.byClass = rows;
+        break;
+      case "subclass":
+        breakdowns.bySubclass = rows;
         break;
       case "product":
         breakdowns.byProduct = rows;
@@ -755,6 +787,22 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   if (include.topDesigns) rankings.topDesigns = groupRows(filtered, "design", limit);
   if (include.topVendors) rankings.topVendors = groupRows(filtered, "vendor", limit);
   if (include.topClasses) rankings.topClasses = groupRows(filtered, "class", limit);
+  if (include.topPaycodes !== false) {
+    const wanted = new Set((input.paycodes ?? []).map((c) => c.trim().toUpperCase()));
+    rankings.topPaycodes = paycodeTotalsForRows(paycodeRankSource)
+      .filter((p) => !wanted.size || wanted.has(p.name.toUpperCase()))
+      .slice(0, limit ?? 50)
+      .map((p) => ({
+        name: p.name,
+        netSales: p.revenue,
+        grossSales: p.revenue,
+        discounts: 0,
+        unitsSold: 0,
+        transactions: 0,
+        estimatedMargin: 0,
+        share: p.share,
+      }));
+  }
   if (include.topSalesPeople) rankings.topSalesPeople = groupRows(filtered, "salesperson", limit);
   const productSort =
     input.sortBy === "revenue" || input.sortBy === "netSales"
