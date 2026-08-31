@@ -2,6 +2,7 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import type { HrScheduleEntry } from "./types";
 import { parseScheduleColumnDate, parseScheduleRange } from "./time-utils";
+import { HR_ATTENDANCE_FROM } from "./window";
 
 function normalizeScheduleCell(raw: unknown): string {
   const s = String(raw ?? "").trim();
@@ -21,7 +22,7 @@ export function parseScheduleMatrix(matrix: unknown[][]): {
     (r) => Array.isArray(r) && r.some((c) => String(c ?? "").trim())
   ) as unknown[][];
 
-  let year = new Date().getFullYear();
+  let year = Number(HR_ATTENDANCE_FROM.slice(0, 4)) || new Date().getFullYear();
   const title = String(rows[0]?.[0] ?? "");
   const yearMatch = title.match(/(\d{4})/);
   if (yearMatch) year = Number(yearMatch[1]);

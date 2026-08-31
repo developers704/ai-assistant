@@ -3,13 +3,17 @@ import path from "path";
 import type { HrScheduleEntry, HrTimecardRow, HrUploadMeta } from "./types";
 import { parseTimecardFile, timecardDateRange } from "./parse-timecard";
 import { parseScheduleCsv, parseScheduleXlsx } from "./parse-schedule";
+import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "./window";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const INDEX_PATH = path.join(DATA_DIR, "index.json");
+const SEED_TIMECARD = path.join(process.cwd(), "data", "hr", "Timecard-July-2026.csv");
+const SEED_SCHEDULE = path.join(process.cwd(), "data", "hr", "Schedule-July-2026.csv");
 
 type HrIndex = {
   timecards: HrUploadMeta[];
   schedules: HrUploadMeta[];
+  seedKey?: string;
 };
 
 function ensureDir() {
@@ -18,7 +22,44 @@ function ensureDir() {
   fs.mkdirSync(path.join(DATA_DIR, "schedules"), { recursive: true });
 }
 
-function readIndex(): HrIndex {
+function seedFingerprint(): string | null {
+  try {
+    const tc = fs.statSync(SEED_TIMECARD);
+    const sc = fs.statSync(SEED_SCHEDULE);
+    return `july2026:${tc.mtimeMs}:${tc.size}:${sc.mtimeMs}:${sc.size}`;
+  } catch {
+    return null;
+  }
+}
+
+function wipeHrFiles() {
+  for (const sub of ["timecards", "schedules"] as const) {
+    const dir = path.join(DATA_DIR, sub);
+    if (!fs.existsSync(dir)) continue;
+    for (const name of fs.readdirSync(dir)) {
+      fs.unlinkSync(path.join(dir, name));
+    }
+  }
+}
+
+function ensureSeedHr() {
+  const key = seedFingerprint();
+  if (!key) return;
+  ensureDir();
+  const index = readIndexRaw();
+  if (index.seedKey === key && index.timecards.length > 0 && index.schedules.length > 0) {
+    return;
+  }
+  wipeHrFiles();
+  writeIndex({ timecards: [], schedules: [], seedKey: key });
+  saveTimecardUpload("Timecard-July-2026.csv", fs.readFileSync(SEED_TIMECARD, "utf8"));
+  saveScheduleUpload("Schedule-July-2026.csv", fs.readFileSync(SEED_SCHEDULE, "utf8"));
+  const after = readIndexRaw();
+  after.seedKey = key;
+  writeIndex(after);
+}
+
+function readIndexRaw(): HrIndex {
   ensureDir();
   if (!fs.existsSync(INDEX_PATH)) {
     return { timecards: [], schedules: [] };
@@ -28,6 +69,11 @@ function readIndex(): HrIndex {
   } catch {
     return { timecards: [], schedules: [] };
   }
+}
+
+function readIndex(): HrIndex {
+  ensureSeedHr();
+  return readIndexRaw();
 }
 
 function writeIndex(index: HrIndex) {
@@ -80,7 +126,7 @@ export function saveTimecardUpload(
     "utf8"
   );
 
-  const index = readIndex();
+  const index = readIndexRaw();
   index.timecards.unshift(meta);
   index.timecards = index.timecards.slice(0, 60);
   writeIndex(index);
@@ -125,7 +171,7 @@ export function saveScheduleUpload(
     "utf8"
   );
 
-  const index = readIndex();
+  const index = readIndexRaw();
   index.schedules.unshift(meta);
   index.schedules = index.schedules.slice(0, 30);
   writeIndex(index);
@@ -139,7 +185,10 @@ export function loadActiveTimecardRows(): HrTimecardRow[] {
   if (!latest) return [];
   const jsonPath = path.join(DATA_DIR, "timecards", `${latest.id}.json`);
   if (!fs.existsSync(jsonPath)) return [];
-  return JSON.parse(fs.readFileSync(jsonPath, "utf8")) as HrTimecardRow[];
+  const rows = JSON.parse(fs.readFileSync(jsonPath, "utf8")) as HrTimecardRow[];
+  return rows.filter(
+    (r) => r.date >= HR_ATTENDANCE_FROM && r.date <= HR_ATTENDANCE_TO
+  );
 }
 
 export function loadActiveScheduleEntries(): HrScheduleEntry[] {
@@ -148,5 +197,8 @@ export function loadActiveScheduleEntries(): HrScheduleEntry[] {
   if (!latest) return [];
   const jsonPath = path.join(DATA_DIR, "schedules", `${latest.id}.json`);
   if (!fs.existsSync(jsonPath)) return [];
-  return JSON.parse(fs.readFileSync(jsonPath, "utf8")) as HrScheduleEntry[];
+  const entries = JSON.parse(fs.readFileSync(jsonPath, "utf8")) as HrScheduleEntry[];
+  return entries.filter(
+    (e) => e.date >= HR_ATTENDANCE_FROM && e.date <= HR_ATTENDANCE_TO
+  );
 }

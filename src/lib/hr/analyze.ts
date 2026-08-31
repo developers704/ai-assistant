@@ -67,15 +67,47 @@ export function analyzeEmployeeDay(
   const shortBreaks: { gapMinutes: number; gapLabel: string }[] = [];
   let totalWorkMinutes = 0;
 
+  if (sorted.length === 0) {
+    const missing: HrViolation[] = [
+      {
+        type: "missing_punch",
+        message: "Missing Time In",
+        severity: "error",
+      },
+      {
+        type: "missing_punch",
+        message: "Missing Time Out",
+        severity: "error",
+      },
+    ];
+    segments.push({
+      timeIn: null,
+      timeOut: null,
+      gapFromPrevious: null,
+      gapMinutes: null,
+      gapKind: "none",
+      workMinutes: 0,
+      workLabel: "0:00",
+      violations: missing,
+    });
+  }
+
   for (let i = 0; i < sorted.length; i++) {
     const row = sorted[i]!;
     const prev = i > 0 ? sorted[i - 1]! : null;
     const segViolations: HrViolation[] = [];
 
-    if (!row.timeIn || !row.timeOut) {
+    if (!row.timeIn) {
       segViolations.push({
         type: "missing_punch",
-        message: !row.timeIn ? "Missing Time In" : "Missing Time Out",
+        message: "Missing Time In",
+        severity: "error",
+      });
+    }
+    if (!row.timeOut) {
+      segViolations.push({
+        type: "missing_punch",
+        message: "Missing Time Out",
         severity: "error",
       });
     }
@@ -159,13 +191,21 @@ export function analyzeDay(
   scheduleEntries: HrScheduleEntry[]
 ): HrEmployeeDay[] {
   const dayRows = timecardRows.filter((r) => r.date === date);
-  const names = [...new Set(dayRows.map((r) => r.employeeName))].sort((a, b) =>
-    a.localeCompare(b)
-  );
-  return names.map((name) => {
-    const punches = dayRows.filter((r) => namesMatch(r.employeeName, name));
-    return analyzeEmployeeDay(name, date, punches, scheduleEntries);
-  });
+  const names: string[] = [];
+  const addName = (name: string) => {
+    if (names.some((existing) => namesMatch(existing, name))) return;
+    names.push(name);
+  };
+  for (const r of dayRows) addName(r.employeeName);
+  for (const e of scheduleEntries) {
+    if (e.date === date) addName(e.employeeName);
+  }
+  return names
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => {
+      const punches = dayRows.filter((r) => namesMatch(r.employeeName, name));
+      return analyzeEmployeeDay(name, date, punches, scheduleEntries);
+    });
 }
 
 export function distinctTimecardDates(rows: HrTimecardRow[]): string[] {
