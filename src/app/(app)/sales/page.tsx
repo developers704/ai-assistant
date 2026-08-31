@@ -38,6 +38,7 @@ import {
   pruneUnavailable,
   type SalesUiFilterValues,
 } from "@/lib/sales/filter-params";
+import { canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { useApp } from "@/lib/store/app-context";
 import {
@@ -119,7 +120,7 @@ export default function SalesPage() {
     parseMultiParam(searchParams, "subclass", "subclasses")
   );
   const [filterPaycodes, setFilterPaycodes] = useState<string[]>(() =>
-    parseMultiParam(searchParams, "paycode", "paycodes")
+    canonicalizePaycodeList(parseMultiParam(searchParams, "paycode", "paycodes"))
   );
   const [dateWarning, setDateWarning] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | undefined>();
@@ -216,7 +217,9 @@ export default function SalesPage() {
     setFilterVendors(parseMultiParam(searchParams, "vendor", "vendors"));
     setFilterClasses(parseMultiParam(searchParams, "class", "classes"));
     setFilterSubclasses(parseMultiParam(searchParams, "subclass", "subclasses"));
-    setFilterPaycodes(parseMultiParam(searchParams, "paycode", "paycodes"));
+    setFilterPaycodes(
+      canonicalizePaycodeList(parseMultiParam(searchParams, "paycode", "paycodes"))
+    );
   }, [searchParams]);
 
   // Manual filter changes → keep the URL in sync so voice deep-links and UI stay aligned.
@@ -369,7 +372,9 @@ export default function SalesPage() {
           setFilterVendors((prev) => pruneUnavailable(prev, vendors));
           setFilterClasses((prev) => pruneUnavailable(prev, classes));
           setFilterSubclasses((prev) => pruneUnavailable(prev, subclasses));
-          setFilterPaycodes((prev) => pruneUnavailable(prev, paycodes));
+          setFilterPaycodes((prev) =>
+            pruneUnavailable(canonicalizePaycodeList(prev), paycodes)
+          );
         } else {
           setReportSummary(null);
           setAvailableDates([]);

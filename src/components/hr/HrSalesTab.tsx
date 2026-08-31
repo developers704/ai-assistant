@@ -21,6 +21,7 @@ import {
   parseMultiParam,
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
+import { canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 import { useApp } from "@/lib/store/app-context";
 import {
   showsAllSoldInTopVendorModels,
@@ -167,7 +168,9 @@ export function HrSalesTab() {
           setFilterVendors((prev) => pruneUnavailable(prev, vendors));
           setFilterClasses((prev) => pruneUnavailable(prev, classes));
           setFilterSubclasses((prev) => pruneUnavailable(prev, subclasses));
-          setFilterPaycodes((prev) => pruneUnavailable(prev, paycodes));
+          setFilterPaycodes((prev) =>
+            pruneUnavailable(canonicalizePaycodeList(prev), paycodes)
+          );
           setFilterSalespeople((prev) => pruneUnavailable(prev, salespeople));
         }
       })

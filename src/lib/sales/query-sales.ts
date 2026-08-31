@@ -45,6 +45,7 @@ import {
   applySalespersonFilter,
   paycodeTotalsForRows,
 } from "@/lib/sales/paycode-overlay";
+import { canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 
 /**
  * Net Sales / stores use full CSV rows (repairs, SPO, battery, ITEM, etc.).
@@ -788,9 +789,9 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   if (include.topVendors) rankings.topVendors = groupRows(filtered, "vendor", limit);
   if (include.topClasses) rankings.topClasses = groupRows(filtered, "class", limit);
   if (include.topPaycodes !== false) {
-    const wanted = new Set((input.paycodes ?? []).map((c) => c.trim().toUpperCase()));
+    const wanted = new Set(canonicalizePaycodeList(input.paycodes ?? []));
     rankings.topPaycodes = paycodeTotalsForRows(paycodeRankSource)
-      .filter((p) => !wanted.size || wanted.has(p.name.toUpperCase()))
+      .filter((p) => !wanted.size || wanted.has(p.name))
       .slice(0, limit ?? 50)
       .map((p) => ({
         name: p.name,

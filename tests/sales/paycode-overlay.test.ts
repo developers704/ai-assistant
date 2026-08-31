@@ -5,6 +5,7 @@ import type { VendorPosRow } from "@/lib/reports/types";
 import {
   applyPaycodeFilter,
   applySalespersonFilter,
+  listPaycodes,
   parsePaymentAppliedByTxn,
   paycodeTotalsForRows,
 } from "@/lib/sales/paycode-overlay";
@@ -43,6 +44,13 @@ VJ-PB,PB1,ELYSSA,PB-10291574,8/8/2026,"Sales,",8/8/2026,8/8/2026,CC,VJPB-CC,,,20
 VJ-PB,PB1,ELYSSA,PB-10291574,8/8/2026,"Sales,",8/8/2026,8/8/2026,CA,VJPB-CASH,,,210.00,210.00,,1
 VJ-FRE,X,JUNK,VF-JUNK,8/1/2026,,8/1/2026,8/1/2026,CC,VJF-CC,,,"6,000,000.00","6,000,000.00",,1
 VJ-FRE,X,RET,VF-RET,8/1/2026,"Returns,",8/1/2026,8/1/2026,CC,VJF-CC,,,50.00,50.00,,1
+VJ-CST,ST1,IDEA,ST-IDEA1,8/21/2026,"Sales,",8/21/2026,8/21/2026,OTH,DBCST-IDEA,,,1000.00,1000.00,,1
+VJ-SL,SA1,IDEAL,SA-IDEAL1,8/16/2026,"Sales,",8/16/2026,8/16/2026,OTH,VJSL-IDEAL,,,2750.00,2750.00,,1
+VJ-RE,RE1,SYNY,RE-SYNY1,8/10/2026,"Sales,",8/10/2026,8/10/2026,OTH,VJRE-SYNY,,,111.00,111.00,,1
+VJ-BB,BB1,SYNC,BB-SYNC1,8/10/2026,"Sales,",8/10/2026,8/10/2026,OTH,BB-SYNC,,,24.00,24.00,,1
+VJ-FRE,F1,PROG,VF-PROG1,8/5/2026,"Sales,",8/5/2026,8/5/2026,OTH,VJF-PROGRE,,,10.00,10.00,,1
+VJ-HD,H1,PROG,HD-PROG1,8/5/2026,"Sales,",8/5/2026,8/5/2026,OTH,HD-PROGR,,,5.00,5.00,,1
+VJ-BB,BB2,CC,BB-CC1,8/5/2026,"Sales,",8/5/2026,8/5/2026,CC,BB - CC,,,80.00,80.00,,1
 `;
 
 describe("parsePaymentAppliedByTxn", () => {
@@ -51,12 +59,21 @@ describe("parsePaymentAppliedByTxn", () => {
     expect(map.has("VF-JUNK")).toBe(false);
     expect(map.has("VF-RET")).toBe(false);
     const ve = map.get("VE-10293897")!;
-    expect(ve.get("VJE-CASH")).toBeCloseTo(0.01, 5);
-    expect(ve.get("VJE-CC")).toBeCloseTo(250, 5);
-    expect(ve.get("VJE-IDDEAL")).toBeCloseTo(3000, 5);
+    expect(ve.get("CASH")).toBeCloseTo(0.01, 5);
+    expect(ve.get("CC")).toBeCloseTo(250, 5);
+    expect(ve.get("IDDEAL")).toBeCloseTo(3000, 5);
     const pb = map.get("PB-10291574")!;
-    expect(pb.get("VJPB-CC")).toBeCloseTo(200, 5);
-    expect(pb.get("VJPB-CASH")).toBeCloseTo(210, 5);
+    expect(pb.get("CC")).toBeCloseTo(200, 5);
+    expect(pb.get("CASH")).toBeCloseTo(210, 5);
+    expect(map.get("ST-IDEA1")!.get("IDDEAL")).toBeCloseTo(1000, 5);
+    expect(map.get("SA-IDEAL1")!.get("IDDEAL")).toBeCloseTo(2750, 5);
+    expect(map.get("RE-SYNY1")!.get("SYNC")).toBeCloseTo(111, 5);
+    expect(map.get("BB-SYNC1")!.get("SYNC")).toBeCloseTo(24, 5);
+    expect(map.get("VF-PROG1")!.get("PROG")).toBeCloseTo(10, 5);
+    expect(map.get("HD-PROG1")!.get("PROG")).toBeCloseTo(5, 5);
+    expect(map.get("BB-CC1")!.get("CC")).toBeCloseTo(80, 5);
+    expect(listPaycodes(map)).toEqual(["CASH", "CC", "IDDEAL", "SYNC", "PROG"]);
+    expect(listPaycodes(map).some((c) => /^(VJF|VIS|VJPB|VJS)$/i.test(c))).toBe(false);
   });
 });
 
@@ -84,7 +101,7 @@ describe("applyPaycodeFilter", () => {
       }),
     ];
     const total = 2174.55 + 780;
-    const filtered = applyPaycodeFilter(rows, ["VJE-IDDEAL"], overlay);
+    const filtered = applyPaycodeFilter(rows, ["IDDEAL"], overlay);
     const net = filtered.reduce((s, r) => s + r.netRevenue, 0);
     expect(net).toBeCloseTo(3000, 2);
     expect(filtered).toHaveLength(2);
@@ -96,8 +113,8 @@ describe("applyPaycodeFilter", () => {
 
   it("splits a two-paycode ticket independently (PB CASH vs CC)", () => {
     const rows = [row({ transactionId: "PB-10291574", netRevenue: 410, storeName: "VJ-PB" })];
-    const cash = applyPaycodeFilter(rows, ["VJPB-CASH"], overlay);
-    const cc = applyPaycodeFilter(rows, ["VJPB-CC"], overlay);
+    const cash = applyPaycodeFilter(rows, ["CASH"], overlay);
+    const cc = applyPaycodeFilter(rows, ["CC"], overlay);
     expect(cash[0]!.netRevenue).toBeCloseTo(210, 5);
     expect(cc[0]!.netRevenue).toBeCloseTo(200, 5);
     expect(cash[0]!.quantity).toBe(1);
@@ -111,14 +128,27 @@ describe("applyPaycodeFilter", () => {
         payCode: "VJE-CASH,VJE-CC,",
       }),
     ];
-    const filtered = applyPaycodeFilter(rows, ["VJE-CASH"], overlay);
+    const filtered = applyPaycodeFilter(rows, ["CASH"], overlay);
     expect(filtered).toHaveLength(1);
     expect(filtered[0]!.netRevenue).toBe(500);
   });
 
   it("drops txns that have overlay but not the selected paycode", () => {
     const rows = [row({ transactionId: "PB-10291574", netRevenue: 410 })];
-    expect(applyPaycodeFilter(rows, ["VJE-IDDEAL"], overlay)).toHaveLength(0);
+    expect(applyPaycodeFilter(rows, ["IDDEAL"], overlay)).toHaveLength(0);
+  });
+
+  it("selecting IDDEAL includes IDEA and IDEAL Applied Amt", () => {
+    const rows = [
+      row({ transactionId: "ST-IDEA1", netRevenue: 1000 }),
+      row({ transactionId: "SA-IDEAL1", netRevenue: 2750 }),
+      row({ transactionId: "VE-10293897", netRevenue: 2474.55 }),
+    ];
+    const viaCanon = applyPaycodeFilter(rows, ["IDDEAL"], overlay);
+    const viaRaw = applyPaycodeFilter(rows, ["VJE-IDDEAL"], overlay);
+    const net = (xs: typeof viaCanon) => xs.reduce((s, r) => s + r.netRevenue, 0);
+    expect(net(viaCanon)).toBeCloseTo(1000 + 2750 + 3000, 2);
+    expect(net(viaRaw)).toBeCloseTo(net(viaCanon), 2);
   });
 });
 
@@ -131,10 +161,11 @@ describe("paycodeTotalsForRows", () => {
     ];
     const totals = paycodeTotalsForRows(rows, overlay);
     const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
-    expect(byName["VJE-IDDEAL"]).toBeCloseTo(3000, 5);
-    expect(byName["VJE-CC"]).toBeCloseTo(250, 5);
-    expect(byName["VJPB-CASH"]).toBeCloseTo(210, 5);
-    expect(byName["VJPB-CC"]).toBeCloseTo(200, 5);
+    expect(byName["IDDEAL"]).toBeCloseTo(3000, 5);
+    expect(byName["CC"]).toBeCloseTo(250 + 200, 5);
+    expect(byName["CASH"]).toBeCloseTo(0.01 + 210, 5);
+    expect(byName["VJE-IDDEAL"]).toBeUndefined();
+    expect(byName["VJPB-CASH"]).toBeUndefined();
     const rankingSum = totals.reduce((s, t) => s + t.revenue, 0);
     expect(rankingSum).toBeCloseTo(3000 + 250 + 0.01 + 210 + 200, 5);
   });
@@ -165,21 +196,34 @@ describe("bundled Payment-Transactions.csv", () => {
     const map = parsePaymentAppliedByTxn(fs.readFileSync(file, "utf8"));
     const ve = map.get("VE-10293897");
     expect(ve).toBeDefined();
-    expect(ve!.get("VJE-CASH")).toBeCloseTo(0.01, 5);
-    expect(ve!.get("VJE-CC")).toBeCloseTo(250, 5);
-    expect(ve!.get("VJE-IDDEAL")).toBeCloseTo(3000, 5);
+    expect(ve!.get("CASH")).toBeCloseTo(0.01, 5);
+    expect(ve!.get("CC")).toBeCloseTo(250, 5);
+    expect(ve!.get("IDDEAL")).toBeCloseTo(3000, 5);
     const pb = map.get("PB-10291574");
-    expect(pb!.get("VJPB-CASH")).toBeCloseTo(210, 5);
-    expect(pb!.get("VJPB-CC")).toBeCloseTo(200, 5);
+    expect(pb!.get("CASH")).toBeCloseTo(210, 5);
+    expect(pb!.get("CC")).toBeCloseTo(200, 5);
     const vl = map.get("VL-10291239");
     expect(vl).toBeDefined();
-    expect(vl!.get("VJL-CASH")).toBeCloseTo(0.01, 5);
-    expect(vl!.get("VJL-IDDEAL")).toBeCloseTo(2200, 5);
+    expect(vl!.get("CASH")).toBeCloseTo(0.01, 5);
+    expect(vl!.get("IDDEAL")).toBeCloseTo(2200, 5);
     const ve30 = map.get("VE-10294039");
     expect(ve30).toBeDefined();
-    expect(ve30!.get("VJE-IDDEAL")).toBeCloseTo(2600, 5);
+    expect(ve30!.get("IDDEAL")).toBeCloseTo(2600, 5);
     const vl30 = map.get("VL-10291249");
     expect(vl30).toBeDefined();
-    expect(vl30!.get("VJL-IDDEAL")).toBeCloseTo(1873.15, 5);
+    expect(vl30!.get("IDDEAL")).toBeCloseTo(1873.15, 5);
+    const codes = listPaycodes(map);
+    expect(codes).toContain("CASH");
+    expect(codes).toContain("IDDEAL");
+    expect(codes).toContain("SYNC");
+    expect(codes).toContain("PROG");
+    expect(codes).not.toContain("VJF");
+    expect(codes).not.toContain("VIS");
+    expect(codes).not.toContain("VJPB");
+    expect(codes).not.toContain("VJS");
+    expect(codes).not.toContain("IDEA");
+    expect(codes).not.toContain("SYNY");
+    const ideaTxn = map.get("ST-10292535");
+    expect(ideaTxn?.get("IDDEAL")).toBeCloseTo(1000, 5);
   });
 });

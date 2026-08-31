@@ -62,13 +62,24 @@ When changing Top Models soft-hide rules, update `src/lib/utils.ts` and this fil
 
 Match payment `Transaction #` → sales `Transaction #`. Amounts use **Applied Amt** (not Payment Amt, not line Total). Skip blank Type and Returns/Refunds.
 
+Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CASH`). Never list store prefixes (`VJF`, `VIS`, `VJPB`, `VJS`, …) as paycodes.
+
+| POS Pay Code | Dashboard / filter |
+|---|---|
+| `VJS-CASH`, `VJE-CASH`, bare `CASH` | **CASH** |
+| `VJE-IDDEAL`, `DBCST-IDEA`, `VJSL-IDEAL` | **IDDEAL** |
+| `BB-SYNC`, `VJRE-SYNY`, Synchrony truncations | **SYNC** |
+| `VJB-PROG`, `VJF-PROGRE`, `HD-PROGR`, `VJLV-PROGRESSIVE` | **PROG** |
+
+Same canonical rule on overlay parse — daily payment appends stay raw in `Payment-Transactions.csv` and fold in automatically (Aug 1 → current overlay dates).
+
 | Surface | Amount |
 |---|---|
 | Unfiltered **Net Sales** | CSV **Total** (unchanged) |
-| Paycode ranking / Paycodes card | SUM Applied Amt by Pay Code for txns in the filtered sales set |
-| Paycode filter selected | Allocate that code’s Applied Amt across remaining sales lines by `|Total|` weight (qty not scaled). If the txn has no overlay but the sales `Pay Codes` cell lists the code, keep CSV Total |
+| Paycode ranking / Paycodes card | SUM Applied Amt by **canonical method** (CASH, IDDEAL, …) for txns in the filtered sales set |
+| Paycode filter selected (e.g. IDDEAL) | Include every alias in that group; Net Sales = that group’s **Applied Amt** allocated across remaining sales lines by `|Total|` weight (qty not scaled). If the txn has no overlay but the sales `Pay Codes` cell lists the code, keep CSV Total |
 
-Paycode filter combines with store / department / design / class / subclass / salesperson. Implementation: `src/lib/sales/paycode-overlay.ts` (`PAYCODE_OVERLAY_VERSION`).
+Paycode filter combines with store / department / design / class / subclass / salesperson. Implementation: `src/lib/sales/paycode-normalize.ts` + `src/lib/sales/paycode-overlay.ts` (`PAYCODE_OVERLAY_VERSION`).
 
 ## Daily append format (always)
 
