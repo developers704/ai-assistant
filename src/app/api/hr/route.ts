@@ -8,6 +8,12 @@ import {
   saveTimecardUpload,
 } from "@/lib/hr/store";
 import { analyzeDay, distinctTimecardDates } from "@/lib/hr/analyze";
+import {
+  HR_ATTENDANCE_DATES,
+  HR_ATTENDANCE_FROM,
+  HR_ATTENDANCE_TO,
+  lastHrAttendanceDateWithData,
+} from "@/lib/hr/window";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,10 +35,14 @@ export async function GET(req: NextRequest) {
   const uploads = listHrUploads();
   const timecardRows = loadActiveTimecardRows();
   const scheduleEntries = loadActiveScheduleEntries();
-  const dates = distinctTimecardDates(timecardRows);
+  const dates = HR_ATTENDANCE_DATES;
+  const punchDates = distinctTimecardDates(timecardRows);
+  const scheduleDates = [...new Set(scheduleEntries.map((e) => e.date))];
 
   const activeDate =
-    date && dates.includes(date) ? date : dates[dates.length - 1] ?? null;
+    date && dates.includes(date)
+      ? date
+      : lastHrAttendanceDateWithData(punchDates, scheduleDates);
 
   const employees = activeDate
     ? analyzeDay(activeDate, timecardRows, scheduleEntries)
@@ -45,6 +55,8 @@ export async function GET(req: NextRequest) {
     employees,
     hasTimecard: timecardRows.length > 0,
     hasSchedule: scheduleEntries.length > 0,
+    dateFrom: HR_ATTENDANCE_FROM,
+    dateTo: HR_ATTENDANCE_TO,
     scheduleDateFrom: uploads.schedules[0]?.dateFrom ?? null,
     scheduleDateTo: uploads.schedules[0]?.dateTo ?? null,
   });
