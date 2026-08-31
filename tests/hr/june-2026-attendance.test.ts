@@ -29,21 +29,22 @@ describe("HR date labels", () => {
   it("labels June 1 2026 as Monday", () => {
     expect(formatHrDateLabel("2026-06-01")).toBe("Mon · Jun 1");
     expect(formatHrDateLabel("2026-06-07")).toBe("Sun · Jun 7");
-    expect(formatHrDateLabel("2026-06-30")).toBe("Tue · Jun 30");
   });
 
-  it("locks the attendance window to June 1–30 2026", () => {
+  it("locks the attendance window to June 1–7 2026", () => {
     expect(HR_ATTENDANCE_FROM).toBe("2026-06-01");
-    expect(HR_ATTENDANCE_TO).toBe("2026-06-30");
-    expect(HR_ATTENDANCE_DATES).toHaveLength(30);
+    expect(HR_ATTENDANCE_TO).toBe("2026-06-07");
+    expect(HR_ATTENDANCE_DATES).toHaveLength(7);
     expect(HR_ATTENDANCE_DATES[0]).toBe("2026-06-01");
-    expect(HR_ATTENDANCE_DATES.at(-1)).toBe("2026-06-30");
-    expect(formatHrAttendanceWindowCaption()).toBe("June 1 – 30, 2026");
+    expect(HR_ATTENDANCE_DATES.at(-1)).toBe("2026-06-07");
+    expect(formatHrAttendanceWindowCaption()).toBe("June 1 – 7, 2026");
     expect(MISSING_PUNCH_LABEL).toBe("missing.");
+    expect(HR_ATTENDANCE_DATES).not.toContain("2026-06-08");
+    expect(HR_ATTENDANCE_DATES).not.toContain("2026-06-30");
   });
 
-  it("defaults to the last date with punches", () => {
-    expect(lastHrAttendanceDateWithData(["2026-06-30"], ["2026-06-07"])).toBe("2026-06-30");
+  it("defaults to the last date with punches in the week", () => {
+    expect(lastHrAttendanceDateWithData(["2026-06-07"], ["2026-06-01"])).toBe("2026-06-07");
     expect(lastHrAttendanceDateWithData([], ["2026-06-07"])).toBe("2026-06-07");
   });
 });
@@ -59,9 +60,15 @@ describe("June 2026 seed files", () => {
     expect(rows.length).toBeGreaterThan(1000);
     const dates = [...new Set(rows.map((r) => r.date))].sort();
     expect(dates[0]).toBe("2026-06-01");
-    expect(dates.at(-1)).toBe("2026-06-30");
     expect(dates.every((d) => d.startsWith("2026-06-"))).toBe(true);
     expect(rows.some((r) => r.date.startsWith("2026-07-"))).toBe(false);
+    const inWindow = rows.filter(
+      (r) => r.date >= HR_ATTENDANCE_FROM && r.date <= HR_ATTENDANCE_TO
+    );
+    const windowDates = [...new Set(inWindow.map((r) => r.date))].sort();
+    expect(windowDates[0]).toBe("2026-06-01");
+    expect(windowDates.at(-1)).toBe("2026-06-07");
+    expect(windowDates).toHaveLength(7);
   });
 
   it("parses the ADP week as Mon 06/01 through Sun 06/07 2026", () => {
@@ -72,31 +79,21 @@ describe("June 2026 seed files", () => {
     expect(entries.every((e) => e.date >= "2026-06-01" && e.date <= "2026-06-07")).toBe(true);
   });
 
-  it("repeats week-1 shifts onto weeks 2–4 and leftover June dates", () => {
+  it("keeps schedule and punches on June 1–7 only", () => {
     const { entries } = parseScheduleCsv(schedule);
     const expanded = expandWeeklyScheduleToWindow(entries);
     const dates = [...new Set(expanded.map((e) => e.date))].sort();
     expect(dates[0]).toBe("2026-06-01");
-    expect(dates.at(-1)).toBe("2026-06-30");
-    const mondays = ["2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29"];
+    expect(dates.at(-1)).toBe("2026-06-07");
+    expect(dates).toHaveLength(7);
+    expect(expanded.some((e) => e.date > "2026-06-07")).toBe(false);
     const week1 = entries.find(
       (e) => e.date === "2026-06-01" && /1, security guard/i.test(e.employeeName)
     );
     expect(week1).toBeTruthy();
-    for (const d of mondays) {
-      const hit = expanded.find(
-        (e) => e.date === d && /1, security guard/i.test(e.employeeName)
-      );
-      expect(hit?.start).toBe(week1!.start);
-      expect(hit?.end).toBe(week1!.end);
-    }
-    const tueWeek1 = entries.find(
-      (e) => e.date === "2026-06-02" && /1, security guard/i.test(e.employeeName)
-    );
-    expect(tueWeek1).toBeFalsy();
     expect(
       expanded.some(
-        (e) => e.date === "2026-06-09" && /1, security guard/i.test(e.employeeName)
+        (e) => e.date === "2026-06-08" && /1, security guard/i.test(e.employeeName)
       )
     ).toBe(false);
   });
