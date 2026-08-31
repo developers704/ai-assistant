@@ -26,89 +26,88 @@ describe("parseClockToMinutes 24h", () => {
 });
 
 describe("HR date labels", () => {
-  it("labels July 1 2026 as Wednesday", () => {
-    expect(formatHrDateLabel("2026-07-01")).toBe("Wed · Jul 1");
-    expect(formatHrDateLabel("2026-07-06")).toBe("Mon · Jul 6");
-    expect(formatHrDateLabel("2026-07-31")).toBe("Fri · Jul 31");
+  it("labels June 1 2026 as Monday", () => {
+    expect(formatHrDateLabel("2026-06-01")).toBe("Mon · Jun 1");
+    expect(formatHrDateLabel("2026-06-07")).toBe("Sun · Jun 7");
+    expect(formatHrDateLabel("2026-06-30")).toBe("Tue · Jun 30");
   });
 
-  it("locks the attendance window to July 1–31 2026", () => {
-    expect(HR_ATTENDANCE_FROM).toBe("2026-07-01");
-    expect(HR_ATTENDANCE_TO).toBe("2026-07-31");
-    expect(HR_ATTENDANCE_DATES).toHaveLength(31);
-    expect(HR_ATTENDANCE_DATES[0]).toBe("2026-07-01");
-    expect(HR_ATTENDANCE_DATES.at(-1)).toBe("2026-07-31");
-    expect(formatHrAttendanceWindowCaption()).toBe("July 1 – 31, 2026");
+  it("locks the attendance window to June 1–30 2026", () => {
+    expect(HR_ATTENDANCE_FROM).toBe("2026-06-01");
+    expect(HR_ATTENDANCE_TO).toBe("2026-06-30");
+    expect(HR_ATTENDANCE_DATES).toHaveLength(30);
+    expect(HR_ATTENDANCE_DATES[0]).toBe("2026-06-01");
+    expect(HR_ATTENDANCE_DATES.at(-1)).toBe("2026-06-30");
+    expect(formatHrAttendanceWindowCaption()).toBe("June 1 – 30, 2026");
     expect(MISSING_PUNCH_LABEL).toBe("missing.");
   });
 
-  it("defaults to the last date with punches, not empty July 31", () => {
-    expect(lastHrAttendanceDateWithData(["2026-07-30"], ["2026-07-07"])).toBe("2026-07-30");
-    expect(lastHrAttendanceDateWithData(["2026-07-30"], ["2026-07-31"])).toBe("2026-07-30");
-    expect(lastHrAttendanceDateWithData([], ["2026-07-07"])).toBe("2026-07-07");
+  it("defaults to the last date with punches", () => {
+    expect(lastHrAttendanceDateWithData(["2026-06-30"], ["2026-06-07"])).toBe("2026-06-30");
+    expect(lastHrAttendanceDateWithData([], ["2026-06-07"])).toBe("2026-06-07");
   });
 });
 
-describe("July 2026 seed files", () => {
-  const timecardPath = path.join(process.cwd(), "data/hr/Timecard-July-2026.csv");
-  const schedulePath = path.join(process.cwd(), "data/hr/Schedule-July-2026.csv");
+describe("June 2026 seed files", () => {
+  const timecardPath = path.join(process.cwd(), "data/hr/Timecard-June-2026.csv");
+  const schedulePath = path.join(process.cwd(), "data/hr/Schedule-June-2026.csv");
   const timecard = fs.readFileSync(timecardPath, "utf8");
   const schedule = fs.readFileSync(schedulePath, "utf8");
 
-  it("parses remapped July punch dates (no leftover June)", () => {
+  it("parses June punch dates (no July leftover)", () => {
     const rows = parseTimecardCsv(timecard);
     expect(rows.length).toBeGreaterThan(1000);
     const dates = [...new Set(rows.map((r) => r.date))].sort();
-    expect(dates[0]).toBe("2026-07-01");
-    expect(dates.at(-1)).toBe("2026-07-30");
-    expect(dates.every((d) => d.startsWith("2026-07-"))).toBe(true);
-    expect(rows.some((r) => r.date.startsWith("2026-06-"))).toBe(false);
+    expect(dates[0]).toBe("2026-06-01");
+    expect(dates.at(-1)).toBe("2026-06-30");
+    expect(dates.every((d) => d.startsWith("2026-06-"))).toBe(true);
+    expect(rows.some((r) => r.date.startsWith("2026-07-"))).toBe(false);
   });
 
-  it("parses the ADP week as Wed 07/01 through Tue 07/07 2026", () => {
+  it("parses the ADP week as Mon 06/01 through Sun 06/07 2026", () => {
     const { entries, dateFrom, dateTo } = parseScheduleCsv(schedule);
-    expect(dateFrom).toBe("2026-07-01");
-    expect(dateTo).toBe("2026-07-07");
+    expect(dateFrom).toBe("2026-06-01");
+    expect(dateTo).toBe("2026-06-07");
     expect(entries.length).toBeGreaterThan(50);
-    expect(entries.every((e) => e.date >= "2026-07-01" && e.date <= "2026-07-07")).toBe(true);
+    expect(entries.every((e) => e.date >= "2026-06-01" && e.date <= "2026-06-07")).toBe(true);
   });
 
-  it("repeats week-1 shifts onto weeks 2–4 and leftover July dates", () => {
+  it("repeats week-1 shifts onto weeks 2–4 and leftover June dates", () => {
     const { entries } = parseScheduleCsv(schedule);
     const expanded = expandWeeklyScheduleToWindow(entries);
     const dates = [...new Set(expanded.map((e) => e.date))].sort();
-    expect(dates[0]).toBe("2026-07-01");
-    expect(dates.at(-1)).toBe("2026-07-31");
-    const wednesdays = ["2026-07-01", "2026-07-08", "2026-07-15", "2026-07-22", "2026-07-29"];
+    expect(dates[0]).toBe("2026-06-01");
+    expect(dates.at(-1)).toBe("2026-06-30");
+    const mondays = ["2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29"];
     const week1 = entries.find(
-      (e) => e.date === "2026-07-01" && /1, security guard/i.test(e.employeeName)
+      (e) => e.date === "2026-06-01" && /1, security guard/i.test(e.employeeName)
     );
     expect(week1).toBeTruthy();
-    for (const d of wednesdays) {
+    for (const d of mondays) {
       const hit = expanded.find(
         (e) => e.date === d && /1, security guard/i.test(e.employeeName)
       );
       expect(hit?.start).toBe(week1!.start);
       expect(hit?.end).toBe(week1!.end);
     }
-    const thuWeek1 = entries.find(
-      (e) => e.date === "2026-07-02" && /1, security guard/i.test(e.employeeName)
+    const tueWeek1 = entries.find(
+      (e) => e.date === "2026-06-02" && /1, security guard/i.test(e.employeeName)
     );
-    expect(thuWeek1).toBeFalsy();
+    expect(tueWeek1).toBeFalsy();
     expect(
       expanded.some(
-        (e) => e.date === "2026-07-09" && /1, security guard/i.test(e.employeeName)
+        (e) => e.date === "2026-06-09" && /1, security guard/i.test(e.employeeName)
       )
     ).toBe(false);
   });
 
-  it("matches security guard 1 on July 1 worked hours vs 24h punches", () => {
+  it("matches security guard 1 on June 1 worked hours vs 24h punches", () => {
     const rows = parseTimecardCsv(timecard);
     const { entries } = parseScheduleCsv(schedule);
     const punches = rows.filter(
-      (r) => r.date === "2026-07-01" && /1, security guard/i.test(r.employeeName)
+      (r) => r.date === "2026-06-01" && /1, security guard/i.test(r.employeeName)
     );
-    const day = analyzeEmployeeDay("1, security guard", "2026-07-01", punches, entries);
+    const day = analyzeEmployeeDay("1, security guard", "2026-06-01", punches, entries);
     expect(day.schedule?.start).toMatch(/09:20 AM/);
     expect(day.totalWorkLabel).toBe("10:37");
     expect(day.lateMinutes).toBeNull();
@@ -118,9 +117,9 @@ describe("July 2026 seed files", () => {
 
   it("shows missing punches for a scheduled employee with no clock-ins", () => {
     const { entries } = parseScheduleCsv(schedule);
-    const scheduled = entries.find((e) => e.date === "2026-07-01");
+    const scheduled = entries.find((e) => e.date === "2026-06-01");
     expect(scheduled).toBeTruthy();
-    const day = analyzeEmployeeDay(scheduled!.employeeName, "2026-07-01", [], entries);
+    const day = analyzeEmployeeDay(scheduled!.employeeName, "2026-06-01", [], entries);
     expect(day.segments).toHaveLength(1);
     expect(day.segments[0]!.timeIn).toBeNull();
     expect(day.segments[0]!.timeOut).toBeNull();
@@ -131,22 +130,22 @@ describe("July 2026 seed files", () => {
     const punches: HrTimecardRow[] = [
       {
         employeeName: "Test, employee",
-        date: "2026-07-01",
+        date: "2026-06-01",
         timeIn: null,
         timeOut: null,
         gapFromPrevious: null,
         hoursLabel: null,
       },
     ];
-    const day = analyzeEmployeeDay("Test, employee", "2026-07-01", punches, []);
+    const day = analyzeEmployeeDay("Test, employee", "2026-06-01", punches, []);
     expect(day.violations.filter((v) => v.type === "missing_punch")).toHaveLength(2);
   });
 
-  it("includes every scheduled name for July 1 even without punches", () => {
-    const rows = parseTimecardCsv(timecard).filter((r) => r.date === "2026-07-01");
+  it("includes every scheduled name for June 1 even without punches", () => {
+    const rows = parseTimecardCsv(timecard).filter((r) => r.date === "2026-06-01");
     const { entries } = parseScheduleCsv(schedule);
-    const employees = analyzeDay("2026-07-01", rows, entries);
-    const scheduled = entries.filter((e) => e.date === "2026-07-01");
+    const employees = analyzeDay("2026-06-01", rows, entries);
+    const scheduled = entries.filter((e) => e.date === "2026-06-01");
     for (const entry of scheduled) {
       expect(employees.some((emp) => namesMatch(emp.employeeName, entry.employeeName))).toBe(
         true
