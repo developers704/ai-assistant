@@ -29,7 +29,11 @@ export function lastHrAttendanceDateWithData(
   const sched = new Set(scheduleDates);
   for (let i = HR_ATTENDANCE_DATES.length - 1; i >= 0; i--) {
     const d = HR_ATTENDANCE_DATES[i]!;
-    if (punch.has(d) || sched.has(d)) return d;
+    if (punch.has(d)) return d;
+  }
+  for (let i = HR_ATTENDANCE_DATES.length - 1; i >= 0; i--) {
+    const d = HR_ATTENDANCE_DATES[i]!;
+    if (sched.has(d)) return d;
   }
   return HR_ATTENDANCE_TO;
 }

