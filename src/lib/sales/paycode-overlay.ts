@@ -4,19 +4,31 @@
  * Match Payment `Transaction #` → sales `Transaction #`.
  * Paycode amounts use **Applied Amt** (not Payment Amt, not sales-line Total).
  *
+ * Display / filter keys are the method after the store hyphen (`VJS-CASH` →
+ * `CASH`) with IDEA/IDEAL→IDDEAL, SYNY/Synchrony truncations→SYNC, PROG*→PROG.
+ * Store prefixes (VJF, VIS, VJPB, …) are never listed as paycodes.
+ *
  * Unfiltered Net Sales stays CSV **Total** (sales-report.mdc).
  * When a Paycode is selected, line revenue is that paycode's Applied Amt
  * allocated across the transaction's sales lines by |Total| share.
  *
  * Skips blank Type and Returns/Refunds (Excel junk / reverse legs).
+ * Daily payment appends stay raw in Payment-Transactions.csv; this parse step
+ * applies the same canonical rule for Aug 1 → current overlay dates.
  */
 import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { rowIncludesSalesperson, salespersonShare, resolveSalespersonFilterCode } from "@/lib/sales/salesperson-credit";
+import {
+  canonicalPaycode,
+  canonicalizePaycodeList,
+  sortPaycodeLabels,
+} from "@/lib/sales/paycode-normalize";
 
-export const PAYCODE_OVERLAY_VERSION = 1;
+export const PAYCODE_OVERLAY_VERSION = 2;
+export { canonicalPaycode, canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 
 export type PaycodeAmountMap = Map<string, number>;
 export type TxnPaycodeAmounts = Map<string, PaycodeAmountMap>;
@@ -49,7 +61,7 @@ function normalizeTxnId(raw: string): string {
 }
 
 function normalizePaycode(raw: string): string {
-  return raw.replace(/,+\s*$/, "").trim();
+  return canonicalPaycode(raw);
 }
 
 function skipPaymentType(typeRaw: unknown): boolean {
@@ -83,7 +95,7 @@ export function parsePaymentAppliedByTxn(csvText: string): TxnPaycodeAmounts {
   for (const rec of rows) {
     if (typeCol && skipPaymentType(rec[typeCol])) continue;
     const tid = normalizeTxnId(String(rec[txnCol] ?? ""));
-    const code = normalizePaycode(String(rec[payCol] ?? ""));
+    const code = canonicalPaycode(String(rec[payCol] ?? ""));
     if (!tid || !code) continue;
     const amt = parseMoney(rec[appliedCol]);
     const inner = out.get(tid) ?? new Map();
@@ -95,10 +107,12 @@ export function parsePaymentAppliedByTxn(csvText: string): TxnPaycodeAmounts {
 
 let cachedOverlay: TxnPaycodeAmounts | null = null;
 let cachedMtime = 0;
+let cachedVersion = 0;
 
 export function clearPaycodeOverlayCache() {
   cachedOverlay = null;
   cachedMtime = 0;
+  cachedVersion = 0;
 }
 
 export function loadPaycodeOverlay(force = false): TxnPaycodeAmounts {
@@ -108,9 +122,17 @@ export function loadPaycodeOverlay(force = false): TxnPaycodeAmounts {
     return cachedOverlay;
   }
   const mtime = fs.statSync(file).mtimeMs;
-  if (!force && cachedOverlay && cachedMtime === mtime) return cachedOverlay;
+  if (
+    !force &&
+    cachedOverlay &&
+    cachedMtime === mtime &&
+    cachedVersion === PAYCODE_OVERLAY_VERSION
+  ) {
+    return cachedOverlay;
+  }
   cachedOverlay = parsePaymentAppliedByTxn(fs.readFileSync(file, "utf8"));
   cachedMtime = mtime;
+  cachedVersion = PAYCODE_OVERLAY_VERSION;
   return cachedOverlay;
 }
 
@@ -120,7 +142,7 @@ export function listPaycodes(overlay?: TxnPaycodeAmounts): string[] {
   for (const inner of map.values()) {
     for (const code of inner.keys()) set.add(code);
   }
-  return [...set].sort((a, b) => a.localeCompare(b));
+  return sortPaycodeLabels([...set]);
 }
 
 function txnPaycodesFromSalesCell(raw?: string): string[] {
@@ -142,13 +164,13 @@ export function txnSelectedAppliedAmt(
   selected: string[]
 ): { amount: number; matched: boolean; hasOverlay: boolean } {
   if (!selected.length) return { amount: 0, matched: true, hasOverlay: false };
-  const wanted = new Set(selected.map((c) => normalizePaycode(c).toUpperCase()));
+  const wanted = new Set(canonicalizePaycodeList(selected));
   const inner = overlay.get(normalizeTxnId(txnId));
   if (!inner) return { amount: 0, matched: false, hasOverlay: false };
   let amount = 0;
   let matched = false;
   for (const [code, amt] of inner) {
-    if (wanted.has(code.toUpperCase())) {
+    if (wanted.has(code)) {
       matched = true;
       amount += amt;
     }
@@ -189,8 +211,8 @@ export function applyPaycodeFilter(
 ): VendorPosRow[] {
   if (!selectedPaycodes.length) return rows;
   const map = overlay ?? loadPaycodeOverlay();
-  const wanted = selectedPaycodes.map((c) => normalizePaycode(c));
-  const wantedUpper = new Set(wanted.map((c) => c.toUpperCase()));
+  const wanted = canonicalizePaycodeList(selectedPaycodes);
+  const wantedUpper = new Set(wanted);
 
   const byTxn = new Map<string, VendorPosRow[]>();
   for (const r of rows) {

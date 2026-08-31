@@ -5,6 +5,10 @@
  * so re-uploading Aug 29 does not double-count. Sparse older dates in the
  * daily file (OL/CR leftovers) are upserted by Transaction # + Pay Code + date
  * so they do not wipe other days already in the overlay.
+ *
+ * Keep raw POS Pay Code strings here (`VJS-CASH`, `DBCST-IDEA`). Canonical
+ * method names (CASH, IDDEAL, SYNC, PROG, …) are applied when the overlay is
+ * parsed in `paycode-overlay.ts`, so every daily append follows the same rule.
  */
 import Papa from "papaparse";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
