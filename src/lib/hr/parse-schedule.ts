@@ -73,7 +73,7 @@ function utcWeekday(iso: string): number {
 
 /**
  * A weekly ADP file is one week of shifts. Repeat that weekday pattern across
- * the HR attendance month (week 2 / 3 / 4 / leftover days).
+ * the HR attendance window (currently June 1–7, 2026).
  *
  * Files that already span more than 8 distinct dates are left as-is.
  */

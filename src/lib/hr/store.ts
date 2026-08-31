@@ -30,7 +30,7 @@ function seedFingerprint(): string | null {
   try {
     const tc = fs.statSync(SEED_TIMECARD);
     const sc = fs.statSync(SEED_SCHEDULE);
-    return `june2026w1:${tc.mtimeMs}:${tc.size}:${sc.mtimeMs}:${sc.size}`;
+    return `june2026week1:${tc.mtimeMs}:${tc.size}:${sc.mtimeMs}:${sc.size}`;
   } catch {
     return null;
   }

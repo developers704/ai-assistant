@@ -1,6 +1,6 @@
-/** Attendance date window shown in HR Management (June 2026). */
+/** Attendance date window shown in HR Management (June 1–7, 2026). */
 export const HR_ATTENDANCE_FROM = "2026-06-01";
-export const HR_ATTENDANCE_TO = "2026-06-30";
+export const HR_ATTENDANCE_TO = "2026-06-07";
 
 /** Shown in Time In / Time Out cells when a punch is absent. */
 export const MISSING_PUNCH_LABEL = "missing.";
@@ -38,7 +38,7 @@ export function lastHrAttendanceDateWithData(
   return HR_ATTENDANCE_TO;
 }
 
-/** "June 1 – 30, 2026" */
+/** "June 1 – 7, 2026" */
 export function formatHrAttendanceWindowCaption(): string {
   const from = new Date(`${HR_ATTENDANCE_FROM}T12:00:00.000Z`);
   const to = new Date(`${HR_ATTENDANCE_TO}T12:00:00.000Z`);
