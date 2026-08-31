@@ -54,7 +54,10 @@ export const USER_PERMISSION_SECTIONS: Array<{
 export const DM_USERNAMES = ["aj", "shaun", "adeel", "rozina"] as const;
 
 export function normalizeUsername(value?: string | null): string {
-  return (value ?? "").trim().toLowerCase();
+  const n = (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (n === "akber") return "aj";
+  if (n === "kash" || n === "kashif valliani") return "kash";
+  return n;
 }
 
 export function getDefaultPermissionMapForRole(

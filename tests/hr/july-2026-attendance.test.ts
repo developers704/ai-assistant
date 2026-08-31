@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { formatHrDateLabel, parseClockToMinutes } from "@/lib/hr/time-utils";
 import { parseTimecardCsv } from "@/lib/hr/parse-timecard";
-import { parseScheduleCsv } from "@/lib/hr/parse-schedule";
+import { expandWeeklyScheduleToWindow, parseScheduleCsv } from "@/lib/hr/parse-schedule";
 import { analyzeDay, analyzeEmployeeDay } from "@/lib/hr/analyze";
 import { namesMatch } from "@/lib/hr/name-match";
 import {
@@ -44,6 +44,7 @@ describe("HR date labels", () => {
 
   it("defaults to the last date with punches, not empty July 31", () => {
     expect(lastHrAttendanceDateWithData(["2026-07-30"], ["2026-07-07"])).toBe("2026-07-30");
+    expect(lastHrAttendanceDateWithData(["2026-07-30"], ["2026-07-31"])).toBe("2026-07-30");
     expect(lastHrAttendanceDateWithData([], ["2026-07-07"])).toBe("2026-07-07");
   });
 });
@@ -70,6 +71,35 @@ describe("July 2026 seed files", () => {
     expect(dateTo).toBe("2026-07-07");
     expect(entries.length).toBeGreaterThan(50);
     expect(entries.every((e) => e.date >= "2026-07-01" && e.date <= "2026-07-07")).toBe(true);
+  });
+
+  it("repeats week-1 shifts onto weeks 2–4 and leftover July dates", () => {
+    const { entries } = parseScheduleCsv(schedule);
+    const expanded = expandWeeklyScheduleToWindow(entries);
+    const dates = [...new Set(expanded.map((e) => e.date))].sort();
+    expect(dates[0]).toBe("2026-07-01");
+    expect(dates.at(-1)).toBe("2026-07-31");
+    const wednesdays = ["2026-07-01", "2026-07-08", "2026-07-15", "2026-07-22", "2026-07-29"];
+    const week1 = entries.find(
+      (e) => e.date === "2026-07-01" && /1, security guard/i.test(e.employeeName)
+    );
+    expect(week1).toBeTruthy();
+    for (const d of wednesdays) {
+      const hit = expanded.find(
+        (e) => e.date === d && /1, security guard/i.test(e.employeeName)
+      );
+      expect(hit?.start).toBe(week1!.start);
+      expect(hit?.end).toBe(week1!.end);
+    }
+    const thuWeek1 = entries.find(
+      (e) => e.date === "2026-07-02" && /1, security guard/i.test(e.employeeName)
+    );
+    expect(thuWeek1).toBeFalsy();
+    expect(
+      expanded.some(
+        (e) => e.date === "2026-07-09" && /1, security guard/i.test(e.employeeName)
+      )
+    ).toBe(false);
   });
 
   it("matches security guard 1 on July 1 worked hours vs 24h punches", () => {

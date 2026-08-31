@@ -2,7 +2,11 @@ import fs from "fs";
 import path from "path";
 import type { HrScheduleEntry, HrTimecardRow, HrUploadMeta } from "./types";
 import { parseTimecardFile, timecardDateRange } from "./parse-timecard";
-import { parseScheduleCsv, parseScheduleXlsx } from "./parse-schedule";
+import {
+  expandWeeklyScheduleToWindow,
+  parseScheduleCsv,
+  parseScheduleXlsx,
+} from "./parse-schedule";
 import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "./window";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
@@ -26,7 +30,7 @@ function seedFingerprint(): string | null {
   try {
     const tc = fs.statSync(SEED_TIMECARD);
     const sc = fs.statSync(SEED_SCHEDULE);
-    return `july2026:${tc.mtimeMs}:${tc.size}:${sc.mtimeMs}:${sc.size}`;
+    return `july2026w2:${tc.mtimeMs}:${tc.size}:${sc.mtimeMs}:${sc.size}`;
   } catch {
     return null;
   }
@@ -148,7 +152,10 @@ export function saveScheduleUpload(
       ? parseScheduleXlsx(Buffer.isBuffer(data) ? data : Buffer.from(data as string))
       : parseScheduleCsv(typeof data === "string" ? data : data.toString("utf8"));
 
-  const { entries, dateFrom, dateTo } = parsed;
+  const entries = expandWeeklyScheduleToWindow(parsed.entries);
+  const dates = [...new Set(entries.map((e) => e.date))].sort();
+  const dateFrom = dates[0] ?? parsed.dateFrom;
+  const dateTo = dates[dates.length - 1] ?? parsed.dateTo;
   const id = newId();
   const meta: HrUploadMeta = {
     id,
