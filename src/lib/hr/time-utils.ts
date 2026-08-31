@@ -90,7 +90,7 @@ export function parseScheduleRange(
   return { start, end, minutes };
 }
 
-/** "Wed · Jul 1" for HR date filters (ISO date). */
+/** "Mon · Jun 1" for HR date filters (ISO date). */
 export function formatHrDateLabel(iso: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
   const d = new Date(`${iso}T12:00:00.000Z`);
