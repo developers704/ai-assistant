@@ -175,5 +175,11 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(vl).toBeDefined();
     expect(vl!.get("VJL-CASH")).toBeCloseTo(0.01, 5);
     expect(vl!.get("VJL-IDDEAL")).toBeCloseTo(2200, 5);
+    const ve30 = map.get("VE-10294039");
+    expect(ve30).toBeDefined();
+    expect(ve30!.get("VJE-IDDEAL")).toBeCloseTo(2600, 5);
+    const vl30 = map.get("VL-10291249");
+    expect(vl30).toBeDefined();
+    expect(vl30!.get("VJL-IDDEAL")).toBeCloseTo(1873.15, 5);
   });
 });
