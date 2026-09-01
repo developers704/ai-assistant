@@ -18,6 +18,8 @@ type Props = {
   selectionsAsChips?: boolean;
   /** Pretty-print option values in the menu / single-select trigger. */
   formatOption?: (value: string) => string;
+  /** Extra match (e.g. paycode POS aliases). `query` is already trimmed + lowercased. */
+  optionMatches?: (option: string, query: string) => boolean;
 };
 
 /**
@@ -34,6 +36,7 @@ export function SalesMultiSelectFilter({
   fullWidth = false,
   selectionsAsChips = false,
   formatOption,
+  optionMatches,
 }: Props) {
   const labelOf = (v: string) => formatOption?.(v) ?? v;
   const [open, setOpen] = useState(false);
@@ -54,9 +57,10 @@ export function SalesMultiSelectFilter({
     return options.filter((o) => {
       if (o.toLowerCase().includes(q)) return true;
       const pretty = formatOption?.(o) ?? o;
-      return pretty.toLowerCase().includes(q);
+      if (pretty.toLowerCase().includes(q)) return true;
+      return Boolean(optionMatches?.(o, q));
     });
-  }, [options, query, formatOption]);
+  }, [options, query, formatOption, optionMatches]);
 
   const updatePosition = () => {
     const btn = buttonRef.current;

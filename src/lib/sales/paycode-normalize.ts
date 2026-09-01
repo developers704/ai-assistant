@@ -118,6 +118,18 @@ export function canonicalizePaycodeList(codes: string[]): string[] {
   return out;
 }
 
+/** Filter-search: typing a POS truncation (AFFR, ACIM, WELS) still finds the canonical option. */
+export function paycodeMatchesFilterQuery(canonical: string, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (canonical.toLowerCase().includes(q)) return true;
+  for (const [alias, canon] of Object.entries(ALIAS_TO_CANONICAL)) {
+    if (canon !== canonical) continue;
+    if (alias.toLowerCase().includes(q)) return true;
+  }
+  return false;
+}
+
 export function sortPaycodeLabels(codes: string[]): string[] {
   return [...codes].sort((a, b) => {
     const ia = (PAYCODE_FILTER_ORDER as readonly string[]).indexOf(a);
