@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canonicalPaycode,
   canonicalizePaycodeList,
+  leakedPaycodeAliases,
   paycodeMatchesFilterQuery,
   sortPaycodeLabels,
 } from "@/lib/sales/paycode-normalize";
@@ -93,5 +94,13 @@ describe("canonicalPaycode", () => {
     expect(paycodeMatchesFilterQuery("WELLS", "wells fargo")).toBe(true);
     expect(paycodeMatchesFilterQuery("SYNC", "syny")).toBe(true);
     expect(paycodeMatchesFilterQuery("CASH", "affr")).toBe(false);
+  });
+
+  it("flags POS truncations that must not appear as filter labels", () => {
+    expect(leakedPaycodeAliases(["ACIMA", "ACIM", "AFFIRM", "AFFR", "WELLS", "WELS"])).toEqual([
+      "ACIM",
+      "AFFR",
+      "WELS",
+    ]);
   });
 });
