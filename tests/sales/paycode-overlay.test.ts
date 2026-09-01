@@ -6,7 +6,9 @@ import {
   applyPaycodeFilter,
   applySalespersonFilter,
   listPaycodes,
+  parsePaycodeLegs,
   parsePaymentAppliedByTxn,
+  paycodeTotalsForPaymentWindow,
   paycodeTotalsForRows,
 } from "@/lib/sales/paycode-overlay";
 
@@ -60,6 +62,10 @@ VJ-PB,W1,WELL,PB-WELL1,8/1/2026,"Sales,",8/1/2026,8/1/2026,OTH,VJPB-WELL,,,50.00
 VJ-ST,W2,WELS,ST-WELS1,8/19/2026,"Sales,",8/19/2026,8/19/2026,OTH,DBCST-WELS,,,60.00,60.00,,1
 VJ-ST,W3,WF,AT-WF1,8/8/2026,"Sales,",8/8/2026,8/8/2026,OTH,VJST-WELLS FARGO,,,70.00,70.00,,1
 VJ-OAK,W4,WELLS,VO-WELLS1,8/15/2026,"Sales,",8/15/2026,8/15/2026,OTH,VJO-WELLS,,,80.00,80.00,,1
+VJ-EAST,X,CRONLY,VE-CRONLY,8/16/2026,"CR,",8/16/2026,8/16/2026,CA,VJE-CASH,,,50.00,50.00,,1
+VJ-EAST,X,RETCHK,VE-RETCHK,8/16/2026,"Returns,",8/16/2026,8/16/2026,CK,VJE-CHK,,,100.00,100.00,,1
+VJ-BB,X,SYNCHRO,BB-SYN1,8/10/2026,"Sales,",8/10/2026,8/10/2026,OTH,BB-SYNCHRO,,,9.00,9.00,,1
+VJ-PB,X,WE,PB-WE1,8/1/2026,"Sales,",8/1/2026,8/1/2026,OTH,VJPB-WE,,,8.00,8.00,,1
 `;
 
 describe("parsePaymentAppliedByTxn", () => {
@@ -90,6 +96,9 @@ describe("parsePaymentAppliedByTxn", () => {
     expect(map.get("ST-WELS1")!.get("WELLS")).toBeCloseTo(60, 5);
     expect(map.get("AT-WF1")!.get("WELLS")).toBeCloseTo(70, 5);
     expect(map.get("VO-WELLS1")!.get("WELLS")).toBeCloseTo(80, 5);
+    expect(map.get("VE-CRONLY")!.get("CASH")).toBeCloseTo(50, 5);
+    expect(map.get("BB-SYN1")!.get("SYNC")).toBeCloseTo(9, 5);
+    expect(map.get("PB-WE1")!.get("WELLS")).toBeCloseTo(8, 5);
     expect(listPaycodes(map)).toEqual([
       "CASH",
       "CC",
@@ -107,6 +116,8 @@ describe("parsePaymentAppliedByTxn", () => {
     expect(listPaycodes(map)).not.toContain("WELL");
     expect(listPaycodes(map)).not.toContain("WELS");
     expect(listPaycodes(map)).not.toContain("WELLS FARGO");
+    expect(listPaycodes(map)).not.toContain("SYNCHRO");
+    expect(listPaycodes(map)).not.toContain("WE");
   });
 });
 
@@ -241,6 +252,108 @@ describe("paycodeTotalsForRows", () => {
   });
 });
 
+describe("paycodeTotalsForPaymentWindow", () => {
+  const legs = parsePaycodeLegs(PAYMENT_CSV);
+
+  it("keeps Returns on legs but not on the txn overlay", () => {
+    expect(legs.some((l) => l.txnId === "VF-RET")).toBe(true);
+    expect(legs.some((l) => l.txnId === "VE-RETCHK" && l.code === "CHK")).toBe(true);
+    expect(parsePaymentAppliedByTxn(PAYMENT_CSV).has("VF-RET")).toBe(false);
+    expect(parsePaymentAppliedByTxn(PAYMENT_CSV).has("VE-RETCHK")).toBe(false);
+  });
+
+  it("sums Applied Amt by payment Transaction Date including CR and Returns", () => {
+    const totals = paycodeTotalsForPaymentWindow({
+      from: "2026-08-16",
+      to: "2026-08-16",
+      legs,
+    });
+    const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
+    expect(byName["CASH"]).toBeCloseTo(50.01, 5);
+    expect(byName["CHK"]).toBeCloseTo(100, 5);
+    expect(byName["IDDEAL"]).toBeCloseTo(3000 + 2750, 5);
+    expect(byName["CC"]).toBeCloseTo(250, 5);
+  });
+
+  it("omits Returns when includeReturns is false", () => {
+    const totals = paycodeTotalsForPaymentWindow({
+      from: "2026-08-16",
+      to: "2026-08-16",
+      includeReturns: false,
+      legs,
+    });
+    const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
+    expect(byName["CHK"]).toBeUndefined();
+    expect(byName["CASH"]).toBeCloseTo(50.01, 5);
+  });
+
+  it("filters by payment Store", () => {
+    const totals = paycodeTotalsForPaymentWindow({
+      from: "2026-08-16",
+      to: "2026-08-16",
+      stores: ["VJ-EAST"],
+      legs,
+    });
+    const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
+    expect(byName["IDDEAL"]).toBeCloseTo(3000, 5);
+    expect(byName["CASH"]).toBeCloseTo(50.01, 5);
+    expect(byName["CHK"]).toBeCloseTo(100, 5);
+  });
+
+  it("folds SYNCHRO into SYNC and WE into WELLS", () => {
+    const totals = paycodeTotalsForPaymentWindow({
+      from: "2026-08-01",
+      to: "2026-08-10",
+      legs,
+    });
+    const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
+    expect(byName["WELLS"]).toBeCloseTo(50 + 8 + 70, 5);
+    expect(byName["SYNC"]).toBeCloseTo(111 + 24 + 9, 5);
+  });
+});
+
+describe("applyPaycodeFilter with payment-date window", () => {
+  const legs = parsePaycodeLegs(PAYMENT_CSV);
+
+  it("Net Sales matches payment CSV including CR-only and Returns", () => {
+    const sales = [
+      row({ transactionId: "VE-10293897", netRevenue: 2474.55 }),
+      row({ transactionId: "SA-IDEAL1", netRevenue: 2750 }),
+    ];
+    const filtered = applyPaycodeFilter(sales, ["CASH"], undefined, {
+      from: "2026-08-16",
+      to: "2026-08-16",
+      legs,
+    });
+    const net = filtered.reduce((s, r) => s + r.netRevenue, 0);
+    expect(net).toBeCloseTo(50.01, 5);
+    expect(filtered.some((r) => r.transactionId === "VE-CRONLY")).toBe(true);
+    const chk = applyPaycodeFilter(sales, ["CHK"], undefined, {
+      from: "2026-08-16",
+      to: "2026-08-16",
+      legs,
+    });
+    expect(chk.reduce((s, r) => s + r.netRevenue, 0)).toBeCloseTo(100, 5);
+  });
+
+  it("selecting ACIMA matches the payment-window total", () => {
+    const sales = [
+      row({ transactionId: "SO-ACIM1", netRevenue: 100 }),
+      row({ transactionId: "SO-ACIMA1", netRevenue: 200 }),
+    ];
+    const window = { from: "2026-08-21", to: "2026-08-21", legs };
+    const filtered = applyPaycodeFilter(sales, ["ACIMA"], undefined, window);
+    const card = paycodeTotalsForPaymentWindow({
+      from: "2026-08-21",
+      to: "2026-08-21",
+      methods: ["ACIMA"],
+      legs,
+    });
+    expect(filtered.reduce((s, r) => s + r.netRevenue, 0)).toBeCloseTo(300, 2);
+    expect(card[0]?.revenue).toBeCloseTo(300, 2);
+  });
+});
+
 describe("applySalespersonFilter", () => {
   it("scales money and qty by split % and accepts Name (CODE)", () => {
     const rows = [
@@ -308,5 +421,71 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(map.get("ST-10292549")?.get("AFFIRM")).toBeCloseTo(8952, 5);
     expect(map.get("AT-10290508")?.get("WELLS")).toBeCloseTo(11500, 5);
     expect(map.get("PB-10291547")?.get("WELLS")).toBeCloseTo(3678.3, 5);
+    const filterLabels = listPaycodes();
+    expect(filterLabels).toContain("ACIMA");
+    expect(filterLabels).toContain("AFFIRM");
+    expect(filterLabels).toContain("WELLS");
+    expect(filterLabels).toContain("IDDEAL");
+    expect(filterLabels).toContain("PROG");
+    expect(filterLabels).toContain("SYNC");
+    expect(filterLabels).toContain("CHECK");
+    expect(filterLabels).not.toContain("ACIM");
+    expect(filterLabels).not.toContain("IDEA");
+    expect(filterLabels).not.toContain("SYNY");
+    expect(filterLabels).not.toContain("WELL");
+  });
+
+  it("Paycodes card Aug 1-30 sums payment-date Applied Amt including returns", () => {
+    const file = path.join(process.cwd(), "data/reports/Payment-Transactions.csv");
+    const totals = paycodeTotalsForPaymentWindow({
+      from: "2026-08-01",
+      to: "2026-08-30",
+      legs: parsePaycodeLegs(fs.readFileSync(file, "utf8")),
+    });
+    const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
+    expect(byName["WELLS"]).toBeCloseTo(355604.49, 2);
+    expect(byName["CHK"]).toBeCloseTo(4232.14, 2);
+    expect(byName["CASH"]).toBeCloseTo(418558.22, 2);
+    expect(byName["ACIMA"]).toBeCloseTo(54492.64, 2);
+    expect(byName["AFFIRM"]).toBeCloseTo(50071.93, 2);
+    expect(totals.length).toBeGreaterThan(10);
+    expect(totals.some((t) => t.name === "GE")).toBe(true);
+  });
+
+  it("Paycodes card Aug 1-31 matches the uploaded payment CSV groups", () => {
+    const file = path.join(process.cwd(), "data/reports/Payment-Transactions.csv");
+    const totals = paycodeTotalsForPaymentWindow({
+      from: "2026-08-01",
+      to: "2026-08-31",
+      legs: parsePaycodeLegs(fs.readFileSync(file, "utf8")),
+    });
+    const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
+    expect(byName["WELLS"]).toBeCloseTo(376730.9, 2);
+    expect(byName["ACIMA"]).toBeCloseTo(57407.64, 2);
+    expect(byName["AFFIRM"]).toBeCloseTo(54271.93, 2);
+    expect(byName["IDDEAL"]).toBeCloseTo(2351475.45, 2);
+    expect(byName["SYNC"]).toBeCloseTo(281906.44, 2);
+    expect(byName["PROG"]).toBeCloseTo(28030.96, 2);
+    expect(byName["KAFE"]).toBeCloseTo(590487.54, 2);
+    expect(byName["CHECK"]).toBeCloseTo(-2000, 2);
+  });
+
+  it("paycode filter Net equals payment CSV Applied Amt for each alias group", () => {
+    const file = path.join(process.cwd(), "data/reports/Payment-Transactions.csv");
+    const legs = parsePaycodeLegs(fs.readFileSync(file, "utf8"));
+    const window = { from: "2026-08-01", to: "2026-08-31", legs };
+    const expected: Record<string, number> = {
+      ACIMA: 57407.64,
+      AFFIRM: 54271.93,
+      IDDEAL: 2351475.45,
+      PROG: 28030.96,
+      SYNC: 281906.44,
+      WELLS: 376730.9,
+    };
+    for (const [code, amt] of Object.entries(expected)) {
+      const filtered = applyPaycodeFilter([], [code], undefined, window);
+      const net = filtered.reduce((s, r) => s + r.netRevenue, 0);
+      expect(net).toBeCloseTo(amt, 2);
+    }
   });
 });

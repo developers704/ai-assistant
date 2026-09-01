@@ -6,15 +6,21 @@
  *
  * Display / filter keys are the method after the store hyphen (`VJS-CASH` →
  * `CASH`) with ACIM→ACIMA, AFFR/AFRIM→AFFIRM, IDEA/IDEAL→IDDEAL,
- * SYNY/Synchrony truncations→SYNC, PROG*→PROG, WELL/WELS/WELLS FARGO→WELLS.
+ * SYNY/Synchrony truncations→SYNC (incl. SYNCHRO), PROG*→PROG,
+ * WELL/WELS/WELLS FARGO/WE→WELLS.
  * Store prefixes (VJF, VIS, VJPB, …) are never listed as paycodes.
  * HR Management Sales has no paycode filter.
  *
  * Unfiltered Net Sales stays CSV **Total** (sales-report.mdc).
- * When a Paycode is selected, line revenue is that paycode's Applied Amt
- * allocated across the transaction's sales lines by |Total| share.
+ * When a Paycode is selected, Net Sales = that group’s Applied Amt for payment
+ * legs in the dashboard date/store window (same SUMIFS as the Paycodes card),
+ * matched to sales lines by Transaction #. Payment-only CR/OL/return legs
+ * that have no sales row still count so the filter total matches the CSV.
  *
- * Skips blank Type and Returns/Refunds (Excel junk / reverse legs).
+ * Overlay (txn map used when no date window is passed) skips blank Type and
+ * Returns/Refunds. Paycodes card / filter window include Returns/CR/OL.
+ * Blank Type / POS grand-total rows stay excluded.
+ *
  * Daily payment appends stay raw in Payment-Transactions.csv; this parse step
  * applies the same canonical rule for Aug 1 → current overlay dates.
  */
@@ -23,17 +29,28 @@ import path from "path";
 import Papa from "papaparse";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { rowIncludesSalesperson, salespersonShare, resolveSalespersonFilterCode } from "@/lib/sales/salesperson-credit";
+import { parseReportFilterDate } from "@/lib/reports/date-utils";
 import {
   canonicalPaycode,
   canonicalizePaycodeList,
   sortPaycodeLabels,
 } from "@/lib/sales/paycode-normalize";
 
-export const PAYCODE_OVERLAY_VERSION = 3;
+export const PAYCODE_OVERLAY_VERSION = 5;
 export { canonicalPaycode, canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 
 export type PaycodeAmountMap = Map<string, number>;
 export type TxnPaycodeAmounts = Map<string, PaycodeAmountMap>;
+
+/** One Applied Amt line from the payment CSV (POS Excel SUMIFS grain). */
+export type PaycodeLeg = {
+  txnId: string;
+  date: string;
+  store: string;
+  code: string;
+  amount: number;
+  type: string;
+};
 
 function paymentTransactionsPath(): string {
   return path.join(process.cwd(), "data", "reports", "Payment-Transactions.csv");
@@ -66,17 +83,30 @@ function normalizePaycode(raw: string): string {
   return canonicalPaycode(raw);
 }
 
-function skipPaymentType(typeRaw: unknown): boolean {
-  const t = String(typeRaw ?? "")
+function normalizePaymentType(typeRaw: unknown): string {
+  return String(typeRaw ?? "")
     .replace(/,+\s*$/, "")
     .trim();
-  if (!t) return true;
-  if (/^returns?$/i.test(t) || /^refunds?$/i.test(t)) return true;
-  return false;
 }
 
-/** Parse payment CSV → Transaction # → Pay Code → Applied Amt sum. */
-export function parsePaymentAppliedByTxn(csvText: string): TxnPaycodeAmounts {
+function isReturnOrRefundType(type: string): boolean {
+  return /^returns?$/i.test(type) || /^refunds?$/i.test(type);
+}
+
+function storeKey(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/\s+/g, " ");
+}
+
+/**
+ * Parse payment CSV → Applied Amt legs (POS Excel grain).
+ * Skips blank Type (grand-total / junk rows) and rows without txn, date, or method.
+ * Includes Returns/Refunds and CR/OL/CL/CSO legs.
+ */
+export function parsePaycodeLegs(csvText: string): PaycodeLeg[] {
   const parsed = Papa.parse<Record<string, unknown>>(csvText, {
     header: true,
     skipEmptyLines: "greedy",
@@ -85,65 +115,110 @@ export function parsePaymentAppliedByTxn(csvText: string): TxnPaycodeAmounts {
   const rows = (parsed.data ?? []).filter((r) =>
     Object.values(r).some((v) => String(v ?? "").trim())
   );
-  const out: TxnPaycodeAmounts = new Map();
+  const out: PaycodeLeg[] = [];
   if (!rows.length) return out;
   const columns = Object.keys(rows[0] ?? {});
   const txnCol = findCol(columns, /^transaction\s*#$/i, /^transaction\s*#/i);
   const payCol = findCol(columns, /^pay\s*code$/i, /^pay\s*codes?$/i);
   const appliedCol = findCol(columns, /^applied\s*amt$/i);
   const typeCol = findCol(columns, /^type$/i);
+  const dateCol = findCol(columns, /^transaction\s*date$/i);
+  const storeCol = findCol(columns, /^store$/i);
   if (!txnCol || !payCol || !appliedCol) return out;
 
   for (const rec of rows) {
-    if (typeCol && skipPaymentType(rec[typeCol])) continue;
+    const type = typeCol ? normalizePaymentType(rec[typeCol]) : "Sales";
+    if (!type) continue;
     const tid = normalizeTxnId(String(rec[txnCol] ?? ""));
     const code = canonicalPaycode(String(rec[payCol] ?? ""));
-    if (!tid || !code) continue;
-    const amt = parseMoney(rec[appliedCol]);
-    const inner = out.get(tid) ?? new Map();
-    inner.set(code, (inner.get(code) ?? 0) + amt);
-    out.set(tid, inner);
+    const date = dateCol ? parseReportFilterDate(String(rec[dateCol] ?? "")) : null;
+    if (!tid || !code || !date) continue;
+    out.push({
+      txnId: tid,
+      date,
+      store: storeCol ? String(rec[storeCol] ?? "").trim() : "",
+      code,
+      amount: parseMoney(rec[appliedCol]),
+      type,
+    });
   }
   return out;
 }
 
+/** Filter overlay: skip Returns/Refunds so refund legs do not allocate as Net Sales. */
+export function overlayFromLegs(legs: PaycodeLeg[]): TxnPaycodeAmounts {
+  const out: TxnPaycodeAmounts = new Map();
+  for (const leg of legs) {
+    if (isReturnOrRefundType(leg.type)) continue;
+    const inner = out.get(leg.txnId) ?? new Map();
+    inner.set(leg.code, (inner.get(leg.code) ?? 0) + leg.amount);
+    out.set(leg.txnId, inner);
+  }
+  return out;
+}
+
+/** Parse payment CSV → Transaction # → Pay Code → Applied Amt sum. */
+export function parsePaymentAppliedByTxn(csvText: string): TxnPaycodeAmounts {
+  return overlayFromLegs(parsePaycodeLegs(csvText));
+}
+
+let cachedLegs: PaycodeLeg[] | null = null;
 let cachedOverlay: TxnPaycodeAmounts | null = null;
 let cachedMtime = 0;
 let cachedVersion = 0;
 
 export function clearPaycodeOverlayCache() {
+  cachedLegs = null;
   cachedOverlay = null;
   cachedMtime = 0;
   cachedVersion = 0;
 }
 
-export function loadPaycodeOverlay(force = false): TxnPaycodeAmounts {
+function hydratePaycodeCache(force = false) {
   const file = paymentTransactionsPath();
   if (!fs.existsSync(file)) {
+    cachedLegs = [];
     cachedOverlay = new Map();
-    return cachedOverlay;
+    cachedMtime = 0;
+    cachedVersion = PAYCODE_OVERLAY_VERSION;
+    return;
   }
   const mtime = fs.statSync(file).mtimeMs;
   if (
     !force &&
+    cachedLegs &&
     cachedOverlay &&
     cachedMtime === mtime &&
     cachedVersion === PAYCODE_OVERLAY_VERSION
   ) {
-    return cachedOverlay;
+    return;
   }
-  cachedOverlay = parsePaymentAppliedByTxn(fs.readFileSync(file, "utf8"));
+  cachedLegs = parsePaycodeLegs(fs.readFileSync(file, "utf8"));
+  cachedOverlay = overlayFromLegs(cachedLegs);
   cachedMtime = mtime;
   cachedVersion = PAYCODE_OVERLAY_VERSION;
-  return cachedOverlay;
+}
+
+export function loadPaycodeLegs(force = false): PaycodeLeg[] {
+  hydratePaycodeCache(force);
+  return cachedLegs ?? [];
+}
+
+export function loadPaycodeOverlay(force = false): TxnPaycodeAmounts {
+  hydratePaycodeCache(force);
+  return cachedOverlay ?? new Map();
 }
 
 export function listPaycodes(overlay?: TxnPaycodeAmounts): string[] {
-  const map = overlay ?? loadPaycodeOverlay();
-  const set = new Set<string>();
-  for (const inner of map.values()) {
-    for (const code of inner.keys()) set.add(code);
+  if (overlay) {
+    const set = new Set<string>();
+    for (const inner of overlay.values()) {
+      for (const code of inner.keys()) set.add(code);
+    }
+    return sortPaycodeLabels([...set]);
   }
+  const set = new Set<string>();
+  for (const leg of loadPaycodeLegs()) set.add(leg.code);
   return sortPaycodeLabels([...set]);
 }
 
@@ -199,21 +274,85 @@ function scaleRow(row: VendorPosRow, factor: number): VendorPosRow {
   };
 }
 
+function allocateTxnLines(lines: VendorPosRow[], amount: number): VendorPosRow[] {
+  const weights = lines.map((r) => Math.abs(r.netRevenue));
+  const weightSum = weights.reduce((s, w) => s + w, 0);
+  return lines.map((r, i) => {
+    const share = weightSum > 0 ? weights[i]! / weightSum : 1 / lines.length;
+    const allocated = amount * share;
+    if (r.netRevenue === 0) {
+      return {
+        ...r,
+        netRevenue: allocated,
+        grossSales: allocated,
+        discountAmount: 0,
+      };
+    }
+    return scaleMoney(r, allocated / r.netRevenue);
+  });
+}
+
+function unmatchedPaymentRow(opts: {
+  txnId: string;
+  date: string;
+  store: string;
+  amount: number;
+  code: string;
+}): VendorPosRow {
+  return {
+    date: opts.date,
+    transactionId: opts.txnId,
+    storeName: opts.store || "Unknown store",
+    department: "",
+    design: "",
+    itemNumber: "ITEM",
+    sku: "ITEM",
+    style: "",
+    description: opts.code,
+    vendor: "",
+    vendorModel: "",
+    productClass: "",
+    subClass: "",
+    quantity: 1,
+    inventoryCost: 0,
+    wholesaleCost: 0,
+    grossSales: opts.amount,
+    discountAmount: 0,
+    netRevenue: opts.amount,
+    margin: 0,
+    discountRate: 0,
+    imageDir: "",
+    payCode: opts.code,
+  };
+}
+
+export type PaycodeFilterWindow = {
+  from?: string | null;
+  to?: string | null;
+  stores?: string[];
+  legs?: PaycodeLeg[];
+  /** Payment txns with no sales line still count (CR/OL/returns) so Net = payment CSV. */
+  includeUnmatchedPaymentTxns?: boolean;
+};
+
 /**
  * When paycodes are selected, rewrite each line so Net = allocated Applied Amt.
- * Allocation weight = |line Total| within the txn (among `rows` passed in).
- *
- * Lines whose txn has no overlay but whose sales Pay Codes cell lists the
- * selected code keep CSV Total (cannot split without Applied Amt).
+ * With a date/store `window`, amounts come from payment Transaction Date SUMIFS
+ * (same as the Paycodes card) and unmatched payment txns become ITEM rows.
  */
 export function applyPaycodeFilter(
   rows: VendorPosRow[],
   selectedPaycodes: string[],
-  overlay?: TxnPaycodeAmounts
+  overlay?: TxnPaycodeAmounts,
+  window?: PaycodeFilterWindow
 ): VendorPosRow[] {
   if (!selectedPaycodes.length) return rows;
-  const map = overlay ?? loadPaycodeOverlay();
   const wanted = canonicalizePaycodeList(selectedPaycodes);
+  if (window) {
+    return applyPaycodeFilterFromWindow(rows, wanted, window);
+  }
+
+  const map = overlay ?? loadPaycodeOverlay();
   const wantedUpper = new Set(wanted);
 
   const byTxn = new Map<string, VendorPosRow[]>();
@@ -229,22 +368,7 @@ export function applyPaycodeFilter(
   for (const [tid, lines] of byTxn) {
     const { amount, matched, hasOverlay } = txnSelectedAppliedAmt(map, tid, wanted);
     if (hasOverlay && matched) {
-      const weights = lines.map((r) => Math.abs(r.netRevenue));
-      const weightSum = weights.reduce((s, w) => s + w, 0);
-      lines.forEach((r, i) => {
-        const share = weightSum > 0 ? weights[i]! / weightSum : 1 / lines.length;
-        const allocated = amount * share;
-        if (r.netRevenue === 0) {
-          out.push({
-            ...r,
-            netRevenue: allocated,
-            grossSales: allocated,
-            discountAmount: 0,
-          });
-          return;
-        }
-        out.push(scaleMoney(r, allocated / r.netRevenue));
-      });
+      out.push(...allocateTxnLines(lines, amount));
       continue;
     }
     if (!hasOverlay) {
@@ -255,6 +379,125 @@ export function applyPaycodeFilter(
     }
   }
   return out;
+}
+
+function applyPaycodeFilterFromWindow(
+  rows: VendorPosRow[],
+  wanted: string[],
+  window: PaycodeFilterWindow
+): VendorPosRow[] {
+  const wantedSet = new Set(wanted);
+  const from = window.from && window.from.length >= 10 ? window.from.slice(0, 10) : null;
+  const to = window.to && window.to.length >= 10 ? window.to.slice(0, 10) : null;
+  const storeSet = window.stores?.length
+    ? new Set(window.stores.map(storeKey))
+    : null;
+  const includeUnmatched = window.includeUnmatchedPaymentTxns !== false;
+  const legs = window.legs ?? loadPaycodeLegs();
+
+  const byTxnAmt = new Map<
+    string,
+    { amount: number; date: string; store: string; code: string }
+  >();
+  for (const leg of legs) {
+    if (!wantedSet.has(leg.code)) continue;
+    if (from && leg.date < from) continue;
+    if (to && leg.date > to) continue;
+    if (storeSet && !storeSet.has(storeKey(leg.store || "Unknown store"))) continue;
+    const cur = byTxnAmt.get(leg.txnId);
+    if (cur) {
+      cur.amount += leg.amount;
+    } else {
+      byTxnAmt.set(leg.txnId, {
+        amount: leg.amount,
+        date: leg.date,
+        store: leg.store,
+        code: leg.code,
+      });
+    }
+  }
+
+  const salesByTxn = new Map<string, VendorPosRow[]>();
+  for (const r of rows) {
+    const tid = normalizeTxnId(r.transactionId || "");
+    if (!tid) continue;
+    const list = salesByTxn.get(tid) ?? [];
+    list.push(r);
+    salesByTxn.set(tid, list);
+  }
+
+  const out: VendorPosRow[] = [];
+  for (const [tid, info] of byTxnAmt) {
+    const lines = salesByTxn.get(tid);
+    if (lines?.length) {
+      out.push(...allocateTxnLines(lines, info.amount));
+    } else if (includeUnmatched) {
+      out.push(
+        unmatchedPaymentRow({
+          txnId: tid,
+          date: info.date,
+          store: info.store,
+          amount: info.amount,
+          code: info.code,
+        })
+      );
+    }
+  }
+  return out;
+}
+
+function toPaycodeShareList(
+  totals: Map<string, number>
+): { name: string; revenue: number; share: number }[] {
+  const list = [...totals.entries()]
+    .map(([name, revenue]) => ({ name, revenue }))
+    .sort((a, b) => b.revenue - a.revenue || a.name.localeCompare(b.name));
+  const sum = list.reduce((s, x) => s + x.revenue, 0) || 1;
+  return list.map((x) => ({ ...x, share: (x.revenue / sum) * 100 }));
+}
+
+/**
+ * Paycodes card / ranking: SUM Applied Amt by canonical method for payment
+ * legs whose **Transaction Date** is in `[from, to]` (POS Excel SUMIFS).
+ *
+ * Date/store-only dashboard views include CR/OL/CL and Returns. Product /
+ * salesperson filters pass `txnIds` so the card stays on those tickets.
+ */
+export function paycodeTotalsForPaymentWindow(opts: {
+  from?: string | null;
+  to?: string | null;
+  stores?: string[];
+  txnIds?: Iterable<string>;
+  methods?: string[];
+  includeReturns?: boolean;
+  legs?: PaycodeLeg[];
+}): { name: string; revenue: number; share: number }[] {
+  const from = opts.from && opts.from.length >= 10 ? opts.from.slice(0, 10) : null;
+  const to = opts.to && opts.to.length >= 10 ? opts.to.slice(0, 10) : null;
+  const storeSet = opts.stores?.length
+    ? new Set(opts.stores.map(storeKey))
+    : null;
+  const txnSet = opts.txnIds
+    ? new Set(
+        [...opts.txnIds].map((id) => normalizeTxnId(id)).filter(Boolean)
+      )
+    : null;
+  const methodSet = opts.methods?.length
+    ? new Set(canonicalizePaycodeList(opts.methods))
+    : null;
+  const includeReturns = opts.includeReturns !== false;
+  const legs = opts.legs ?? loadPaycodeLegs();
+  const totals = new Map<string, number>();
+  for (const leg of legs) {
+    if (!includeReturns && isReturnOrRefundType(leg.type)) continue;
+    if (from && leg.date < from) continue;
+    if (to && leg.date > to) continue;
+    if (storeSet && !storeSet.has(storeKey(leg.store || "Unknown store"))) continue;
+    if (txnSet && !txnSet.has(leg.txnId)) continue;
+    if (methodSet && !methodSet.has(leg.code)) continue;
+    totals.set(leg.code, (totals.get(leg.code) ?? 0) + leg.amount);
+  }
+  return toPaycodeShareList(totals);
 }
 
 /** SUM Applied Amt by Pay Code for txns present in `rows`. */
@@ -274,11 +517,7 @@ export function paycodeTotalsForRows(
       totals.set(code, (totals.get(code) ?? 0) + amt);
     }
   }
-  const list = [...totals.entries()]
-    .map(([name, revenue]) => ({ name, revenue }))
-    .sort((a, b) => b.revenue - a.revenue || a.name.localeCompare(b.name));
-  const sum = list.reduce((s, x) => s + x.revenue, 0) || 1;
-  return list.map((x) => ({ ...x, share: (x.revenue / sum) * 100 }));
+  return toPaycodeShareList(totals);
 }
 
 /** Keep lines credited to this salesperson; scale money/qty by their split %. */
