@@ -51,6 +51,15 @@ VJ-BB,BB1,SYNC,BB-SYNC1,8/10/2026,"Sales,",8/10/2026,8/10/2026,OTH,BB-SYNC,,,24.
 VJ-FRE,F1,PROG,VF-PROG1,8/5/2026,"Sales,",8/5/2026,8/5/2026,OTH,VJF-PROGRE,,,10.00,10.00,,1
 VJ-HD,H1,PROG,HD-PROG1,8/5/2026,"Sales,",8/5/2026,8/5/2026,OTH,HD-PROGR,,,5.00,5.00,,1
 VJ-BB,BB2,CC,BB-CC1,8/5/2026,"Sales,",8/5/2026,8/5/2026,CC,BB - CC,,,80.00,80.00,,1
+VJ-SO,S1,ACIM,SO-ACIM1,8/21/2026,"Sales,",8/21/2026,8/21/2026,OTH,DBCST-ACIM,,,100.00,100.00,,1
+VJ-SO,S2,ACIMA,SO-ACIMA1,8/21/2026,"Sales,",8/21/2026,8/21/2026,OTH,VJSO-ACIMA,,,200.00,200.00,,1
+VJ-ST,A1,AFFR,ST-AFFR1,8/23/2026,"Sales,",8/23/2026,8/23/2026,OTH,DBCST-AFFR,,,300.00,300.00,,1
+VJ-ST,A2,AFRIM,ST-AFRIM1,8/3/2026,"Sales,",8/3/2026,8/3/2026,OTH,VJST-AFRIM,,,400.00,400.00,,1
+VJ-SL,A3,AFFIRM,SL-AFFIRM1,8/9/2026,"Sales,",8/9/2026,8/9/2026,OTH,DES-AFFIRM,,,500.00,500.00,,1
+VJ-PB,W1,WELL,PB-WELL1,8/1/2026,"Sales,",8/1/2026,8/1/2026,OTH,VJPB-WELL,,,50.00,50.00,,1
+VJ-ST,W2,WELS,ST-WELS1,8/19/2026,"Sales,",8/19/2026,8/19/2026,OTH,DBCST-WELS,,,60.00,60.00,,1
+VJ-ST,W3,WF,AT-WF1,8/8/2026,"Sales,",8/8/2026,8/8/2026,OTH,VJST-WELLS FARGO,,,70.00,70.00,,1
+VJ-OAK,W4,WELLS,VO-WELLS1,8/15/2026,"Sales,",8/15/2026,8/15/2026,OTH,VJO-WELLS,,,80.00,80.00,,1
 `;
 
 describe("parsePaymentAppliedByTxn", () => {
@@ -72,8 +81,32 @@ describe("parsePaymentAppliedByTxn", () => {
     expect(map.get("VF-PROG1")!.get("PROG")).toBeCloseTo(10, 5);
     expect(map.get("HD-PROG1")!.get("PROG")).toBeCloseTo(5, 5);
     expect(map.get("BB-CC1")!.get("CC")).toBeCloseTo(80, 5);
-    expect(listPaycodes(map)).toEqual(["CASH", "CC", "IDDEAL", "SYNC", "PROG"]);
+    expect(map.get("SO-ACIM1")!.get("ACIMA")).toBeCloseTo(100, 5);
+    expect(map.get("SO-ACIMA1")!.get("ACIMA")).toBeCloseTo(200, 5);
+    expect(map.get("ST-AFFR1")!.get("AFFIRM")).toBeCloseTo(300, 5);
+    expect(map.get("ST-AFRIM1")!.get("AFFIRM")).toBeCloseTo(400, 5);
+    expect(map.get("SL-AFFIRM1")!.get("AFFIRM")).toBeCloseTo(500, 5);
+    expect(map.get("PB-WELL1")!.get("WELLS")).toBeCloseTo(50, 5);
+    expect(map.get("ST-WELS1")!.get("WELLS")).toBeCloseTo(60, 5);
+    expect(map.get("AT-WF1")!.get("WELLS")).toBeCloseTo(70, 5);
+    expect(map.get("VO-WELLS1")!.get("WELLS")).toBeCloseTo(80, 5);
+    expect(listPaycodes(map)).toEqual([
+      "CASH",
+      "CC",
+      "IDDEAL",
+      "SYNC",
+      "PROG",
+      "ACIMA",
+      "AFFIRM",
+      "WELLS",
+    ]);
     expect(listPaycodes(map).some((c) => /^(VJF|VIS|VJPB|VJS)$/i.test(c))).toBe(false);
+    expect(listPaycodes(map)).not.toContain("ACIM");
+    expect(listPaycodes(map)).not.toContain("AFFR");
+    expect(listPaycodes(map)).not.toContain("AFRIM");
+    expect(listPaycodes(map)).not.toContain("WELL");
+    expect(listPaycodes(map)).not.toContain("WELS");
+    expect(listPaycodes(map)).not.toContain("WELLS FARGO");
   });
 });
 
@@ -150,6 +183,43 @@ describe("applyPaycodeFilter", () => {
     expect(net(viaCanon)).toBeCloseTo(1000 + 2750 + 3000, 2);
     expect(net(viaRaw)).toBeCloseTo(net(viaCanon), 2);
   });
+
+  it("selecting ACIMA includes ACIM Applied Amt", () => {
+    const rows = [
+      row({ transactionId: "SO-ACIM1", netRevenue: 100 }),
+      row({ transactionId: "SO-ACIMA1", netRevenue: 200 }),
+    ];
+    const filtered = applyPaycodeFilter(rows, ["ACIMA"], overlay);
+    const net = filtered.reduce((s, r) => s + r.netRevenue, 0);
+    expect(net).toBeCloseTo(300, 2);
+    expect(applyPaycodeFilter(rows, ["ACIM"], overlay).reduce((s, r) => s + r.netRevenue, 0)).toBeCloseTo(
+      300,
+      2
+    );
+  });
+
+  it("selecting AFFIRM includes AFFR and AFRIM Applied Amt", () => {
+    const rows = [
+      row({ transactionId: "ST-AFFR1", netRevenue: 300 }),
+      row({ transactionId: "ST-AFRIM1", netRevenue: 400 }),
+      row({ transactionId: "SL-AFFIRM1", netRevenue: 500 }),
+    ];
+    expect(
+      applyPaycodeFilter(rows, ["AFFIRM"], overlay).reduce((s, r) => s + r.netRevenue, 0)
+    ).toBeCloseTo(1200, 2);
+  });
+
+  it("selecting WELLS includes WELL, WELS, and WELLS FARGO Applied Amt", () => {
+    const rows = [
+      row({ transactionId: "PB-WELL1", netRevenue: 50 }),
+      row({ transactionId: "ST-WELS1", netRevenue: 60 }),
+      row({ transactionId: "AT-WF1", netRevenue: 70 }),
+      row({ transactionId: "VO-WELLS1", netRevenue: 80 }),
+    ];
+    expect(
+      applyPaycodeFilter(rows, ["WELLS"], overlay).reduce((s, r) => s + r.netRevenue, 0)
+    ).toBeCloseTo(260, 2);
+  });
 });
 
 describe("paycodeTotalsForRows", () => {
@@ -223,7 +293,20 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(codes).not.toContain("VJS");
     expect(codes).not.toContain("IDEA");
     expect(codes).not.toContain("SYNY");
+    expect(codes).toContain("ACIMA");
+    expect(codes).toContain("AFFIRM");
+    expect(codes).toContain("WELLS");
+    expect(codes).not.toContain("ACIM");
+    expect(codes).not.toContain("AFFR");
+    expect(codes).not.toContain("AFRIM");
+    expect(codes).not.toContain("WELL");
+    expect(codes).not.toContain("WELS");
+    expect(codes).not.toContain("WELLS FARGO");
     const ideaTxn = map.get("ST-10292535");
     expect(ideaTxn?.get("IDDEAL")).toBeCloseTo(1000, 5);
+    expect(map.get("ST-10292563")?.get("ACIMA")).toBeCloseTo(1099, 5);
+    expect(map.get("ST-10292549")?.get("AFFIRM")).toBeCloseTo(8952, 5);
+    expect(map.get("AT-10290508")?.get("WELLS")).toBeCloseTo(11500, 5);
+    expect(map.get("PB-10291547")?.get("WELLS")).toBeCloseTo(3678.3, 5);
   });
 });

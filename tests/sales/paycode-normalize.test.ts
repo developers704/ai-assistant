@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canonicalPaycode,
   canonicalizePaycodeList,
+  paycodeMatchesFilterQuery,
   sortPaycodeLabels,
 } from "@/lib/sales/paycode-normalize";
 
@@ -46,6 +47,27 @@ describe("canonicalPaycode", () => {
     expect(canonicalPaycode("VJLV-PROGRESSIVE")).toBe("PROG");
   });
 
+  it("folds ACIMA + ACIM into ACIMA", () => {
+    expect(canonicalPaycode("VJSO-ACIMA")).toBe("ACIMA");
+    expect(canonicalPaycode("DBCST-ACIM")).toBe("ACIMA");
+    expect(canonicalPaycode("ACIM")).toBe("ACIMA");
+  });
+
+  it("folds AFFIRM + AFFR + AFRIM into AFFIRM", () => {
+    expect(canonicalPaycode("DES-AFFIRM")).toBe("AFFIRM");
+    expect(canonicalPaycode("DBCST-AFFR")).toBe("AFFIRM");
+    expect(canonicalPaycode("VJST-AFRIM")).toBe("AFFIRM");
+    expect(canonicalPaycode("AFRIM")).toBe("AFFIRM");
+  });
+
+  it("folds WELLS + WELL + WELS + WELLS FARGO into WELLS", () => {
+    expect(canonicalPaycode("VJO-WELLS")).toBe("WELLS");
+    expect(canonicalPaycode("VJPB-WELL")).toBe("WELLS");
+    expect(canonicalPaycode("DBCST-WELS")).toBe("WELLS");
+    expect(canonicalPaycode("VJST-WELLS FARGO")).toBe("WELLS");
+    expect(canonicalPaycode("WELLS FARGO")).toBe("WELLS");
+  });
+
   it("dedupes mixed raw + canonical selections", () => {
     expect(canonicalizePaycodeList(["VJE-IDDEAL", "IDEA", "IDDEAL", "VJS-CASH"])).toEqual([
       "IDDEAL",
@@ -61,5 +83,15 @@ describe("canonicalPaycode", () => {
       "ACIMA",
       "WELLS",
     ]);
+  });
+
+  it("filter search matches POS truncations to the canonical option", () => {
+    expect(paycodeMatchesFilterQuery("ACIMA", "acim")).toBe(true);
+    expect(paycodeMatchesFilterQuery("AFFIRM", "affr")).toBe(true);
+    expect(paycodeMatchesFilterQuery("AFFIRM", "afrim")).toBe(true);
+    expect(paycodeMatchesFilterQuery("WELLS", "wels")).toBe(true);
+    expect(paycodeMatchesFilterQuery("WELLS", "wells fargo")).toBe(true);
+    expect(paycodeMatchesFilterQuery("SYNC", "syny")).toBe(true);
+    expect(paycodeMatchesFilterQuery("CASH", "affr")).toBe(false);
   });
 });

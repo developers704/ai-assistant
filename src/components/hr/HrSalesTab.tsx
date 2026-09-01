@@ -21,7 +21,6 @@ import {
   parseMultiParam,
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
-import { canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 import { useApp } from "@/lib/store/app-context";
 import {
   showsAllSoldInTopVendorModels,
@@ -69,7 +68,6 @@ export function HrSalesTab() {
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
   const [availableVendors, setAvailableVendors] = useState<string[]>([]);
   const [availableSubClasses, setAvailableSubClasses] = useState<string[]>([]);
-  const [availablePaycodes, setAvailablePaycodes] = useState<string[]>([]);
   const [availableSalespeople, setAvailableSalespeople] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<SalesDateRangeValue | null>(null);
   const [filterStores, setFilterStores] = useState<string[]>([]);
@@ -78,7 +76,6 @@ export function HrSalesTab() {
   const [filterVendors, setFilterVendors] = useState<string[]>([]);
   const [filterClasses, setFilterClasses] = useState<string[]>([]);
   const [filterSubclasses, setFilterSubclasses] = useState<string[]>([]);
-  const [filterPaycodes, setFilterPaycodes] = useState<string[]>([]);
   const [filterSalespeople, setFilterSalespeople] = useState<string[]>([]);
   const [reportId, setReportId] = useState<string | undefined>();
   const [vendorModelDetail, setVendorModelDetail] =
@@ -123,7 +120,6 @@ export function HrSalesTab() {
       vendors: filterVendors,
       classes: filterClasses,
       subclasses: filterSubclasses,
-      paycodes: filterPaycodes,
       salespeople: filterSalespeople,
     });
     const qs = params.toString() ? `?${params}` : "";
@@ -143,7 +139,6 @@ export function HrSalesTab() {
           const classes: string[] = d.availableClasses ?? [];
           const vendors: string[] = d.availableVendors ?? [];
           const subclasses: string[] = d.availableSubClasses ?? [];
-          const paycodes: string[] = d.availablePaycodes ?? [];
           const salespeople: string[] = d.availableSalespeople ?? [];
           setAvailableDates(dates);
           setAvailableStores(stores);
@@ -152,7 +147,6 @@ export function HrSalesTab() {
           setAvailableClasses(classes);
           setAvailableVendors(vendors);
           setAvailableSubClasses(subclasses);
-          setAvailablePaycodes(paycodes);
           setAvailableSalespeople(salespeople);
           setReportId((d.report?.id as string | undefined) ?? undefined);
           if (dates.length && autoSelectLatestRef.current && !dateRange) {
@@ -168,9 +162,6 @@ export function HrSalesTab() {
           setFilterVendors((prev) => pruneUnavailable(prev, vendors));
           setFilterClasses((prev) => pruneUnavailable(prev, classes));
           setFilterSubclasses((prev) => pruneUnavailable(prev, subclasses));
-          setFilterPaycodes((prev) =>
-            pruneUnavailable(canonicalizePaycodeList(prev), paycodes)
-          );
           setFilterSalespeople((prev) => pruneUnavailable(prev, salespeople));
         }
       })
@@ -187,7 +178,6 @@ export function HrSalesTab() {
     filterVendors,
     filterClasses,
     filterSubclasses,
-    filterPaycodes,
     filterSalespeople,
   ]);
 
@@ -284,15 +274,6 @@ export function HrSalesTab() {
             onChange={setFilterSubclasses}
           />
         )}
-        {availablePaycodes.length > 0 && (
-          <SalesMultiSelectFilter
-            label="Paycodes"
-            allLabel="All paycodes"
-            options={availablePaycodes}
-            value={filterPaycodes}
-            onChange={setFilterPaycodes}
-          />
-        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -315,12 +296,6 @@ export function HrSalesTab() {
           </p>
         </div>
       </div>
-
-      {filterPaycodes.length > 0 && (
-        <div className="rounded-xl bg-sky-500/10 ring-1 ring-sky-400/25 px-3 py-2 text-sm text-sky-100/90">
-          Paycode filter on: Net Sales is Applied Amt for {filterPaycodes.join(", ")}.
-        </div>
-      )}
 
       {filterSalespeople.length === 0 && salespeople.length > 0 && (
         <Card className="p-0 overflow-hidden">
