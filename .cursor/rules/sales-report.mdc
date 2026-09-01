@@ -83,7 +83,7 @@ Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CAS
 | `VJB-PROG`, `VJF-PROGRE`, `HD-PROGR`, `VJLV-PROGRESSIVE` | **PROG** |
 | `VJO-WELLS`, `VJPB-WELL`, `DBCST-WELS`, `VJST-WELLS FARGO` | **WELLS** |
 
-Same canonical rule on overlay parse — daily payment appends stay raw in `Payment-Transactions.csv` and fold in automatically (Aug 1 → current overlay dates).
+Same canonical rule on overlay parse — Cursor daily payment appends stay raw in `Payment-Transactions.csv` and fold in automatically.
 
 | Surface | Amount |
 |---|---|
@@ -93,9 +93,24 @@ Same canonical rule on overlay parse — daily payment appends stay raw in `Paym
 
 Paycode filter is on **Sales Dashboard** only (store / department / design / class / subclass / salesperson still apply on HR Sales). Implementation: `src/lib/sales/paycode-normalize.ts` + `src/lib/sales/paycode-overlay.ts` (`PAYCODE_OVERLAY_VERSION`).
 
+## Daily append (Cursor)
+
+Umair appends through Cursor, not Data Analyst. Always both files together:
+
+```
+npx tsx scripts/append-daily-sales-and-payments.ts <sales.csv> <payments.csv>
+```
+
+| File | Lands in | Rules |
+|---|---|---|
+| Daily sales CSV | `data/reports/Sales-Report.csv` | `normalizeDailySalesCsv()`; same **Transaction Date** replaces that day; Net Sales = CSV **Total** |
+| Daily payment CSV | `data/reports/Payment-Transactions.csv` | Keep raw POS Pay Codes; same-day replace; leftover rows upsert by txn + **canonical** pay method + Applied Amt |
+
+After write, the script refreshes sales data, clears the overlay cache, and **fails** if ACIM / AFFR / AFRIM / WELL / WELS / WELLS FARGO / IDEA / … appear as separate overlay labels. Dashboard filter uses the alias groups above (ACIMA = ACIMA+ACIM Applied Amt, etc.).
+
 ## Daily append format (always)
 
-Going forward, daily sales files use the Umair / POS export shape. Treat this as the canonical daily append format on upload (`POST /api/reports`, Data Analyst, merge into live report).
+Daily sales files use the Umair / POS export shape. Cursor append uses this format (`scripts/append-daily-sales-and-payments.ts`).
 
 | Column in CSV | App field |
 |---|---|
@@ -132,6 +147,7 @@ When a companion paycode CSV has `Payment Amt`, compare the full transaction pac
 - `src/lib/reports/product-image.ts` — `normalizeSalesImageDir()` / `preferWebpFilename()`
 - `src/lib/reports/vendor-pos.ts` — maps `Item #` → SKU, `VendorModel1` → vendor model (also accepts historical `SKU #` / `Vendor Model`; prefers non-empty); normalizes `imageDir` at parse
 - `src/lib/reports/merge-sales-csv.ts` — append by Transaction Date (same day replaces); copies `Item #` → `SKU #` and `VendorModel1` → `Vendor Model` when merging into the live seed
+- `src/lib/reports/merge-payment-csv.ts` + `scripts/append-daily-sales-and-payments.ts` — Cursor daily sales + payment append; alias groups at overlay parse
 - Apply normalize on every sales upload path (`api/reports`, `summarizeCsvText`)
 - Self-check: `npx tsx scripts/check-daily-sales-csv.ts`
 
