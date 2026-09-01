@@ -106,6 +106,14 @@ export function canonicalPaycode(raw: string | null | undefined): string {
   return ALIAS_TO_CANONICAL[method] ?? method;
 }
 
+/** Labels that must not appear in the Paycodes filter (POS truncations of a group). */
+export function leakedPaycodeAliases(codes: string[]): string[] {
+  return codes.filter((c) => {
+    const canon = ALIAS_TO_CANONICAL[c];
+    return Boolean(canon && canon !== c);
+  });
+}
+
 export function canonicalizePaycodeList(codes: string[]): string[] {
   const out: string[] = [];
   const seen = new Set<string>();

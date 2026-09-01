@@ -6,12 +6,15 @@
  * daily file (OL/CR leftovers) are upserted by Transaction # + Pay Code + date
  * so they do not wipe other days already in the overlay.
  *
- * Keep raw POS Pay Code strings here (`VJS-CASH`, `DBCST-IDEA`). Canonical
- * method names (CASH, IDDEAL, SYNC, PROG, …) are applied when the overlay is
- * parsed in `paycode-overlay.ts`, so every daily append follows the same rule.
+ * Keep raw POS Pay Code strings here (`VJS-CASH`, `DBCST-ACIM`). Canonical
+ * method names (CASH, ACIMA, AFFIRM, IDDEAL, SYNC, PROG, WELLS, …) are applied
+ * when the overlay is parsed in `paycode-overlay.ts`, so every Cursor daily
+ * append follows the same alias groups. Dedup keys use the canonical method so
+ * `DBCST-ACIM` and `DBCST-ACIMA` on the same txn/date/amount do not double-count.
  */
 import Papa from "papaparse";
 import { isValidIsoDate, parseReportFilterDate } from "@/lib/reports/date-utils";
+import { canonicalPaycode } from "@/lib/sales/paycode-normalize";
 
 function normalizeRowDate(raw: unknown): string | null {
   if (raw == null || raw === "") return null;
@@ -88,7 +91,8 @@ function rowKey(
 ): string {
   const tid = cols.txn ? String(row[cols.txn] ?? "").trim().toUpperCase() : "";
   const iso = cols.date ? normalizeRowDate(row[cols.date]) ?? "" : "";
-  const pay = cols.pay ? String(row[cols.pay] ?? "").replace(/,+\s*$/, "").trim().toUpperCase() : "";
+  const payRaw = cols.pay ? String(row[cols.pay] ?? "").replace(/,+\s*$/, "").trim() : "";
+  const pay = canonicalPaycode(payRaw) || payRaw.toUpperCase();
   const amt = cols.applied ? moneyKey(row[cols.applied] ?? "") : "";
   return `${tid}|${iso}|${pay}|${amt}`;
 }
