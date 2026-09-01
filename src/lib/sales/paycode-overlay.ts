@@ -1,12 +1,14 @@
 /**
- * Payment-transaction overlay for Sales Dashboard / HR Sales.
+ * Payment-transaction overlay for Sales Dashboard.
  *
  * Match Payment `Transaction #` → sales `Transaction #`.
  * Paycode amounts use **Applied Amt** (not Payment Amt, not sales-line Total).
  *
  * Display / filter keys are the method after the store hyphen (`VJS-CASH` →
- * `CASH`) with IDEA/IDEAL→IDDEAL, SYNY/Synchrony truncations→SYNC, PROG*→PROG.
+ * `CASH`) with ACIM→ACIMA, AFFR/AFRIM→AFFIRM, IDEA/IDEAL→IDDEAL,
+ * SYNY/Synchrony truncations→SYNC, PROG*→PROG, WELL/WELS/WELLS FARGO→WELLS.
  * Store prefixes (VJF, VIS, VJPB, …) are never listed as paycodes.
+ * HR Management Sales has no paycode filter.
  *
  * Unfiltered Net Sales stays CSV **Total** (sales-report.mdc).
  * When a Paycode is selected, line revenue is that paycode's Applied Amt
@@ -27,7 +29,7 @@ import {
   sortPaycodeLabels,
 } from "@/lib/sales/paycode-normalize";
 
-export const PAYCODE_OVERLAY_VERSION = 2;
+export const PAYCODE_OVERLAY_VERSION = 3;
 export { canonicalPaycode, canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 
 export type PaycodeAmountMap = Map<string, number>;

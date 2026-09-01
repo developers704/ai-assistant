@@ -6,9 +6,12 @@
  * (VJS, VJF, VJPB, VIS, …).
  *
  * Alias groups (same product, truncated POS names):
+ *   ACIMA + ACIM → ACIMA
+ *   AFFIRM + AFFR + AFRIM → AFFIRM
  *   IDEA + IDEAL + IDDEAL → IDDEAL
- *   SYNC + SYNY + Synchrony truncations → SYNC
  *   PROG + PROGR + PROGRE + PROGRESSIVE → PROG
+ *   SYNC + SYNY + Synchrony truncations → SYNC
+ *   WELLS + WELL + WELS + WELLS FARGO → WELLS
  *
  * Applied at overlay parse so daily payment appends follow the same rule.
  */
@@ -36,9 +39,18 @@ const STORE_PREFIX_ONLY = new Set([
 ]);
 
 const ALIAS_TO_CANONICAL: Record<string, string> = {
+  ACIM: "ACIMA",
+  ACIMA: "ACIMA",
+  AFFR: "AFFIRM",
+  AFRIM: "AFFIRM",
+  AFFIRM: "AFFIRM",
   IDEA: "IDDEAL",
   IDEAL: "IDDEAL",
   IDDEAL: "IDDEAL",
+  PROG: "PROG",
+  PROGR: "PROG",
+  PROGRE: "PROG",
+  PROGRESSIVE: "PROG",
   SYNC: "SYNC",
   SYNY: "SYNC",
   SYNCH: "SYNC",
@@ -46,10 +58,10 @@ const ALIAS_TO_CANONICAL: Record<string, string> = {
   SYNCY: "SYNC",
   SYCHY: "SYNC",
   SYNCHRONY: "SYNC",
-  PROG: "PROG",
-  PROGR: "PROG",
-  PROGRE: "PROG",
-  PROGRESSIVE: "PROG",
+  WELL: "WELLS",
+  WELS: "WELLS",
+  "WELLS FARGO": "WELLS",
+  WELLS: "WELLS",
 };
 
 /** Preferred filter order for the paycodes Umair called out. */
@@ -63,6 +75,9 @@ export const PAYCODE_FILTER_ORDER = [
   "FLEX",
   "GE",
   "PROG",
+  "ACIMA",
+  "AFFIRM",
+  "WELLS",
 ] as const;
 
 function isStorePrefixOnly(token: string): boolean {
