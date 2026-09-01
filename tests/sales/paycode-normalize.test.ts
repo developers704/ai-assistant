@@ -39,6 +39,7 @@ describe("canonicalPaycode", () => {
     expect(canonicalPaycode("VJCL-SYNCY")).toBe("SYNC");
     expect(canonicalPaycode("VJVF-SYCHY")).toBe("SYNC");
     expect(canonicalPaycode("VJCH-SYNCHRONY")).toBe("SYNC");
+    expect(canonicalPaycode("BB-SYNCHRO")).toBe("SYNC");
   });
 
   it("folds PROG + PROGR + PROGRE + PROGRESSIVE into PROG", () => {
@@ -67,6 +68,7 @@ describe("canonicalPaycode", () => {
     expect(canonicalPaycode("DBCST-WELS")).toBe("WELLS");
     expect(canonicalPaycode("VJST-WELLS FARGO")).toBe("WELLS");
     expect(canonicalPaycode("WELLS FARGO")).toBe("WELLS");
+    expect(canonicalPaycode("VJPB-WE")).toBe("WELLS");
   });
 
   it("dedupes mixed raw + canonical selections", () => {
@@ -93,14 +95,18 @@ describe("canonicalPaycode", () => {
     expect(paycodeMatchesFilterQuery("WELLS", "wels")).toBe(true);
     expect(paycodeMatchesFilterQuery("WELLS", "wells fargo")).toBe(true);
     expect(paycodeMatchesFilterQuery("SYNC", "syny")).toBe(true);
+    expect(paycodeMatchesFilterQuery("SYNC", "synchro")).toBe(true);
+    expect(paycodeMatchesFilterQuery("WELLS", "we")).toBe(true);
     expect(paycodeMatchesFilterQuery("CASH", "affr")).toBe(false);
   });
 
   it("flags POS truncations that must not appear as filter labels", () => {
-    expect(leakedPaycodeAliases(["ACIMA", "ACIM", "AFFIRM", "AFFR", "WELLS", "WELS"])).toEqual([
+    expect(leakedPaycodeAliases(["ACIMA", "ACIM", "AFFIRM", "AFFR", "WELLS", "WELS", "WE", "SYNCHRO"])).toEqual([
       "ACIM",
       "AFFR",
       "WELS",
+      "WE",
+      "SYNCHRO",
     ]);
   });
 });

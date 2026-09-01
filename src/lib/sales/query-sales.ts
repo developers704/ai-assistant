@@ -43,9 +43,23 @@ import { formatReportDateLong } from "@/lib/reports/date-utils";
 import {
   applyPaycodeFilter,
   applySalespersonFilter,
-  paycodeTotalsForRows,
+  paycodeTotalsForPaymentWindow,
 } from "@/lib/sales/paycode-overlay";
-import { canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
+
+function paycodeBreakdownRows(
+  totals: { name: string; revenue: number; share: number }[]
+) {
+  return totals.map((p) => ({
+    name: p.name,
+    netSales: p.revenue,
+    grossSales: p.revenue,
+    discounts: 0,
+    unitsSold: 0,
+    transactions: 0,
+    estimatedMargin: 0,
+    share: p.share,
+  }));
+}
 
 /**
  * Net Sales / stores use full CSV rows (repairs, SPO, battery, ITEM, etc.).
@@ -718,20 +732,32 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   const breakdowns: NonNullable<SalesQueryResult["breakdowns"]> = {};
   const rankings: NonNullable<SalesQueryResult["rankings"]> = {};
 
+  const restrictPaycodesToSalesTxns = Boolean(
+    norm.filters.departments?.length ||
+      norm.filters.designs?.length ||
+      norm.filters.vendors?.length ||
+      norm.filters.classes?.length ||
+      input.subclasses?.length ||
+      norm.filters.skus?.length ||
+      norm.filters.vendorModels?.length ||
+      norm.filters.products?.length ||
+      input.salespeople?.length
+  );
+  const paycodeTotals = paycodeBreakdownRows(
+    paycodeTotalsForPaymentWindow({
+      from: dateResolved.type === "report_all" ? undefined : dateResolved.startDate,
+      to: dateResolved.type === "report_all" ? undefined : dateResolved.endDate,
+      stores: norm.filters.stores,
+      txnIds: restrictPaycodesToSalesTxns
+        ? paycodeRankSource.map((r) => r.transactionId)
+        : undefined,
+      methods: input.paycodes,
+    }).slice(0, 50)
+  );
+
   const ensureGroup = (g: SalesGroupBy) => {
     if (g === "paycode") {
-      breakdowns.byPaycode = paycodeTotalsForRows(paycodeRankSource)
-        .slice(0, limit ?? 50)
-        .map((p) => ({
-          name: p.name,
-          netSales: p.revenue,
-          grossSales: p.revenue,
-          discounts: 0,
-          unitsSold: 0,
-          transactions: 0,
-          estimatedMargin: 0,
-          share: p.share,
-        }));
+      breakdowns.byPaycode = paycodeTotals;
       return;
     }
     const rows = groupRows(filtered, g, limit);
@@ -789,20 +815,7 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   if (include.topVendors) rankings.topVendors = groupRows(filtered, "vendor", limit);
   if (include.topClasses) rankings.topClasses = groupRows(filtered, "class", limit);
   if (include.topPaycodes !== false) {
-    const wanted = new Set(canonicalizePaycodeList(input.paycodes ?? []));
-    rankings.topPaycodes = paycodeTotalsForRows(paycodeRankSource)
-      .filter((p) => !wanted.size || wanted.has(p.name))
-      .slice(0, limit ?? 50)
-      .map((p) => ({
-        name: p.name,
-        netSales: p.revenue,
-        grossSales: p.revenue,
-        discounts: 0,
-        unitsSold: 0,
-        transactions: 0,
-        estimatedMargin: 0,
-        share: p.share,
-      }));
+    rankings.topPaycodes = paycodeTotals;
   }
   if (include.topSalesPeople) rankings.topSalesPeople = groupRows(filtered, "salesperson", limit);
   const productSort =
