@@ -60,8 +60,10 @@ const DIMENSION_LABEL: Record<RankDimension, string> = {
   vendor: "Vendor",
   design: "Design line",
   class: "Metal / class",
+  subclass: "Subclass",
   vendorModel: "Vendor model",
   salesperson: "Salesperson",
+  paycode: "Paycode",
 };
 
 export type RankDetailSelection = {
@@ -79,6 +81,9 @@ type RankDetailDrawerProps = {
   filterDesign?: string;
   filterVendor?: string;
   filterClass?: string;
+  filterSubclass?: string;
+  filterPaycode?: string;
+  filterSalesperson?: string;
   reportId?: string;
   onClose: () => void;
 };
@@ -120,6 +125,9 @@ export function RankDetailDrawer({
   filterDesign,
   filterVendor,
   filterClass,
+  filterSubclass,
+  filterPaycode,
+  filterSalesperson,
   reportId,
   onClose,
 }: RankDetailDrawerProps) {
@@ -178,6 +186,15 @@ export function RankDetailDrawer({
     if (filterDesign && selection.dimension !== "design") params.set("design", filterDesign);
     if (filterVendor && selection.dimension !== "vendor") params.set("vendor", filterVendor);
     if (filterClass && selection.dimension !== "class") params.set("class", filterClass);
+    if (filterSubclass && selection.dimension !== "subclass") {
+      params.set("subclass", filterSubclass);
+    }
+    if (filterPaycode && selection.dimension !== "paycode") {
+      params.set("paycode", filterPaycode);
+    }
+    if (filterSalesperson && selection.dimension !== "salesperson") {
+      params.set("salesperson", filterSalesperson);
+    }
     if (reportId) params.set("id", reportId);
 
     let cancelled = false;
@@ -212,6 +229,9 @@ export function RankDetailDrawer({
     filterDesign,
     filterVendor,
     filterClass,
+    filterSubclass,
+    filterPaycode,
+    filterSalesperson,
     reportId,
   ]);
 
@@ -252,9 +272,21 @@ export function RankDetailDrawer({
               (filterDepartment && selection.dimension !== "department") ||
               (filterDesign && selection.dimension !== "design") ||
               (filterVendor && selection.dimension !== "vendor") ||
-              (filterClass && selection.dimension !== "class")) && (
+              (filterClass && selection.dimension !== "class") ||
+              (filterSubclass && selection.dimension !== "subclass") ||
+              (filterPaycode && selection.dimension !== "paycode") ||
+              (filterSalesperson && selection.dimension !== "salesperson")) && (
               <p className="text-[10px] text-amber-200/70 mt-1 truncate">
                 Filtered
+                {filterPaycode && selection.dimension !== "paycode"
+                  ? ` · paycode ${filterPaycode}`
+                  : ""}
+                {filterSalesperson && selection.dimension !== "salesperson"
+                  ? ` · ${filterSalesperson}`
+                  : ""}
+                {filterSubclass && selection.dimension !== "subclass"
+                  ? ` · subclass ${filterSubclass}`
+                  : ""}
                 {filterClass && selection.dimension !== "class" ? ` · class ${filterClass}` : ""}
                 {filterVendor && selection.dimension !== "vendor" ? ` · vendor ${filterVendor}` : ""}
                 {filterDepartment && selection.dimension !== "department"

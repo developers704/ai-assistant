@@ -1,16 +1,26 @@
-/** Parse "09:25 AM" / "1:49 PM" to minutes from midnight. */
+/** Parse "09:25 AM" / "1:49 PM" / 24-hour "9:28" / "14:24" to minutes from midnight. */
 export function parseClockToMinutes(raw: string | null | undefined): number | null {
   if (!raw) return null;
   const s = String(raw).trim();
-  const m = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!m) return null;
-  let h = Number(m[1]);
-  const min = Number(m[2]);
-  const ap = m[3]!.toUpperCase();
-  if (ap === "AM") {
-    if (h === 12) h = 0;
-  } else if (h !== 12) h += 12;
-  return h * 60 + min;
+  const ampm = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampm) {
+    let h = Number(ampm[1]);
+    const min = Number(ampm[2]);
+    const ap = ampm[3]!.toUpperCase();
+    if (ap === "AM") {
+      if (h === 12) h = 0;
+    } else if (h !== 12) h += 12;
+    if (!Number.isFinite(h) || !Number.isFinite(min) || min > 59) return null;
+    return h * 60 + min;
+  }
+  const h24 = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (h24) {
+    const h = Number(h24[1]);
+    const min = Number(h24[2]);
+    if (!Number.isFinite(h) || !Number.isFinite(min) || h > 23 || min > 59) return null;
+    return h * 60 + min;
+  }
+  return null;
 }
 
 export function formatMinutes(mins: number): string {
@@ -78,4 +88,14 @@ export function parseScheduleRange(
   let minutes = endM - startM;
   if (minutes <= 0) minutes += 24 * 60;
   return { start, end, minutes };
+}
+
+/** "Mon · Jun 1" for HR date filters (ISO date). */
+export function formatHrDateLabel(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const d = new Date(`${iso}T12:00:00.000Z`);
+  const weekday = d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+  const month = d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  const day = d.getUTCDate();
+  return `${weekday} · ${month} ${day}`;
 }

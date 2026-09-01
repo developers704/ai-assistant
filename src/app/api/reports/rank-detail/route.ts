@@ -25,6 +25,10 @@ import { sumCostPriceForRole } from "@/lib/sales/cost-price";
 import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
 import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
 import { vendorModelGroupKey } from "@/lib/sales/top-models-wholesale-margin";
+import {
+  applyPaycodeFilter,
+  applySalespersonFilter,
+} from "@/lib/sales/paycode-overlay";
 
 export const runtime = "nodejs";
 
@@ -130,6 +134,9 @@ export async function GET(req: Request) {
   const designs = parseMultiParam(searchParams, "design", "designs");
   const vendors = parseMultiParam(searchParams, "vendor", "vendors");
   const classes = parseMultiParam(searchParams, "class", "classes");
+  const subclasses = parseMultiParam(searchParams, "subclass", "subclasses");
+  const paycodes = parseMultiParam(searchParams, "paycode", "paycodes");
+  const salespeople = parseMultiParam(searchParams, "salesperson", "salespeople");
   const id = searchParams.get("id")?.trim() || undefined;
   const includeHiddenTopModels = showsAllSoldInTopVendorModels(session.username);
 
@@ -139,8 +146,10 @@ export async function GET(req: Request) {
     "vendor",
     "design",
     "class",
+    "subclass",
     "vendorModel",
     "salesperson",
+    "paycode",
   ].filter((d) => !(hidesVendorInfoFromPermissions(session.username) && d === "vendor")) as RankDimension[];
   if (!dimension || !allowed.includes(dimension) || !value) {
     return NextResponse.json(
@@ -168,6 +177,7 @@ export async function GET(req: Request) {
   const designSet = multiSet(designs);
   const vendorSet = multiSet(vendors);
   const classSet = multiSet(classes);
+  const subclassSet = multiSet(subclasses);
   if (storeSet) {
     rows = rows.filter((r) =>
       storeSet.has(normalizeFilterKey(dimensionValue(r, "store")))
@@ -193,15 +203,29 @@ export async function GET(req: Request) {
       classSet.has(normalizeFilterKey(dimensionValue(r, "class")))
     );
   }
+  if (subclassSet) {
+    rows = rows.filter((r) =>
+      subclassSet.has(normalizeFilterKey(dimensionValue(r, "subclass")))
+    );
+  }
+  if (salespeople.length && dimension !== "salesperson") {
+    rows = applySalespersonFilter(rows, salespeople);
+  }
+  if (paycodes.length && dimension !== "paycode") {
+    rows = applyPaycodeFilter(rows, paycodes);
+  }
 
   const isSalesperson = dimension === "salesperson";
+  const isPaycode = dimension === "paycode";
   const salespersonCode = isSalesperson ? resolveSalespersonCode(value) : "";
   const needle = normalizeFilterKey(value);
   const matched = isSalesperson
     ? rows.filter((r) => rowIncludesSalesperson(r, salespersonCode))
-    : rows.filter(
-        (r) => normalizeFilterKey(dimensionValue(r, dimension)) === needle
-      );
+    : isPaycode
+      ? applyPaycodeFilter(rows, [value])
+      : rows.filter(
+          (r) => normalizeFilterKey(dimensionValue(r, dimension)) === needle
+        );
 
   const creditOf = (r: VendorPosRow) =>
     isSalesperson ? salespersonShare(r, salespersonCode) : 1;

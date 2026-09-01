@@ -33,10 +33,12 @@ import {
 } from "@/components/sales/SalesDateRangePicker";
 import { SalesMultiSelectFilter } from "@/components/sales/SalesMultiSelectFilter";
 import {
-  appendMultiParam,
+  appendSalesFilterParams,
   parseMultiParam,
   pruneUnavailable,
+  type SalesUiFilterValues,
 } from "@/lib/sales/filter-params";
+import { canonicalizePaycodeList, paycodeMatchesFilterQuery } from "@/lib/sales/paycode-normalize";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { useApp } from "@/lib/store/app-context";
 import {
@@ -70,21 +72,8 @@ function appendDateParams(params: URLSearchParams, range: SalesDateRangeValue | 
   }
 }
 
-function appendFilterParams(
-  params: URLSearchParams,
-  filters: {
-    stores: string[];
-    departments: string[];
-    designs: string[];
-    vendors: string[];
-    classes: string[];
-  }
-) {
-  appendMultiParam(params, "store", filters.stores);
-  appendMultiParam(params, "department", filters.departments);
-  appendMultiParam(params, "design", filters.designs);
-  appendMultiParam(params, "vendor", filters.vendors);
-  appendMultiParam(params, "class", filters.classes);
+function appendFilterParams(params: URLSearchParams, filters: SalesUiFilterValues) {
+  appendSalesFilterParams(params, filters);
 }
 
 export default function SalesPage() {
@@ -107,6 +96,8 @@ export default function SalesPage() {
   const [availableDesigns, setAvailableDesigns] = useState<string[]>([]);
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
   const [availableVendors, setAvailableVendors] = useState<string[]>([]);
+  const [availableSubClasses, setAvailableSubClasses] = useState<string[]>([]);
+  const [availablePaycodes, setAvailablePaycodes] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<SalesDateRangeValue | null>(() =>
     rangeFromSearchParams(searchParams)
   );
@@ -124,6 +115,12 @@ export default function SalesPage() {
   );
   const [filterClasses, setFilterClasses] = useState<string[]>(() =>
     parseMultiParam(searchParams, "class", "classes")
+  );
+  const [filterSubclasses, setFilterSubclasses] = useState<string[]>(() =>
+    parseMultiParam(searchParams, "subclass", "subclasses")
+  );
+  const [filterPaycodes, setFilterPaycodes] = useState<string[]>(() =>
+    canonicalizePaycodeList(parseMultiParam(searchParams, "paycode", "paycodes"))
   );
   const [dateWarning, setDateWarning] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | undefined>();
@@ -153,6 +150,8 @@ export default function SalesPage() {
     setFilterDesigns([]);
     setFilterVendors([]);
     setFilterClasses([]);
+    setFilterSubclasses([]);
+    setFilterPaycodes([]);
     setRankDetail(null);
     lastUrlKeyRef.current = "";
     router.replace("/sales", { scroll: false });
@@ -217,6 +216,10 @@ export default function SalesPage() {
     setFilterDesigns(parseMultiParam(searchParams, "design", "designs"));
     setFilterVendors(parseMultiParam(searchParams, "vendor", "vendors"));
     setFilterClasses(parseMultiParam(searchParams, "class", "classes"));
+    setFilterSubclasses(parseMultiParam(searchParams, "subclass", "subclasses"));
+    setFilterPaycodes(
+      canonicalizePaycodeList(parseMultiParam(searchParams, "paycode", "paycodes"))
+    );
   }, [searchParams]);
 
   // Manual filter changes → keep the URL in sync so voice deep-links and UI stay aligned.
@@ -232,6 +235,8 @@ export default function SalesPage() {
       designs: filterDesigns,
       vendors: filterVendors,
       classes: filterClasses,
+      subclasses: filterSubclasses,
+      paycodes: filterPaycodes,
     });
     const key = params.toString();
     if (key === lastUrlKeyRef.current) return;
@@ -244,6 +249,8 @@ export default function SalesPage() {
     filterDesigns,
     filterVendors,
     filterClasses,
+    filterSubclasses,
+    filterPaycodes,
     router,
   ]);
 
@@ -251,7 +258,7 @@ export default function SalesPage() {
     if (
       detailTypeFromUrl &&
       detailValueFromUrl &&
-      ["store", "department", "vendor", "design", "class", "vendorModel", "salesperson"].includes(detailTypeFromUrl)
+      ["store", "department", "vendor", "design", "class", "subclass", "vendorModel", "salesperson", "paycode"].includes(detailTypeFromUrl)
     ) {
       setRankDetail({
         dimension: detailTypeFromUrl as RankDimension,
@@ -271,6 +278,8 @@ export default function SalesPage() {
       designs: filterDesigns,
       vendors: filterVendors,
       classes: filterClasses,
+      subclasses: filterSubclasses,
+      paycodes: filterPaycodes,
     });
     const qs = params.toString() ? `?${params}` : "";
     const gen = ++salesFetchGenRef.current;
@@ -327,12 +336,16 @@ export default function SalesPage() {
           const designs: string[] = d.availableDesigns ?? [];
           const classes: string[] = d.availableClasses ?? [];
           const vendors: string[] = d.availableVendors ?? [];
+          const subclasses: string[] = d.availableSubClasses ?? [];
+          const paycodes: string[] = d.availablePaycodes ?? [];
           setAvailableDates(dates);
           setAvailableStores(stores);
           setAvailableDepartments(departments);
           setAvailableDesigns(designs);
           setAvailableClasses(classes);
           setAvailableVendors(vendors);
+          setAvailableSubClasses(subclasses);
+          setAvailablePaycodes(paycodes);
           setReportId(nextReportId ?? dateRange?.to ?? d.reportDate ?? "latest");
 
           if (dates.length > 0) {
@@ -358,6 +371,10 @@ export default function SalesPage() {
           setFilterDesigns((prev) => pruneUnavailable(prev, designs));
           setFilterVendors((prev) => pruneUnavailable(prev, vendors));
           setFilterClasses((prev) => pruneUnavailable(prev, classes));
+          setFilterSubclasses((prev) => pruneUnavailable(prev, subclasses));
+          setFilterPaycodes((prev) =>
+            pruneUnavailable(canonicalizePaycodeList(prev), paycodes)
+          );
         } else {
           setReportSummary(null);
           setAvailableDates([]);
@@ -366,6 +383,8 @@ export default function SalesPage() {
           setAvailableDesigns([]);
           setAvailableClasses([]);
           setAvailableVendors([]);
+          setAvailableSubClasses([]);
+          setAvailablePaycodes([]);
           setReportId(undefined);
           knownReportIdRef.current = null;
         }
@@ -386,6 +405,8 @@ export default function SalesPage() {
     filterDesigns,
     filterVendors,
     filterClasses,
+    filterSubclasses,
+    filterPaycodes,
     refreshNonce,
   ]);
 
@@ -471,6 +492,8 @@ export default function SalesPage() {
                     designs: filterDesigns,
                     vendors: filterVendors,
                     classes: filterClasses,
+                    subclasses: filterSubclasses,
+                    paycodes: filterPaycodes,
                   });
                   const qs = params.toString();
                   return qs
@@ -493,6 +516,8 @@ export default function SalesPage() {
                     designs: filterDesigns,
                     vendors: filterVendors,
                     classes: filterClasses,
+                    subclasses: filterSubclasses,
+                    paycodes: filterPaycodes,
                   });
                   const qs = params.toString();
                   return qs ? `/sales/visualizations?${qs}` : "/sales/visualizations";
@@ -513,6 +538,8 @@ export default function SalesPage() {
           availableDesigns.length > 0 ||
           (!hideVendors && availableVendors.length > 0) ||
           availableClasses.length > 0 ||
+          availableSubClasses.length > 0 ||
+          availablePaycodes.length > 0 ||
           reportSummary?.dateRange) && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <SalesDateRangePicker
@@ -574,6 +601,25 @@ export default function SalesPage() {
                 onChange={setFilterClasses}
               />
             )}
+            {availableSubClasses.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Subclasses"
+                allLabel="All subclasses"
+                options={availableSubClasses}
+                value={filterSubclasses}
+                onChange={setFilterSubclasses}
+              />
+            )}
+            {availablePaycodes.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Paycodes"
+                allLabel="All paycodes"
+                options={availablePaycodes}
+                value={filterPaycodes}
+                onChange={setFilterPaycodes}
+                optionMatches={paycodeMatchesFilterQuery}
+              />
+            )}
           </div>
         )}
       </PageShellHeader>
@@ -612,6 +658,13 @@ export default function SalesPage() {
           {dateWarning && (
             <div className="mb-3 rounded-xl bg-rose-500/10 ring-1 ring-rose-400/30 px-3 py-2 text-sm text-rose-100/90">
               {dateWarning}
+            </div>
+          )}
+          {filterPaycodes.length > 0 && (
+            <div className="mb-3 rounded-xl bg-sky-500/10 ring-1 ring-sky-400/25 px-3 py-2 text-sm text-sky-100/90">
+              Paycode filter on: Net Sales is <span className="font-semibold">Applied Amt</span>{" "}
+              for {filterPaycodes.join(", ")} (matched by Transaction #). Unfiltered Net Sales
+              still uses CSV Total.
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
@@ -814,6 +867,8 @@ export default function SalesPage() {
         filterDesign={filterDesigns.length ? filterDesigns.join(",") : undefined}
         filterVendor={filterVendors.length ? filterVendors.join(",") : undefined}
         filterClass={filterClasses.length ? filterClasses.join(",") : undefined}
+        filterSubclass={filterSubclasses.length ? filterSubclasses.join(",") : undefined}
+        filterPaycode={filterPaycodes.length ? filterPaycodes.join(",") : undefined}
         reportId={
           reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
             ? reportId

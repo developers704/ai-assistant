@@ -44,6 +44,32 @@ export function appendMultiParam(
   params.set(key, values.join(","));
 }
 
+/** Dashboard / HR sales URL + fetch query (Excel-style multi-select). */
+export type SalesUiFilterValues = {
+  stores: string[];
+  departments: string[];
+  designs: string[];
+  vendors: string[];
+  classes: string[];
+  subclasses?: string[];
+  paycodes?: string[];
+  salespeople?: string[];
+};
+
+export function appendSalesFilterParams(
+  params: URLSearchParams,
+  filters: SalesUiFilterValues
+) {
+  appendMultiParam(params, "store", filters.stores);
+  appendMultiParam(params, "department", filters.departments);
+  appendMultiParam(params, "design", filters.designs);
+  appendMultiParam(params, "vendor", filters.vendors);
+  appendMultiParam(params, "class", filters.classes);
+  appendMultiParam(params, "subclass", filters.subclasses ?? []);
+  appendMultiParam(params, "paycode", filters.paycodes ?? []);
+  appendMultiParam(params, "salesperson", filters.salespeople ?? []);
+}
+
 export function pruneUnavailable(selected: string[], available: string[]): string[] {
   if (!available.length || !selected.length) return selected;
   const set = new Set(available);

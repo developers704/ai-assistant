@@ -245,6 +245,8 @@ function groupKey(row: VendorPosRow, by: SalesGroupBy): string {
       return row.vendor || "Unknown vendor";
     case "class":
       return row.productClass || "Unknown class";
+    case "subclass":
+      return row.subClass || "Unknown subclass";
     case "product":
       return row.description || row.vendorModel || row.sku || "Unknown product";
     case "sku":
@@ -253,6 +255,8 @@ function groupKey(row: VendorPosRow, by: SalesGroupBy): string {
       return vendorModelGroupKey(row);
     case "salesperson":
       return "Unknown salesperson";
+    case "paycode":
+      return row.payCode || "Unknown paycode";
     default:
       return "Unknown";
   }
@@ -448,6 +452,7 @@ export function filterRows(
     designs?: string[];
     vendors?: string[];
     classes?: string[];
+    subclasses?: string[];
     skus?: string[];
     vendorModels?: string[];
     products?: string[];
@@ -478,6 +483,9 @@ export function filterRows(
   const classSet = opts.classes?.length
     ? new Set(opts.classes.map(key))
     : null;
+  const subclassSet = opts.subclasses?.length
+    ? new Set(opts.subclasses.map(key))
+    : null;
   const skuSet = opts.skus?.length
     ? new Set(opts.skus.map(key))
     : null;
@@ -501,6 +509,7 @@ export function filterRows(
     if (designSet && !designSet.has(key(r.design || "Unknown design"))) return false;
     if (vendorSet && !vendorSet.has(key(r.vendor || "Unknown vendor"))) return false;
     if (classSet && !classSet.has(key(r.productClass || "Unknown class"))) return false;
+    if (subclassSet && !subclassSet.has(key(r.subClass || "Unknown subclass"))) return false;
     if (skuSet && !skuSet.has(key(r.sku || r.itemNumber))) return false;
     if (modelSet && !modelSet.has(key(r.vendorModel))) return false;
     if (productSet && !productSet.has(key(r.description))) return false;

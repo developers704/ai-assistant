@@ -95,3 +95,27 @@ export function creditSalespersonRows(
     }))
     .sort((a, b) => b.netSales - a.netSales || a.code.localeCompare(b.code));
 }
+
+/** Accept `CODE` or `Name (CODE)`. */
+export function resolveSalespersonFilterCode(value: string): string {
+  const raw = value.trim();
+  const paren = raw.match(/\(([A-Za-z0-9_.-]+)\)\s*$/);
+  if (paren) return paren[1].toUpperCase();
+  return raw.toUpperCase();
+}
+export function listSalespeopleFromRows(
+  rows: VendorPosRow[],
+  directory?: Map<string, SalespersonDirectoryEntry>
+): { value: string; label: string }[] {
+  const dir = directory ?? loadSalespersonDirectory();
+  const codes = new Set<string>();
+  for (const r of rows) {
+    for (const s of parseSalespersonSplits(r.salespersons)) codes.add(s.code);
+  }
+  return [...codes]
+    .sort((a, b) => a.localeCompare(b))
+    .map((code) => ({
+      value: code,
+      label: resolveSalespersonLabelWithCode(code, dir),
+    }));
+}

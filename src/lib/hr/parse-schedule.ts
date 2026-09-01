@@ -2,6 +2,7 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import type { HrScheduleEntry } from "./types";
 import { parseScheduleColumnDate, parseScheduleRange } from "./time-utils";
+import { datesInIsoRange, HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "./window";
 
 function normalizeScheduleCell(raw: unknown): string {
   const s = String(raw ?? "").trim();
@@ -21,7 +22,7 @@ export function parseScheduleMatrix(matrix: unknown[][]): {
     (r) => Array.isArray(r) && r.some((c) => String(c ?? "").trim())
   ) as unknown[][];
 
-  let year = new Date().getFullYear();
+  let year = Number(HR_ATTENDANCE_FROM.slice(0, 4)) || new Date().getFullYear();
   const title = String(rows[0]?.[0] ?? "");
   const yearMatch = title.match(/(\d{4})/);
   if (yearMatch) year = Number(yearMatch[1]);
@@ -64,6 +65,57 @@ export function parseScheduleMatrix(matrix: unknown[][]): {
     dateFrom: dates[0] ?? null,
     dateTo: dates[dates.length - 1] ?? null,
   };
+}
+
+function utcWeekday(iso: string): number {
+  return new Date(`${iso}T12:00:00.000Z`).getUTCDay();
+}
+
+/**
+ * A weekly ADP file is one week of shifts. Repeat that weekday pattern across
+ * the HR attendance window (currently June 1–7, 2026).
+ *
+ * Files that already span more than 8 distinct dates are left as-is.
+ */
+export function expandWeeklyScheduleToWindow(
+  entries: HrScheduleEntry[],
+  fromIso = HR_ATTENDANCE_FROM,
+  toIso = HR_ATTENDANCE_TO
+): HrScheduleEntry[] {
+  if (!entries.length) return entries;
+  const uniqueDates = [...new Set(entries.map((e) => e.date))].sort();
+  if (uniqueDates.length > 8) return entries;
+
+  const windowDates = datesInIsoRange(fromIso, toIso);
+  if (!windowDates.length) return entries;
+
+  const templates: HrScheduleEntry[] = [];
+  const seen = new Set<string>();
+  for (const e of entries) {
+    const key = `${e.employeeName}\0${utcWeekday(e.date)}\0${e.start}\0${e.end}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    templates.push(e);
+  }
+
+  const out: HrScheduleEntry[] = [];
+  const outSeen = new Set<string>();
+  for (const d of windowDates) {
+    const wd = utcWeekday(d);
+    for (const t of templates) {
+      if (utcWeekday(t.date) !== wd) continue;
+      const key = `${t.employeeName}\0${d}\0${t.start}\0${t.end}`;
+      if (outSeen.has(key)) continue;
+      outSeen.add(key);
+      out.push({
+        employeeName: t.employeeName,
+        date: d,
+        start: t.start,
+        end: t.end,
+      });
+    }
+  }
+  return out;
 }
 
 export function parseScheduleCsv(text: string): {

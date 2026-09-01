@@ -7,6 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import type { HrEmployeeDay, HrUploadMeta, HrViolation } from "@/lib/hr/types";
+import { HrSalesTab } from "@/components/hr/HrSalesTab";
+import {
+  formatHrAttendanceWindowCaption,
+  MISSING_PUNCH_LABEL,
+} from "@/lib/hr/window";
+import { formatHrDateLabel } from "@/lib/hr/time-utils";
 import {
   AlertTriangle,
   Briefcase,
@@ -83,7 +89,7 @@ function EmployeeRow({ emp }: { emp: HrEmployeeDay }) {
           </div>
           <div className="flex flex-wrap gap-2 mt-1.5">
             <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-100 ring-1 ring-emerald-400/25">
-              Shift hrs {emp.totalWorkLabel}
+              Worked Hrs {emp.totalWorkLabel}
             </span>
             <span className="inline-flex items-center rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-100 ring-1 ring-amber-400/25">
               Meal {emp.totalMealMinutes} min
@@ -141,11 +147,11 @@ function EmployeeRow({ emp }: { emp: HrEmployeeDay }) {
                       seg.violations.length > 0 && "bg-rose-500/5"
                     )}
                   >
-                    <td className={cn("py-2 pr-3 tabular-nums", !seg.timeIn && "text-rose-300")}>
-                      {seg.timeIn ?? "— missing —"}
+                    <td className={cn("py-2 pr-3 tabular-nums", !seg.timeIn?.trim() && "text-rose-300")}>
+                      {seg.timeIn?.trim() ? seg.timeIn : MISSING_PUNCH_LABEL}
                     </td>
-                    <td className={cn("py-2 pr-3 tabular-nums", !seg.timeOut && "text-rose-300")}>
-                      {seg.timeOut ?? "— missing —"}
+                    <td className={cn("py-2 pr-3 tabular-nums", !seg.timeOut?.trim() && "text-rose-300")}>
+                      {seg.timeOut?.trim() ? seg.timeOut : MISSING_PUNCH_LABEL}
                     </td>
                     <td className="py-2 pr-3 tabular-nums text-white/60">
                       {seg.gapMinutes != null ? (
@@ -185,7 +191,7 @@ function EmployeeRow({ emp }: { emp: HrEmployeeDay }) {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
             <div className="rounded-lg bg-emerald-500/10 px-3 py-2 ring-1 ring-emerald-400/20">
-              <div className="text-[10px] uppercase tracking-wide text-emerald-200/60">Total shift</div>
+              <div className="text-[10px] uppercase tracking-wide text-emerald-200/60">Worked Hrs</div>
               <div className="text-lg font-semibold text-emerald-50 tabular-nums">{emp.totalWorkLabel}</div>
             </div>
             <div className="rounded-lg bg-amber-500/10 px-3 py-2 ring-1 ring-amber-400/20">
@@ -211,6 +217,7 @@ function EmployeeRow({ emp }: { emp: HrEmployeeDay }) {
 }
 
 export default function HrPage() {
+  const [tab, setTab] = useState<"attendance" | "sales">("attendance");
   const [data, setData] = useState<HrApiResponse | null>(null);
   const [date, setDate] = useState("");
   const [loading, setLoading] = useState(true);
@@ -277,7 +284,11 @@ export default function HrPage() {
           gradient
           eyebrow="Admin"
           title="HR Management"
-          subtitle="ADP timecards · schedules · meal break & attendance rules"
+          subtitle={
+            tab === "sales"
+              ? "Employee sales · Name (CODE) · products like Sales Dashboard"
+              : `${formatHrAttendanceWindowCaption()} · ADP timecards · schedules · meal break & attendance rules`
+          }
           action={
             <Badge variant="info" className="gap-1.5">
               <Briefcase size={14} />
@@ -286,6 +297,34 @@ export default function HrPage() {
           }
         />
 
+        <div className="mt-4 flex gap-1 rounded-xl bg-white/[0.04] p-1 ring-1 ring-white/10 w-fit">
+          <button
+            type="button"
+            onClick={() => setTab("attendance")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === "attendance"
+                ? "bg-indigo-500/30 text-white ring-1 ring-indigo-400/40"
+                : "text-white/55 hover:text-white"
+            )}
+          >
+            Attendance
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("sales")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === "sales"
+                ? "bg-indigo-500/30 text-white ring-1 ring-indigo-400/40"
+                : "text-white/55 hover:text-white"
+            )}
+          >
+            Sales
+          </button>
+        </div>
+
+        {tab === "attendance" && (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-4 cursor-pointer hover:bg-white/[0.05]">
             <span className="text-sm font-medium text-white flex items-center gap-2">
@@ -334,21 +373,24 @@ export default function HrPage() {
             )}
           </label>
         </div>
+        )}
 
-        {(data?.dates.length ?? 0) > 0 && (
+        {tab === "attendance" && (data?.dates.length ?? 0) > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Clock size={16} className="text-white/40" />
             <select
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="select-dark rounded-xl px-3 py-2 text-sm"
+              aria-label={`Attendance date, ${formatHrAttendanceWindowCaption()}`}
             >
               {data!.dates.map((d) => (
                 <option key={d} value={d}>
-                  {d}
+                  {formatHrDateLabel(d)}
                 </option>
               ))}
             </select>
+            <span className="text-xs text-white/45">{formatHrAttendanceWindowCaption()}</span>
             {violationCount > 0 && (
               <span className="text-sm text-amber-200/90">
                 {violationCount} employee(s) with flags
@@ -359,6 +401,10 @@ export default function HrPage() {
       </PageShellHeader>
 
       <PageShellBody>
+        {tab === "sales" ? (
+          <HrSalesTab />
+        ) : (
+          <>
         {uploading && (
           <div className="mb-3 flex items-center gap-2 text-sm text-white/60">
             <Loader2 size={16} className="animate-spin" /> Uploading {uploading}…
@@ -413,6 +459,8 @@ export default function HrPage() {
               <EmployeeRow key={emp.employeeName} emp={emp} />
             ))}
           </div>
+        )}
+          </>
         )}
       </PageShellBody>
     </PageShell>
