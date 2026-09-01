@@ -211,8 +211,21 @@ export async function GET(req: Request) {
   if (salespeople.length && dimension !== "salesperson") {
     rows = applySalespersonFilter(rows, salespeople);
   }
+  const paycodeWindow = {
+    from: from && to ? (from <= to ? from : to) : date,
+    to: from && to ? (from <= to ? to : from) : date,
+    stores: stores ?? [],
+    includeUnmatchedPaymentTxns: Boolean(
+      !departments.length &&
+        !designs.length &&
+        !vendors.length &&
+        !classes.length &&
+        !subclasses.length &&
+        !salespeople.length
+    ),
+  };
   if (paycodes.length && dimension !== "paycode") {
-    rows = applyPaycodeFilter(rows, paycodes);
+    rows = applyPaycodeFilter(rows, paycodes, undefined, paycodeWindow);
   }
 
   const isSalesperson = dimension === "salesperson";
@@ -222,7 +235,7 @@ export async function GET(req: Request) {
   const matched = isSalesperson
     ? rows.filter((r) => rowIncludesSalesperson(r, salespersonCode))
     : isPaycode
-      ? applyPaycodeFilter(rows, [value])
+      ? applyPaycodeFilter(rows, [value], undefined, paycodeWindow)
       : rows.filter(
           (r) => normalizeFilterKey(dimensionValue(r, dimension)) === needle
         );

@@ -12,13 +12,14 @@
  * HR Management Sales has no paycode filter.
  *
  * Unfiltered Net Sales stays CSV **Total** (sales-report.mdc).
- * When a Paycode is selected, line revenue is that paycode's Applied Amt
- * allocated across the transaction's sales lines by |Total| share.
+ * When a Paycode is selected, Net Sales = that group’s Applied Amt for payment
+ * legs in the dashboard date/store window (same SUMIFS as the Paycodes card),
+ * matched to sales lines by Transaction #. Payment-only CR/OL/return legs
+ * that have no sales row still count so the filter total matches the CSV.
  *
- * Overlay (paycode **filter** allocation) skips blank Type and Returns/Refunds.
- * Paycodes **card** sums Applied Amt by payment `Transaction Date` (POS Excel
- * SUMIFS), including CR/OL/CL legs and Returns/Refunds. Blank Type / POS
- * grand-total rows stay excluded.
+ * Overlay (txn map used when no date window is passed) skips blank Type and
+ * Returns/Refunds. Paycodes card / filter window include Returns/CR/OL.
+ * Blank Type / POS grand-total rows stay excluded.
  *
  * Daily payment appends stay raw in Payment-Transactions.csv; this parse step
  * applies the same canonical rule for Aug 1 → current overlay dates.
@@ -35,7 +36,7 @@ import {
   sortPaycodeLabels,
 } from "@/lib/sales/paycode-normalize";
 
-export const PAYCODE_OVERLAY_VERSION = 4;
+export const PAYCODE_OVERLAY_VERSION = 5;
 export { canonicalPaycode, canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 
 export type PaycodeAmountMap = Map<string, number>;
@@ -209,11 +210,15 @@ export function loadPaycodeOverlay(force = false): TxnPaycodeAmounts {
 }
 
 export function listPaycodes(overlay?: TxnPaycodeAmounts): string[] {
-  const map = overlay ?? loadPaycodeOverlay();
-  const set = new Set<string>();
-  for (const inner of map.values()) {
-    for (const code of inner.keys()) set.add(code);
+  if (overlay) {
+    const set = new Set<string>();
+    for (const inner of overlay.values()) {
+      for (const code of inner.keys()) set.add(code);
+    }
+    return sortPaycodeLabels([...set]);
   }
+  const set = new Set<string>();
+  for (const leg of loadPaycodeLegs()) set.add(leg.code);
   return sortPaycodeLabels([...set]);
 }
 
@@ -269,21 +274,85 @@ function scaleRow(row: VendorPosRow, factor: number): VendorPosRow {
   };
 }
 
+function allocateTxnLines(lines: VendorPosRow[], amount: number): VendorPosRow[] {
+  const weights = lines.map((r) => Math.abs(r.netRevenue));
+  const weightSum = weights.reduce((s, w) => s + w, 0);
+  return lines.map((r, i) => {
+    const share = weightSum > 0 ? weights[i]! / weightSum : 1 / lines.length;
+    const allocated = amount * share;
+    if (r.netRevenue === 0) {
+      return {
+        ...r,
+        netRevenue: allocated,
+        grossSales: allocated,
+        discountAmount: 0,
+      };
+    }
+    return scaleMoney(r, allocated / r.netRevenue);
+  });
+}
+
+function unmatchedPaymentRow(opts: {
+  txnId: string;
+  date: string;
+  store: string;
+  amount: number;
+  code: string;
+}): VendorPosRow {
+  return {
+    date: opts.date,
+    transactionId: opts.txnId,
+    storeName: opts.store || "Unknown store",
+    department: "",
+    design: "",
+    itemNumber: "ITEM",
+    sku: "ITEM",
+    style: "",
+    description: opts.code,
+    vendor: "",
+    vendorModel: "",
+    productClass: "",
+    subClass: "",
+    quantity: 1,
+    inventoryCost: 0,
+    wholesaleCost: 0,
+    grossSales: opts.amount,
+    discountAmount: 0,
+    netRevenue: opts.amount,
+    margin: 0,
+    discountRate: 0,
+    imageDir: "",
+    payCode: opts.code,
+  };
+}
+
+export type PaycodeFilterWindow = {
+  from?: string | null;
+  to?: string | null;
+  stores?: string[];
+  legs?: PaycodeLeg[];
+  /** Payment txns with no sales line still count (CR/OL/returns) so Net = payment CSV. */
+  includeUnmatchedPaymentTxns?: boolean;
+};
+
 /**
  * When paycodes are selected, rewrite each line so Net = allocated Applied Amt.
- * Allocation weight = |line Total| within the txn (among `rows` passed in).
- *
- * Lines whose txn has no overlay but whose sales Pay Codes cell lists the
- * selected code keep CSV Total (cannot split without Applied Amt).
+ * With a date/store `window`, amounts come from payment Transaction Date SUMIFS
+ * (same as the Paycodes card) and unmatched payment txns become ITEM rows.
  */
 export function applyPaycodeFilter(
   rows: VendorPosRow[],
   selectedPaycodes: string[],
-  overlay?: TxnPaycodeAmounts
+  overlay?: TxnPaycodeAmounts,
+  window?: PaycodeFilterWindow
 ): VendorPosRow[] {
   if (!selectedPaycodes.length) return rows;
-  const map = overlay ?? loadPaycodeOverlay();
   const wanted = canonicalizePaycodeList(selectedPaycodes);
+  if (window) {
+    return applyPaycodeFilterFromWindow(rows, wanted, window);
+  }
+
+  const map = overlay ?? loadPaycodeOverlay();
   const wantedUpper = new Set(wanted);
 
   const byTxn = new Map<string, VendorPosRow[]>();
@@ -299,22 +368,7 @@ export function applyPaycodeFilter(
   for (const [tid, lines] of byTxn) {
     const { amount, matched, hasOverlay } = txnSelectedAppliedAmt(map, tid, wanted);
     if (hasOverlay && matched) {
-      const weights = lines.map((r) => Math.abs(r.netRevenue));
-      const weightSum = weights.reduce((s, w) => s + w, 0);
-      lines.forEach((r, i) => {
-        const share = weightSum > 0 ? weights[i]! / weightSum : 1 / lines.length;
-        const allocated = amount * share;
-        if (r.netRevenue === 0) {
-          out.push({
-            ...r,
-            netRevenue: allocated,
-            grossSales: allocated,
-            discountAmount: 0,
-          });
-          return;
-        }
-        out.push(scaleMoney(r, allocated / r.netRevenue));
-      });
+      out.push(...allocateTxnLines(lines, amount));
       continue;
     }
     if (!hasOverlay) {
@@ -322,6 +376,71 @@ export function applyPaycodeFilter(
         txnPaycodesFromSalesCell(r.payCode).some((c) => wantedUpper.has(c.toUpperCase()))
       );
       out.push(...keep);
+    }
+  }
+  return out;
+}
+
+function applyPaycodeFilterFromWindow(
+  rows: VendorPosRow[],
+  wanted: string[],
+  window: PaycodeFilterWindow
+): VendorPosRow[] {
+  const wantedSet = new Set(wanted);
+  const from = window.from && window.from.length >= 10 ? window.from.slice(0, 10) : null;
+  const to = window.to && window.to.length >= 10 ? window.to.slice(0, 10) : null;
+  const storeSet = window.stores?.length
+    ? new Set(window.stores.map(storeKey))
+    : null;
+  const includeUnmatched = window.includeUnmatchedPaymentTxns !== false;
+  const legs = window.legs ?? loadPaycodeLegs();
+
+  const byTxnAmt = new Map<
+    string,
+    { amount: number; date: string; store: string; code: string }
+  >();
+  for (const leg of legs) {
+    if (!wantedSet.has(leg.code)) continue;
+    if (from && leg.date < from) continue;
+    if (to && leg.date > to) continue;
+    if (storeSet && !storeSet.has(storeKey(leg.store || "Unknown store"))) continue;
+    const cur = byTxnAmt.get(leg.txnId);
+    if (cur) {
+      cur.amount += leg.amount;
+    } else {
+      byTxnAmt.set(leg.txnId, {
+        amount: leg.amount,
+        date: leg.date,
+        store: leg.store,
+        code: leg.code,
+      });
+    }
+  }
+
+  const salesByTxn = new Map<string, VendorPosRow[]>();
+  for (const r of rows) {
+    const tid = normalizeTxnId(r.transactionId || "");
+    if (!tid) continue;
+    const list = salesByTxn.get(tid) ?? [];
+    list.push(r);
+    salesByTxn.set(tid, list);
+  }
+
+  const out: VendorPosRow[] = [];
+  for (const [tid, info] of byTxnAmt) {
+    const lines = salesByTxn.get(tid);
+    if (lines?.length) {
+      out.push(...allocateTxnLines(lines, info.amount));
+    } else if (includeUnmatched) {
+      out.push(
+        unmatchedPaymentRow({
+          txnId: tid,
+          date: info.date,
+          store: info.store,
+          amount: info.amount,
+          code: info.code,
+        })
+      );
     }
   }
   return out;

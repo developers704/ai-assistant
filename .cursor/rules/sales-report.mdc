@@ -60,7 +60,7 @@ When changing Top Models soft-hide rules, update `src/lib/utils.ts` and this fil
 
 ## Paycode overlay (Sales Dashboard only)
 
-Match payment `Transaction #` → sales `Transaction #`. Amounts use **Applied Amt** (not Payment Amt, not line Total). Overlay / paycode-filter allocation skips blank Type and Returns/Refunds. The Paycodes card uses payment `Transaction Date` SUMIFS and includes Returns/CR/OL.
+Match payment `Transaction #` → sales `Transaction #`. Amounts use **Applied Amt** (not Payment Amt, not line Total). Overlay txn map skips blank Type and Returns/Refunds. Paycodes card, paycode filter, and tap-for-details use payment `Transaction Date` SUMIFS (includes Returns/CR/OL) so each method total matches the payment CSV.
 
 Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CASH`). Never list store prefixes (`VJF`, `VIS`, `VJPB`, `VJS`, …) as paycodes. **HR Management Sales has no paycode filter.**
 
@@ -89,7 +89,7 @@ Same canonical rule on overlay parse — Cursor daily payment appends stay raw i
 |---|---|
 | Unfiltered **Net Sales** | CSV **Total** (unchanged) |
 | Paycode ranking / Paycodes card | SUM Applied Amt by **canonical method** for payment legs whose **Transaction Date** is in the dashboard window (POS Excel SUMIFS). Includes CR/OL/CL and Returns/Refunds. Not limited to sales-line tickets. Blank Type / POS total rows stay excluded. Store filter uses the payment `Store` column. Department / design / vendor / class / salesperson filters restrict to those sales tickets. |
-| Paycode filter selected (e.g. ACIMA) | Include every alias in that group; Net Sales = that group’s **Applied Amt** allocated across remaining sales lines by `|Total|` weight (qty not scaled). Overlay allocation skips Returns/Refunds. If the txn has no overlay but the sales `Pay Codes` cell lists the code, keep CSV Total |
+| Paycode filter selected (e.g. ACIMA) | Include every alias in that group; Net Sales = that group’s **Applied Amt** for payment legs in the date/store window (same as the Paycodes card). Match payment `Transaction #` to sales lines and allocate by `|Total|` weight. Payment-only CR/OL/return legs still count so the total matches the payment CSV. |
 
 Paycode filter is on **Sales Dashboard** only (store / department / design / class / subclass / salesperson still apply on HR Sales). Implementation: `src/lib/sales/paycode-normalize.ts` + `src/lib/sales/paycode-overlay.ts` (`PAYCODE_OVERLAY_VERSION`).
 

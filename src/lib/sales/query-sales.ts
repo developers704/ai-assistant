@@ -665,8 +665,25 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     filtered = applySalespersonFilter(filtered, input.salespeople);
   }
   const paycodeRankSource = filtered;
+  const restrictPaycodesToSalesTxns = Boolean(
+    norm.filters.departments?.length ||
+      norm.filters.designs?.length ||
+      norm.filters.vendors?.length ||
+      norm.filters.classes?.length ||
+      input.subclasses?.length ||
+      norm.filters.skus?.length ||
+      norm.filters.vendorModels?.length ||
+      norm.filters.products?.length ||
+      input.salespeople?.length
+  );
+  const paycodeWindow = {
+    from: dateResolved.type === "report_all" ? undefined : dateResolved.startDate,
+    to: dateResolved.type === "report_all" ? undefined : dateResolved.endDate,
+    stores: norm.filters.stores,
+    includeUnmatchedPaymentTxns: !restrictPaycodesToSalesTxns,
+  };
   if (input.paycodes?.length) {
-    filtered = applyPaycodeFilter(filtered, input.paycodes);
+    filtered = applyPaycodeFilter(filtered, input.paycodes, undefined, paycodeWindow);
   }
 
   const warnings = [...norm.warnings];
@@ -732,17 +749,6 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
   const breakdowns: NonNullable<SalesQueryResult["breakdowns"]> = {};
   const rankings: NonNullable<SalesQueryResult["rankings"]> = {};
 
-  const restrictPaycodesToSalesTxns = Boolean(
-    norm.filters.departments?.length ||
-      norm.filters.designs?.length ||
-      norm.filters.vendors?.length ||
-      norm.filters.classes?.length ||
-      input.subclasses?.length ||
-      norm.filters.skus?.length ||
-      norm.filters.vendorModels?.length ||
-      norm.filters.products?.length ||
-      input.salespeople?.length
-  );
   const paycodeTotals = paycodeBreakdownRows(
     paycodeTotalsForPaymentWindow({
       from: dateResolved.type === "report_all" ? undefined : dateResolved.startDate,
