@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { HrEmployeeDay, HrViolation, HrWarningNotice } from "@/lib/hr/types";
 import { MISSING_PUNCH_LABEL } from "@/lib/hr/window";
-import { isLateForWarning, HR_WARNING_FROM, warningDescription } from "@/lib/hr/warning-notice";
+import {
+  isEligibleForHrNotice,
+  HR_WARNING_FROM,
+  noticeDescriptionForEmployee,
+} from "@/lib/hr/warning-notice";
 import {
   isWarningMailSessionReady,
   replyOnWarningThread,
@@ -221,7 +225,7 @@ export function HrAttendanceEmployeeRow({
     setWriteUp(emp.writeUp ?? null);
   }, [emp.warning, emp.writeUp]);
   const hasError = emp.violations.some((v) => v.severity === "error");
-  const late = isLateForWarning(emp.lateMinutes);
+  const canSendNotice = isEligibleForHrNotice(emp);
 
   const sendWarning = async (event: MouseEvent) => {
     event.stopPropagation();
@@ -248,8 +252,8 @@ export function HrAttendanceEmployeeRow({
     setError(null);
     setWriteUpOpen(true);
     setOpen(true);
-    if (!writeUpText.trim() && emp.lateMinutes != null) {
-      setWriteUpText(warningDescription(emp.lateMinutes));
+    if (!writeUpText.trim()) {
+      setWriteUpText(noticeDescriptionForEmployee(emp));
     }
   };
 
@@ -338,7 +342,7 @@ export function HrAttendanceEmployeeRow({
         </div>
         </button>
         <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 self-center">
-          {late && !warning && (
+          {canSendNotice && !warning && (
             <Button
               type="button"
               size="sm"
@@ -350,7 +354,7 @@ export function HrAttendanceEmployeeRow({
               Send warning
             </Button>
           )}
-          {late && !writeUp && (
+          {canSendNotice && !writeUp && (
             <Button
               type="button"
               size="sm"

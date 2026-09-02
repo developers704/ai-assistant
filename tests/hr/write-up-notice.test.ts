@@ -108,6 +108,32 @@ describe("disciplinary write-up", () => {
     expect(hay).not.toContain("Type of Offenses");
   });
 
+  it("allows a write-up for early arrival or a long meal break", () => {
+    const early = draftWriteUpNotice(
+      { ...shazia, lateMinutes: null, earlyInMinutes: 18 },
+      "Clocked in 18 minutes before schedule."
+    );
+    expect(early.description).toContain("18 minutes");
+    const meal = draftWriteUpNotice(
+      {
+        ...shazia,
+        lateMinutes: null,
+        shiftTier: "ten",
+        mealBreaks: [{ gapMinutes: 82, gapLabel: "1:22" }],
+        violations: [
+          {
+            type: "long_meal",
+            message: "Meal break 1:22 exceeds 75 min limit",
+            severity: "error",
+          },
+        ],
+      },
+      "Took a long meal break of 82 minutes (exceeds 75 min limit)."
+    );
+    expect(meal.caseId).toBe("HR-WRITEUP-SA2-2026-06-07");
+    expect(meal.description).toContain("long meal break of 82 minutes");
+  });
+
   it("does not change the warning notice PDF format", async () => {
     const pdf = await buildWarningNoticePdf(shazia);
     const hay = pdfHaystack(pdf);
