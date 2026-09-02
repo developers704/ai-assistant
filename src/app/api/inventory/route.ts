@@ -116,6 +116,8 @@ export async function GET(req: NextRequest) {
     pricing,
     stores: result.stores,
     onHandTotal: result.onHandTotal,
+    queriedSku: result.queriedSku,
+    resolvedSku: result.resolvedSku,
     imageUrl: resolveProductImageUrl(item.imageDir),
     hideVendor,
     status,
