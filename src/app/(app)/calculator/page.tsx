@@ -218,6 +218,7 @@ export default function CalculatorPage() {
   const skuLookupRow = (
     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
       <Input
+        id="calculator-sku"
         label="SKU Number"
         placeholder="Item # or SKU (231611 or 231611Y)"
         value={sku}
