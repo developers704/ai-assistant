@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import type { HrWarningNotice, HrWarningRemark } from "./types";
 import { namesMatch } from "./name-match";
+import { stripQuotedReply } from "./remark-text";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const STORE_PATH = path.join(DATA_DIR, "warnings.json");
@@ -75,9 +76,16 @@ export function upsertWarningNotice(notice: HrWarningNotice): HrWarningNotice {
   return next;
 }
 
+function remarkContentKey(r: HrWarningRemark): string {
+  const body = stripQuotedReply(r.body).toLowerCase().replace(/\s+/g, " ").trim();
+  return `${r.fromEmail.toLowerCase()}::${body}`;
+}
+
 function remarkKey(r: HrWarningRemark): string {
-  if (r.messageId?.trim()) return `mid:${r.messageId.trim().toLowerCase()}`;
-  return `uid:${r.uid}:${r.fromEmail.toLowerCase()}:${r.sentAt}`;
+  if (r.messageId?.trim() && !r.messageId.startsWith("hr-") && !r.messageId.startsWith("local-")) {
+    return `mid:${r.messageId.trim().toLowerCase()}`;
+  }
+  return `body:${remarkContentKey(r)}`;
 }
 
 function mergeRemarks(
@@ -85,10 +93,19 @@ function mergeRemarks(
   incoming: HrWarningRemark[]
 ): HrWarningRemark[] {
   const byKey = new Map<string, HrWarningRemark>();
-  for (const r of existing) byKey.set(remarkKey(r), r);
+  const content = new Set<string>();
+  for (const r of existing) {
+    byKey.set(remarkKey(r), r);
+    content.add(remarkContentKey(r));
+  }
   for (const r of incoming) {
+    const ck = remarkContentKey(r);
+    if (content.has(ck)) continue;
     const k = remarkKey(r);
-    if (!byKey.has(k)) byKey.set(k, r);
+    if (!byKey.has(k)) {
+      byKey.set(k, r);
+      content.add(ck);
+    }
   }
   return [...byKey.values()].sort((a, b) => a.sentAt.localeCompare(b.sentAt));
 }
