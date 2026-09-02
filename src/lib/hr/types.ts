@@ -35,6 +35,11 @@ export type HrScheduleSlot = {
 export type HrEmployeeDay = {
   employeeName: string;
   date: string;
+  employeeCode: string | null;
+  jobTitle: string | null;
+  store: string | null;
+  manager: string | null;
+  guardsName: string | null;
   schedule: HrScheduleSlot | null;
   shiftTier: "ten" | "eleven" | "twelve" | null;
   segments: HrPunchSegment[];
@@ -51,6 +56,34 @@ export type HrEmployeeDay = {
   /** Minutes early vs schedule (≥10 min threshold). */
   earlyInMinutes: number | null;
   violations: HrViolation[];
+  warning?: HrWarningNotice | null;
+};
+
+export type HrWarningRemark = {
+  id: string;
+  fromName: string;
+  fromEmail: string;
+  sentAt: string;
+  subject: string;
+  body: string;
+  messageId: string;
+  uid: number;
+};
+
+export type HrWarningNotice = {
+  caseId: string;
+  employeeName: string;
+  employeeCode: string | null;
+  jobTitle: string | null;
+  manager: string | null;
+  date: string;
+  lateMinutes: number;
+  from: string;
+  to: string;
+  subject: string;
+  sentAt: string;
+  messageId: string | null;
+  remarks: HrWarningRemark[];
 };
 
 export type HrTimecardRow = {
@@ -60,6 +93,11 @@ export type HrTimecardRow = {
   timeOut: string | null;
   gapFromPrevious: string | null;
   hoursLabel: string | null;
+  employeeCode?: string | null;
+  jobTitle?: string | null;
+  store?: string | null;
+  manager?: string | null;
+  guardsName?: string | null;
 };
 
 export type HrScheduleEntry = {

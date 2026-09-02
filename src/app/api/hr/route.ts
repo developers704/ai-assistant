@@ -8,6 +8,8 @@ import {
   saveTimecardUpload,
 } from "@/lib/hr/store";
 import { analyzeDay, distinctTimecardDates } from "@/lib/hr/analyze";
+import { namesMatch } from "@/lib/hr/name-match";
+import { listWarningNotices } from "@/lib/hr/warning-store";
 import {
   HR_ATTENDANCE_DATES,
   HR_ATTENDANCE_FROM,
@@ -47,12 +49,20 @@ export async function GET(req: NextRequest) {
   const employees = activeDate
     ? analyzeDay(activeDate, timecardRows, scheduleEntries)
     : [];
+  const notices = listWarningNotices();
+  const withWarnings = employees.map((emp) => ({
+    ...emp,
+    warning:
+      notices.find(
+        (n) => n.date === emp.date && namesMatch(n.employeeName, emp.employeeName)
+      ) ?? null,
+  }));
 
   return NextResponse.json({
     uploads,
     dates,
     activeDate,
-    employees,
+    employees: withWarnings,
     hasTimecard: timecardRows.length > 0,
     hasSchedule: scheduleEntries.length > 0,
     dateFrom: HR_ATTENDANCE_FROM,

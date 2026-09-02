@@ -138,6 +138,26 @@ describe("June 2026 seed files", () => {
     expect(day.violations.filter((v) => v.type === "missing_punch")).toHaveLength(2);
   });
 
+  it("flags Shazia Ahmed 29 minutes late on Jun 7 with Manager AJ", () => {
+    const rows = parseTimecardCsv(timecard);
+    const { entries } = parseScheduleCsv(schedule);
+    const punches = rows.filter(
+      (r) => r.date === "2026-06-07" && /ahmed,\s*shazia/i.test(r.employeeName)
+    );
+    expect(punches.length).toBeGreaterThan(0);
+    expect(punches[0]!.employeeCode).toBe("SA2");
+    expect(punches[0]!.jobTitle).toBe("Corporate Manager");
+    expect(punches[0]!.manager).toBe("AJ");
+    expect(punches[0]!.store).toBe("Admin");
+    expect(punches[0]!.timeIn).toBe("11:29");
+    const day = analyzeEmployeeDay("Ahmed, Shazia", "2026-06-07", punches, entries);
+    expect(day.lateMinutes).toBe(29);
+    expect(day.employeeCode).toBe("SA2");
+    expect(day.manager).toBe("AJ");
+    expect(day.jobTitle).toBe("Corporate Manager");
+    expect(day.schedule?.start).toMatch(/11:00 AM/);
+  });
+
   it("includes every scheduled name for June 1 even without punches", () => {
     const rows = parseTimecardCsv(timecard).filter((r) => r.date === "2026-06-01");
     const { entries } = parseScheduleCsv(schedule);

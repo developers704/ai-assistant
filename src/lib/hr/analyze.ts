@@ -23,6 +23,17 @@ import {
 } from "./time-utils";
 import { workMinutesFromRow } from "./parse-timecard";
 
+function firstFilled(
+  punches: HrTimecardRow[],
+  key: "employeeCode" | "jobTitle" | "store" | "manager" | "guardsName"
+): string | null {
+  for (const row of punches) {
+    const value = row[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
 function gapMinutesFromRow(row: HrTimecardRow, prev: HrTimecardRow | null): number | null {
   if (row.gapFromPrevious) {
     const m = parseDurationLabel(row.gapFromPrevious);
@@ -161,6 +172,11 @@ export function analyzeEmployeeDay(
   return {
     employeeName,
     date,
+    employeeCode: firstFilled(sorted.length ? sorted : punches, "employeeCode"),
+    jobTitle: firstFilled(sorted.length ? sorted : punches, "jobTitle"),
+    store: firstFilled(sorted.length ? sorted : punches, "store"),
+    manager: firstFilled(sorted.length ? sorted : punches, "manager"),
+    guardsName: firstFilled(sorted.length ? sorted : punches, "guardsName"),
     schedule: scheduleRange
       ? {
           start: scheduleRaw!.start,

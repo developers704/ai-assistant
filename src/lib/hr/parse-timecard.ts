@@ -8,18 +8,26 @@ function cellStr(v: unknown): string | null {
   return String(v).trim() || null;
 }
 
+function findKey(keys: string[], pattern: RegExp): string | undefined {
+  return keys.find((k) => pattern.test(k.trim()));
+}
+
 function rowsFromKeyed(records: Record<string, unknown>[]): HrTimecardRow[] {
   const out: HrTimecardRow[] = [];
   for (const row of records) {
     const keys = Object.keys(row);
     const nameKey =
-      keys.find((k) => /payroll\s*name/i.test(k)) ?? keys.find((k) => /employee/i.test(k));
-    const dateKey =
-      keys.find((k) => /in\s*date/i.test(k)) ?? keys.find((k) => /^date$/i.test(k));
-    const inKey = keys.find((k) => /time\s*in/i.test(k));
-    const outKey = keys.find((k) => /time\s*out/i.test(k));
-    const gapKey = keys.find((k) => /gap/i.test(k));
-    const hoursKey = keys.find((k) => /hours/i.test(k));
+      findKey(keys, /payroll\s*name/i) ?? findKey(keys, /employee\s*name/i);
+    const dateKey = findKey(keys, /in\s*date/i) ?? findKey(keys, /^date$/i);
+    const inKey = findKey(keys, /^time\s*in$/i);
+    const outKey = findKey(keys, /^time\s*out$/i);
+    const gapKey = findKey(keys, /gap/i);
+    const hoursKey = findKey(keys, /hours/i);
+    const codeKey = findKey(keys, /^(employee\s*)?code$/i);
+    const titleKey = findKey(keys, /designation|job\s*title/i);
+    const storeKey = findKey(keys, /^store$/i);
+    const managerKey = findKey(keys, /^manager$/i);
+    const guardsKey = findKey(keys, /guards?\s*name/i);
 
     const name = nameKey ? cellStr(row[nameKey]) : null;
     const date = dateKey ? isoDateFromCell(row[dateKey]) : null;
@@ -32,9 +40,23 @@ function rowsFromKeyed(records: Record<string, unknown>[]): HrTimecardRow[] {
       timeOut: outKey ? cellStr(row[outKey]) : null,
       gapFromPrevious: gapKey ? cellStr(row[gapKey]) : null,
       hoursLabel: hoursKey ? cellStr(row[hoursKey]) : null,
+      employeeCode: codeKey ? cellStr(row[codeKey]) : null,
+      jobTitle: titleKey ? cellStr(row[titleKey]) : null,
+      store: storeKey ? cellStr(row[storeKey]) : null,
+      manager: managerKey ? cellStr(row[managerKey]) : null,
+      guardsName: guardsKey ? cellStr(row[guardsKey]) : null,
     });
   }
   return out;
+}
+
+function colIndex(header: unknown[], pattern: RegExp): number {
+  return header.findIndex((h) => pattern.test(String(h ?? "").trim()));
+}
+
+function at(r: unknown[], i: number): string | null {
+  if (i < 0) return null;
+  return cellStr(r[i]);
 }
 
 function rowsFromMatrix(matrix: unknown[][]): HrTimecardRow[] {
@@ -46,20 +68,38 @@ function rowsFromMatrix(matrix: unknown[][]): HrTimecardRow[] {
         .includes("payroll")
   );
   if (headerIdx < 0) return [];
+  const header = (matrix[headerIdx] as unknown[]) ?? [];
+  const nameI = colIndex(header, /payroll\s*name/i);
+  const dateI = colIndex(header, /in\s*date/i);
+  const inI = colIndex(header, /^time\s*in$/i);
+  const outI = colIndex(header, /^time\s*out$/i);
+  const gapI = colIndex(header, /gap/i);
+  const hoursI = colIndex(header, /hours/i);
+  const codeI = colIndex(header, /^(employee\s*)?code$/i);
+  const titleI = colIndex(header, /designation|job\s*title/i);
+  const storeI = colIndex(header, /^store$/i);
+  const managerI = colIndex(header, /^manager$/i);
+  const guardsI = colIndex(header, /guards?\s*name/i);
+  const legacy = dateI < 0;
   const out: HrTimecardRow[] = [];
   for (let i = headerIdx + 1; i < matrix.length; i++) {
     const r = matrix[i] as unknown[];
     if (!r?.length) continue;
-    const name = cellStr(r[0]);
-    const date = isoDateFromCell(r[1]);
+    const name = at(r, nameI >= 0 ? nameI : 0);
+    const date = isoDateFromCell(r[legacy ? 1 : dateI]);
     if (!name || !date) continue;
     out.push({
       employeeName: name,
       date,
-      timeIn: cellStr(r[2]),
-      timeOut: cellStr(r[3]),
-      gapFromPrevious: cellStr(r[4]),
-      hoursLabel: cellStr(r[5]),
+      timeIn: legacy ? cellStr(r[2]) : at(r, inI),
+      timeOut: legacy ? cellStr(r[3]) : at(r, outI),
+      gapFromPrevious: legacy ? cellStr(r[4]) : at(r, gapI),
+      hoursLabel: legacy ? cellStr(r[5]) : at(r, hoursI),
+      employeeCode: at(r, codeI),
+      jobTitle: at(r, titleI),
+      store: at(r, storeI),
+      manager: at(r, managerI),
+      guardsName: at(r, guardsI),
     });
   }
   return out;
