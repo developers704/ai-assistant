@@ -79,6 +79,8 @@ interface LookupResponse {
   pricing: PricingResult;
   stores?: { name: string; onhand: number }[];
   onHandTotal?: number;
+  queriedSku?: string;
+  resolvedSku?: string;
   imageUrl?: string | null;
   hideVendor?: boolean;
   status: { loaded: boolean; rowCount: number };
@@ -217,7 +219,7 @@ export default function CalculatorPage() {
     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
       <Input
         label="SKU Number"
-        placeholder="Enter SKU #"
+        placeholder="Item # or SKU (231611 or 231611Y)"
         value={sku}
         onChange={(e) => setSku(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && lookupSku()}
@@ -345,6 +347,7 @@ export default function CalculatorPage() {
                         {result.item.vendorModel && <span>Model {result.item.vendorModel}</span>}
                         <span>{result.pricing.categoryLabel}</span>
                       </div>
+                      <MatchedSkuNote result={result} />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -459,6 +462,7 @@ export default function CalculatorPage() {
                     {result.item.description || "—"}
                   </p>
                 </div>
+                <MatchedSkuNote result={result} className="mb-4" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                   <Detail label="Item #" value={result.item.sku} />
                   <Detail
@@ -638,6 +642,24 @@ export default function CalculatorPage() {
         />
       )}
     </PageShell>
+  );
+}
+
+function MatchedSkuNote({
+  result,
+  className,
+}: {
+  result: LookupResponse;
+  className?: string;
+}) {
+  const queried = result.queriedSku?.trim().toUpperCase();
+  const resolved = (result.resolvedSku || result.item.sku).trim().toUpperCase();
+  if (!queried || queried === resolved) return null;
+  return (
+    <p className={cn("text-xs text-amber-200/90", className)}>
+      Inventory stores this item as{" "}
+      <span className="font-medium text-ink">{resolved}</span> (matched from {queried}).
+    </p>
   );
 }
 

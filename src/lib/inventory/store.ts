@@ -3,6 +3,7 @@ import path from "path";
 import { parseInventoryCsv } from "./parse-csv";
 import { calculatePricing } from "./pricing";
 import { normalizeAndFillOnhandCsv } from "./normalize-onhand-csv";
+import { resolveInventorySkuKey } from "./sku-lookup-resolve";
 import type { InventoryItem } from "./types";
 
 const INVENTORY_DIR = path.join(process.cwd(), ".data", "inventory");
@@ -165,6 +166,16 @@ export function saveInventoryCsv(csvText: string, fileName?: string): {
   return { rowCount: index?.rowCount ?? items.length, wholeCostStats };
 }
 
+function skuVariantScore(items: InventoryItem[]): { onHand: number; tagPrice: number } {
+  let onHand = 0;
+  let tagPrice = 0;
+  for (const row of items) {
+    onHand += Number(row.onHand) || 0;
+    if ((row.tagPrice || 0) > tagPrice) tagPrice = row.tagPrice || 0;
+  }
+  return { onHand, tagPrice };
+}
+
 export function lookupInventory(
   sku: string,
   store?: string | null
@@ -173,20 +184,27 @@ export function lookupInventory(
   pricing: ReturnType<typeof calculatePricing>;
   stores: { name: string; onhand: number }[];
   onHandTotal: number;
+  queriedSku: string;
+  resolvedSku: string;
 } | null {
   const index = loadIndex();
   if (!index) return null;
 
-  const normalizedSku = sku.trim().toUpperCase();
-  if (!normalizedSku) return null;
+  const queriedSku = sku.trim().toUpperCase();
+  if (!queriedSku) return null;
 
-  const candidates = index.bySku.get(normalizedSku);
+  const resolvedSku = resolveInventorySkuKey(queriedSku, index.bySku.keys(), (key) =>
+    skuVariantScore(index.bySku.get(key) ?? [])
+  );
+  if (!resolvedSku) return null;
+
+  const candidates = index.bySku.get(resolvedSku);
   if (!candidates?.length) return null;
 
   let item = candidates.find((c) => c.tagPrice > 0) ?? candidates[0];
   if (store?.trim()) {
     const atStore = index.byStoreSku.get(
-      storeSkuKey(store.trim().toUpperCase(), normalizedSku)
+      storeSkuKey(store.trim().toUpperCase(), resolvedSku)
     );
     if (atStore) {
       item = {
@@ -215,6 +233,8 @@ export function lookupInventory(
     pricing: calculatePricing(item),
     stores,
     onHandTotal,
+    queriedSku,
+    resolvedSku,
   };
 }
 
