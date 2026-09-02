@@ -23,14 +23,14 @@ export function isWarningMailSessionReady(): { ok: boolean; reason?: string } {
   if (!hasMailSession()) {
     return {
       ok: false,
-      reason: "Sign in to E-Mails as umairj@valliani.app, then send the warning notice.",
+      reason: "Sign in to E-Mails as umairj@valliani.app, then send.",
     };
   }
   const email = getSavedEmail();
   if (email && email !== HR_WARNING_FROM) {
     return {
       ok: false,
-      reason: `E-Mails is signed in as ${email}. Switch to ${HR_WARNING_FROM} to send warning notices.`,
+      reason: `E-Mails is signed in as ${email}. Switch to ${HR_WARNING_FROM} to send HR notices.`,
     };
   }
   return { ok: true };
