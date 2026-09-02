@@ -1,12 +1,11 @@
 import {
-  ALL_MAIL_FOLDER,
   getMessage,
   getMessagePage,
   sendMail,
 } from "@/lib/valliani-mail/api";
 import { htmlToPlain } from "@/lib/valliani-mail/compose-html";
 import { getSavedEmail, hasMailSession } from "@/lib/valliani-mail/session";
-import type { MailMessage } from "@/lib/valliani-mail/types";
+import { ALL_MAIL_FOLDER, type MailMessage } from "@/lib/valliani-mail/types";
 import type { HrEmployeeDay, HrWarningNotice, HrWarningRemark } from "./types";
 import {
   draftWarningNotice,
