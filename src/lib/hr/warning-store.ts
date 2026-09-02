@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import type { HrWarningNotice, HrWarningRemark } from "./types";
+import type { HrNoticeKind, HrWarningNotice, HrWarningRemark } from "./types";
 import { namesMatch } from "./name-match";
 import { stripQuotedReply } from "./remark-text";
 
@@ -37,24 +37,50 @@ function writeStore(store: WarningStoreFile) {
   fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
 }
 
+export function noticeKind(notice: Pick<HrWarningNotice, "kind" | "caseId">): HrNoticeKind {
+  if (notice.kind === "writeup" || notice.kind === "warning") return notice.kind;
+  return /^HR-WRITEUP-/i.test(notice.caseId) ? "writeup" : "warning";
+}
+
 export function listWarningNotices(): HrWarningNotice[] {
-  return readStore().notices;
+  return readStore().notices.map((n) => ({
+    ...n,
+    kind: noticeKind(n),
+  }));
 }
 
 export function findWarningNotice(caseId: string): HrWarningNotice | null {
   const id = caseId.trim().toUpperCase();
-  return readStore().notices.find((n) => n.caseId.toUpperCase() === id) ?? null;
+  return listWarningNotices().find((n) => n.caseId.toUpperCase() === id) ?? null;
+}
+
+export function findNoticeForEmployee(
+  employeeName: string,
+  date: string,
+  kind: HrNoticeKind
+): HrWarningNotice | null {
+  return (
+    listWarningNotices().find(
+      (n) =>
+        n.date === date &&
+        namesMatch(n.employeeName, employeeName) &&
+        noticeKind(n) === kind
+    ) ?? null
+  );
 }
 
 export function findWarningForEmployee(
   employeeName: string,
   date: string
 ): HrWarningNotice | null {
-  return (
-    readStore().notices.find(
-      (n) => n.date === date && namesMatch(n.employeeName, employeeName)
-    ) ?? null
-  );
+  return findNoticeForEmployee(employeeName, date, "warning");
+}
+
+export function findWriteUpForEmployee(
+  employeeName: string,
+  date: string
+): HrWarningNotice | null {
+  return findNoticeForEmployee(employeeName, date, "writeup");
 }
 
 export function upsertWarningNotice(notice: HrWarningNotice): HrWarningNotice {
@@ -64,6 +90,7 @@ export function upsertWarningNotice(notice: HrWarningNotice): HrWarningNotice {
   );
   const next: HrWarningNotice = {
     ...notice,
+    kind: noticeKind(notice),
     remarks: notice.remarks ?? [],
   };
   if (idx >= 0) {

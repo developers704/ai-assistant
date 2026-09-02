@@ -11,6 +11,7 @@ import {
   addWarningRemarks,
   findWarningForEmployee,
   findWarningNotice,
+  findWriteUpForEmployee,
   listWarningNotices,
   upsertWarningNotice,
 } from "@/lib/hr/warning-store";
@@ -44,6 +45,9 @@ function asNotice(value: unknown): HrWarningNotice | null {
     manager: o.manager == null ? null : String(o.manager),
     date,
     lateMinutes: Number(o.lateMinutes) || 0,
+    description: o.description == null ? null : String(o.description),
+    store: o.store == null ? null : String(o.store),
+    kind: o.kind === "writeup" || /^HR-WRITEUP-/i.test(caseId) ? "writeup" : "warning",
     from: String(o.from ?? ""),
     to: String(o.to ?? ""),
     subject,
@@ -88,6 +92,7 @@ export async function GET(req: NextRequest) {
   }
 
   const existing = findWarningForEmployee(employeeName, date);
+  const existingWriteUp = findWriteUpForEmployee(employeeName, date);
   const rows = loadActiveTimecardRows();
   const schedule = loadActiveScheduleEntries();
   const employees = analyzeDay(date, rows, schedule);
@@ -95,9 +100,9 @@ export async function GET(req: NextRequest) {
   if (!emp) {
     return NextResponse.json({ error: "Employee not found for that date" }, { status: 404 });
   }
-  if (!isLateForWarning(emp.lateMinutes) && !existing) {
+  if (!isLateForWarning(emp.lateMinutes) && !existing && !existingWriteUp) {
     return NextResponse.json(
-      { error: "Not late enough for a warning notice", employee: emp, warning: null },
+      { error: "Not late enough for a warning notice", employee: emp, warning: null, writeUp: null },
       { status: 400 }
     );
   }
@@ -107,6 +112,7 @@ export async function GET(req: NextRequest) {
     employee: emp,
     draft,
     warning: existing,
+    writeUp: existingWriteUp,
   });
 }
 

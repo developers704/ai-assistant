@@ -70,6 +70,9 @@ describe("late warning notice", () => {
     expect(draft.text).not.toContain("Type of Offenses");
     expect(draft.html).not.toContain("Type of Offenses");
     expect(extractWarningCaseId(`Re: ${draft.subject}`)).toBe("HR-LATE-SA2-2026-06-07");
+    expect(
+      extractWarningCaseId("[HR-WRITEUP-SA2-2026-06-07] Disciplinary Action Form — Ahmed, Shazia")
+    ).toBe("HR-WRITEUP-SA2-2026-06-07");
     expect(warningCaseId(null, "2026-06-07", "Ahmed, Shazia")).toBe(
       "HR-LATE-AHMEDSHAZIA-2026-06-07"
     );

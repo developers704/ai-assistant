@@ -4,6 +4,8 @@ export const HR_WARNING_FROM = "umairj@valliani.app";
 export const HR_WARNING_TO = "umairjam.arrakconsulting@gmail.com";
 export const LATE_WARNING_THRESHOLD_MINUTES = 12;
 export const HR_WARNING_CASE_RE = /HR-LATE-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
+/** Warning (`HR-LATE-…`) or write-up (`HR-WRITEUP-…`) case token in a subject. */
+export const HR_NOTICE_CASE_RE = /HR-(?:LATE|WRITEUP)-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
 
 export type WarningNoticeDraft = {
   caseId: string;
@@ -30,7 +32,7 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function slugCode(code: string | null, name: string): string {
+export function noticeEmployeeSlug(code: string | null, name: string): string {
   const fromCode = (code ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
   if (fromCode) return fromCode;
   const fromName = name.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 12);
@@ -38,7 +40,7 @@ function slugCode(code: string | null, name: string): string {
 }
 
 export function warningCaseId(code: string | null, date: string, name: string): string {
-  return `HR-LATE-${slugCode(code, name)}-${date}`;
+  return `HR-LATE-${noticeEmployeeSlug(code, name)}-${date}`;
 }
 
 export function warningSubject(caseId: string, employeeName: string): string {
@@ -62,7 +64,7 @@ export function isLateForWarning(lateMinutes: number | null | undefined): boolea
 }
 
 export function extractWarningCaseId(subject: string | null | undefined): string | null {
-  const m = String(subject ?? "").match(HR_WARNING_CASE_RE);
+  const m = String(subject ?? "").match(HR_NOTICE_CASE_RE);
   return m ? m[0]!.toUpperCase() : null;
 }
 
@@ -188,7 +190,7 @@ export function buildWarningNoticeText(input: {
 }
 
 export function warningPdfFilename(code: string | null, date: string, name: string): string {
-  return `Employee-Warning-Notice-${slugCode(code, name)}-${date}.pdf`;
+  return `Employee-Warning-Notice-${noticeEmployeeSlug(code, name)}-${date}.pdf`;
 }
 
 export function warningCoverText(input: {
@@ -259,12 +261,14 @@ export function noticeFromDraft(
 ): HrWarningNotice {
   return {
     caseId: draft.caseId,
+    kind: "warning",
     employeeName: draft.employeeName,
     employeeCode: draft.employeeCode,
     jobTitle: draft.jobTitle,
     manager: draft.manager,
     date: draft.date,
     lateMinutes: draft.lateMinutes,
+    description: draft.description,
     from: draft.from,
     to: draft.to,
     subject: draft.subject,
