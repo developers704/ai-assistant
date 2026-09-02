@@ -1,16 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { PageShell, PageShellHeader, PageShellBody } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { HrEmployeeDay, HrUploadMeta } from "@/lib/hr/types";
 import { HrSalesTab } from "@/components/hr/HrSalesTab";
 import { HrAttendanceEmployeeRow } from "@/components/hr/HrAttendanceEmployeeRow";
 import { formatHrAttendanceWindowCaption } from "@/lib/hr/window";
 import { formatHrDateLabel } from "@/lib/hr/time-utils";
-import { Briefcase, Clock, Loader2, Upload } from "lucide-react";
+import { isLateForWarning } from "@/lib/hr/warning-notice";
+import { Briefcase, ChevronDown, Clock, Loader2, Upload } from "lucide-react";
 
 type HrApiResponse = {
   uploads: { timecards: HrUploadMeta[]; schedules: HrUploadMeta[] };
@@ -32,6 +34,13 @@ export default function HrPage() {
   const [uploading, setUploading] = useState<"timecard" | "schedule" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [storeFilter, setStoreFilter] = useState("");
+  const [designationFilter, setDesignationFilter] = useState("");
+  const [arrivalFilter, setArrivalFilter] = useState<"all" | "late" | "early">("all");
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const uploadMenuRef = useRef<HTMLDivElement>(null);
+  const timecardInputRef = useRef<HTMLInputElement>(null);
+  const scheduleInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async (opts?: { date?: string; quiet?: boolean }) => {
     if (!opts?.quiet) setLoading(true);
@@ -55,6 +64,15 @@ export default function HrPage() {
   useEffect(() => {
     void load(date ? { date } : undefined);
   }, [load, date]);
+
+  useEffect(() => {
+    if (!uploadOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!uploadMenuRef.current?.contains(e.target as Node)) setUploadOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [uploadOpen]);
 
   const upload = async (kind: "timecard" | "schedule", file: File) => {
     setUploading(kind);
@@ -80,9 +98,50 @@ export default function HrPage() {
     }
   };
 
+  const storeOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of data?.employees ?? []) {
+      if (e.store?.trim()) set.add(e.store.trim());
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [data?.employees]);
+
+  const designationOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of data?.employees ?? []) {
+      if (e.jobTitle?.trim()) set.add(e.jobTitle.trim());
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [data?.employees]);
+
+  useEffect(() => {
+    if (storeFilter && !storeOptions.includes(storeFilter)) setStoreFilter("");
+  }, [storeFilter, storeOptions]);
+
+  useEffect(() => {
+    if (designationFilter && !designationOptions.includes(designationFilter)) {
+      setDesignationFilter("");
+    }
+  }, [designationFilter, designationOptions]);
+
+  const filteredEmployees = useMemo(() => {
+    return (data?.employees ?? []).filter((e) => {
+      if (storeFilter && (e.store ?? "").trim() !== storeFilter) return false;
+      if (designationFilter && (e.jobTitle ?? "").trim() !== designationFilter) return false;
+      if (arrivalFilter === "late" && !isLateForWarning(e.lateMinutes)) return false;
+      if (
+        arrivalFilter === "early" &&
+        !(e.earlyInMinutes != null && e.earlyInMinutes >= 10)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [data?.employees, storeFilter, designationFilter, arrivalFilter]);
+
   const violationCount = useMemo(
-    () => data?.employees.filter((e) => e.violations.length > 0).length ?? 0,
-    [data?.employees]
+    () => filteredEmployees.filter((e) => e.violations.length > 0).length,
+    [filteredEmployees]
   );
 
   return (
@@ -98,10 +157,73 @@ export default function HrPage() {
               : `${formatHrAttendanceWindowCaption()} · ADP timecards · schedules · meal break & attendance rules`
           }
           action={
-            <Badge variant="info" className="gap-1.5">
-              <Briefcase size={14} />
-              Admin only
-            </Badge>
+            <div className="flex items-center gap-2">
+              {tab === "attendance" && (
+                <div className="relative" ref={uploadMenuRef}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setUploadOpen((o) => !o)}
+                    disabled={uploading !== null}
+                  >
+                    {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    Upload
+                    <ChevronDown size={14} className="opacity-70" />
+                  </Button>
+                  {uploadOpen && (
+                    <div className="absolute right-0 top-full mt-1 z-30 min-w-[220px] rounded-xl border border-white/15 bg-[#1b1630] shadow-xl p-1">
+                      <button
+                        type="button"
+                        className="w-full text-left rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/10"
+                        onClick={() => {
+                          setUploadOpen(false);
+                          timecardInputRef.current?.click();
+                        }}
+                      >
+                        Daily Timecard (.xlsx or .csv)
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full text-left rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/10"
+                        onClick={() => {
+                          setUploadOpen(false);
+                          scheduleInputRef.current?.click();
+                        }}
+                      >
+                        Schedule (.csv or .xlsx)
+                      </button>
+                    </div>
+                  )}
+                  <input
+                    ref={timecardInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void upload("timecard", f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <input
+                    ref={scheduleInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void upload("schedule", f);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              )}
+              <Badge variant="info" className="gap-1.5">
+                <Briefcase size={14} />
+                Admin only
+              </Badge>
+            </div>
           }
         />
 
@@ -120,7 +242,10 @@ export default function HrPage() {
           </button>
           <button
             type="button"
-            onClick={() => setTab("sales")}
+            onClick={() => {
+              setTab("sales");
+              setUploadOpen(false);
+            }}
             className={cn(
               "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
               tab === "sales"
@@ -131,57 +256,6 @@ export default function HrPage() {
             Sales
           </button>
         </div>
-
-        {tab === "attendance" && (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-4 cursor-pointer hover:bg-white/[0.05]">
-            <span className="text-sm font-medium text-white flex items-center gap-2">
-              <Upload size={16} /> Daily Timecard (.xlsx or .csv)
-            </span>
-            <input
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="text-xs text-white/50"
-              disabled={uploading !== null}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void upload("timecard", f);
-                e.target.value = "";
-              }}
-            />
-            {data?.uploads.timecards[0] && (
-              <span className="text-xs text-white/35 truncate">
-                Latest: {data.uploads.timecards[0].fileName}
-              </span>
-            )}
-          </label>
-
-          <label className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-4 cursor-pointer hover:bg-white/[0.05]">
-            <span className="text-sm font-medium text-white flex items-center gap-2">
-              <Upload size={16} /> Schedule (.csv or .xlsx)
-            </span>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              className="text-xs text-white/50"
-              disabled={uploading !== null}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void upload("schedule", f);
-                e.target.value = "";
-              }}
-            />
-            {data?.uploads.schedules[0] && (
-              <span className="text-xs text-white/35 truncate">
-                Latest: {data.uploads.schedules[0].fileName}
-                {data.uploads.schedules[0].dateFrom && data.uploads.schedules[0].dateTo
-                  ? ` (${data.uploads.schedules[0].dateFrom} → ${data.uploads.schedules[0].dateTo})`
-                  : ""}
-              </span>
-            )}
-          </label>
-        </div>
-        )}
 
         {tab === "attendance" && (data?.dates.length ?? 0) > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -197,6 +271,42 @@ export default function HrPage() {
                   {formatHrDateLabel(d)}
                 </option>
               ))}
+            </select>
+            <select
+              value={storeFilter}
+              onChange={(e) => setStoreFilter(e.target.value)}
+              className="select-dark rounded-xl px-3 py-2 text-sm"
+              aria-label="Filter by store"
+            >
+              <option value="">All stores</option>
+              {storeOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <select
+              value={designationFilter}
+              onChange={(e) => setDesignationFilter(e.target.value)}
+              className="select-dark rounded-xl px-3 py-2 text-sm"
+              aria-label="Filter by designation"
+            >
+              <option value="">All designations</option>
+              {designationOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <select
+              value={arrivalFilter}
+              onChange={(e) => setArrivalFilter(e.target.value as "all" | "late" | "early")}
+              className="select-dark rounded-xl px-3 py-2 text-sm"
+              aria-label="Filter by late or early arrival"
+            >
+              <option value="all">All arrivals</option>
+              <option value="late">Late arrival</option>
+              <option value="early">Early arrival</option>
             </select>
             <span className="text-xs text-white/45">{formatHrAttendanceWindowCaption()}</span>
             {violationCount > 0 && (
@@ -263,13 +373,19 @@ export default function HrPage() {
                 day.
               </div>
             )}
-            {data.employees.map((emp) => (
+            {filteredEmployees.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/15 p-8 text-center text-white/45">
+                No employees match these filters.
+              </div>
+            ) : (
+              filteredEmployees.map((emp) => (
               <HrAttendanceEmployeeRow
                 key={emp.employeeName}
                 emp={emp}
                 onChanged={() => void load({ date, quiet: true })}
               />
-            ))}
+              ))
+            )}
           </div>
         )}
           </>

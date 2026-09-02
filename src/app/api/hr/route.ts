@@ -9,7 +9,7 @@ import {
 } from "@/lib/hr/store";
 import { analyzeDay, distinctTimecardDates } from "@/lib/hr/analyze";
 import { namesMatch } from "@/lib/hr/name-match";
-import { listWarningNotices } from "@/lib/hr/warning-store";
+import { listWarningNotices, noticeKind } from "@/lib/hr/warning-store";
 import {
   HR_ATTENDANCE_DATES,
   HR_ATTENDANCE_FROM,
@@ -54,7 +54,17 @@ export async function GET(req: NextRequest) {
     ...emp,
     warning:
       notices.find(
-        (n) => n.date === emp.date && namesMatch(n.employeeName, emp.employeeName)
+        (n) =>
+          n.date === emp.date &&
+          namesMatch(n.employeeName, emp.employeeName) &&
+          noticeKind(n) === "warning"
+      ) ?? null,
+    writeUp:
+      notices.find(
+        (n) =>
+          n.date === emp.date &&
+          namesMatch(n.employeeName, emp.employeeName) &&
+          noticeKind(n) === "writeup"
       ) ?? null,
   }));
 

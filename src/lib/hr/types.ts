@@ -57,6 +57,7 @@ export type HrEmployeeDay = {
   earlyInMinutes: number | null;
   violations: HrViolation[];
   warning?: HrWarningNotice | null;
+  writeUp?: HrWarningNotice | null;
 };
 
 export type HrWarningRemark = {
@@ -70,14 +71,19 @@ export type HrWarningRemark = {
   uid: number;
 };
 
+export type HrNoticeKind = "warning" | "writeup";
+
 export type HrWarningNotice = {
   caseId: string;
+  kind?: HrNoticeKind;
   employeeName: string;
   employeeCode: string | null;
   jobTitle: string | null;
   manager: string | null;
+  store?: string | null;
   date: string;
   lateMinutes: number;
+  description?: string | null;
   from: string;
   to: string;
   subject: string;

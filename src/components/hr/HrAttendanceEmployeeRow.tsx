@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { HrEmployeeDay, HrViolation, HrWarningNotice } from "@/lib/hr/types";
 import { MISSING_PUNCH_LABEL } from "@/lib/hr/window";
-import { isLateForWarning, HR_WARNING_FROM } from "@/lib/hr/warning-notice";
+import { isLateForWarning, HR_WARNING_FROM, warningDescription } from "@/lib/hr/warning-notice";
 import {
   isWarningMailSessionReady,
   replyOnWarningThread,
   sendLateWarningNotice,
+  sendWriteUpNotice,
   syncWarningRemarks,
 } from "@/lib/hr/send-warning-mail";
 import { stripQuotedReply } from "@/lib/hr/remark-text";
@@ -19,6 +20,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
+  FileText,
   Loader2,
   Mail,
   MessageSquare,
@@ -62,9 +64,11 @@ function formatStamp(iso: string): string {
 
 function RemarksPanel({
   warning,
+  label,
   onSynced,
 }: {
   warning: HrWarningNotice;
+  label: string;
   onSynced: (next: HrWarningNotice) => void;
 }) {
   const [syncing, setSyncing] = useState(false);
@@ -113,7 +117,7 @@ function RemarksPanel({
     <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="text-sm font-medium text-white">Remarks</div>
+          <div className="text-sm font-medium text-white">{label} remarks</div>
           <div className="text-[11px] text-white/40">
             Employee replies to {warning.subject}
           </div>
@@ -204,17 +208,20 @@ export function HrAttendanceEmployeeRow({
 }) {
   const [open, setOpen] = useState(false);
   const [remarksOpen, setRemarksOpen] = useState(false);
+  const [writeUpRemarksOpen, setWriteUpRemarksOpen] = useState(false);
+  const [writeUpOpen, setWriteUpOpen] = useState(false);
+  const [writeUpText, setWriteUpText] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendingWriteUp, setSendingWriteUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<HrWarningNotice | null>(emp.warning ?? null);
+  const [writeUp, setWriteUp] = useState<HrWarningNotice | null>(emp.writeUp ?? null);
   useEffect(() => {
     setWarning(emp.warning ?? null);
-  }, [emp.warning]);
+    setWriteUp(emp.writeUp ?? null);
+  }, [emp.warning, emp.writeUp]);
   const hasError = emp.violations.some((v) => v.severity === "error");
   const late = isLateForWarning(emp.lateMinutes);
-  const identityBits = [emp.employeeCode, emp.jobTitle, emp.manager ? `Mgr ${emp.manager}` : null]
-    .filter(Boolean)
-    .join(" · ");
 
   const sendWarning = async (event: MouseEvent) => {
     event.stopPropagation();
@@ -233,6 +240,37 @@ export function HrAttendanceEmployeeRow({
       setOpen(true);
     } finally {
       setSending(false);
+    }
+  };
+
+  const openWriteUp = (event: MouseEvent) => {
+    event.stopPropagation();
+    setError(null);
+    setWriteUpOpen(true);
+    setOpen(true);
+    if (!writeUpText.trim() && emp.lateMinutes != null) {
+      setWriteUpText(warningDescription(emp.lateMinutes));
+    }
+  };
+
+  const sendWriteUp = async () => {
+    setSendingWriteUp(true);
+    setError(null);
+    try {
+      const ready = isWarningMailSessionReady();
+      if (!ready.ok) throw new Error(ready.reason);
+      if (!writeUpText.trim()) throw new Error("Write a description before sending the write-up");
+      const next = await sendWriteUpNotice(emp, writeUpText);
+      setWriteUp(next);
+      setWriteUpOpen(false);
+      setWriteUpRemarksOpen(true);
+      setOpen(true);
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not send write-up");
+      setOpen(true);
+    } finally {
+      setSendingWriteUp(false);
     }
   };
 
@@ -260,7 +298,6 @@ export function HrAttendanceEmployeeRow({
             {emp.schedule
               ? `Scheduled ${emp.schedule.start} – ${emp.schedule.end} (${emp.schedule.scheduledLabel})`
               : "No schedule on file"}
-            {identityBits ? ` · ${identityBits}` : ""}
           </div>
           <div className="flex flex-wrap gap-2 mt-1.5">
             <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-100 ring-1 ring-emerald-400/25">
@@ -292,20 +329,38 @@ export function HrAttendanceEmployeeRow({
                 Warning sent
               </Badge>
             )}
+            {writeUp && (
+              <Badge variant="warning" className="text-[11px]">
+                Write-up sent
+              </Badge>
+            )}
           </div>
         </div>
         </button>
-        <div className="flex items-center gap-2 shrink-0 self-center">
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 self-center">
           {late && !warning && (
             <Button
               type="button"
               size="sm"
               data-action="send-warning"
               onClick={(e) => void sendWarning(e)}
-              disabled={sending}
+              disabled={sending || sendingWriteUp}
             >
               {sending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
               Send warning
+            </Button>
+          )}
+          {late && !writeUp && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-action="send-write-up"
+              onClick={openWriteUp}
+              disabled={sending || sendingWriteUp}
+            >
+              <FileText size={14} />
+              Write up
             </Button>
           )}
           {warning && (
@@ -320,7 +375,22 @@ export function HrAttendanceEmployeeRow({
               }}
             >
               <MessageSquare size={14} />
-              Remarks{warning.remarks.length ? ` (${warning.remarks.length})` : ""}
+              Warning remarks{warning.remarks.length ? ` (${warning.remarks.length})` : ""}
+            </Button>
+          )}
+          {writeUp && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-action="write-up-remarks"
+              onClick={() => {
+                setWriteUpRemarksOpen((o) => !o);
+                setOpen(true);
+              }}
+            >
+              <MessageSquare size={14} />
+              Write-up remarks{writeUp.remarks.length ? ` (${writeUp.remarks.length})` : ""}
             </Button>
           )}
           {emp.violations.length > 0 && (
@@ -432,11 +502,57 @@ export function HrAttendanceEmployeeRow({
             )}
           </div>
 
+          {writeUpOpen && !writeUp && (
+            <div
+              className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 p-3 space-y-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div>
+                <div className="text-sm font-medium text-white">Write-up description</div>
+                <div className="text-[11px] text-white/40">
+                  Typed here for this employee only — it goes on the Disciplinary Action Form PDF when you send.
+                </div>
+              </div>
+              <textarea
+                value={writeUpText}
+                onChange={(e) => setWriteUpText(e.target.value)}
+                rows={5}
+                placeholder="Describe the incident for this employee…"
+                className="w-full rounded-lg bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/35 ring-1 ring-white/15 focus:outline-none focus:ring-indigo-400/50"
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" size="sm" variant="ghost" onClick={() => setWriteUpOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void sendWriteUp()}
+                  disabled={sendingWriteUp || !writeUpText.trim()}
+                >
+                  {sendingWriteUp ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                  Send write-up
+                </Button>
+              </div>
+            </div>
+          )}
+
           {remarksOpen && warning && (
             <RemarksPanel
               warning={warning}
+              label="Warning"
               onSynced={(next) => {
                 setWarning(next);
+                onChanged();
+              }}
+            />
+          )}
+          {writeUpRemarksOpen && writeUp && (
+            <RemarksPanel
+              warning={writeUp}
+              label="Write-up"
+              onSynced={(next) => {
+                setWriteUp(next);
                 onChanged();
               }}
             />

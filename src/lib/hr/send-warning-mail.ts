@@ -15,20 +15,22 @@ import {
   noticeFromDraft,
 } from "./warning-notice";
 import { buildWarningNoticePdf, pdfBytesToBase64 } from "./warning-notice-pdf";
+import { draftWriteUpNotice, writeUpFromDraft } from "./write-up-notice";
+import { buildWriteUpPdf } from "./write-up-pdf";
 import { replySubjectForThread, stripQuotedReply } from "./remark-text";
 
 export function isWarningMailSessionReady(): { ok: boolean; reason?: string } {
   if (!hasMailSession()) {
     return {
       ok: false,
-      reason: "Sign in to E-Mails as umairj@valliani.app, then send the warning notice.",
+      reason: "Sign in to E-Mails as umairj@valliani.app, then send.",
     };
   }
   const email = getSavedEmail();
   if (email && email !== HR_WARNING_FROM) {
     return {
       ok: false,
-      reason: `E-Mails is signed in as ${email}. Switch to ${HR_WARNING_FROM} to send warning notices.`,
+      reason: `E-Mails is signed in as ${email}. Switch to ${HR_WARNING_FROM} to send HR notices.`,
     };
   }
   return { ok: true };
@@ -179,6 +181,43 @@ export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarni
     ],
   });
   const notice = noticeFromDraft(draft);
+  return persistNotice(notice);
+}
+
+export async function sendWriteUpNotice(
+  emp: HrEmployeeDay,
+  description: string
+): Promise<HrWarningNotice> {
+  const ready = isWarningMailSessionReady();
+  if (!ready.ok) throw new Error(ready.reason);
+  const draft = draftWriteUpNotice(emp, description);
+  const pdfBytes = await buildWriteUpPdf({
+    employeeName: draft.employeeName,
+    date: draft.date,
+    employeeCode: draft.employeeCode,
+    jobTitle: draft.jobTitle,
+    manager: draft.manager,
+    store: draft.store,
+    description: draft.description,
+  });
+  await sendMail({
+    to: [draft.to],
+    subject: draft.subject,
+    body: draft.text,
+    html: draft.html,
+    attachments: [
+      {
+        filename: draft.pdfFilename,
+        contentType: "application/pdf",
+        contentBase64: pdfBytesToBase64(pdfBytes),
+        size: pdfBytes.byteLength,
+      },
+    ],
+  });
+  return persistNotice(writeUpFromDraft(draft));
+}
+
+async function persistNotice(notice: HrWarningNotice): Promise<HrWarningNotice> {
   const res = await fetch("/api/hr/warnings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -188,7 +227,7 @@ export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarni
     error?: string;
     warning?: HrWarningNotice;
   };
-  if (!res.ok) throw new Error(json.error || "Warning mailed, but saving the record failed");
+  if (!res.ok) throw new Error(json.error || "Notice mailed, but saving the record failed");
   return json.warning ?? notice;
 }
 
