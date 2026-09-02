@@ -82,10 +82,10 @@ const SEED_CANDIDATES: {
   {
     fileName: "Sales-Report.csv",
     path: path.join(process.cwd(), "data", "reports", "Sales-Report.csv"),
-    label: "Store Sales Report Jan 1 2025–Aug 31 2026",
+    label: "Store Sales Report Jan 1 2025–Sep 1 2026",
     reportPeriod: "custom",
-    reportDate: "2026-08-31",
-    dateRange: { from: "2025-01-01", to: "2026-08-31" },
+    reportDate: "2026-09-01",
+    dateRange: { from: "2025-01-01", to: "2026-09-01" },
   },
 ];
 
@@ -102,9 +102,19 @@ function seedFileStat(seedPath: string): { mtimeMs: number; size: number } | nul
   }
 }
 
+function seedCsvHasTransactionDate(csvText: string): boolean {
+  const header = csvText.split(/\r?\n/, 1)[0] ?? "";
+  return /transaction\s*date/i.test(header);
+}
+
 function readSeedCsv(seed: (typeof SEED_CANDIDATES)[number]): string | null {
   if (!fs.existsSync(seed.path)) return null;
-  const csvText = enrichStoreSalesCsvDates(fs.readFileSync(seed.path, "utf-8"), {
+  const raw = fs.readFileSync(seed.path, "utf-8");
+  if (!raw.trim()) return null;
+  // Daily appends already include Transaction Date. Re-quoting the full
+  // multi-year seed on every mtime change OOMs the dashboard reseed.
+  if (seedCsvHasTransactionDate(raw)) return raw;
+  const csvText = enrichStoreSalesCsvDates(raw, {
     fallbackDate: seed.dateRange?.to ? isoToUsDate(seed.dateRange.to) : "7/17/2026",
   });
   return csvText.trim() ? csvText : null;

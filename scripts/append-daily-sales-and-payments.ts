@@ -20,6 +20,7 @@ import {
   parsePaymentAppliedByTxn,
 } from "../src/lib/sales/paycode-overlay";
 import { leakedPaycodeAliases } from "../src/lib/sales/paycode-normalize";
+import { saveTxnPaycodesCsv } from "../src/lib/discounting/save-txn-paycodes";
 
 const salesPath = process.argv[2];
 const payPath = process.argv[3];
@@ -47,6 +48,11 @@ const payPrev = fs.existsSync(seedPay) ? fs.readFileSync(seedPay, "utf8") : "Tra
 const pay = mergePaymentCsvAppend(payPrev, fs.readFileSync(payPath, "utf8"));
 fs.writeFileSync(seedPay, pay.csvText, "utf8");
 clearPaycodeOverlayCache();
+
+const preferredPayDate = [...pay.newDates].sort().at(-1) ?? null;
+const discountingPay = saveTxnPaycodesCsv(fs.readFileSync(payPath, "utf8"), {
+  preferredDate: preferredPayDate,
+});
 
 const overlay = parsePaymentAppliedByTxn(pay.csvText);
 const paycodeLabels = listPaycodes(overlay);
@@ -85,6 +91,7 @@ async function main() {
           labels: paycodeLabels,
           groupAppliedAmt: groupTotals,
         },
+        discountingPaycodes: discountingPay,
         refresh,
       },
       null,
