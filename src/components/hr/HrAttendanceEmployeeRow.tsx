@@ -212,9 +212,6 @@ export function HrAttendanceEmployeeRow({
   }, [emp.warning]);
   const hasError = emp.violations.some((v) => v.severity === "error");
   const late = isLateForWarning(emp.lateMinutes);
-  const identityBits = [emp.employeeCode, emp.jobTitle, emp.manager ? `Mgr ${emp.manager}` : null]
-    .filter(Boolean)
-    .join(" · ");
 
   const sendWarning = async (event: MouseEvent) => {
     event.stopPropagation();
@@ -260,7 +257,6 @@ export function HrAttendanceEmployeeRow({
             {emp.schedule
               ? `Scheduled ${emp.schedule.start} – ${emp.schedule.end} (${emp.schedule.scheduledLabel})`
               : "No schedule on file"}
-            {identityBits ? ` · ${identityBits}` : ""}
           </div>
           <div className="flex flex-wrap gap-2 mt-1.5">
             <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-100 ring-1 ring-emerald-400/25">
