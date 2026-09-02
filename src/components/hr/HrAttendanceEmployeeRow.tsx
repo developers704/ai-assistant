@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { HrEmployeeDay, HrViolation, HrWarningNotice } from "@/lib/hr/types";
 import { MISSING_PUNCH_LABEL } from "@/lib/hr/window";
-import { isLateForWarning } from "@/lib/hr/warning-notice";
+import { isLateForWarning, HR_WARNING_FROM } from "@/lib/hr/warning-notice";
 import {
   isWarningMailSessionReady,
+  replyOnWarningThread,
   sendLateWarningNotice,
   syncWarningRemarks,
 } from "@/lib/hr/send-warning-mail";
+import { stripQuotedReply } from "@/lib/hr/remark-text";
 import {
   AlertTriangle,
   ChevronDown,
@@ -20,6 +22,7 @@ import {
   Loader2,
   Mail,
   MessageSquare,
+  Reply,
 } from "lucide-react";
 
 function violationBadge(v: HrViolation) {
@@ -65,11 +68,16 @@ function RemarksPanel({
   onSynced: (next: HrWarningNotice) => void;
 }) {
   const [syncing, setSyncing] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
   const sync = async () => {
     setSyncing(true);
     setError(null);
+    setStatus(null);
     try {
       const ready = isWarningMailSessionReady();
       if (!ready.ok) throw new Error(ready.reason);
@@ -82,6 +90,25 @@ function RemarksPanel({
     }
   };
 
+  const sendReply = async () => {
+    setSendingReply(true);
+    setError(null);
+    setStatus(null);
+    try {
+      const ready = isWarningMailSessionReady();
+      if (!ready.ok) throw new Error(ready.reason);
+      const next = await replyOnWarningThread(warning, replyText);
+      if (next) onSynced(next);
+      setReplyText("");
+      setReplyOpen(false);
+      setStatus("Reply sent on the warning email thread.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not send reply");
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
   return (
     <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -91,33 +118,77 @@ function RemarksPanel({
             Employee replies to {warning.subject}
           </div>
         </div>
-        <Button type="button" size="sm" variant="outline" onClick={() => void sync()} disabled={syncing}>
-          {syncing ? <Loader2 size={14} className="animate-spin" /> : null}
-          Sync replies
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button type="button" size="sm" variant="outline" onClick={() => void sync()} disabled={syncing}>
+            {syncing ? <Loader2 size={14} className="animate-spin" /> : null}
+            Sync replies
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setReplyOpen((o) => !o);
+              setError(null);
+            }}
+          >
+            <Reply size={14} />
+            Reply
+          </Button>
+        </div>
       </div>
       {error && (
         <p className="text-xs text-rose-200">
           {error}{" "}
-          {/sign in to e-mails/i.test(error) && (
+          {/e-mails/i.test(error) && (
             <Link href="/valliani-mail" className="underline text-sky-200">
               Open E-Mails
             </Link>
           )}
         </p>
       )}
+      {status && <p className="text-xs text-emerald-200">{status}</p>}
       {warning.remarks.length === 0 ? (
         <p className="text-xs text-white/45">No employee reply yet.</p>
       ) : (
         <div className="space-y-2">
-          {warning.remarks.map((r) => (
-            <div key={r.id} className="rounded-md bg-black/20 px-3 py-2">
-              <div className="text-xs text-white/55">
-                {r.fromName || r.fromEmail || "Employee"} · {formatStamp(r.sentAt)}
+          {warning.remarks.map((r) => {
+            const body = stripQuotedReply(r.body);
+            if (!body) return null;
+            const fromHr = r.fromEmail.toLowerCase() === HR_WARNING_FROM.toLowerCase();
+            return (
+              <div key={r.id} className="rounded-md bg-black/20 px-3 py-2">
+                <div className="text-xs text-white/55">
+                  {fromHr ? "You" : r.fromName || r.fromEmail || "Employee"} · {formatStamp(r.sentAt)}
+                </div>
+                <div className="text-sm text-white/90 whitespace-pre-wrap mt-1">{body}</div>
               </div>
-              <div className="text-sm text-white/90 whitespace-pre-wrap mt-1">{r.body}</div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      )}
+      {replyOpen && (
+        <div className="space-y-2 pt-1">
+          <textarea
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            rows={4}
+            placeholder="Write a reply — sent on the same email thread"
+            className="w-full rounded-lg bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/35 ring-1 ring-white/15 focus:outline-none focus:ring-indigo-400/50"
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" size="sm" variant="ghost" onClick={() => setReplyOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void sendReply()}
+              disabled={sendingReply || !replyText.trim()}
+            >
+              {sendingReply ? <Loader2 size={14} className="animate-spin" /> : <Reply size={14} />}
+              Send reply
+            </Button>
+          </div>
         </div>
       )}
     </div>

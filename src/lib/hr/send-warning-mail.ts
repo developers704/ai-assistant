@@ -11,9 +11,11 @@ import {
   draftWarningNotice,
   extractWarningCaseId,
   HR_WARNING_FROM,
+  HR_WARNING_TO,
   noticeFromDraft,
 } from "./warning-notice";
 import { buildWarningNoticePdf, pdfBytesToBase64 } from "./warning-notice-pdf";
+import { replySubjectForThread, stripQuotedReply } from "./remark-text";
 
 export function isWarningMailSessionReady(): { ok: boolean; reason?: string } {
   if (!hasMailSession()) {
@@ -50,9 +52,19 @@ function isFromWarningMailbox(message: MailMessage): boolean {
 
 function remarkBody(message: MailMessage): string {
   const text = message.bodyText?.trim();
-  if (text) return text;
-  if (message.bodyHtml?.trim()) return htmlToPlain(message.bodyHtml);
-  return message.preview?.trim() || "";
+  const raw = text
+    ? text
+    : message.bodyHtml?.trim()
+      ? htmlToPlain(message.bodyHtml)
+      : message.preview?.trim() || "";
+  return stripQuotedReply(raw);
+}
+
+function isOriginalWarningMail(message: MailMessage, caseId: string): boolean {
+  if (!isFromWarningMailbox(message)) return false;
+  if (/^\s*re\s*:/i.test(message.subject || "")) return false;
+  if (message.inReplyTo?.trim()) return false;
+  return extractWarningCaseId(message.subject) === caseId.toUpperCase();
 }
 
 export function mailToRemark(message: MailMessage, caseId: string): HrWarningRemark {
@@ -81,7 +93,7 @@ async function hydrateIfNeeded(message: MailMessage): Promise<MailMessage> {
 }
 
 async function searchCaseMessages(caseId: string): Promise<MailMessage[]> {
-  const folders = ["Inbox", ALL_MAIL_FOLDER];
+  const folders = ["Inbox", "Sent", "Sent Mails", ALL_MAIL_FOLDER];
   const byKey = new Map<string, MailMessage>();
   for (const folder of folders) {
     try {
@@ -102,6 +114,42 @@ async function searchCaseMessages(caseId: string): Promise<MailMessage[]> {
     }
   }
   return [...byKey.values()];
+}
+
+function sortOldestFirst(messages: MailMessage[]): MailMessage[] {
+  return [...messages].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+}
+
+function replyRecipient(notice: HrWarningNotice, thread: MailMessage[]): string {
+  const inbound = [...thread].reverse().find((m) => !isFromWarningMailbox(m));
+  const email = addressEmail(inbound?.from).email;
+  if (email) return email;
+  return notice.to || HR_WARNING_TO;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function persistRemarks(
+  caseId: string,
+  remarks: HrWarningRemark[]
+): Promise<HrWarningNotice | null> {
+  const res = await fetch("/api/hr/warnings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "remarks", caseId, remarks }),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    warning?: HrWarningNotice;
+  };
+  if (!res.ok) throw new Error(json.error || "Could not save remarks");
+  return json.warning ?? null;
 }
 
 export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarningNotice> {
@@ -150,21 +198,55 @@ export async function syncWarningRemarks(caseId: string): Promise<HrWarningNotic
   const messages = await searchCaseMessages(caseId);
   const replies: HrWarningRemark[] = [];
   for (const message of messages) {
-    if (isFromWarningMailbox(message)) continue;
+    if (isOriginalWarningMail(message, caseId)) continue;
     const hydrated = await hydrateIfNeeded(message);
     const remark = mailToRemark(hydrated, caseId);
-    if (!remark.body && !remark.fromEmail) continue;
+    if (!remark.body) continue;
     replies.push(remark);
   }
-  const res = await fetch("/api/hr/warnings", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "remarks", caseId, remarks: replies }),
+  return persistRemarks(caseId, replies);
+}
+
+export async function replyOnWarningThread(
+  notice: HrWarningNotice,
+  body: string
+): Promise<HrWarningNotice | null> {
+  const ready = isWarningMailSessionReady();
+  if (!ready.ok) throw new Error(ready.reason);
+  const trimmed = stripQuotedReply(body);
+  if (!trimmed) throw new Error("Write a reply first");
+
+  const thread = await searchCaseMessages(notice.caseId);
+  const target = sortOldestFirst(thread).at(-1) ?? null;
+  const to = replyRecipient(notice, thread);
+  const subject = replySubjectForThread(notice.subject);
+  const html = `<p>${escapeHtml(trimmed).replace(/\n/g, "<br>")}</p>`;
+
+  await sendMail({
+    to: [to],
+    subject,
+    body: trimmed,
+    html,
+    composeMode: "reply",
+    replyToUid: target && target.uid > 0 ? target.uid : undefined,
+    replyToFolder: target?.sourceFolder || undefined,
+    inReplyTo: target?.messageId || undefined,
+    references: [
+      ...(target?.references ?? []),
+      target?.messageId,
+      notice.messageId,
+    ].filter((id): id is string => Boolean(id)),
   });
-  const json = (await res.json().catch(() => ({}))) as {
-    error?: string;
-    warning?: HrWarningNotice;
+
+  const remark: HrWarningRemark = {
+    id: `${notice.caseId}:hr-${Date.now()}`,
+    fromName: "Umair",
+    fromEmail: HR_WARNING_FROM,
+    sentAt: new Date().toISOString(),
+    subject,
+    body: trimmed,
+    messageId: `hr-${Date.now()}`,
+    uid: 0,
   };
-  if (!res.ok) throw new Error(json.error || "Could not save remarks");
-  return json.warning ?? null;
+  return persistRemarks(notice.caseId, [remark]);
 }
