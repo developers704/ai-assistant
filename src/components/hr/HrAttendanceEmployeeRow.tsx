@@ -172,11 +172,12 @@ export function HrAttendanceEmployeeRow({
         hasError && "ring-1 ring-rose-400/40"
       )}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.04]"
-      >
+      <div className="flex items-stretch gap-2 px-4 py-3 hover:bg-white/[0.04]">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex-1 min-w-0 flex items-center gap-3 text-left"
+        >
         {open ? (
           <ChevronDown size={16} className="text-white/40 shrink-0" />
         ) : (
@@ -222,9 +223,16 @@ export function HrAttendanceEmployeeRow({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+        </button>
+        <div className="flex items-center gap-2 shrink-0 self-center">
           {late && !warning && (
-            <Button type="button" size="sm" onClick={(e) => void sendWarning(e)} disabled={sending}>
+            <Button
+              type="button"
+              size="sm"
+              data-action="send-warning"
+              onClick={(e) => void sendWarning(e)}
+              disabled={sending}
+            >
               {sending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
               Send warning
             </Button>
@@ -234,6 +242,7 @@ export function HrAttendanceEmployeeRow({
               type="button"
               size="sm"
               variant="outline"
+              data-action="warning-remarks"
               onClick={() => {
                 setRemarksOpen((o) => !o);
                 setOpen(true);
@@ -247,7 +256,7 @@ export function HrAttendanceEmployeeRow({
             <AlertTriangle size={16} className={hasError ? "text-rose-400" : "text-amber-400"} />
           )}
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
