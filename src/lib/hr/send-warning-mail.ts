@@ -13,6 +13,7 @@ import {
   HR_WARNING_FROM,
   noticeFromDraft,
 } from "./warning-notice";
+import { buildWarningNoticePdf, pdfBytesToBase64 } from "./warning-notice-pdf";
 
 export function isWarningMailSessionReady(): { ok: boolean; reason?: string } {
   if (!hasMailSession()) {
@@ -107,11 +108,27 @@ export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarni
   const ready = isWarningMailSessionReady();
   if (!ready.ok) throw new Error(ready.reason);
   const draft = draftWarningNotice(emp);
+  const pdfBytes = await buildWarningNoticePdf({
+    employeeName: draft.employeeName,
+    date: draft.date,
+    employeeCode: draft.employeeCode,
+    jobTitle: draft.jobTitle,
+    manager: draft.manager,
+    lateMinutes: draft.lateMinutes,
+  });
   await sendMail({
     to: [draft.to],
     subject: draft.subject,
     body: draft.text,
     html: draft.html,
+    attachments: [
+      {
+        filename: draft.pdfFilename,
+        contentType: "application/pdf",
+        contentBase64: pdfBytesToBase64(pdfBytes),
+        size: pdfBytes.byteLength,
+      },
+    ],
   });
   const notice = noticeFromDraft(draft);
   const res = await fetch("/api/hr/warnings", {

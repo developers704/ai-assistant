@@ -7,7 +7,9 @@ import {
   formatNoticeDate,
   warningCaseId,
   warningDescription,
+  warningPdfFilename,
 } from "@/lib/hr/warning-notice";
+import { buildWarningNoticePdf } from "@/lib/hr/warning-notice-pdf";
 
 const shazia = {
   employeeName: "Ahmed, Shazia",
@@ -63,9 +65,30 @@ describe("late warning notice", () => {
     );
     expect(draft.from).toBe("umairj@valliani.app");
     expect(draft.to).toBe("umairjam.arrakconsulting@gmail.com");
+    expect(draft.pdfFilename).toBe("Employee-Warning-Notice-SA2-2026-06-07.pdf");
+    expect(draft.text).toContain("attached PDF");
+    expect(draft.text).not.toContain("Type of Offenses");
+    expect(draft.html).not.toContain("Type of Offenses");
     expect(extractWarningCaseId(`Re: ${draft.subject}`)).toBe("HR-LATE-SA2-2026-06-07");
     expect(warningCaseId(null, "2026-06-07", "Ahmed, Shazia")).toBe(
       "HR-LATE-AHMEDSHAZIA-2026-06-07"
     );
+    expect(warningPdfFilename("SA2", "2026-06-07", "Ahmed, Shazia")).toBe(
+      "Employee-Warning-Notice-SA2-2026-06-07.pdf"
+    );
+  });
+
+  it("builds a PDF form instead of dumping the notice in the email body", async () => {
+    const { PDFDocument } = await import("pdf-lib");
+    const pdf = await buildWarningNoticePdf(shazia);
+    const header = Buffer.from(pdf.subarray(0, 5)).toString("ascii");
+    expect(header).toBe("%PDF-");
+    expect(pdf.byteLength).toBeGreaterThan(800);
+    const loaded = await PDFDocument.load(pdf);
+    expect(loaded.getPageCount()).toBe(1);
+    const page = loaded.getPage(0);
+    const { width, height } = page.getSize();
+    expect(width).toBe(612);
+    expect(height).toBe(792);
   });
 });

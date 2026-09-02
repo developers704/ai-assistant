@@ -19,6 +19,7 @@ export type WarningNoticeDraft = {
   html: string;
   text: string;
   description: string;
+  pdfFilename: string;
 };
 
 function escapeHtml(value: string): string {
@@ -186,6 +187,34 @@ export function buildWarningNoticeText(input: {
   ].join("\n");
 }
 
+export function warningPdfFilename(code: string | null, date: string, name: string): string {
+  return `Employee-Warning-Notice-${slugCode(code, name)}-${date}.pdf`;
+}
+
+export function warningCoverText(input: {
+  employeeName: string;
+  lateMinutes: number;
+  pdfFilename: string;
+}): string {
+  return [
+    `Please see the attached PDF: ${input.pdfFilename}`,
+    "",
+    `${input.employeeName} — ${warningDescription(input.lateMinutes)}`,
+    "",
+    "Reply to this email if you have remarks.",
+  ].join("\n");
+}
+
+export function warningCoverHtml(input: {
+  employeeName: string;
+  lateMinutes: number;
+  pdfFilename: string;
+}): string {
+  return `<p>Please see the attached Employee Warning Notice (PDF): <strong>${escapeHtml(input.pdfFilename)}</strong></p>
+<p>${escapeHtml(input.employeeName)} — ${escapeHtml(warningDescription(input.lateMinutes))}</p>
+<p>Reply to this email if you have remarks.</p>`;
+}
+
 export function draftWarningNotice(emp: Pick<
   HrEmployeeDay,
   "employeeName" | "date" | "employeeCode" | "jobTitle" | "manager" | "lateMinutes"
@@ -209,9 +238,18 @@ export function draftWarningNotice(emp: Pick<
     from: HR_WARNING_FROM,
     to: HR_WARNING_TO,
     subject: warningSubject(caseId, emp.employeeName),
-    html: buildWarningNoticeHtml(payload),
-    text: buildWarningNoticeText(payload),
+    html: warningCoverHtml({
+      employeeName: emp.employeeName,
+      lateMinutes,
+      pdfFilename: warningPdfFilename(emp.employeeCode, emp.date, emp.employeeName),
+    }),
+    text: warningCoverText({
+      employeeName: emp.employeeName,
+      lateMinutes,
+      pdfFilename: warningPdfFilename(emp.employeeCode, emp.date, emp.employeeName),
+    }),
     description: warningDescription(lateMinutes),
+    pdfFilename: warningPdfFilename(emp.employeeCode, emp.date, emp.employeeName),
   };
 }
 
