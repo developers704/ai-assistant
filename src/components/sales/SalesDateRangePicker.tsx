@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isValidIsoDate } from "@/lib/reports/date-utils";
+import { datesInIsoRange, isValidIsoDate } from "@/lib/reports/date-utils";
 
 const WEEKDAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
 const MONTHS_SHORT = [
@@ -121,7 +121,24 @@ export function SalesDateRangePicker({
     () => new Set(availableDates.filter(isValidIsoDate)),
     [availableDates]
   );
-  const sortedAvail = useMemo(() => [...availableSet].sort(), [availableSet]);
+  /** Days with sales rows in the report. */
+  const hasDataSet = availableSet;
+  /** Selectable in the calendar: sales days + every day inside reportRange (gaps stay visible). */
+  const selectableSet = useMemo(() => {
+    const set = new Set(hasDataSet);
+    if (
+      reportRange?.from &&
+      reportRange?.to &&
+      isValidIsoDate(reportRange.from) &&
+      isValidIsoDate(reportRange.to)
+    ) {
+      for (const iso of datesInIsoRange(reportRange.from, reportRange.to)) {
+        set.add(iso);
+      }
+    }
+    return set;
+  }, [hasDataSet, reportRange]);
+  const sortedAvail = useMemo(() => [...hasDataSet].sort(), [hasDataSet]);
 
   const [view, setView] = useState(() => {
     const seed =
@@ -237,7 +254,7 @@ export function SalesDateRangePicker({
   };
 
   const pickDay = (iso: string) => {
-    if (!availableSet.has(iso) || !openField) return;
+    if (!selectableSet.has(iso) || !openField) return;
     setFocusIso(iso);
 
     if (openField === "from") {
@@ -434,7 +451,8 @@ export function SalesDateRangePicker({
 
                 <div className="grid grid-cols-7 gap-y-0.5">
                   {cells.map((cell) => {
-                    const available = availableSet.has(cell.iso);
+                    const hasData = hasDataSet.has(cell.iso);
+                    const selectable = selectableSet.has(cell.iso);
                     const selected = inSelection(cell.iso);
                     const edge = isEdge(cell.iso);
                     const weekend = (() => {
@@ -450,19 +468,34 @@ export function SalesDateRangePicker({
                       <button
                         key={`${cell.iso}-${cell.inMonth ? "in" : "out"}`}
                         type="button"
-                        disabled={!available}
+                        disabled={!selectable}
                         onClick={() => pickDay(cell.iso)}
                         onMouseEnter={() => setFocusIso(cell.iso)}
+                        title={
+                          selectable && !hasData
+                            ? "No sales rows this day — range still selectable"
+                            : undefined
+                        }
                         className={cn(
                           "relative h-8 text-[12px] tabular-nums transition-colors",
-                          !cell.inMonth && "opacity-40",
-                          !available && "cursor-not-allowed opacity-30",
-                          available && !selected && weekend && "text-red-400",
-                          available &&
+                          !cell.inMonth && "opacity-35 text-white/25",
+                          !selectable &&
+                            cell.inMonth &&
+                            "cursor-not-allowed text-white/25",
+                          selectable &&
+                            !hasData &&
+                            !selected &&
+                            "text-white/45 hover:bg-white/10",
+                          selectable &&
+                            hasData &&
+                            !selected &&
+                            weekend &&
+                            "text-red-400",
+                          selectable &&
+                            hasData &&
                             !selected &&
                             !weekend &&
                             "text-white/80 hover:bg-white/10",
-                          !available && weekend && cell.inMonth && "text-red-400/35",
                           selected && !edge && "bg-sky-500/25 text-sky-50",
                           edge && "bg-sky-500 text-white font-semibold",
                           selected && !edge && "rounded-none",
