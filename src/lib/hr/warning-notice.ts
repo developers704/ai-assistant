@@ -1,11 +1,29 @@
-import type { HrEmployeeDay, HrWarningNotice } from "./types";
+import type { HrEmployeeDay, HrWarningNotice, HrViolation } from "./types";
+import { expectedMealPolicy } from "./meal-break-rules";
 
 export const HR_WARNING_FROM = "umairj@valliani.app";
 export const HR_WARNING_TO = "umairjam.arrakconsulting@gmail.com";
 export const LATE_WARNING_THRESHOLD_MINUTES = 12;
+export const EARLY_WARNING_THRESHOLD_MINUTES = 10;
 export const HR_WARNING_CASE_RE = /HR-LATE-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
-/** Warning (`HR-LATE-…`) or write-up (`HR-WRITEUP-…`) case token in a subject. */
-export const HR_NOTICE_CASE_RE = /HR-(?:LATE|WRITEUP)-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
+/** Warning (`HR-LATE-` / `HR-EARLY-` / `HR-MEAL-`) or write-up (`HR-WRITEUP-`) case token. */
+export const HR_NOTICE_CASE_RE = /HR-(?:LATE|EARLY|MEAL|WRITEUP)-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
+
+export type HrWarningReason = "late" | "early" | "meal";
+export type HrViolationFilter = "all" | "late" | "early" | "meal";
+
+export type HrNoticeEmployee = Pick<
+  HrEmployeeDay,
+  "employeeName" | "date" | "employeeCode" | "jobTitle" | "manager"
+> & {
+  lateMinutes?: number | null;
+  earlyInMinutes?: number | null;
+  mealBreaks?: HrEmployeeDay["mealBreaks"];
+  totalMealMinutes?: number;
+  shiftTier?: HrEmployeeDay["shiftTier"];
+  violations?: HrViolation[];
+  store?: string | null;
+};
 
 export type WarningNoticeDraft = {
   caseId: string;
@@ -39,8 +57,14 @@ export function noticeEmployeeSlug(code: string | null, name: string): string {
   return fromName || "EMP";
 }
 
-export function warningCaseId(code: string | null, date: string, name: string): string {
-  return `HR-LATE-${noticeEmployeeSlug(code, name)}-${date}`;
+export function warningCaseId(
+  code: string | null,
+  date: string,
+  name: string,
+  reason: HrWarningReason = "late"
+): string {
+  const token = reason === "early" ? "EARLY" : reason === "meal" ? "MEAL" : "LATE";
+  return `HR-${token}-${noticeEmployeeSlug(code, name)}-${date}`;
 }
 
 export function warningSubject(caseId: string, employeeName: string): string {
@@ -59,8 +83,88 @@ export function warningDescription(lateMinutes: number): string {
   return `Late Arrival by ${lateMinutes} ${unit}.`;
 }
 
+export function earlyDescription(earlyMinutes: number): string {
+  const unit = earlyMinutes === 1 ? "minute" : "minutes";
+  return `Early Arrival by ${earlyMinutes} ${unit}.`;
+}
+
+export function longMealDescription(minutes: number, limit: number): string {
+  const unit = minutes === 1 ? "minute" : "minutes";
+  return `Took a long meal break of ${minutes} ${unit} (exceeds ${limit} min limit).`;
+}
+
 export function isLateForWarning(lateMinutes: number | null | undefined): boolean {
   return lateMinutes != null && lateMinutes >= LATE_WARNING_THRESHOLD_MINUTES;
+}
+
+export function isEarlyForWarning(earlyMinutes: number | null | undefined): boolean {
+  return earlyMinutes != null && earlyMinutes >= EARLY_WARNING_THRESHOLD_MINUTES;
+}
+
+export function hasLongMealViolation(
+  emp: Pick<HrNoticeEmployee, "violations" | "mealBreaks" | "shiftTier">
+): boolean {
+  if (emp.violations?.some((v) => v.type === "long_meal" || v.type === "excessive_meal_total")) {
+    return true;
+  }
+  const limit = expectedMealPolicy(emp.shiftTier ?? "ten").maxEachMinutes;
+  return (emp.mealBreaks ?? []).some((m) => m.gapMinutes >= limit);
+}
+
+export function isEligibleForHrNotice(emp: HrNoticeEmployee): boolean {
+  return (
+    isLateForWarning(emp.lateMinutes) ||
+    isEarlyForWarning(emp.earlyInMinutes) ||
+    hasLongMealViolation(emp)
+  );
+}
+
+export function matchesViolationFilter(
+  emp: HrNoticeEmployee,
+  filter: HrViolationFilter
+): boolean {
+  if (filter === "all") return true;
+  if (filter === "late") return isLateForWarning(emp.lateMinutes);
+  if (filter === "early") return isEarlyForWarning(emp.earlyInMinutes);
+  return hasLongMealViolation(emp);
+}
+
+export function warningReason(emp: HrNoticeEmployee): HrWarningReason {
+  if (isLateForWarning(emp.lateMinutes)) return "late";
+  if (hasLongMealViolation(emp)) return "meal";
+  return "early";
+}
+
+export function noticeDescriptionForEmployee(emp: HrNoticeEmployee): string {
+  const parts: string[] = [];
+  if (isLateForWarning(emp.lateMinutes)) {
+    parts.push(warningDescription(emp.lateMinutes!));
+  }
+  if (isEarlyForWarning(emp.earlyInMinutes)) {
+    parts.push(earlyDescription(emp.earlyInMinutes!));
+  }
+
+  const policy = expectedMealPolicy(emp.shiftTier ?? "ten");
+  const longMeals = (emp.mealBreaks ?? []).filter((m) => m.gapMinutes >= policy.maxEachMinutes);
+  for (const meal of longMeals) {
+    parts.push(longMealDescription(meal.gapMinutes, policy.maxEachMinutes));
+  }
+  if (
+    longMeals.length === 0 &&
+    emp.violations?.some((v) => v.type === "excessive_meal_total")
+  ) {
+    const total = emp.totalMealMinutes ?? 0;
+    parts.push(
+      `Took a long meal break totaling ${total} minutes (exceeds ${policy.maxTotalMinutes} min limit).`
+    );
+  }
+  if (parts.length === 0 && hasLongMealViolation(emp)) {
+    const fromMsg = emp.violations?.find(
+      (v) => v.type === "long_meal" || v.type === "excessive_meal_total"
+    );
+    parts.push(fromMsg?.message ?? "Took a long meal break.");
+  }
+  return parts.join(" ");
 }
 
 export function extractWarningCaseId(subject: string | null | undefined): string | null {
@@ -99,8 +203,9 @@ export function buildWarningNoticeHtml(input: {
   jobTitle: string | null;
   manager: string | null;
   lateMinutes: number;
+  description?: string;
 }): string {
-  const description = warningDescription(input.lateMinutes);
+  const description = input.description ?? warningDescription(input.lateMinutes);
   const logo = `<div style="width:56px;height:56px;border-radius:50%;background:#111;margin:0 auto 10px;line-height:56px;text-align:center;">
     <span style="display:inline-block;width:22px;height:22px;border:3px solid #c9a227;border-radius:50%;vertical-align:middle;box-shadow:0 0 0 2px #111, inset 0 0 0 3px #111;"></span>
   </div>`;
@@ -162,8 +267,9 @@ export function buildWarningNoticeText(input: {
   jobTitle: string | null;
   manager: string | null;
   lateMinutes: number;
+  description?: string;
 }): string {
-  const description = warningDescription(input.lateMinutes);
+  const description = input.description ?? warningDescription(input.lateMinutes);
   return [
     "VALLIANI JEWELERS",
     "Employee Warning Notice",
@@ -195,13 +301,13 @@ export function warningPdfFilename(code: string | null, date: string, name: stri
 
 export function warningCoverText(input: {
   employeeName: string;
-  lateMinutes: number;
+  description: string;
   pdfFilename: string;
 }): string {
   return [
     `Please see the attached PDF: ${input.pdfFilename}`,
     "",
-    `${input.employeeName} — ${warningDescription(input.lateMinutes)}`,
+    `${input.employeeName} — ${input.description}`,
     "",
     "Reply to this email if you have remarks.",
   ].join("\n");
@@ -209,23 +315,21 @@ export function warningCoverText(input: {
 
 export function warningCoverHtml(input: {
   employeeName: string;
-  lateMinutes: number;
+  description: string;
   pdfFilename: string;
 }): string {
   return `<p>Please see the attached Employee Warning Notice (PDF): <strong>${escapeHtml(input.pdfFilename)}</strong></p>
-<p>${escapeHtml(input.employeeName)} — ${escapeHtml(warningDescription(input.lateMinutes))}</p>
+<p>${escapeHtml(input.employeeName)} — ${escapeHtml(input.description)}</p>
 <p>Reply to this email if you have remarks.</p>`;
 }
 
-export function draftWarningNotice(emp: Pick<
-  HrEmployeeDay,
-  "employeeName" | "date" | "employeeCode" | "jobTitle" | "manager" | "lateMinutes"
->): WarningNoticeDraft {
-  if (!isLateForWarning(emp.lateMinutes)) {
-    throw new Error("Employee is not late enough for a warning notice");
+export function draftWarningNotice(emp: HrNoticeEmployee): WarningNoticeDraft {
+  if (!isEligibleForHrNotice(emp)) {
+    throw new Error("No attendance violation for a warning notice");
   }
-  const lateMinutes = emp.lateMinutes!;
-  const caseId = warningCaseId(emp.employeeCode, emp.date, emp.employeeName);
+  const lateMinutes = emp.lateMinutes ?? 0;
+  const description = noticeDescriptionForEmployee(emp);
+  const caseId = warningCaseId(emp.employeeCode, emp.date, emp.employeeName, warningReason(emp));
   const payload = {
     employeeName: emp.employeeName,
     date: emp.date,
@@ -234,6 +338,7 @@ export function draftWarningNotice(emp: Pick<
     manager: emp.manager,
     lateMinutes,
   };
+  const pdfFilename = warningPdfFilename(emp.employeeCode, emp.date, emp.employeeName);
   return {
     caseId,
     ...payload,
@@ -242,16 +347,16 @@ export function draftWarningNotice(emp: Pick<
     subject: warningSubject(caseId, emp.employeeName),
     html: warningCoverHtml({
       employeeName: emp.employeeName,
-      lateMinutes,
-      pdfFilename: warningPdfFilename(emp.employeeCode, emp.date, emp.employeeName),
+      description,
+      pdfFilename,
     }),
     text: warningCoverText({
       employeeName: emp.employeeName,
-      lateMinutes,
-      pdfFilename: warningPdfFilename(emp.employeeCode, emp.date, emp.employeeName),
+      description,
+      pdfFilename,
     }),
-    description: warningDescription(lateMinutes),
-    pdfFilename: warningPdfFilename(emp.employeeCode, emp.date, emp.employeeName),
+    description,
+    pdfFilename,
   };
 }
 

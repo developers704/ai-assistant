@@ -1,10 +1,11 @@
-import type { HrEmployeeDay, HrWarningNotice } from "./types";
+import type { HrWarningNotice } from "./types";
 import {
   HR_WARNING_FROM,
   HR_WARNING_TO,
-  isLateForWarning,
+  isEligibleForHrNotice,
+  noticeDescriptionForEmployee,
   noticeEmployeeSlug,
-  warningDescription,
+  type HrNoticeEmployee,
 } from "./warning-notice";
 
 export type WriteUpDraft = {
@@ -34,8 +35,8 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function suggestedWriteUpDescription(lateMinutes: number): string {
-  return warningDescription(lateMinutes);
+export function suggestedWriteUpDescription(emp: HrNoticeEmployee): string {
+  return noticeDescriptionForEmployee(emp);
 }
 
 export function writeUpCaseId(code: string | null, date: string, name: string): string {
@@ -84,17 +85,11 @@ export function writeUpCoverHtml(input: {
 <p>Reply to this email if you have remarks.</p>`;
 }
 
-export function draftWriteUpNotice(
-  emp: Pick<
-    HrEmployeeDay,
-    "employeeName" | "date" | "employeeCode" | "jobTitle" | "manager" | "store" | "lateMinutes"
-  >,
-  description: string
-): WriteUpDraft {
-  if (!isLateForWarning(emp.lateMinutes)) {
-    throw new Error("Employee is not late enough for a write-up");
+export function draftWriteUpNotice(emp: HrNoticeEmployee, description: string): WriteUpDraft {
+  if (!isEligibleForHrNotice(emp)) {
+    throw new Error("No attendance violation for a write-up");
   }
-  const lateMinutes = emp.lateMinutes!;
+  const lateMinutes = emp.lateMinutes ?? 0;
   const text = requireWriteUpDescription(description);
   const caseId = writeUpCaseId(emp.employeeCode, emp.date, emp.employeeName);
   const pdfFilename = writeUpPdfFilename(emp.employeeCode, emp.date, emp.employeeName);

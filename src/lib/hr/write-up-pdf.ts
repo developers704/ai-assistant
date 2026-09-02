@@ -12,6 +12,7 @@ export type WriteUpPdfInput = {
   /** Defaults to Written Warning + Tardiness for late attendance write-ups. */
   writtenWarning?: boolean;
   tardiness?: boolean;
+  otherViolation?: boolean;
 };
 
 const PAGE_W = 612;
@@ -198,6 +199,7 @@ export async function buildWriteUpPdf(input: WriteUpPdfInput): Promise<Uint8Arra
 
   const writtenWarning = input.writtenWarning !== false;
   const tardiness = input.tardiness !== false;
+  const otherViolation = Boolean(input.otherViolation);
   const left = MARGIN + 8;
   const colW = CONTENT_W / 2;
   const right = MARGIN + colW + 8;
@@ -236,7 +238,7 @@ export async function buildWriteUpPdf(input: WriteUpPdfInput): Promise<Uint8Arra
   drawCheckboxAt(page, false, "Unexcused Absence", left, y, helv, helvBold);
   drawCheckboxAt(page, false, "Poor Performance", right, y, helv, helvBold);
   y -= 20;
-  drawCheckboxAt(page, false, "Other:", left, y, helv, helvBold, true);
+  drawCheckboxAt(page, otherViolation, "Other:", left, y, helv, helvBold, true);
   drawCheckboxAt(page, false, "Insubordination", right, y, helv, helvBold);
   y -= 32;
 
@@ -248,11 +250,13 @@ export async function buildWriteUpPdf(input: WriteUpPdfInput): Promise<Uint8Arra
     font: helvBold,
     color: BLACK,
   });
-  y -= 20;
+  y -= 18;
 
-  const boxTop = y + 12;
+  const innerPadX = 16;
+  const innerPadTop = 20;
+  const boxTop = y;
   const boxBottom = 72;
-  const boxH = Math.max(120, boxTop - boxBottom);
+  const boxH = Math.max(140, boxTop - boxBottom);
   page.drawRectangle({
     x: MARGIN,
     y: boxBottom,
@@ -263,11 +267,14 @@ export async function buildWriteUpPdf(input: WriteUpPdfInput): Promise<Uint8Arra
     color: WHITE,
   });
 
-  const lines = wrapLines(input.description, helv, 11, CONTENT_W - 20);
-  let textY = boxTop - 6;
+  const fontSize = 11;
+  const lineHeight = 16;
+  const lines = wrapLines(input.description, helv, fontSize, CONTENT_W - innerPadX * 2);
+  // Baseline sits below the box top so cap-height does not touch the border.
+  let textY = boxTop - innerPadTop - 4;
   let current = page;
   for (const line of lines) {
-    if (textY < boxBottom + 10) {
+    if (textY < boxBottom + innerPadTop) {
       current = doc.addPage([PAGE_W, PAGE_H]);
       textY = PAGE_H - 72;
       current.drawText("Description (continued):", {
@@ -277,18 +284,18 @@ export async function buildWriteUpPdf(input: WriteUpPdfInput): Promise<Uint8Arra
         font: helvBold,
         color: BLACK,
       });
-      textY -= 20;
+      textY -= 28;
     }
     if (line) {
       current.drawText(line, {
-        x: MARGIN + 10,
+        x: MARGIN + innerPadX,
         y: textY,
-        size: 11,
+        size: fontSize,
         font: helv,
         color: BLACK,
       });
     }
-    textY -= 15;
+    textY -= lineHeight;
   }
 
   return doc.save();

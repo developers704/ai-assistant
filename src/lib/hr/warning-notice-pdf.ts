@@ -11,6 +11,7 @@ export type WarningPdfInput = {
   jobTitle: string | null;
   manager: string | null;
   lateMinutes: number;
+  description?: string;
 };
 
 const PAGE_W = 612;
@@ -125,7 +126,7 @@ export async function buildWarningNoticePdf(input: WarningPdfInput): Promise<Uin
   const timesBold = await doc.embedFont(StandardFonts.TimesRomanBold);
   const helv = await doc.embedFont(StandardFonts.Helvetica);
   const helvBold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const description = warningDescription(input.lateMinutes);
+  const description = input.description ?? warningDescription(input.lateMinutes);
 
   const cx = PAGE_W / 2;
   let y = 730;

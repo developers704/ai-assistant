@@ -12,6 +12,7 @@ import {
   extractWarningCaseId,
   HR_WARNING_FROM,
   HR_WARNING_TO,
+  isLateForWarning,
   noticeFromDraft,
 } from "./warning-notice";
 import { buildWarningNoticePdf, pdfBytesToBase64 } from "./warning-notice-pdf";
@@ -165,6 +166,7 @@ export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarni
     jobTitle: draft.jobTitle,
     manager: draft.manager,
     lateMinutes: draft.lateMinutes,
+    description: draft.description,
   });
   await sendMail({
     to: [draft.to],
@@ -199,6 +201,8 @@ export async function sendWriteUpNotice(
     manager: draft.manager,
     store: draft.store,
     description: draft.description,
+    tardiness: isLateForWarning(emp.lateMinutes),
+    otherViolation: !isLateForWarning(emp.lateMinutes),
   });
   await sendMail({
     to: [draft.to],

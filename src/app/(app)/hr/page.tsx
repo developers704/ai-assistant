@@ -11,7 +11,10 @@ import { HrSalesTab } from "@/components/hr/HrSalesTab";
 import { HrAttendanceEmployeeRow } from "@/components/hr/HrAttendanceEmployeeRow";
 import { formatHrAttendanceWindowCaption } from "@/lib/hr/window";
 import { formatHrDateLabel } from "@/lib/hr/time-utils";
-import { isLateForWarning } from "@/lib/hr/warning-notice";
+import {
+  matchesViolationFilter,
+  type HrViolationFilter,
+} from "@/lib/hr/warning-notice";
 import { Briefcase, ChevronDown, Clock, Loader2, Upload } from "lucide-react";
 
 type HrApiResponse = {
@@ -36,7 +39,7 @@ export default function HrPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [storeFilter, setStoreFilter] = useState("");
   const [designationFilter, setDesignationFilter] = useState("");
-  const [arrivalFilter, setArrivalFilter] = useState<"all" | "late" | "early">("all");
+  const [violationFilter, setViolationFilter] = useState<HrViolationFilter>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
   const timecardInputRef = useRef<HTMLInputElement>(null);
@@ -128,16 +131,10 @@ export default function HrPage() {
     return (data?.employees ?? []).filter((e) => {
       if (storeFilter && (e.store ?? "").trim() !== storeFilter) return false;
       if (designationFilter && (e.jobTitle ?? "").trim() !== designationFilter) return false;
-      if (arrivalFilter === "late" && !isLateForWarning(e.lateMinutes)) return false;
-      if (
-        arrivalFilter === "early" &&
-        !(e.earlyInMinutes != null && e.earlyInMinutes >= 10)
-      ) {
-        return false;
-      }
+      if (!matchesViolationFilter(e, violationFilter)) return false;
       return true;
     });
-  }, [data?.employees, storeFilter, designationFilter, arrivalFilter]);
+  }, [data?.employees, storeFilter, designationFilter, violationFilter]);
 
   const violationCount = useMemo(
     () => filteredEmployees.filter((e) => e.violations.length > 0).length,
@@ -298,16 +295,20 @@ export default function HrPage() {
                 </option>
               ))}
             </select>
-            <select
-              value={arrivalFilter}
-              onChange={(e) => setArrivalFilter(e.target.value as "all" | "late" | "early")}
-              className="select-dark rounded-xl px-3 py-2 text-sm"
-              aria-label="Filter by late or early arrival"
-            >
-              <option value="all">All arrivals</option>
-              <option value="late">Late arrival</option>
-              <option value="early">Early arrival</option>
-            </select>
+            <label className="flex items-center gap-2 text-sm text-white/70">
+              <span className="whitespace-nowrap">Violation</span>
+              <select
+                value={violationFilter}
+                onChange={(e) => setViolationFilter(e.target.value as HrViolationFilter)}
+                className="select-dark rounded-xl px-3 py-2 text-sm text-white"
+                aria-label="Violation"
+              >
+                <option value="all">All arrival</option>
+                <option value="late">Late arrival</option>
+                <option value="early">Early arrival</option>
+                <option value="meal">Meal break</option>
+              </select>
+            </label>
             <span className="text-xs text-white/45">{formatHrAttendanceWindowCaption()}</span>
             {violationCount > 0 && (
               <span className="text-sm text-amber-200/90">

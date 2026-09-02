@@ -5,6 +5,7 @@ import {
   draftWarningNotice,
   extractWarningCaseId,
   formatNoticeDate,
+  matchesViolationFilter,
   warningCaseId,
   warningDescription,
   warningPdfFilename,
@@ -73,6 +74,12 @@ describe("late warning notice", () => {
     expect(
       extractWarningCaseId("[HR-WRITEUP-SA2-2026-06-07] Disciplinary Action Form — Ahmed, Shazia")
     ).toBe("HR-WRITEUP-SA2-2026-06-07");
+    expect(
+      extractWarningCaseId("[HR-EARLY-SA2-2026-06-07] Employee Warning Notice — Ahmed, Shazia")
+    ).toBe("HR-EARLY-SA2-2026-06-07");
+    expect(
+      extractWarningCaseId("[HR-MEAL-FM2-2026-06-07] Employee Warning Notice — Martinez, Filemon")
+    ).toBe("HR-MEAL-FM2-2026-06-07");
     expect(warningCaseId(null, "2026-06-07", "Ahmed, Shazia")).toBe(
       "HR-LATE-AHMEDSHAZIA-2026-06-07"
     );
@@ -93,5 +100,57 @@ describe("late warning notice", () => {
     const { width, height } = page.getSize();
     expect(width).toBe(612);
     expect(height).toBe(792);
+  });
+
+  it("describes early arrival and long meal breaks on the same warning format", () => {
+    const early = draftWarningNotice({
+      ...shazia,
+      lateMinutes: null,
+      earlyInMinutes: 18,
+    });
+    expect(early.caseId).toBe("HR-EARLY-SA2-2026-06-07");
+    expect(early.description).toBe("Early Arrival by 18 minutes.");
+    expect(early.text).toContain("Early Arrival by 18 minutes.");
+
+    const meal = draftWarningNotice({
+      employeeName: "Martinez, Filemon",
+      date: "2026-06-07",
+      employeeCode: "FM2",
+      jobTitle: "Jewelry Technician",
+      manager: "Fahad",
+      lateMinutes: null,
+      shiftTier: "ten",
+      mealBreaks: [{ gapMinutes: 82, gapLabel: "1:22" }],
+      totalMealMinutes: 82,
+      violations: [
+        {
+          type: "long_meal",
+          message: "Meal break 1:22 exceeds 75 min limit",
+          severity: "error",
+        },
+      ],
+    });
+    expect(meal.caseId).toBe("HR-MEAL-FM2-2026-06-07");
+    expect(meal.description).toBe(
+      "Took a long meal break of 82 minutes (exceeds 75 min limit)."
+    );
+    expect(meal.text).toContain("long meal break of 82 minutes");
+  });
+
+  it("filters late, early, and long meal break violations", () => {
+    const mealEmp = {
+      ...shazia,
+      lateMinutes: null,
+      violations: [
+        { type: "long_meal" as const, message: "Meal break 1:22 exceeds 75 min limit", severity: "error" as const },
+      ],
+    };
+    const earlyEmp = { ...shazia, lateMinutes: null, earlyInMinutes: 14 };
+    expect(matchesViolationFilter(shazia, "all")).toBe(true);
+    expect(matchesViolationFilter(shazia, "late")).toBe(true);
+    expect(matchesViolationFilter(earlyEmp, "early")).toBe(true);
+    expect(matchesViolationFilter(earlyEmp, "late")).toBe(false);
+    expect(matchesViolationFilter(mealEmp, "meal")).toBe(true);
+    expect(matchesViolationFilter(shazia, "meal")).toBe(false);
   });
 });

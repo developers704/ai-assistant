@@ -5,7 +5,7 @@ import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/stor
 import { namesMatch } from "@/lib/hr/name-match";
 import {
   draftWarningNotice,
-  isLateForWarning,
+  isEligibleForHrNotice,
 } from "@/lib/hr/warning-notice";
 import {
   addWarningRemarks,
@@ -100,14 +100,14 @@ export async function GET(req: NextRequest) {
   if (!emp) {
     return NextResponse.json({ error: "Employee not found for that date" }, { status: 404 });
   }
-  if (!isLateForWarning(emp.lateMinutes) && !existing && !existingWriteUp) {
+  if (!isEligibleForHrNotice(emp) && !existing && !existingWriteUp) {
     return NextResponse.json(
-      { error: "Not late enough for a warning notice", employee: emp, warning: null, writeUp: null },
+      { error: "No attendance violation for a warning notice", employee: emp, warning: null, writeUp: null },
       { status: 400 }
     );
   }
 
-  const draft = isLateForWarning(emp.lateMinutes) ? draftWarningNotice(emp) : null;
+  const draft = isEligibleForHrNotice(emp) ? draftWarningNotice(emp) : null;
   return NextResponse.json({
     employee: emp,
     draft,
