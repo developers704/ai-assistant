@@ -10,7 +10,8 @@
  *   AFFIRM + AFFR + AFRIM → AFFIRM
  *   IDEA + IDEAL + IDDEAL → IDDEAL
  *   PROG + PROGR + PROGRE + PROGRESSIVE → PROG
- *   SYNC + SYNY + Synchrony truncations (SYNCHRO, …) → SYNC
+ *   SYNC + SYNY + Synchrony truncations (SYNCHRO, …) + GE → SYNC
+ *   CHK + CHECK → CHK
  *   WELLS + WELL + WELS + WELLS FARGO + WE → WELLS
  *
  * Applied at overlay parse so daily payment appends follow the same rule.
@@ -59,6 +60,9 @@ const ALIAS_TO_CANONICAL: Record<string, string> = {
   SYCHY: "SYNC",
   SYNCHRONY: "SYNC",
   SYNCHRO: "SYNC",
+  GE: "SYNC",
+  CHECK: "CHK",
+  CHK: "CHK",
   WELL: "WELLS",
   WELS: "WELLS",
   "WELLS FARGO": "WELLS",
@@ -75,7 +79,6 @@ export const PAYCODE_FILTER_ORDER = [
   "SYNC",
   "CHK",
   "FLEX",
-  "GE",
   "PROG",
   "ACIMA",
   "AFFIRM",

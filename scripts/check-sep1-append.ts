@@ -54,7 +54,7 @@ async function main() {
     dataThrough: dates.at(-1),
     paycodeSep1Applied: +paySum.toFixed(2),
     paycodeGroups: Object.fromEntries(
-      ["ACIMA", "AFFIRM", "IDDEAL", "PROG", "SYNC", "WELLS", "KAFE", "CASH", "CC", "GE"].map(
+      ["ACIMA", "AFFIRM", "IDDEAL", "PROG", "SYNC", "WELLS", "KAFE", "CASH", "CC"].map(
         (k) => [k, +(byName[k] ?? 0).toFixed(2)]
       )
     ),

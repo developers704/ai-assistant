@@ -36,7 +36,7 @@ import {
   sortPaycodeLabels,
 } from "@/lib/sales/paycode-normalize";
 
-export const PAYCODE_OVERLAY_VERSION = 5;
+export const PAYCODE_OVERLAY_VERSION = 6;
 export { canonicalPaycode, canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 
 export type PaycodeAmountMap = Map<string, number>;
