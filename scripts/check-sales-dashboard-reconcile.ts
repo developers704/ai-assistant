@@ -169,6 +169,7 @@ async function main() {
     "2026-08-23",
     "2026-08-24",
     "2026-09-01",
+    "2026-09-02",
   ]) {
     const csvNet = byDate.get(iso) ?? 0;
     const eng = summarizeRows(filterRows(rows, { dateFrom: iso, dateTo: iso }));
