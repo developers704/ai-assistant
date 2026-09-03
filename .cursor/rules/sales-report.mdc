@@ -70,7 +70,8 @@ Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CAS
 | **AFFIRM** | AFFIRM, AFFR, AFRIM |
 | **IDDEAL** | IDDEAL, IDEA, IDEAL |
 | **PROG** | PROG, PROGR, PROGRE, PROGRESSIVE |
-| **SYNC** | SYNC, SYCHY, SYNCH, SYNCHRONY, SYNCHRO, SYNCHY, SYNCY, SYNY |
+| **SYNC** | SYNC, SYCHY, SYNCH, SYNCHRONY, SYNCHRO, SYNCHY, SYNCY, SYNY, GE |
+| **CHK** | CHK, CHECK |
 | **WELLS** | WELLS, WELL, WELLS FARGO, WELS, WE |
 
 | POS Pay Code | Dashboard / filter |

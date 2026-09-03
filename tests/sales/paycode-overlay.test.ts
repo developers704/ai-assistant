@@ -428,7 +428,9 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(filterLabels).toContain("IDDEAL");
     expect(filterLabels).toContain("PROG");
     expect(filterLabels).toContain("SYNC");
-    expect(filterLabels).toContain("CHECK");
+    expect(filterLabels).toContain("CHK");
+    expect(filterLabels).not.toContain("CHECK");
+    expect(filterLabels).not.toContain("GE");
     expect(filterLabels).not.toContain("ACIM");
     expect(filterLabels).not.toContain("IDEA");
     expect(filterLabels).not.toContain("SYNY");
@@ -448,8 +450,9 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(byName["CASH"]).toBeCloseTo(418558.22, 2);
     expect(byName["ACIMA"]).toBeCloseTo(54492.64, 2);
     expect(byName["AFFIRM"]).toBeCloseTo(50071.93, 2);
+    expect(byName["SYNC"]).toBeCloseTo(555883.07, 2);
     expect(totals.length).toBeGreaterThan(10);
-    expect(totals.some((t) => t.name === "GE")).toBe(true);
+    expect(totals.some((t) => t.name === "GE")).toBe(false);
   });
 
   it("Paycodes card Aug 1-31 matches the uploaded payment CSV groups", () => {
@@ -464,10 +467,10 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(byName["ACIMA"]).toBeCloseTo(57407.64, 2);
     expect(byName["AFFIRM"]).toBeCloseTo(54271.93, 2);
     expect(byName["IDDEAL"]).toBeCloseTo(2351475.45, 2);
-    expect(byName["SYNC"]).toBeCloseTo(281906.44, 2);
+    expect(byName["SYNC"]).toBeCloseTo(551918.4, 2);
     expect(byName["PROG"]).toBeCloseTo(28030.96, 2);
     expect(byName["KAFE"]).toBeCloseTo(590487.54, 2);
-    expect(byName["CHECK"]).toBeCloseTo(-2000, 2);
+    expect(byName["CHK"]).toBeCloseTo(2232.14, 2);
   });
 
   it("paycode filter Net equals payment CSV Applied Amt for each alias group", () => {
@@ -479,7 +482,7 @@ describe("bundled Payment-Transactions.csv", () => {
       AFFIRM: 54271.93,
       IDDEAL: 2351475.45,
       PROG: 28030.96,
-      SYNC: 281906.44,
+      SYNC: 551918.4,
       WELLS: 376730.9,
     };
     for (const [code, amt] of Object.entries(expected)) {
@@ -498,14 +501,14 @@ describe("bundled Payment-Transactions.csv", () => {
     });
     const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
     expect(byName["IDDEAL"]).toBeCloseTo(33896.13, 2);
-    expect(byName["SYNC"]).toBeCloseTo(9732.38, 2);
+    expect(byName["SYNC"]).toBeCloseTo(16532.38, 2);
     expect(byName["WELLS"]).toBeCloseTo(3400, 2);
     expect(byName["AFFIRM"]).toBeCloseTo(1281.23, 2);
     expect(byName["KAFE"]).toBeCloseTo(19451.84, 2);
     expect(byName["CASH"]).toBeCloseTo(7498.59, 2);
     expect(byName["CC"]).toBeCloseTo(48296.83, 2);
-    expect(byName["GE"]).toBeCloseTo(6800, 2);
     expect(byName["PROG"]).toBeCloseTo(999, 2);
+    expect(byName["GE"]).toBeUndefined();
     const sum = totals.reduce((s, t) => s + t.revenue, 0);
     expect(sum).toBeCloseTo(131356, 2);
   });
@@ -522,9 +525,9 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(byName["IDDEAL"]).toBeCloseTo(29469.99, 2);
     expect(byName["WELLS"]).toBeCloseTo(20000, 2);
     expect(byName["KAFE"]).toBeCloseTo(17389.4, 2);
-    expect(byName["SYNC"]).toBeCloseTo(15902, 2);
+    expect(byName["SYNC"]).toBeCloseTo(17202, 2);
     expect(byName["CASH"]).toBeCloseTo(6291.64, 2);
-    expect(byName["GE"]).toBeCloseTo(1300, 2);
+    expect(byName["GE"]).toBeUndefined();
     expect(byName["ACIMA"]).toBeCloseTo(499, 2);
     expect(byName["PROG"]).toBeCloseTo(400.56, 2);
     expect(byName["AFFIRM"] ?? 0).toBeCloseTo(0, 2);

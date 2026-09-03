@@ -31,7 +31,7 @@ describe("canonicalPaycode", () => {
     expect(canonicalPaycode("IDEA")).toBe("IDDEAL");
   });
 
-  it("folds SYNC + SYNY + Synchrony truncations into SYNC", () => {
+  it("folds SYNC + SYNY + Synchrony truncations + GE into SYNC", () => {
     expect(canonicalPaycode("BB-SYNC")).toBe("SYNC");
     expect(canonicalPaycode("VJRE-SYNY")).toBe("SYNC");
     expect(canonicalPaycode("VJA-SYNCHY")).toBe("SYNC");
@@ -40,6 +40,14 @@ describe("canonicalPaycode", () => {
     expect(canonicalPaycode("VJVF-SYCHY")).toBe("SYNC");
     expect(canonicalPaycode("VJCH-SYNCHRONY")).toBe("SYNC");
     expect(canonicalPaycode("BB-SYNCHRO")).toBe("SYNC");
+    expect(canonicalPaycode("GM-GE")).toBe("SYNC");
+    expect(canonicalPaycode("GE")).toBe("SYNC");
+  });
+
+  it("folds CHECK + CHK into CHK", () => {
+    expect(canonicalPaycode("CORP-CHK")).toBe("CHK");
+    expect(canonicalPaycode("VJE-CHECK")).toBe("CHK");
+    expect(canonicalPaycode("CHECK")).toBe("CHK");
   });
 
   it("folds PROG + PROGR + PROGRE + PROGRESSIVE into PROG", () => {
@@ -79,10 +87,10 @@ describe("canonicalPaycode", () => {
   });
 
   it("orders the named methods first in the filter list", () => {
-    expect(sortPaycodeLabels(["GE", "ACIMA", "CASH", "IDDEAL", "WELLS"])).toEqual([
+    expect(sortPaycodeLabels(["SYNC", "ACIMA", "CASH", "IDDEAL", "WELLS"])).toEqual([
       "CASH",
       "IDDEAL",
-      "GE",
+      "SYNC",
       "ACIMA",
       "WELLS",
     ]);
@@ -101,12 +109,14 @@ describe("canonicalPaycode", () => {
   });
 
   it("flags POS truncations that must not appear as filter labels", () => {
-    expect(leakedPaycodeAliases(["ACIMA", "ACIM", "AFFIRM", "AFFR", "WELLS", "WELS", "WE", "SYNCHRO"])).toEqual([
+    expect(leakedPaycodeAliases(["ACIMA", "ACIM", "AFFIRM", "AFFR", "WELLS", "WELS", "WE", "SYNCHRO", "GE", "CHECK"])).toEqual([
       "ACIM",
       "AFFR",
       "WELS",
       "WE",
       "SYNCHRO",
+      "GE",
+      "CHECK",
     ]);
   });
 });
