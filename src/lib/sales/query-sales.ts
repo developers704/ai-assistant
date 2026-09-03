@@ -817,7 +817,13 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     rankings.lowestStores = groupRows(filtered, "store", 50, "netSales", "asc").slice(0, limit);
   }
   if (include.topDepartments) rankings.topDepartments = groupRows(filtered, "department", limit);
-  if (include.topDesigns) rankings.topDesigns = groupRows(filtered, "design", limit);
+  if (include.topDesigns) {
+    rankings.topDesigns = groupRows(
+      filtered,
+      "design",
+      input.salespeople?.length ? null : limit
+    );
+  }
   if (include.topVendors) rankings.topVendors = groupRows(filtered, "vendor", limit);
   if (include.topClasses) rankings.topClasses = groupRows(filtered, "class", limit);
   if (include.topPaycodes !== false) {

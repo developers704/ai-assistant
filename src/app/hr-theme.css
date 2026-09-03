@@ -853,6 +853,85 @@
   font-weight: 600;
 }
 
+.hr-empty-inline {
+  margin: 0;
+  padding: 1.1rem 1.05rem 1.25rem;
+  font-size: 0.875rem;
+  color: var(--hr-muted);
+}
+
+.hr-design-table-wrap {
+  max-height: 24rem;
+  overflow: auto;
+}
+
+.hr-design-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hr-design-table th,
+.hr-design-table td {
+  padding: 0.65rem 1.05rem;
+  font-size: 0.875rem;
+  text-align: left;
+  border-bottom: 1px solid var(--hr-line);
+}
+
+.hr-design-table thead th {
+  background: #f7f8fc;
+  font-weight: 600;
+  color: var(--hr-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+}
+
+.hr-design-table-num {
+  text-align: right;
+}
+
+.hr-design-table tbody {
+  display: table-row-group;
+}
+
+.hr-design-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.hr-design-name {
+  color: var(--hr-ink);
+  font-weight: 600;
+}
+
+.hr-design-rev {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--hr-teal);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hr-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.hr-sort-btn:hover {
+  color: var(--hr-ink);
+}
+
 /* Nested Athena sales widgets inside the light HR surface */
 .hr-sales-panel .text-white,
 .hr-sales-panel .text-white\/90,
