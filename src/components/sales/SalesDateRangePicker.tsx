@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
+import { useSurfaceTone } from "@/components/ui/surface-tone";
 
 const WEEKDAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
 const MONTHS_SHORT = [
@@ -108,6 +109,7 @@ export function SalesDateRangePicker({
   onChange,
   className,
 }: SalesDateRangePickerProps) {
+  const light = useSurfaceTone() === "light";
   const [openField, setOpenField] = useState<ActiveField | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>("days");
   const [draftFrom, setDraftFrom] = useState<string | null>(value?.from ?? null);
@@ -296,19 +298,27 @@ export function SalesDateRangePicker({
       {/* ERP-style: Date From: [____][📅]  To: [____][📅] */}
       <div
         className={cn(
-          "select-dark inline-flex h-9 items-center gap-2 sm:gap-3 px-2.5 sm:px-3 rounded-xl text-sm whitespace-nowrap",
-          "backdrop-blur-md"
+          "inline-flex h-10 items-center gap-2 sm:gap-3 px-2.5 sm:px-3 rounded-[11px] text-sm whitespace-nowrap",
+          light
+            ? "bg-white border border-[#d5dbe6] text-[#121826]"
+            : "select-dark h-9 backdrop-blur-md"
         )}
         aria-label={triggerLabel}
       >
         <label className="inline-flex items-center gap-1.5 min-w-0">
-          <span className="text-[12px] text-ink-muted shrink-0">Date From:</span>
+          <span className={cn("text-[12px] shrink-0", light ? "text-[#5e6b7a]" : "text-ink-muted")}>
+            Date From:
+          </span>
           <span
             className={cn(
-              "inline-flex h-7 items-stretch overflow-hidden rounded-md ring-1 bg-white/[0.04]",
-              openField === "from"
-                ? "ring-sky-400/55 bg-sky-500/15"
-                : "ring-white/15"
+              "inline-flex h-7 items-stretch overflow-hidden rounded-md ring-1",
+              light
+                ? openField === "from"
+                  ? "ring-[#6c4dff] bg-[#f1eeff]"
+                  : "ring-[#e4e8f0] bg-[#fbfcfe]"
+                : openField === "from"
+                  ? "ring-sky-400/55 bg-sky-500/15 bg-white/[0.04]"
+                  : "ring-white/15 bg-white/[0.04]"
             )}
           >
             <button
@@ -316,7 +326,10 @@ export function SalesDateRangePicker({
               onClick={() =>
                 openField === "from" ? discardAndClose() : openCalendar("from")
               }
-              className="min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums text-white/90 hover:bg-white/[0.06]"
+              className={cn(
+                "min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums",
+                light ? "text-[#121826] hover:bg-[#f1eeff]" : "text-white/90 hover:bg-white/[0.06]"
+              )}
               aria-label="Date from"
               aria-expanded={openField === "from"}
             >
@@ -327,7 +340,12 @@ export function SalesDateRangePicker({
               onClick={() =>
                 openField === "from" ? discardAndClose() : openCalendar("from")
               }
-              className="flex w-7 items-center justify-center border-l border-white/12 text-sky-300/90 hover:bg-white/10"
+              className={cn(
+                "flex w-7 items-center justify-center border-l",
+                light
+                  ? "border-[#e4e8f0] text-[#6c4dff] hover:bg-[#f1eeff]"
+                  : "border-white/12 text-sky-300/90 hover:bg-white/10"
+              )}
               aria-label="Open from calendar"
             >
               <CalendarDays size={14} />
@@ -336,13 +354,19 @@ export function SalesDateRangePicker({
         </label>
 
         <label className="inline-flex items-center gap-1.5 min-w-0">
-          <span className="text-[12px] text-ink-muted shrink-0">To:</span>
+          <span className={cn("text-[12px] shrink-0", light ? "text-[#5e6b7a]" : "text-ink-muted")}>
+            To:
+          </span>
           <span
             className={cn(
-              "inline-flex h-7 items-stretch overflow-hidden rounded-md ring-1 bg-white/[0.04]",
-              openField === "to"
-                ? "ring-sky-400/55 bg-sky-500/15"
-                : "ring-white/15"
+              "inline-flex h-7 items-stretch overflow-hidden rounded-md ring-1",
+              light
+                ? openField === "to"
+                  ? "ring-[#6c4dff] bg-[#f1eeff]"
+                  : "ring-[#e4e8f0] bg-[#fbfcfe]"
+                : openField === "to"
+                  ? "ring-sky-400/55 bg-sky-500/15 bg-white/[0.04]"
+                  : "ring-white/15 bg-white/[0.04]"
             )}
           >
             <button
@@ -350,7 +374,10 @@ export function SalesDateRangePicker({
               onClick={() =>
                 openField === "to" ? discardAndClose() : openCalendar("to")
               }
-              className="min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums text-white/90 hover:bg-white/[0.06]"
+              className={cn(
+                "min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums",
+                light ? "text-[#121826] hover:bg-[#f1eeff]" : "text-white/90 hover:bg-white/[0.06]"
+              )}
               aria-label="Date to"
               aria-expanded={openField === "to"}
             >
@@ -361,7 +388,12 @@ export function SalesDateRangePicker({
               onClick={() =>
                 openField === "to" ? discardAndClose() : openCalendar("to")
               }
-              className="flex w-7 items-center justify-center border-l border-white/12 text-sky-300/90 hover:bg-white/10"
+              className={cn(
+                "flex w-7 items-center justify-center border-l",
+                light
+                  ? "border-[#e4e8f0] text-[#6c4dff] hover:bg-[#f1eeff]"
+                  : "border-white/12 text-sky-300/90 hover:bg-white/10"
+              )}
               aria-label="Open to calendar"
             >
               <CalendarDays size={14} />
@@ -373,16 +405,33 @@ export function SalesDateRangePicker({
       {openField != null && (
         <div
           className={cn(
-            "absolute left-0 z-40 mt-2 w-[19rem] overflow-hidden rounded-xl",
-            "border border-white/12 bg-[#101826] shadow-2xl ring-1 ring-white/10"
+            "absolute left-0 z-40 mt-2 w-[19rem] overflow-hidden rounded-xl shadow-2xl",
+            light
+              ? "border border-[#e4e8f0] bg-white"
+              : "border border-white/12 bg-[#101826] ring-1 ring-white/10"
           )}
         >
           {/* ERP header: recent / selected date always on top */}
-          <div className="border-b border-white/10 bg-[#152033] px-3 py-2.5">
-            <p className="text-[13px] font-medium text-sky-100/90 tabular-nums">
+          <div
+            className={cn(
+              "border-b px-3 py-2.5",
+              light ? "border-[#e4e8f0] bg-[#f7f8fc]" : "border-white/10 bg-[#152033]"
+            )}
+          >
+            <p
+              className={cn(
+                "text-[13px] font-medium tabular-nums",
+                light ? "text-[#121826]" : "text-sky-100/90"
+              )}
+            >
               {headerIso ? longWeekdayDate(headerIso) : "Select a date"}
             </p>
-            <p className="mt-0.5 text-[10px] uppercase tracking-wide text-white/40">
+            <p
+              className={cn(
+                "mt-0.5 text-[10px] uppercase tracking-wide",
+                light ? "text-[#8b95a5]" : "text-white/40"
+              )}
+            >
               {openField === "from" ? "Date From" : "To"}
             </p>
           </div>
@@ -394,7 +443,12 @@ export function SalesDateRangePicker({
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <button
                     type="button"
-                    className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                    className={cn(
+                      "rounded-md p-1.5",
+                      light
+                        ? "text-[#5e6b7a] hover:bg-[#f1eeff] hover:text-[#121826]"
+                        : "text-white/55 hover:bg-white/10 hover:text-white"
+                    )}
                     onClick={() => setView((v) => addMonths(v.y, v.m, -1))}
                     aria-label="Previous month"
                   >
@@ -403,14 +457,24 @@ export function SalesDateRangePicker({
                   <button
                     type="button"
                     onClick={() => setPanelMode("months")}
-                    className="rounded-md px-2.5 py-1 text-sm font-semibold text-white/90 ring-1 ring-sky-400/35 bg-sky-500/15 hover:bg-sky-500/25"
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-sm font-semibold ring-1",
+                      light
+                        ? "text-[#6c4dff] ring-[#6c4dff]/30 bg-[#f1eeff] hover:bg-[#e8e2ff]"
+                        : "text-white/90 ring-sky-400/35 bg-sky-500/15 hover:bg-sky-500/25"
+                    )}
                     title="Show all months"
                   >
                     {monthLabel(view.y, view.m)}
                   </button>
                   <button
                     type="button"
-                    className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                    className={cn(
+                      "rounded-md p-1.5",
+                      light
+                        ? "text-[#5e6b7a] hover:bg-[#f1eeff] hover:text-[#121826]"
+                        : "text-white/55 hover:bg-white/10 hover:text-white"
+                    )}
                     onClick={() => setView((v) => addMonths(v.y, v.m, 1))}
                     aria-label="Next month"
                   >
@@ -424,7 +488,11 @@ export function SalesDateRangePicker({
                       key={w}
                       className={cn(
                         "flex h-7 items-center justify-center text-[10px] font-bold tracking-wide",
-                        i === 0 || i === 6 ? "text-red-400/90" : "text-white/40"
+                        i === 0 || i === 6
+                          ? "text-red-400/90"
+                          : light
+                            ? "text-[#8b95a5]"
+                            : "text-white/40"
                       )}
                     >
                       {w}
@@ -461,10 +529,13 @@ export function SalesDateRangePicker({
                           available &&
                             !selected &&
                             !weekend &&
-                            "text-white/80 hover:bg-white/10",
+                            (light ? "text-[#121826] hover:bg-[#f1eeff]" : "text-white/80 hover:bg-white/10"),
                           !available && weekend && cell.inMonth && "text-red-400/35",
-                          selected && !edge && "bg-sky-500/25 text-sky-50",
-                          edge && "bg-sky-500 text-white font-semibold",
+                          selected && !edge && (light ? "bg-[#f1eeff] text-[#6c4dff]" : "bg-sky-500/25 text-sky-50"),
+                          edge &&
+                            (light
+                              ? "bg-[#6c4dff] text-white font-semibold"
+                              : "bg-sky-500 text-white font-semibold"),
                           selected && !edge && "rounded-none",
                           edge &&
                             cell.iso === rangeFrom &&
@@ -490,7 +561,12 @@ export function SalesDateRangePicker({
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <button
                     type="button"
-                    className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                    className={cn(
+                      "rounded-md p-1.5",
+                      light
+                        ? "text-[#5e6b7a] hover:bg-[#f1eeff] hover:text-[#121826]"
+                        : "text-white/55 hover:bg-white/10 hover:text-white"
+                    )}
                     onClick={() => setView((v) => ({ y: v.y - 1, m: v.m }))}
                     aria-label="Previous year"
                   >
@@ -499,14 +575,24 @@ export function SalesDateRangePicker({
                   <button
                     type="button"
                     onClick={() => setPanelMode("days")}
-                    className="rounded-md px-2.5 py-1 text-sm font-semibold text-white/90 ring-1 ring-sky-400/35 bg-sky-500/15 hover:bg-sky-500/25"
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-sm font-semibold ring-1",
+                      light
+                        ? "text-[#6c4dff] ring-[#6c4dff]/30 bg-[#f1eeff] hover:bg-[#e8e2ff]"
+                        : "text-white/90 ring-sky-400/35 bg-sky-500/15 hover:bg-sky-500/25"
+                    )}
                     title="Back to days"
                   >
                     {view.y}
                   </button>
                   <button
                     type="button"
-                    className="rounded-md p-1.5 text-white/55 hover:bg-white/10 hover:text-white"
+                    className={cn(
+                      "rounded-md p-1.5",
+                      light
+                        ? "text-[#5e6b7a] hover:bg-[#f1eeff] hover:text-[#121826]"
+                        : "text-white/55 hover:bg-white/10 hover:text-white"
+                    )}
                     onClick={() => setView((v) => ({ y: v.y + 1, m: v.m }))}
                     aria-label="Next year"
                   >
@@ -527,10 +613,16 @@ export function SalesDateRangePicker({
                         className={cn(
                           "rounded-md py-2.5 text-[13px] font-medium transition-colors",
                           isCurrent
-                            ? "bg-sky-500 text-white"
+                            ? light
+                              ? "bg-[#6c4dff] text-white"
+                              : "bg-sky-500 text-white"
                             : hasData
-                              ? "text-white/85 hover:bg-white/10"
-                              : "text-white/35 hover:bg-white/[0.06]"
+                              ? light
+                                ? "text-[#121826] hover:bg-[#f1eeff]"
+                                : "text-white/85 hover:bg-white/10"
+                              : light
+                                ? "text-[#8b95a5] hover:bg-[#f7f8fc]"
+                                : "text-white/35 hover:bg-white/[0.06]"
                         )}
                       >
                         {label}

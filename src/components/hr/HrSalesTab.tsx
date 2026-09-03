@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { formatCurrency, sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
 import type { SalesSummary } from "@/types";
 import type { ReportSummary } from "@/lib/reports/types";
@@ -184,7 +183,9 @@ export function HrSalesTab() {
   if (!summary) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="animate-pulse text-ink-muted">Loading employee sales…</div>
+        <div className="animate-pulse" style={{ color: "#8b95a5" }}>
+          Loading employee sales…
+        </div>
       </div>
     );
   }
@@ -198,122 +199,126 @@ export function HrSalesTab() {
   const salespeople = reportSummary?.topSalesPeople ?? [];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        {availableSalespeople.length > 0 && (
-          <SalesMultiSelectFilter
-            label="Employee"
-            allLabel="All employees"
-            options={availableSalespeople}
-            value={filterSalespeople}
-            onChange={setFilterSalespeople}
-          />
-        )}
-        <SalesDateRangePicker
-          availableDates={availableDates}
-          reportRange={
-            reportSummary?.dateRange ??
-            (availableDates.length
-              ? { from: availableDates[0]!, to: availableDates[availableDates.length - 1]! }
-              : null)
-          }
-          value={dateRange}
-          onChange={setDateRange}
-        />
-        {availableStores.length > 0 && (
-          <SalesMultiSelectFilter
-            label="Stores"
-            allLabel="All stores"
-            options={availableStores}
-            value={filterStores}
-            onChange={setFilterStores}
-          />
-        )}
-        {availableDepartments.length > 0 && (
-          <SalesMultiSelectFilter
-            label="Departments"
-            allLabel="All departments"
-            options={availableDepartments}
-            value={filterDepartments}
-            onChange={setFilterDepartments}
-          />
-        )}
-        {availableDesigns.length > 0 && (
-          <SalesMultiSelectFilter
-            label="Designs"
-            allLabel="All designs"
-            options={availableDesigns}
-            value={filterDesigns}
-            onChange={setFilterDesigns}
-          />
-        )}
-        {!hideVendors && availableVendors.length > 0 && (
-          <SalesMultiSelectFilter
-            label="Vendors"
-            allLabel="All vendors"
-            options={availableVendors}
-            value={filterVendors}
-            onChange={setFilterVendors}
-          />
-        )}
-        {availableClasses.length > 0 && (
-          <SalesMultiSelectFilter
-            label="Classes"
-            allLabel="All classes"
-            options={availableClasses}
-            value={filterClasses}
-            onChange={setFilterClasses}
-          />
-        )}
-        {availableSubClasses.length > 0 && (
-          <SalesMultiSelectFilter
-            label="Subclasses"
-            allLabel="All subclasses"
-            options={availableSubClasses}
-            value={filterSubclasses}
-            onChange={setFilterSubclasses}
-          />
-        )}
+    <div className="hr-sales-panel space-y-4">
+      <div className="hr-filters" style={{ marginTop: 0 }}>
+        <div className="hr-field" style={{ gridColumn: "1 / -1" }}>
+          <span className="hr-field-label">Filters</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {availableSalespeople.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Employee"
+                allLabel="All employees"
+                options={availableSalespeople}
+                value={filterSalespeople}
+                onChange={setFilterSalespeople}
+              />
+            )}
+            <SalesDateRangePicker
+              availableDates={availableDates}
+              reportRange={
+                reportSummary?.dateRange ??
+                (availableDates.length
+                  ? { from: availableDates[0]!, to: availableDates[availableDates.length - 1]! }
+                  : null)
+              }
+              value={dateRange}
+              onChange={setDateRange}
+            />
+            {availableStores.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Stores"
+                allLabel="All stores"
+                options={availableStores}
+                value={filterStores}
+                onChange={setFilterStores}
+              />
+            )}
+            {availableDepartments.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Departments"
+                allLabel="All departments"
+                options={availableDepartments}
+                value={filterDepartments}
+                onChange={setFilterDepartments}
+              />
+            )}
+            {availableDesigns.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Designs"
+                allLabel="All designs"
+                options={availableDesigns}
+                value={filterDesigns}
+                onChange={setFilterDesigns}
+              />
+            )}
+            {!hideVendors && availableVendors.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Vendors"
+                allLabel="All vendors"
+                options={availableVendors}
+                value={filterVendors}
+                onChange={setFilterVendors}
+              />
+            )}
+            {availableClasses.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Classes"
+                allLabel="All classes"
+                options={availableClasses}
+                value={filterClasses}
+                onChange={setFilterClasses}
+              />
+            )}
+            {availableSubClasses.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Subclasses"
+                allLabel="All subclasses"
+                options={availableSubClasses}
+                value={filterSubclasses}
+                onChange={setFilterSubclasses}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wide text-white/40">Net Sales</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums text-emerald-300">
+      <div className="hr-sales-kpis">
+        <div className="hr-kpi">
+          <div className="hr-kpi-label">Net Sales</div>
+          <div className="hr-kpi-value" style={{ color: "#0e9f90" }}>
             {formatCurrency(summary.totalRevenue)}
-          </p>
+          </div>
         </div>
-        <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wide text-white/40">Units</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums text-white">
-            {(summary.totalTransactions ?? 0).toLocaleString()}
-          </p>
+        <div className="hr-kpi">
+          <div className="hr-kpi-label">Units</div>
+          <div className="hr-kpi-value">{(summary.totalTransactions ?? 0).toLocaleString()}</div>
         </div>
-        <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wide text-white/40">Employee</p>
-          <p className="mt-1 text-sm font-medium text-white truncate">
+        <div className="hr-kpi">
+          <div className="hr-kpi-label">Employee</div>
+          <div className="hr-kpi-value" style={{ fontSize: "1.05rem" }}>
             {filterSalespeople.length ? filterSalespeople.join(", ") : "All employees"}
-          </p>
+          </div>
         </div>
       </div>
 
       {filterSalespeople.length === 0 && salespeople.length > 0 && (
-        <Card className="p-0 overflow-hidden">
-          <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <UserRound size={17} className="text-sky-300" />
-              Employee sales
-            </CardTitle>
-            <span className="text-xs text-ink-muted">
-              {salespeople.length} associates · tap to filter Name (CODE)
-            </span>
-          </CardHeader>
-          <ul className="max-h-64 overflow-y-auto divide-y divide-white/5">
+        <div className="hr-panel">
+          <div className="hr-panel-head">
+            <div>
+              <h3 className="hr-panel-title">
+                <UserRound size={17} />
+                Employee sales
+              </h3>
+              <p className="hr-panel-sub">
+                {salespeople.length} associates · tap to filter Name (CODE)
+              </p>
+            </div>
+          </div>
+          <ul className="hr-people-list">
             {salespeople.slice(0, 40).map((p) => (
               <li key={p.code ?? p.name}>
                 <button
                   type="button"
-                  className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-white/[0.04]"
                   onClick={() => {
                     const label =
                       availableSalespeople.find((s) => s === p.name) ??
@@ -322,28 +327,28 @@ export function HrSalesTab() {
                     setFilterSalespeople([label]);
                   }}
                 >
-                  <span className="text-sm text-white/90 truncate">{p.name}</span>
-                  <span className="text-sm tabular-nums text-emerald-300 shrink-0">
-                    {formatCurrency(p.revenue)}
-                  </span>
+                  <span className="truncate">{p.name}</span>
+                  <span className="hr-people-rev">{formatCurrency(p.revenue)}</span>
                 </button>
               </li>
             ))}
           </ul>
-        </Card>
+        </div>
       )}
 
-      <Card className="p-0 overflow-hidden">
-        <CardHeader className="px-4 pt-4 pb-3 border-b border-white/10">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Package size={17} className="text-sky-300" />
-            Employee products
-          </CardTitle>
-          <span className="text-xs text-ink-muted">
-            Picture · vendor model · SKU · description · sort Qty / Revenue / Margin · show/hide
-            columns
-          </span>
-        </CardHeader>
+      <div className="hr-panel">
+        <div className="hr-panel-head">
+          <div>
+            <h3 className="hr-panel-title">
+              <Package size={17} />
+              Employee products
+            </h3>
+            <p className="hr-panel-sub">
+              Picture · vendor model · SKU · description · sort Qty / Revenue / Margin · show/hide
+              columns
+            </p>
+          </div>
+        </div>
         <div className="p-3 sm:p-4">
           <TopProductsTable
             products={topProducts}
@@ -363,7 +368,7 @@ export function HrSalesTab() {
             }
           />
         </div>
-      </Card>
+      </div>
 
       <VendorModelDetailDrawer
         selection={vendorModelDetail}
@@ -380,3 +385,4 @@ export function HrSalesTab() {
     </div>
   );
 }
+

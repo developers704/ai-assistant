@@ -2,8 +2,6 @@
 
 import { useEffect, useState, type MouseEvent } from "react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { HrEmployeeDay, HrViolation, HrWarningNotice } from "@/lib/hr/types";
 import { MISSING_PUNCH_LABEL } from "@/lib/hr/window";
@@ -31,28 +29,27 @@ import {
   Reply,
 } from "lucide-react";
 
-function violationBadge(v: HrViolation) {
-  const colors: Record<string, string> = {
-    missing_punch: "bg-rose-500/20 text-rose-200 ring-rose-400/30",
-    late: "bg-orange-500/20 text-orange-100 ring-orange-400/30",
-    early_in: "bg-sky-500/20 text-sky-100 ring-sky-400/30",
-    no_schedule: "bg-amber-500/20 text-amber-100 ring-amber-400/30",
-    long_meal: "bg-fuchsia-500/20 text-fuchsia-100 ring-fuchsia-400/30",
-    short_meal_total: "bg-fuchsia-500/20 text-fuchsia-100 ring-fuchsia-400/30",
-    excessive_meal_total: "bg-fuchsia-500/20 text-fuchsia-100 ring-fuchsia-400/30",
-    meal_count: "bg-violet-500/20 text-violet-100 ring-violet-400/30",
-  };
-  return (
-    <span
-      key={`${v.type}-${v.message}`}
-      className={cn(
-        "inline-flex items-center rounded-lg px-2 py-0.5 text-xs ring-1",
-        colors[v.type] ?? "bg-white/10 text-white/70 ring-white/20"
-      )}
-    >
-      {v.message}
-    </span>
-  );
+const AVATAR_TONES = [
+  { bg: "#f1eeff", fg: "#6c4dff" },
+  { bg: "#e7f7f4", fg: "#0e9f90" },
+  { bg: "#eef4ff", fg: "#2563eb" },
+  { bg: "#fff4eb", fg: "#c2410c" },
+  { bg: "#fff1f3", fg: "#e11d48" },
+] as const;
+
+function employeeInitials(name: string): string {
+  const cleaned = name.replace(/^\d+\s*,\s*/, "").trim() || name.trim();
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return `${words[0]![0] ?? ""}${words[1]![0] ?? ""}`.toUpperCase();
+  }
+  return cleaned.slice(0, 2).toUpperCase() || "?";
+}
+
+function avatarTone(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_TONES[hash % AVATAR_TONES.length]!;
 }
 
 function formatStamp(iso: string): string {
@@ -64,6 +61,10 @@ function formatStamp(iso: string): string {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function violationLabel(v: HrViolation): string {
+  return v.message;
 }
 
 function RemarksPanel({
@@ -118,22 +119,20 @@ function RemarksPanel({
   };
 
   return (
-    <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 p-3 space-y-2">
-      <div className="flex items-center justify-between gap-2">
+    <div className="hr-thread">
+      <div className="hr-thread-head">
         <div>
-          <div className="text-sm font-medium text-white">{label} remarks</div>
-          <div className="text-[11px] text-white/40">
-            Employee replies to {warning.subject}
-          </div>
+          <div className="hr-thread-title">{label} remarks</div>
+          <div className="hr-thread-sub">Employee replies to {warning.subject}</div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button type="button" size="sm" variant="outline" onClick={() => void sync()} disabled={syncing}>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button type="button" className="hr-btn hr-btn-outline hr-btn-sm" onClick={() => void sync()} disabled={syncing}>
             {syncing ? <Loader2 size={14} className="animate-spin" /> : null}
             Sync replies
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            size="sm"
+            className="hr-btn hr-btn-primary hr-btn-sm"
             onClick={() => {
               setReplyOpen((o) => !o);
               setError(null);
@@ -141,61 +140,67 @@ function RemarksPanel({
           >
             <Reply size={14} />
             Reply
-          </Button>
+          </button>
         </div>
       </div>
       {error && (
-        <p className="text-xs text-rose-200">
+        <p className="hr-alert hr-alert-err" style={{ marginTop: "0.75rem", marginBottom: 0 }}>
           {error}{" "}
           {/e-mails/i.test(error) && (
-            <Link href="/valliani-mail" className="underline text-sky-200">
+            <Link href="/valliani-mail" className="hr-link">
               Open E-Mails
             </Link>
           )}
         </p>
       )}
-      {status && <p className="text-xs text-emerald-200">{status}</p>}
+      {status && (
+        <p className="hr-alert hr-alert-ok" style={{ marginTop: "0.75rem", marginBottom: 0 }}>
+          {status}
+        </p>
+      )}
       {warning.remarks.length === 0 ? (
-        <p className="text-xs text-white/45">No employee reply yet.</p>
+        <p className="hr-footnote" style={{ marginTop: "0.75rem" }}>
+          No employee reply yet.
+        </p>
       ) : (
-        <div className="space-y-2">
+        <div className="hr-bubbles">
           {warning.remarks.map((r) => {
             const body = stripQuotedReply(r.body);
             if (!body) return null;
             const fromHr = r.fromEmail.toLowerCase() === HR_WARNING_FROM.toLowerCase();
             return (
-              <div key={r.id} className="rounded-md bg-black/20 px-3 py-2">
-                <div className="text-xs text-white/55">
+              <div key={r.id} className={cn("hr-bubble", fromHr ? "hr-bubble-out" : "hr-bubble-in")}>
+                <div className="hr-bubble-meta">
                   {fromHr ? "You" : r.fromName || r.fromEmail || "Employee"} · {formatStamp(r.sentAt)}
                 </div>
-                <div className="text-sm text-white/90 whitespace-pre-wrap mt-1">{body}</div>
+                <div className="hr-bubble-body">{body}</div>
               </div>
             );
           })}
         </div>
       )}
       {replyOpen && (
-        <div className="space-y-2 pt-1">
+        <div className="space-y-2 pt-3">
           <textarea
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             rows={4}
             placeholder="Write a reply — sent on the same email thread"
-            className="w-full rounded-lg bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/35 ring-1 ring-white/15 focus:outline-none focus:ring-indigo-400/50"
+            className="hr-textarea"
           />
           <div className="flex justify-end gap-2">
-            <Button type="button" size="sm" variant="ghost" onClick={() => setReplyOpen(false)}>
+            <button type="button" className="hr-btn hr-btn-ghost hr-btn-sm" onClick={() => setReplyOpen(false)}>
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              size="sm"
+              className="hr-btn hr-btn-primary hr-btn-sm"
               onClick={() => void sendReply()}
               disabled={sendingReply || !replyText.trim()}
             >
               {sendingReply ? <Loader2 size={14} className="animate-spin" /> : <Reply size={14} />}
               Send reply
-            </Button>
+            </button>
           </div>
         </div>
       )}
@@ -226,6 +231,16 @@ export function HrAttendanceEmployeeRow({
   }, [emp.warning, emp.writeUp]);
   const hasError = emp.violations.some((v) => v.severity === "error");
   const canSendNotice = isEligibleForHrNotice(emp);
+  const tone = avatarTone(emp.employeeName);
+  const late = emp.lateMinutes != null && emp.lateMinutes >= 12;
+  const early = emp.earlyInMinutes != null && emp.earlyInMinutes >= 10;
+  const mealFlag = emp.violations.some(
+    (v) =>
+      v.type === "long_meal" ||
+      v.type === "excessive_meal_total" ||
+      v.type === "short_meal_total" ||
+      v.type === "meal_count"
+  );
 
   const sendWarning = async (event: MouseEvent) => {
     event.stopPropagation();
@@ -278,100 +293,82 @@ export function HrAttendanceEmployeeRow({
     }
   };
 
+  const roleLine = [emp.jobTitle, emp.store].filter((s) => s?.trim()).join(" · ");
+
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden",
-        hasError && "ring-1 ring-rose-400/40"
-      )}
-    >
-      <div className="flex items-stretch gap-2 px-4 py-3 hover:bg-white/[0.04]">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex-1 min-w-0 flex items-center gap-3 text-left"
-        >
-        {open ? (
-          <ChevronDown size={16} className="text-white/40 shrink-0" />
-        ) : (
-          <ChevronRight size={16} className="text-white/40 shrink-0" />
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-white truncate">{emp.employeeName}</div>
-          <div className="text-xs text-white/45 mt-0.5">
-            {emp.schedule
-              ? `Scheduled ${emp.schedule.start} – ${emp.schedule.end} (${emp.schedule.scheduledLabel})`
-              : "No schedule on file"}
-          </div>
-          <div className="flex flex-wrap gap-2 mt-1.5">
-            <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-100 ring-1 ring-emerald-400/25">
-              Worked Hrs {emp.totalWorkLabel}
+    <div className={cn("hr-emp", hasError && "hr-emp-error")}>
+      <div className="hr-emp-head">
+        <button type="button" onClick={() => setOpen((o) => !o)} className="hr-emp-main">
+          {open ? (
+            <ChevronDown size={16} className="shrink-0 mt-1.5" style={{ color: "#8b95a5" }} />
+          ) : (
+            <ChevronRight size={16} className="shrink-0 mt-1.5" style={{ color: "#8b95a5" }} />
+          )}
+          <span className="hr-avatar" style={{ background: tone.bg, color: tone.fg }}>
+            {employeeInitials(emp.employeeName)}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="hr-emp-name block truncate">{emp.employeeName}</span>
+            <span className="hr-emp-meta block truncate">
+              {emp.schedule
+                ? `${roleLine ? `${roleLine} · ` : ""}Scheduled ${emp.schedule.start} – ${emp.schedule.end}`
+                : roleLine || "No schedule on file"}
             </span>
-            <span className="inline-flex items-center rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-100 ring-1 ring-amber-400/25">
-              Meal {emp.totalMealMinutes} min
-              {emp.expectedMealMinutes > 0 && (
-                <span className="text-amber-200/60 font-normal"> / {emp.expectedMealMinutes}</span>
+            <span className="hr-stat-row">
+              <span>
+                Worked <strong>{emp.totalWorkLabel}</strong>
+              </span>
+              <span>
+                Meal{" "}
+                <strong>
+                  {emp.totalMealMinutes}m
+                  {emp.expectedMealMinutes > 0 ? ` / ${emp.expectedMealMinutes}` : ""}
+                </strong>
+              </span>
+              {emp.schedule && (
+                <span>
+                  Shift <strong>{emp.schedule.scheduledLabel}</strong>
+                </span>
               )}
             </span>
-            {emp.schedule && (
-              <span className="inline-flex items-center rounded-md bg-sky-500/15 px-2 py-0.5 text-xs font-medium text-sky-100 ring-1 ring-sky-400/25">
-                Schedule hrs {emp.schedule.scheduledLabel}
-              </span>
-            )}
-            {emp.lateMinutes != null && emp.lateMinutes >= 12 && (
-              <span className="inline-flex items-center rounded-md bg-orange-500/15 px-2 py-0.5 text-xs font-medium text-orange-100 ring-1 ring-orange-400/25">
-                Late {emp.lateMinutes} min
-              </span>
-            )}
-            {emp.earlyInMinutes != null && emp.earlyInMinutes >= 10 && (
-              <span className="inline-flex items-center rounded-md bg-violet-500/15 px-2 py-0.5 text-xs font-medium text-violet-100 ring-1 ring-violet-400/30">
-                Early {emp.earlyInMinutes} min
-              </span>
-            )}
-            {warning && (
-              <Badge variant="info" className="text-[11px]">
-                Warning sent
-              </Badge>
-            )}
-            {writeUp && (
-              <Badge variant="warning" className="text-[11px]">
-                Write-up sent
-              </Badge>
-            )}
-          </div>
-        </div>
+            <span className="hr-pills">
+              {late && <span className="hr-pill hr-pill-warn">Late {emp.lateMinutes} min</span>}
+              {early && <span className="hr-pill hr-pill-info">Early {emp.earlyInMinutes} min</span>}
+              {mealFlag && <span className="hr-pill hr-pill-warn">Meal break</span>}
+              {warning && <span className="hr-pill hr-pill-sent">Warning sent</span>}
+              {writeUp && <span className="hr-pill hr-pill-gold">Write-up sent</span>}
+            </span>
+          </span>
         </button>
-        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 self-center">
+        <div className="hr-emp-actions">
           {canSendNotice && !warning && (
-            <Button
+            <button
               type="button"
-              size="sm"
+              className="hr-btn hr-btn-primary hr-btn-sm"
               data-action="send-warning"
               onClick={(e) => void sendWarning(e)}
               disabled={sending || sendingWriteUp}
             >
               {sending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
               Send warning
-            </Button>
+            </button>
           )}
           {canSendNotice && !writeUp && (
-            <Button
+            <button
               type="button"
-              size="sm"
-              variant="outline"
+              className="hr-btn hr-btn-outline hr-btn-sm"
               data-action="send-write-up"
               onClick={openWriteUp}
               disabled={sending || sendingWriteUp}
             >
               <FileText size={14} />
               Write up
-            </Button>
+            </button>
           )}
           {warning && (
-            <Button
+            <button
               type="button"
-              size="sm"
-              variant="outline"
+              className="hr-btn hr-btn-outline hr-btn-sm"
               data-action="warning-remarks"
               onClick={() => {
                 setRemarksOpen((o) => !o);
@@ -380,13 +377,12 @@ export function HrAttendanceEmployeeRow({
             >
               <MessageSquare size={14} />
               Warning remarks{warning.remarks.length ? ` (${warning.remarks.length})` : ""}
-            </Button>
+            </button>
           )}
           {writeUp && (
-            <Button
+            <button
               type="button"
-              size="sm"
-              variant="outline"
+              className="hr-btn hr-btn-outline hr-btn-sm"
               data-action="write-up-remarks"
               onClick={() => {
                 setWriteUpRemarksOpen((o) => !o);
@@ -395,64 +391,66 @@ export function HrAttendanceEmployeeRow({
             >
               <MessageSquare size={14} />
               Write-up remarks{writeUp.remarks.length ? ` (${writeUp.remarks.length})` : ""}
-            </Button>
+            </button>
           )}
           {emp.violations.length > 0 && (
-            <AlertTriangle size={16} className={hasError ? "text-rose-400" : "text-amber-400"} />
+            <AlertTriangle size={16} style={{ color: hasError ? "#e11d48" : "#c2410c" }} />
           )}
         </div>
       </div>
 
       {open && (
-        <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
+        <div className="hr-emp-body">
           {error && (
-            <div className="rounded-lg bg-rose-500/10 ring-1 ring-rose-400/25 px-3 py-2 text-sm text-rose-100">
+            <div className="hr-alert hr-alert-err">
               {error}{" "}
               {/e-mails/i.test(error) && (
-                <Link href="/valliani-mail" className="underline text-sky-200">
+                <Link href="/valliani-mail" className="hr-link">
                   Open E-Mails
                 </Link>
               )}
             </div>
           )}
           {emp.violations.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {emp.violations.map((v) => violationBadge(v))}
+            <div className="flex flex-col gap-1.5">
+              {emp.violations.map((v) => (
+                <div
+                  key={`${v.type}-${v.message}`}
+                  className={v.severity === "error" ? "hr-alert hr-alert-err" : "hr-callout"}
+                  style={{ marginBottom: 0 }}
+                >
+                  {violationLabel(v)}
+                </div>
+              ))}
             </div>
           )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="hr-table-wrap">
+            <table className="hr-table">
               <thead>
-                <tr className="text-left text-white/40 text-xs">
-                  <th className="pb-2 pr-3">Time In</th>
-                  <th className="pb-2 pr-3">Time Out</th>
-                  <th className="pb-2 pr-3">Gap</th>
-                  <th className="pb-2 pr-3">Work</th>
-                  <th className="pb-2">Flags</th>
+                <tr>
+                  <th>Time In</th>
+                  <th>Time Out</th>
+                  <th>Gap</th>
+                  <th>Work</th>
+                  <th>Flags</th>
                 </tr>
               </thead>
               <tbody>
                 {emp.segments.map((seg, i) => (
-                  <tr
-                    key={i}
-                    className={cn(
-                      "border-t border-white/5",
-                      seg.violations.length > 0 && "bg-rose-500/5"
-                    )}
-                  >
-                    <td className={cn("py-2 pr-3 tabular-nums", !seg.timeIn?.trim() && "text-rose-300")}>
+                  <tr key={i} className={cn(seg.violations.length > 0 && "hr-row-flag")}>
+                    <td className={cn(!seg.timeIn?.trim() && "hr-missing")}>
                       {seg.timeIn?.trim() ? seg.timeIn : MISSING_PUNCH_LABEL}
                     </td>
-                    <td className={cn("py-2 pr-3 tabular-nums", !seg.timeOut?.trim() && "text-rose-300")}>
+                    <td className={cn(!seg.timeOut?.trim() && "hr-missing")}>
                       {seg.timeOut?.trim() ? seg.timeOut : MISSING_PUNCH_LABEL}
                     </td>
-                    <td className="py-2 pr-3 tabular-nums text-white/60">
+                    <td>
                       {seg.gapMinutes != null ? (
                         <span
                           className={cn(
-                            seg.gapKind === "meal_break" && "text-amber-200",
-                            seg.gapKind === "short_break" && "text-white/40"
+                            seg.gapKind === "meal_break" && "hr-gap-meal",
+                            seg.gapKind === "short_break" && "hr-gap-rest"
                           )}
                         >
                           {seg.gapFromPrevious ??
@@ -464,11 +462,11 @@ export function HrAttendanceEmployeeRow({
                         "—"
                       )}
                     </td>
-                    <td className="py-2 pr-3 tabular-nums">{seg.workLabel}</td>
-                    <td className="py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {seg.violations.map((v) => violationBadge(v))}
-                      </div>
+                    <td>{seg.workLabel}</td>
+                    <td>
+                      {seg.violations.length
+                        ? seg.violations.map((v) => v.message).join(" · ")
+                        : "—"}
                     </td>
                   </tr>
                 ))}
@@ -477,66 +475,59 @@ export function HrAttendanceEmployeeRow({
           </div>
 
           {emp.shiftTier && (
-            <p className="text-xs text-white/40">
+            <p className="hr-footnote">
               Shift tier: {emp.shiftTier === "ten" ? "≤10h" : emp.shiftTier === "eleven" ? "11h" : "≥12h"}
               {" · "}Expected {emp.expectedMealCount} meal(s), {emp.expectedMealMinutes} min total
               {" · "}Short/rest breaks: {emp.shortBreaks.length}
             </p>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-            <div className="rounded-lg bg-emerald-500/10 px-3 py-2 ring-1 ring-emerald-400/20">
-              <div className="text-[10px] uppercase tracking-wide text-emerald-200/60">Worked Hrs</div>
-              <div className="text-lg font-semibold text-emerald-50 tabular-nums">{emp.totalWorkLabel}</div>
+          <div className="hr-metric-grid">
+            <div className="hr-metric">
+              <div className="hr-metric-label">Worked hrs</div>
+              <div className="hr-metric-value">{emp.totalWorkLabel}</div>
             </div>
-            <div className="rounded-lg bg-amber-500/10 px-3 py-2 ring-1 ring-amber-400/20">
-              <div className="text-[10px] uppercase tracking-wide text-amber-200/60">Total meal break</div>
-              <div className="text-lg font-semibold text-amber-50 tabular-nums">
-                {emp.totalMealMinutes} min
-              </div>
+            <div className="hr-metric">
+              <div className="hr-metric-label">Total meal break</div>
+              <div className="hr-metric-value">{emp.totalMealMinutes} min</div>
             </div>
             {emp.schedule && (
-              <div className="rounded-lg bg-white/5 px-3 py-2 ring-1 ring-white/10 col-span-2 sm:col-span-1">
-                <div className="text-[10px] uppercase tracking-wide text-white/40">Scheduled</div>
-                <div className="text-sm font-medium text-white/90">
+              <div className="hr-metric">
+                <div className="hr-metric-label">Scheduled</div>
+                <div className="hr-metric-value" style={{ fontSize: "0.92rem" }}>
                   {emp.schedule.start} – {emp.schedule.end}{" "}
-                  <span className="text-white/50">({emp.schedule.scheduledLabel})</span>
+                  <span style={{ color: "#8b95a5", fontWeight: 600 }}>({emp.schedule.scheduledLabel})</span>
                 </div>
               </div>
             )}
           </div>
 
           {writeUpOpen && !writeUp && (
-            <div
-              className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 p-3 space-y-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div>
-                <div className="text-sm font-medium text-white">Write-up description</div>
-                <div className="text-[11px] text-white/40">
-                  Typed here for this employee only — it goes on the Disciplinary Action Form PDF when you send.
-                </div>
+            <div className="hr-composer" onClick={(e) => e.stopPropagation()}>
+              <div className="hr-thread-title">Write-up description</div>
+              <div className="hr-thread-sub" style={{ marginBottom: "0.65rem" }}>
+                Typed here for this employee only — it goes on the Disciplinary Action Form PDF when you send.
               </div>
               <textarea
                 value={writeUpText}
                 onChange={(e) => setWriteUpText(e.target.value)}
                 rows={5}
                 placeholder="Describe the incident for this employee…"
-                className="w-full rounded-lg bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/35 ring-1 ring-white/15 focus:outline-none focus:ring-indigo-400/50"
+                className="hr-textarea"
               />
-              <div className="flex justify-end gap-2">
-                <Button type="button" size="sm" variant="ghost" onClick={() => setWriteUpOpen(false)}>
+              <div className="flex justify-end gap-2" style={{ marginTop: "0.65rem" }}>
+                <button type="button" className="hr-btn hr-btn-ghost hr-btn-sm" onClick={() => setWriteUpOpen(false)}>
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   type="button"
-                  size="sm"
+                  className="hr-btn hr-btn-primary hr-btn-sm"
                   onClick={() => void sendWriteUp()}
                   disabled={sendingWriteUp || !writeUpText.trim()}
                 >
                   {sendingWriteUp ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
                   Send write-up
-                </Button>
+                </button>
               </div>
             </div>
           )}
