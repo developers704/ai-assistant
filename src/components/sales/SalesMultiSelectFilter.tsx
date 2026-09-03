@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSurfaceTone, type SurfaceTone } from "@/components/ui/surface-tone";
 
 type Props = {
   label: string;
@@ -22,6 +23,8 @@ type Props = {
   optionMatches?: (option: string, query: string) => boolean;
   /** When nothing is selected, treat this option as the checked “all” row. */
   treatEmptyAsAllValue?: string;
+  /** Override surface; otherwise inherits HR light / Athena dark from context. */
+  theme?: SurfaceTone;
 };
 
 /**
@@ -40,7 +43,10 @@ export function SalesMultiSelectFilter({
   formatOption,
   optionMatches,
   treatEmptyAsAllValue,
+  theme,
 }: Props) {
+  const tone = useSurfaceTone();
+  const light = (theme ?? tone) === "light";
   const labelOf = (v: string) => formatOption?.(v) ?? v;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -154,42 +160,64 @@ export function SalesMultiSelectFilter({
               width: menuPos.width,
               zIndex: 80,
             }}
-            className="rounded-lg border border-slate-600 bg-slate-900 shadow-xl overflow-hidden"
+            className={cn(
+              "rounded-lg border shadow-xl overflow-hidden",
+              light
+                ? "border-[#e4e8f0] bg-white"
+                : "border-slate-600 bg-slate-900"
+            )}
             role="listbox"
             aria-multiselectable
             aria-label={label}
           >
-            <div className="flex items-center gap-2 px-2.5 py-2 border-b border-slate-700 bg-slate-950">
-              <Search size={14} className="text-slate-400 shrink-0" />
+            <div
+              className={cn(
+                "flex items-center gap-2 px-2.5 py-2 border-b",
+                light ? "border-[#e4e8f0] bg-[#f7f8fc]" : "border-slate-700 bg-slate-950"
+              )}
+            >
+              <Search size={14} className={cn("shrink-0", light ? "text-[#8b95a5]" : "text-slate-400")} />
               <input
                 ref={searchRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={`Search ${label.toLowerCase()}…`}
-                className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                className={cn(
+                  "w-full bg-transparent text-sm focus:outline-none",
+                  light
+                    ? "text-[#121826] placeholder:text-[#8b95a5]"
+                    : "text-slate-100 placeholder:text-slate-500"
+                )}
               />
             </div>
 
-            <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-700 bg-slate-950 text-[11px]">
+            <div
+              className={cn(
+                "flex items-center justify-between px-2.5 py-1.5 border-b text-[11px]",
+                light ? "border-[#e4e8f0] bg-[#f7f8fc]" : "border-slate-700 bg-slate-950"
+              )}
+            >
               <button
                 type="button"
-                className="text-sky-400 hover:text-sky-300"
+                className={light ? "text-[#6c4dff] hover:text-[#5a3df0]" : "text-sky-400 hover:text-sky-300"}
                 onClick={() => onChange([...options])}
               >
                 Select all
               </button>
               <button
                 type="button"
-                className="text-slate-400 hover:text-slate-200"
+                className={light ? "text-[#5e6b7a] hover:text-[#121826]" : "text-slate-400 hover:text-slate-200"}
                 onClick={() => onChange([])}
               >
                 Clear
               </button>
             </div>
 
-            <ul className="max-h-56 overflow-y-auto py-1 bg-slate-900">
+            <ul className={cn("max-h-56 overflow-y-auto py-1", light ? "bg-white" : "bg-slate-900")}>
               {filtered.length === 0 ? (
-                <li className="px-3 py-3 text-xs text-slate-500">No matches</li>
+                <li className={cn("px-3 py-3 text-xs", light ? "text-[#8b95a5]" : "text-slate-500")}>
+                  No matches
+                </li>
               ) : (
                 filtered.map((opt) => {
                   const on = selected.has(opt);
@@ -201,16 +229,22 @@ export function SalesMultiSelectFilter({
                         aria-selected={on}
                         onClick={() => toggle(opt)}
                         className={cn(
-                          "w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left text-sm text-slate-200 hover:bg-slate-800",
-                          on && "bg-slate-800 text-white"
+                          "w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left text-sm",
+                          light
+                            ? cn("text-[#121826] hover:bg-[#f1eeff]", on && "bg-[#f1eeff]")
+                            : cn("text-slate-200 hover:bg-slate-800", on && "bg-slate-800 text-white")
                         )}
                       >
                         <span
                           className={cn(
                             "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
                             on
-                              ? "border-sky-500 bg-sky-600 text-white"
-                              : "border-slate-500 bg-slate-950"
+                              ? light
+                                ? "border-[#6c4dff] bg-[#6c4dff] text-white"
+                                : "border-sky-500 bg-sky-600 text-white"
+                              : light
+                                ? "border-[#d5dbe6] bg-white"
+                                : "border-slate-500 bg-slate-950"
                           )}
                         >
                           {on && <Check size={11} strokeWidth={3} />}
@@ -241,11 +275,20 @@ export function SalesMultiSelectFilter({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "h-9 px-3 rounded-full text-sm inline-flex items-center gap-1.5",
-          "border border-slate-500 bg-transparent text-slate-100",
-          "focus:outline-none focus:ring-2 focus:ring-slate-500/40 focus:border-slate-400",
-          fullWidth ? "w-full min-w-0" : "min-w-[8.75rem]",
-          !selectionsAsChips && value.length > 0 && "border-amber-600/70 bg-[#1a2332]"
+          "px-3 text-sm inline-flex items-center gap-1.5",
+          "focus:outline-none",
+          light
+            ? cn(
+                "h-10 rounded-[11px] border border-[#d5dbe6] bg-[#fbfcfe] text-[#121826]",
+                "focus:ring-2 focus:ring-[#6c4dff]/20 focus:border-[#6c4dff]",
+                !selectionsAsChips && value.length > 0 && "border-[#6c4dff]/50 bg-[#f1eeff]"
+              )
+            : cn(
+                "h-9 rounded-full border border-slate-500 bg-transparent text-slate-100",
+                "focus:ring-2 focus:ring-slate-500/40 focus:border-slate-400",
+                !selectionsAsChips && value.length > 0 && "border-amber-600/70 bg-[#1a2332]"
+              ),
+          fullWidth ? "w-full min-w-0" : "min-w-[8.75rem]"
         )}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -256,7 +299,12 @@ export function SalesMultiSelectFilter({
           <span
             role="button"
             tabIndex={0}
-            className="shrink-0 rounded p-0.5 text-slate-400 hover:text-slate-100 hover:bg-slate-700"
+            className={cn(
+              "shrink-0 rounded p-0.5",
+              light
+                ? "text-[#8b95a5] hover:text-[#121826] hover:bg-[#eef1f6]"
+                : "text-slate-400 hover:text-slate-100 hover:bg-slate-700"
+            )}
             aria-label={`Clear ${label}`}
             onClick={(e) => {
               e.stopPropagation();
@@ -273,7 +321,7 @@ export function SalesMultiSelectFilter({
             <X size={12} />
           </span>
         ) : (
-          <ChevronDown size={14} className="shrink-0 text-slate-400" />
+          <ChevronDown size={14} className={cn("shrink-0", light ? "text-[#8b95a5]" : "text-slate-400")} />
         )}
       </button>
       {menu}
