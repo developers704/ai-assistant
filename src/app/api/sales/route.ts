@@ -35,6 +35,7 @@ import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-stor
 import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
 import { listPaycodes, uniqueSubClasses } from "@/lib/sales/paycode-overlay";
 import { listSalespeopleFromRows } from "@/lib/sales/salesperson-credit";
+import { remapHrAvailableDesigns } from "@/lib/hr/hr-sales-design";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -105,6 +106,8 @@ async function queryDashboardSlice(opts: {
   mode?: "dashboard" | "comparison";
   /** Rozina: include ITEM / soft-hidden lines in Top Vendor Models. */
   includeHiddenTopModels?: boolean;
+  /** HR Management Sales: Love→Lovespell, BELLA OVAN→BELLA OVANI, UV bucket. */
+  hrSalesDesigns?: boolean;
 }): Promise<SalesQueryResult> {
   const isCompare = opts.mode === "comparison";
   const from = opts.dateFrom ?? opts.date;
@@ -122,6 +125,7 @@ async function queryDashboardSlice(opts: {
     subclasses: opts.subclasses?.length ? opts.subclasses : undefined,
     paycodes: opts.paycodes?.length ? opts.paycodes : undefined,
     salespeople: opts.salespeople?.length ? opts.salespeople : undefined,
+    hrSalesDesigns: opts.hrSalesDesigns === true,
     resetContext: true,
     exactFilters: true,
     /** Dashboard top models; Rozina gets a higher cap for full CSV breakdown. */
@@ -197,6 +201,10 @@ export async function GET(req: NextRequest) {
   const filterSubclasses = parseMultiParam(sp, "subclass", "subclasses");
   const filterPaycodes = parseMultiParam(sp, "paycode", "paycodes");
   const filterSalespeople = parseMultiParam(sp, "salesperson", "salespeople");
+  const hrSalesDesigns =
+    sp.get("hrSales") === "1" ||
+    sp.get("hrSales") === "true" ||
+    sp.get("hrDesigns") === "1";
 
   if (dateParam && (!singleDate || !isValidIsoDate(singleDate))) {
     return NextResponse.json({ error: "Invalid date. Use MM/DD/YY or YYYY-MM-DD." }, { status: 400 });
@@ -251,6 +259,7 @@ export async function GET(req: NextRequest) {
         subclasses: filterSubclasses,
         paycodes: filterPaycodes,
         salespeople: filterSalespeople,
+        hrSalesDesigns,
         // Net Sales = full CSV for everyone; only Rozina sees ITEM/JVV in Top Models
         includeHiddenTopModels: showsAllSoldInTopVendorModels(session.username),
       };
@@ -331,7 +340,9 @@ export async function GET(req: NextRequest) {
           availableDates: shell.availableDates,
           availableStores: filterAvailableStores(session, shell.availableStores),
           availableDepartments: shell.availableDepartments,
-          availableDesigns: shell.availableDesigns,
+          availableDesigns: hrSalesDesigns
+            ? remapHrAvailableDesigns(shell.availableDesigns)
+            : shell.availableDesigns,
           availableClasses: shell.availableClasses,
           availableSubClasses: uniqueSubClasses(versionRows),
           availableVendors: hideVendors ? [] : shell.availableVendors,
@@ -400,7 +411,9 @@ export async function GET(req: NextRequest) {
       availableDates: latest.availableDates,
       availableStores: filterAvailableStores(session, latest.availableStores),
       availableDepartments: latest.availableDepartments,
-      availableDesigns: latest.availableDesigns,
+      availableDesigns: hrSalesDesigns
+        ? remapHrAvailableDesigns(latest.availableDesigns)
+        : latest.availableDesigns,
       availableClasses: latest.availableClasses,
       availableVendors: hideVendors ? [] : latest.availableVendors,
       filterDate: filterDate ?? null,

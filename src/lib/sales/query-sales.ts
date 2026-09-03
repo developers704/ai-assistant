@@ -16,6 +16,7 @@ import { DEFAULT_INCLUDE, emptyFilters, normalizeGroupBy, normalizeMetrics, want
 import { buildEntityIndex, extractEntitiesFromMessage, extractComparisonPair, normalizeFilterInputs, matchEntity } from "./sales-normalizer";
 import { resolveDateRange, todayIso } from "./sales-date-resolver";
 import { filterRows, groupRows, summarizeRows } from "./sales-aggregate";
+import { applyHrSalesDesigns } from "@/lib/hr/hr-sales-design";
 import { compareEntitySlices } from "./sales-comparison";
 import { getTopVendorModels, getTopProducts } from "./sales-product-analysis";
 import { inclusivePeriodDays } from "./inventory-metrics";
@@ -481,7 +482,10 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     };
   }
 
-  const index = buildEntityIndex(loaded.rows);
+  const sourceRows = rawInput.hrSalesDesigns
+    ? applyHrSalesDesigns(loaded.rows)
+    : loaded.rows;
+  const index = buildEntityIndex(sourceRows);
 
   if (rawInput.userMessage && isSalesReset(rawInput.userMessage)) {
     clearSalesWorkingMemory();
@@ -646,7 +650,7 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     };
   }
 
-  let filtered = filterRows(loaded.rows, {
+  let filtered = filterRows(sourceRows, {
     // Inclusive ISO window — avoids discrete-list mismatches on the dashboard.
     dateFrom: dateResolved.type === "report_all" ? undefined : dateResolved.startDate,
     dateTo: dateResolved.type === "report_all" ? undefined : dateResolved.endDate,

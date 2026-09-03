@@ -15,6 +15,7 @@ import {
   parseMultiParam,
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
+import { displayHrPosDesign } from "@/lib/hr/hr-sales-design";
 import { ArrowDown, ArrowUp, ArrowUpDown, Gem, UserRound } from "lucide-react";
 
 type DesignSortKey = "name" | "revenue";
@@ -149,6 +150,7 @@ export function HrSalesTab() {
       subclasses: [],
       salespeople: filterSalespeople,
     });
+    params.set("hrSales", "1");
     const qs = params.toString() ? `?${params}` : "";
     const gen = ++fetchGenRef.current;
     const ac = new AbortController();
@@ -206,13 +208,14 @@ export function HrSalesTab() {
   }
 
   const salespeople = reportSummary?.topSalesPeople ?? [];
+  const designTotals = new Map<string, number>();
+  for (const d of reportSummary?.topDesigns ?? []) {
+    const name = displayHrPosDesign((d.name || "").trim());
+    if (!name || name.toLowerCase() === "unknown design") continue;
+    designTotals.set(name, (designTotals.get(name) ?? 0) + (d.revenue ?? 0));
+  }
   const designRows = sortDesignSales(
-    (reportSummary?.topDesigns ?? [])
-      .map((d) => ({
-        name: (d.name || "").trim(),
-        revenue: d.revenue ?? 0,
-      }))
-      .filter((d) => d.name && d.name.toLowerCase() !== "unknown design"),
+    [...designTotals.entries()].map(([name, revenue]) => ({ name, revenue })),
     designSortKey,
     designSortDir
   );
