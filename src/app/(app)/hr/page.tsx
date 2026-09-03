@@ -174,7 +174,7 @@ export default function HrPage() {
           <h1 className="hr-title">HR Management</h1>
           <p className="hr-subtitle">
             {tab === "sales"
-              ? "Employee sales · Name (CODE) · products like Sales Dashboard"
+              ? "Employee sales · Name (CODE) · net sales and units"
               : `${formatHrAttendanceWindowCaption()} · ADP timecards · schedules · meal break & attendance rules`}
           </p>
         </div>
