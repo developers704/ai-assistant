@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatCurrency, sortTopProductsByUnits, filterTopProductSkus } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import type { SalesSummary } from "@/types";
 import type { ReportSummary } from "@/lib/reports/types";
-import { TopProductsTable } from "@/components/reports/TopProductsTable";
-import {
-  VendorModelDetailDrawer,
-  type VendorModelDetailSelection,
-} from "@/components/reports/VendorModelDetailDrawer";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 import {
   SalesDateRangePicker,
@@ -20,12 +15,7 @@ import {
   parseMultiParam,
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
-import { useApp } from "@/lib/store/app-context";
-import {
-  showsAllSoldInTopVendorModels,
-  userHidesVendorInfo,
-} from "@/lib/auth/user-permissions";
-import { Package, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 
 function rangeFromSearchParams(sp: URLSearchParams): SalesDateRangeValue | null {
   const from = sp.get("from")?.trim() ?? "";
@@ -49,36 +39,27 @@ function appendDateParams(params: URLSearchParams, range: SalesDateRangeValue | 
   }
 }
 
+function formatUnitsSold(units: number): string {
+  return Math.round(units).toLocaleString();
+}
+
 /**
- * HR Management → Sales: employee sales with the same product detail surface
- * as the Sales Dashboard (picture, vendor model, SKU, description, sort, columns).
+ * HR Management → Sales: employee ranking and net/units KPIs.
+ * Product / vendor-model tables stay on the Sales Dashboard only.
  */
 export function HrSalesTab() {
-  const { state } = useApp();
-  const hideVendors = userHidesVendorInfo(state?.user);
-  const includeHiddenTopModels = showsAllSoldInTopVendorModels(state?.user?.username);
-
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [availableStores, setAvailableStores] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
   const [availableDesigns, setAvailableDesigns] = useState<string[]>([]);
-  const [availableClasses, setAvailableClasses] = useState<string[]>([]);
-  const [availableVendors, setAvailableVendors] = useState<string[]>([]);
-  const [availableSubClasses, setAvailableSubClasses] = useState<string[]>([]);
   const [availableSalespeople, setAvailableSalespeople] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<SalesDateRangeValue | null>(null);
   const [filterStores, setFilterStores] = useState<string[]>([]);
   const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
   const [filterDesigns, setFilterDesigns] = useState<string[]>([]);
-  const [filterVendors, setFilterVendors] = useState<string[]>([]);
-  const [filterClasses, setFilterClasses] = useState<string[]>([]);
-  const [filterSubclasses, setFilterSubclasses] = useState<string[]>([]);
   const [filterSalespeople, setFilterSalespeople] = useState<string[]>([]);
-  const [reportId, setReportId] = useState<string | undefined>();
-  const [vendorModelDetail, setVendorModelDetail] =
-    useState<VendorModelDetailSelection | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const autoSelectLatestRef = useRef(true);
   const fetchGenRef = useRef(0);
@@ -116,9 +97,9 @@ export function HrSalesTab() {
       stores: filterStores,
       departments: filterDepartments,
       designs: filterDesigns,
-      vendors: filterVendors,
-      classes: filterClasses,
-      subclasses: filterSubclasses,
+      vendors: [],
+      classes: [],
+      subclasses: [],
       salespeople: filterSalespeople,
     });
     const qs = params.toString() ? `?${params}` : "";
@@ -135,19 +116,12 @@ export function HrSalesTab() {
           const stores: string[] = d.availableStores ?? [];
           const departments: string[] = d.availableDepartments ?? [];
           const designs: string[] = d.availableDesigns ?? [];
-          const classes: string[] = d.availableClasses ?? [];
-          const vendors: string[] = d.availableVendors ?? [];
-          const subclasses: string[] = d.availableSubClasses ?? [];
           const salespeople: string[] = d.availableSalespeople ?? [];
           setAvailableDates(dates);
           setAvailableStores(stores);
           setAvailableDepartments(departments);
           setAvailableDesigns(designs);
-          setAvailableClasses(classes);
-          setAvailableVendors(vendors);
-          setAvailableSubClasses(subclasses);
           setAvailableSalespeople(salespeople);
-          setReportId((d.report?.id as string | undefined) ?? undefined);
           if (dates.length && autoSelectLatestRef.current && !dateRange) {
             const latest = [...dates].sort().at(-1);
             if (latest) {
@@ -158,9 +132,6 @@ export function HrSalesTab() {
           setFilterStores((prev) => pruneUnavailable(prev, stores));
           setFilterDepartments((prev) => pruneUnavailable(prev, departments));
           setFilterDesigns((prev) => pruneUnavailable(prev, designs));
-          setFilterVendors((prev) => pruneUnavailable(prev, vendors));
-          setFilterClasses((prev) => pruneUnavailable(prev, classes));
-          setFilterSubclasses((prev) => pruneUnavailable(prev, subclasses));
           setFilterSalespeople((prev) => pruneUnavailable(prev, salespeople));
         }
       })
@@ -174,9 +145,6 @@ export function HrSalesTab() {
     filterStores,
     filterDepartments,
     filterDesigns,
-    filterVendors,
-    filterClasses,
-    filterSubclasses,
     filterSalespeople,
   ]);
 
@@ -190,12 +158,6 @@ export function HrSalesTab() {
     );
   }
 
-  const topProducts = sortTopProductsByUnits(
-    filterTopProductSkus(summary.topProducts, { includeHiddenTopModels })
-  );
-  const multiDayRange = Boolean(
-    dateRange && dateRange.from && dateRange.to && dateRange.from !== dateRange.to
-  );
   const salespeople = reportSummary?.topSalesPeople ?? [];
 
   return (
@@ -235,7 +197,7 @@ export function HrSalesTab() {
             )}
             {availableDepartments.length > 0 && (
               <SalesMultiSelectFilter
-                label="Departments"
+                label="Department"
                 allLabel="All departments"
                 options={availableDepartments}
                 value={filterDepartments}
@@ -244,38 +206,11 @@ export function HrSalesTab() {
             )}
             {availableDesigns.length > 0 && (
               <SalesMultiSelectFilter
-                label="Designs"
+                label="Design"
                 allLabel="All designs"
                 options={availableDesigns}
                 value={filterDesigns}
                 onChange={setFilterDesigns}
-              />
-            )}
-            {!hideVendors && availableVendors.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Vendors"
-                allLabel="All vendors"
-                options={availableVendors}
-                value={filterVendors}
-                onChange={setFilterVendors}
-              />
-            )}
-            {availableClasses.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Classes"
-                allLabel="All classes"
-                options={availableClasses}
-                value={filterClasses}
-                onChange={setFilterClasses}
-              />
-            )}
-            {availableSubClasses.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Subclasses"
-                allLabel="All subclasses"
-                options={availableSubClasses}
-                value={filterSubclasses}
-                onChange={setFilterSubclasses}
               />
             )}
           </div>
@@ -290,8 +225,8 @@ export function HrSalesTab() {
           </div>
         </div>
         <div className="hr-kpi">
-          <div className="hr-kpi-label">Units</div>
-          <div className="hr-kpi-value">{(summary.totalTransactions ?? 0).toLocaleString()}</div>
+          <div className="hr-kpi-label">Units sold</div>
+          <div className="hr-kpi-value">{formatUnitsSold(summary.totalTransactions ?? 0)}</div>
         </div>
         <div className="hr-kpi">
           <div className="hr-kpi-label">Employee</div>
@@ -335,54 +270,6 @@ export function HrSalesTab() {
           </ul>
         </div>
       )}
-
-      <div className="hr-panel">
-        <div className="hr-panel-head">
-          <div>
-            <h3 className="hr-panel-title">
-              <Package size={17} />
-              Employee products
-            </h3>
-            <p className="hr-panel-sub">
-              Picture · vendor model · SKU · description · sort Qty / Revenue / Margin · show/hide
-              columns
-            </p>
-          </div>
-        </div>
-        <div className="p-3 sm:p-4">
-          <TopProductsTable
-            products={topProducts}
-            showDateFilter={multiDayRange}
-            includeHiddenTopModels={includeHiddenTopModels}
-            emptyLabel="No sold products for this employee filter."
-            onVendorModelDetail={(p) =>
-              setVendorModelDetail({
-                vendorModel:
-                  p.vendorModel === "ITEM" && p.name
-                    ? `ITEM · ${p.name}`
-                    : p.vendorModel || p.itemNumber || p.name,
-                description: p.name,
-                imageUrl: p.imageUrl,
-                imageDir: p.imageDir,
-              })
-            }
-          />
-        </div>
-      </div>
-
-      <VendorModelDetailDrawer
-        selection={vendorModelDetail}
-        filterStore={filterStores.length ? filterStores.join(",") : undefined}
-        dateFrom={dateRange?.from}
-        dateTo={dateRange?.to}
-        reportId={
-          reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
-            ? reportId
-            : undefined
-        }
-        onClose={() => setVendorModelDetail(null)}
-      />
     </div>
   );
 }
-
