@@ -10,7 +10,17 @@ export const HR_WARNING_CASE_RE = /HR-LATE-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
 export const HR_NOTICE_CASE_RE = /HR-(?:LATE|EARLY|MEAL|WRITEUP)-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
 
 export type HrWarningReason = "late" | "early" | "meal";
-export type HrViolationFilter = "all" | "late" | "early" | "meal";
+export type HrViolationKind = "late" | "early" | "meal";
+export type HrViolationFilter = "all" | HrViolationKind;
+
+export const HR_VIOLATION_FILTER_OPTIONS: HrViolationFilter[] = ["all", "late", "early", "meal"];
+
+export const HR_VIOLATION_FILTER_LABELS: Record<HrViolationFilter, string> = {
+  all: "All violation",
+  late: "Late arrival",
+  early: "Early arrival",
+  meal: "Meal break",
+};
 
 export type HrNoticeEmployee = Pick<
   HrEmployeeDay,
@@ -121,12 +131,31 @@ export function isEligibleForHrNotice(emp: HrNoticeEmployee): boolean {
 
 export function matchesViolationFilter(
   emp: HrNoticeEmployee,
-  filter: HrViolationFilter
+  filter: HrViolationFilter | readonly HrViolationFilter[]
 ): boolean {
-  if (filter === "all") return true;
-  if (filter === "late") return isLateForWarning(emp.lateMinutes);
-  if (filter === "early") return isEarlyForWarning(emp.earlyInMinutes);
-  return hasLongMealViolation(emp);
+  const list = Array.isArray(filter) ? filter : [filter];
+  const kinds = list.filter((f): f is HrViolationKind => f !== "all");
+  if (kinds.length === 0) return true;
+  return kinds.some((kind) => {
+    if (kind === "late") return isLateForWarning(emp.lateMinutes);
+    if (kind === "early") return isEarlyForWarning(emp.earlyInMinutes);
+    return hasLongMealViolation(emp);
+  });
+}
+
+/** Keep "All violation" exclusive of specific types; empty / all-three → all. */
+export function normalizeViolationFilters(
+  prev: readonly HrViolationFilter[],
+  next: readonly string[]
+): HrViolationFilter[] {
+  const allowed = new Set<string>(HR_VIOLATION_FILTER_OPTIONS);
+  const cleaned = next.filter((v): v is HrViolationFilter => allowed.has(v));
+  const kinds = cleaned.filter((v): v is HrViolationKind => v !== "all");
+  const addedAll = cleaned.includes("all") && !prev.includes("all");
+  if (addedAll || kinds.length === 3 || cleaned.length === 0) return ["all"];
+  if (prev.includes("all") && kinds.length > 0) return kinds;
+  if (kinds.length === 0) return ["all"];
+  return kinds;
 }
 
 export function warningReason(emp: HrNoticeEmployee): HrWarningReason {
