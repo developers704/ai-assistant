@@ -207,10 +207,12 @@ export function HrSalesTab() {
 
   const salespeople = reportSummary?.topSalesPeople ?? [];
   const designRows = sortDesignSales(
-    (reportSummary?.topDesigns ?? []).map((d) => ({
-      name: d.name || "Unknown design",
-      revenue: d.revenue ?? 0,
-    })),
+    (reportSummary?.topDesigns ?? [])
+      .map((d) => ({
+        name: (d.name || "").trim(),
+        revenue: d.revenue ?? 0,
+      }))
+      .filter((d) => d.name && d.name.toLowerCase() !== "unknown design"),
     designSortKey,
     designSortDir
   );
