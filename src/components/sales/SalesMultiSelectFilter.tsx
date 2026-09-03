@@ -20,6 +20,8 @@ type Props = {
   formatOption?: (value: string) => string;
   /** Extra match (e.g. paycode POS aliases). `query` is already trimmed + lowercased. */
   optionMatches?: (option: string, query: string) => boolean;
+  /** When nothing is selected, treat this option as the checked “all” row. */
+  treatEmptyAsAllValue?: string;
 };
 
 /**
@@ -37,6 +39,7 @@ export function SalesMultiSelectFilter({
   selectionsAsChips = false,
   formatOption,
   optionMatches,
+  treatEmptyAsAllValue,
 }: Props) {
   const labelOf = (v: string) => formatOption?.(v) ?? v;
   const [open, setOpen] = useState(false);
@@ -49,7 +52,11 @@ export function SalesMultiSelectFilter({
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const selected = useMemo(() => new Set(value), [value]);
+  const selected = useMemo(() => {
+    const s = new Set(value);
+    if (value.length === 0 && treatEmptyAsAllValue) s.add(treatEmptyAsAllValue);
+    return s;
+  }, [value, treatEmptyAsAllValue]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -120,7 +127,11 @@ export function SalesMultiSelectFilter({
   }, [open]);
 
   const toggle = (opt: string) => {
-    if (selected.has(opt)) onChange(value.filter((v) => v !== opt));
+    if (treatEmptyAsAllValue && opt === treatEmptyAsAllValue) {
+      onChange([]);
+      return;
+    }
+    if (value.includes(opt)) onChange(value.filter((v) => v !== opt));
     else onChange([...value, opt]);
   };
 

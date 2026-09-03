@@ -6,6 +6,7 @@ import {
   extractWarningCaseId,
   formatNoticeDate,
   matchesViolationFilter,
+  normalizeViolationFilters,
   warningCaseId,
   warningDescription,
   warningPdfFilename,
@@ -147,10 +148,18 @@ describe("late warning notice", () => {
     };
     const earlyEmp = { ...shazia, lateMinutes: null, earlyInMinutes: 14 };
     expect(matchesViolationFilter(shazia, "all")).toBe(true);
+    expect(matchesViolationFilter(shazia, [])).toBe(true);
     expect(matchesViolationFilter(shazia, "late")).toBe(true);
     expect(matchesViolationFilter(earlyEmp, "early")).toBe(true);
     expect(matchesViolationFilter(earlyEmp, "late")).toBe(false);
     expect(matchesViolationFilter(mealEmp, "meal")).toBe(true);
     expect(matchesViolationFilter(shazia, "meal")).toBe(false);
+    expect(matchesViolationFilter(shazia, ["late", "meal"])).toBe(true);
+    expect(matchesViolationFilter(earlyEmp, ["late", "meal"])).toBe(false);
+    expect(matchesViolationFilter(earlyEmp, ["late", "early"])).toBe(true);
+    expect(normalizeViolationFilters(["all"], ["all", "late"])).toEqual(["late"]);
+    expect(normalizeViolationFilters(["late"], ["late", "all"])).toEqual(["all"]);
+    expect(normalizeViolationFilters(["late"], ["late", "early"])).toEqual(["late", "early"]);
+    expect(normalizeViolationFilters(["late", "early"], [])).toEqual(["all"]);
   });
 });
