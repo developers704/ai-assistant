@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export function Modal({
@@ -9,7 +9,7 @@ export function Modal({
   labelledBy,
   size = "md",
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClose: () => void;
   labelledBy?: string;
   size?: "md" | "lg";
