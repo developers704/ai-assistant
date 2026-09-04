@@ -62,11 +62,11 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/discounting", label: "Discounting", icon: Percent, palette: "amber" },
   { href: "/analyst", label: "Data Analyst", icon: Database, palette: "cyan" },
   { href: "/hr", label: "HR Management", icon: Briefcase, palette: "indigo" },
+  { href: "/admin/users", label: "Users", icon: Users, palette: "indigo" },
+  { href: "/admin/roles", label: "Roles & Permissions", icon: Shield, palette: "violet" },
   { href: "/images", label: "Image Generation", icon: Wand2, palette: "fuchsia" },
   { href: "/social", label: "Social", icon: Instagram, palette: "rose" },
   { href: "/contacts", label: "Contacts", icon: Users, palette: "indigo" },
-  { href: "/admin/users", label: "Users", icon: Users, palette: "indigo" },
-  { href: "/admin/roles", label: "Roles & Permissions", icon: Shield, palette: "violet" },
   { href: "/settings", label: "Settings", icon: Settings, palette: "slate" },
 ];
 
