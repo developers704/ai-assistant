@@ -68,7 +68,7 @@ export function analyzeEmployeeDay(
   if (!scheduleRange) {
     violations.push({
       type: "no_schedule",
-      message: "No schedule on file for this day",
+      message: "Schedule missing",
       severity: "warning",
     });
   }

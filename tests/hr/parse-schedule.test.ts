@@ -13,6 +13,22 @@ Employee,Sun 08/16,Mon 08/17
     const { entries } = parseScheduleCsv(text);
     expect(entries).toHaveLength(2);
   });
+
+  it("parses long-format Date / Employee Name / Time In / Time Out", () => {
+    const text = `Date,Employee Name,Time In,Time Out
+8/1/2026,1 security guard,9:15 AM,9:00 PM
+8/1/2026,Adnan Sayed,11:00 AM,8:00 PM`;
+    const { entries, dateFrom, dateTo } = parseScheduleCsv(text);
+    expect(dateFrom).toBe("2026-08-01");
+    expect(dateTo).toBe("2026-08-01");
+    expect(entries).toHaveLength(2);
+    expect(entries[0]).toMatchObject({
+      employeeName: "1 security guard",
+      date: "2026-08-01",
+      start: "9:15 AM",
+      end: "9:00 PM",
+    });
+  });
 });
 
 const aug4Schedule = path.join(

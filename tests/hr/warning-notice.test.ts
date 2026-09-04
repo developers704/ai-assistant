@@ -161,5 +161,12 @@ describe("late warning notice", () => {
     expect(normalizeViolationFilters(["late"], ["late", "all"])).toEqual(["all"]);
     expect(normalizeViolationFilters(["late"], ["late", "early"])).toEqual(["late", "early"]);
     expect(normalizeViolationFilters(["late", "early"], [])).toEqual(["all"]);
+    expect(
+      matchesViolationFilter(
+        { ...shazia, lateMinutes: null, violations: [{ type: "no_schedule", message: "Schedule missing", severity: "warning" }] },
+        "no_schedule"
+      )
+    ).toBe(true);
+    expect(matchesViolationFilter(shazia, "no_schedule")).toBe(false);
   });
 });
