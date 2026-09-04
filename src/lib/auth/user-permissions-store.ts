@@ -9,6 +9,7 @@ import {
   type UserPermissionMap,
 } from "@/lib/auth/user-permissions";
 import { findAuthUser } from "@/lib/auth/users";
+import { loadRolePermissionOverrides } from "@/lib/auth/role-permissions-store";
 
 const PERMS_DIR = path.join(process.cwd(), ".data", "auth");
 const PERMS_FILE = path.join(PERMS_DIR, "user-permissions.json");
@@ -42,7 +43,12 @@ export function getPermissionMapForUser(
   role?: string | null
 ): UserPermissionMap {
   const liveRole = role ?? findAuthUser(username ?? "")?.role ?? null;
-  return mergePermissionMap(username, liveRole, loadPermissionOverrides());
+  return mergePermissionMap(
+    username,
+    liveRole,
+    loadPermissionOverrides(),
+    loadRolePermissionOverrides()
+  );
 }
 
 export function setPermissionMapForUser(
@@ -71,7 +77,7 @@ export function hidesVendorInfoFromPermissions(
 }
 
 export function syncPermissionsCookie(res: NextResponse): void {
-  applyPermissionsCookie(res, loadPermissionOverrides());
+  applyPermissionsCookie(res, loadPermissionOverrides(), loadRolePermissionOverrides());
 }
 
 export type { UserPermissionKey, UserPermissionMap, PermissionOverrides };

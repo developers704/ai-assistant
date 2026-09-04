@@ -100,6 +100,17 @@ async function saveHash(username: string, password: string) {
   writeJson(HASH_FILE, overrides);
 }
 
+/** Admin/HR user editor: set password without the 8-character self-serve minimum. */
+export async function setDirectoryPassword(
+  username: string,
+  password: string,
+  actorUsername: string
+): Promise<void> {
+  if (!password) throw new Error("Password is required");
+  await saveHash(username, password);
+  saveReveal(username, password, actorUsername, "change");
+}
+
 export function generateReadablePassword(): string {
   // Easy to read aloud / type — not dictionary-guessable alone.
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";

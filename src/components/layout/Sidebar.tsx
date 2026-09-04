@@ -25,6 +25,9 @@ import {
   Briefcase,
   Menu,
   X,
+  Search,
+  Shield,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 import { useApp } from "@/lib/store/app-context";
@@ -59,6 +62,8 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/discounting", label: "Discounting", icon: Percent, palette: "amber" },
   { href: "/analyst", label: "Data Analyst", icon: Database, palette: "cyan" },
   { href: "/hr", label: "HR Management", icon: Briefcase, palette: "indigo" },
+  { href: "/admin/users", label: "Users", icon: Users, palette: "indigo" },
+  { href: "/admin/roles", label: "Roles & Permissions", icon: Shield, palette: "violet" },
   { href: "/images", label: "Image Generation", icon: Wand2, palette: "fuchsia" },
   { href: "/social", label: "Social", icon: Instagram, palette: "rose" },
   { href: "/contacts", label: "Contacts", icon: Users, palette: "indigo" },
@@ -105,6 +110,57 @@ const DM_PAGE_TO_PERMISSION: Record<string, UserPermissionKey> = {
   "/social": "social",
 };
 
+const HR_MANAGEMENT_NAV: NavItem = {
+  href: "/hr",
+  label: "HR Management",
+  icon: Briefcase,
+  palette: "indigo",
+};
+
+const HR_SALES_NAV: NavItem = {
+  href: "/hr",
+  label: "Sales dashboard",
+  icon: BarChart3,
+  palette: "emerald",
+};
+
+const SKU_LOOKUP_NAV: NavItem = {
+  href: "/sku-lookup",
+  label: "SKU Lookup",
+  icon: Search,
+  palette: "amber",
+};
+
+const USERS_NAV: NavItem = {
+  href: "/admin/users",
+  label: "Users",
+  icon: Users,
+  palette: "indigo",
+};
+
+const ROLES_NAV: NavItem = {
+  href: "/admin/roles",
+  label: "Roles & Permissions",
+  icon: KeyRound,
+  palette: "violet",
+};
+
+function fallbackNavForRole(role?: string | null): NavItem[] {
+  if (role === "employee") {
+    return [HR_SALES_NAV, SKU_LOOKUP_NAV, ALL_NAV_ITEMS["/settings"]!];
+  }
+  if (role === "hr") {
+    return [HR_MANAGEMENT_NAV, USERS_NAV, ROLES_NAV, ALL_NAV_ITEMS["/settings"]!];
+  }
+  return [
+    ALL_NAV_ITEMS["/sales"]!,
+    ALL_NAV_ITEMS["/intelligence"]!,
+    ALL_NAV_ITEMS["/stores"]!,
+    ALL_NAV_ITEMS["/calculator"]!,
+    ALL_NAV_ITEMS["/settings"]!,
+  ];
+}
+
 function withoutHiddenNav(items: NavItem[]): NavItem[] {
   if (SHOW_GMAIL_EMAIL_NAV) return items;
   return items.filter((item) => item.href !== "/email");
@@ -112,7 +168,8 @@ function withoutHiddenNav(items: NavItem[]): NavItem[] {
 
 function useNavItems(): NavItem[] {
   const { state } = useApp();
-  if (state?.user?.authRole === "admin") {
+  const role = state?.user?.authRole;
+  if (role === "admin") {
     return withoutHiddenNav(ADMIN_NAV);
   }
 
@@ -120,27 +177,27 @@ function useNavItems(): NavItem[] {
     | Partial<Record<UserPermissionKey, boolean>>
     | undefined;
 
-  // Until /api/state hydrates permissions, show DM defaults + Settings.
   if (!permissions) {
-    return withoutHiddenNav([
-      ALL_NAV_ITEMS["/sales"]!,
-      ALL_NAV_ITEMS["/intelligence"]!,
-      ALL_NAV_ITEMS["/stores"]!,
-      ALL_NAV_ITEMS["/calculator"]!,
-      ALL_NAV_ITEMS["/settings"]!,
-    ]);
+    return withoutHiddenNav(fallbackNavForRole(role));
   }
 
-  return withoutHiddenNav(
-    Object.entries(ALL_NAV_ITEMS)
-      .filter(([href]) => {
-        if (href === "/settings") return true;
-        const key = DM_PAGE_TO_PERMISSION[href];
-        if (!key) return false;
-        return Boolean(permissions[key]);
-      })
-      .map(([, item]) => item)
-  );
+  const items: NavItem[] = [];
+  if (permissions.hr_management) items.push(HR_MANAGEMENT_NAV);
+  else if (permissions.hr_sales) items.push(HR_SALES_NAV);
+  if (permissions.sku_lookup) items.push(SKU_LOOKUP_NAV);
+
+  for (const [href, item] of Object.entries(ALL_NAV_ITEMS)) {
+    if (href === "/settings") continue;
+    const key = DM_PAGE_TO_PERMISSION[href];
+    if (!key) continue;
+    if (Boolean(permissions[key])) items.push(item);
+  }
+
+  if (permissions.user_admin) {
+    items.push(USERS_NAV, ROLES_NAV);
+  }
+  items.push(ALL_NAV_ITEMS["/settings"]!);
+  return withoutHiddenNav(items);
 }
 
 function isActivePath(pathname: string, href: string) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useApp } from "@/lib/store/app-context";
 import { HrWorkspace } from "@/components/hr/HrWorkspace";
 import type { HrEmployeeDay, HrUploadMeta } from "@/lib/hr/types";
 import { HrSalesTab } from "@/components/hr/HrSalesTab";
@@ -51,10 +52,16 @@ function isMealViolation(emp: HrEmployeeDay): boolean {
 }
 
 export default function HrPage() {
-  const [tab, setTab] = useState<"attendance" | "sales">("attendance");
+  const { state } = useApp();
+  const canManageHr =
+    state?.user?.authRole === "admin" ||
+    state?.user?.authRole === "hr" ||
+    Boolean(state?.user?.permissions?.hr_management);
+  const salesOnly = !canManageHr;
+  const [tab, setTab] = useState<"attendance" | "sales">(salesOnly ? "sales" : "attendance");
   const [data, setData] = useState<HrApiResponse | null>(null);
   const [date, setDate] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!salesOnly);
   const [uploading, setUploading] = useState<"timecard" | "schedule" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -65,6 +72,10 @@ export default function HrPage() {
   const uploadMenuRef = useRef<HTMLDivElement>(null);
   const timecardInputRef = useRef<HTMLInputElement>(null);
   const scheduleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (salesOnly) setTab("sales");
+  }, [salesOnly]);
 
   const load = useCallback(async (opts?: { date?: string; quiet?: boolean }) => {
     if (!opts?.quiet) setLoading(true);
@@ -86,8 +97,9 @@ export default function HrPage() {
   }, []);
 
   useEffect(() => {
+    if (salesOnly) return;
     void load(date ? { date } : undefined);
-  }, [load, date]);
+  }, [load, date, salesOnly]);
 
   useEffect(() => {
     if (!uploadOpen) return;
@@ -173,14 +185,15 @@ export default function HrPage() {
     <HrWorkspace>
       <header className="hr-header">
         <div>
-          <p className="hr-kicker">People ops</p>
-          <h1 className="hr-title">HR Management</h1>
+          <p className="hr-kicker">{salesOnly ? "Sales" : "People ops"}</p>
+          <h1 className="hr-title">{salesOnly ? "Sales dashboard" : "HR Management"}</h1>
           <p className="hr-subtitle">
-            {tab === "sales"
+            {salesOnly || tab === "sales"
               ? "Employee sales · Name (CODE) · design totals"
               : `${formatHrAttendanceWindowCaption()} · ADP timecards · schedules · meal break & attendance rules`}
           </p>
         </div>
+        {canManageHr && (
         <div className="hr-header-actions">
           {tab === "attendance" && (
             <div className="relative" ref={uploadMenuRef}>
@@ -242,12 +255,14 @@ export default function HrPage() {
           )}
           <div className="hr-lock-chip">
             <Lock size={12} />
-            Admin only
+            Admin / HR
             <HrMailRoutingSettings />
           </div>
         </div>
+        )}
       </header>
 
+      {!salesOnly && (
       <div className="hr-tabs" role="tablist" aria-label="HR sections">
         <button
           type="button"
@@ -271,8 +286,9 @@ export default function HrPage() {
           Sales
         </button>
       </div>
+      )}
 
-      {tab === "attendance" && (data?.dates.length ?? 0) > 0 && (
+      {!salesOnly && tab === "attendance" && (data?.dates.length ?? 0) > 0 && (
         <>
           <div className="hr-kpi-grid">
             <div className="hr-kpi">
@@ -412,7 +428,7 @@ export default function HrPage() {
       )}
 
       <div style={{ marginTop: "1.1rem" }}>
-        {tab === "sales" ? (
+        {salesOnly || tab === "sales" ? (
           <HrSalesTab />
         ) : (
           <>

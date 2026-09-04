@@ -43,20 +43,20 @@ describe("DM permission routing", () => {
 });
 
 describe("permission ownership and vendor info", () => {
-  it("only Kash can manage DM permissions", () => {
+  it("lets Admin and HR manage users; Kash leftover helper stays Kash-only", () => {
     expect(canManageDmPermissions("kash")).toBe(true);
     expect(canManageDmPermissions("ross")).toBe(false);
     expect(canManageDmPermissions("aj")).toBe(false);
   });
 
-  it("hides vendor info for Rozina by default, honors explicit enable", () => {
+  it("always hides vendor info for Rozina", () => {
     const defaultMap = mergePermissionMap("rozina", "dm", {});
     expect(defaultMap.vendor_info).toBe(false);
 
     const enabled = mergePermissionMap("rozina", "dm", {
       rozina: { vendor_info: true },
     });
-    expect(enabled.vendor_info).toBe(true);
+    expect(enabled.vendor_info).toBe(false);
 
     expect(
       userHidesVendorInfo({
@@ -71,6 +71,40 @@ describe("permission ownership and vendor info", () => {
         username: "rozina",
         permissions: enabled,
       })
-    ).toBe(false);
+    ).toBe(true);
+  });
+});
+
+describe("Employee and HR routing", () => {
+  it("lets employees into HR sales and SKU lookup only", () => {
+    const permissions = getDefaultPermissionMapForRole("employee");
+    expect(isDmAllowedAppPath("/hr", "keya@valliani.app", "employee", permissions)).toBe(true);
+    expect(isDmAllowedAppPath("/sku-lookup", "keya@valliani.app", "employee", permissions)).toBe(
+      true
+    );
+    expect(isDmAllowedAppPath("/sales", "keya@valliani.app", "employee", permissions)).toBe(false);
+    expect(isDmAllowedAppPath("/calculator", "keya@valliani.app", "employee", permissions)).toBe(
+      false
+    );
+    expect(isDmAllowedAppPath("/admin/users", "keya@valliani.app", "employee", permissions)).toBe(
+      false
+    );
+    expect(isDmAllowedApiPath("/api/sales", "keya@valliani.app", "employee", permissions)).toBe(
+      true
+    );
+    expect(isDmAllowedApiPath("/api/inventory", "keya@valliani.app", "employee", permissions)).toBe(
+      true
+    );
+    expect(isDmAllowedApiPath("/api/hr", "keya@valliani.app", "employee", permissions)).toBe(false);
+  });
+
+  it("lets HR into HR Management and user admin", () => {
+    const permissions = getDefaultPermissionMapForRole("hr");
+    expect(isDmAllowedAppPath("/hr", "hr", "hr", permissions)).toBe(true);
+    expect(isDmAllowedAppPath("/admin/users", "hr", "hr", permissions)).toBe(true);
+    expect(isDmAllowedAppPath("/admin/roles", "hr", "hr", permissions)).toBe(true);
+    expect(isDmAllowedAppPath("/sales", "hr", "hr", permissions)).toBe(false);
+    expect(isDmAllowedApiPath("/api/hr", "hr", "hr", permissions)).toBe(true);
+    expect(isDmAllowedApiPath("/api/admin/users", "hr", "hr", permissions)).toBe(true);
   });
 });

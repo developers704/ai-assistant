@@ -8,7 +8,10 @@ import { readSessionFromCookies } from "@/lib/auth/session";
 import { calculatePricing, getVisibleDmCostPrice } from "@/lib/inventory/pricing";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { canSeeRealInventoryCost } from "@/lib/auth/user-permissions";
-import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
+import {
+  getPermissionMapForUser,
+  hidesVendorInfoFromPermissions,
+} from "@/lib/auth/user-permissions-store";
 import { invalidateOnhandCache } from "@/lib/inventory/onhand";
 
 export const runtime = "nodejs";
@@ -96,11 +99,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Kash / Ross → real Individual Cost Value.
-  // Everyone else → Whole Cost (fixed SKUs, GOLD JEWL+UV÷1.3, Diamond+UV÷8.8, sheet rules).
+  // Admins → real Individual Cost. Everyone else → Whole Cost.
   let item = { ...result.item };
   let pricing = result.pricing;
-  if (!canSeeRealInventoryCost(session.username)) {
+  if (!canSeeRealInventoryCost(session.username, session.role)) {
     const visibleCost = getVisibleDmCostPrice(item);
     if (visibleCost > 0) {
       item = { ...item, costPrice: visibleCost };
@@ -109,11 +111,14 @@ export async function GET(req: NextRequest) {
   }
 
   const hideVendor = hidesVendorInfoFromPermissions(session.username);
+  const perms = getPermissionMapForUser(session.username, session.role);
+  const includeOfferPricing =
+    session.role === "admin" || Boolean(perms.price_calculator);
 
   return NextResponse.json({
     item: hideVendor ? { ...item, vendor: "" } : item,
     wholeCost: getVisibleDmCostPrice(result.item),
-    pricing,
+    ...(includeOfferPricing ? { pricing } : {}),
     stores: result.stores,
     onHandTotal: result.onHandTotal,
     queriedSku: result.queriedSku,

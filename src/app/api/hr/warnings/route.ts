@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readSessionFromCookies } from "@/lib/auth/session";
+import { requireHrManagement } from "@/lib/auth/hr-guard";
 import { analyzeDay } from "@/lib/hr/analyze";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
 import { namesMatch } from "@/lib/hr/name-match";
@@ -22,11 +22,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function adminOnly() {
-  const session = await readSessionFromCookies();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Admin only" }, { status: 403 });
-  }
-  return null;
+  return requireHrManagement();
 }
 
 function asNotice(value: unknown): HrWarningNotice | null {
