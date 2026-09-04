@@ -6,7 +6,7 @@ import type { VendorPosRow } from "@/lib/reports/types";
 
 export const HR_UV_DESIGN = "UV";
 export const HR_ETERNAL_VOW_DESIGN = "Eternal-vow";
-export const HR_OTHERS_DESIGN = "Others";
+export const HR_OTHERS_DESIGN = "OTHER";
 export const HR_LOVE_DESIGN = "Lovespell";
 export const HR_BELLA_DESIGN = "BELLA OVANI";
 
@@ -42,6 +42,14 @@ export function isHrEternalVowClass(productClass: string | null | undefined): bo
   return compact === "ETERNAL-VOW";
 }
 
+export function isHrOthersDesign(name: string | null | undefined): boolean {
+  const compact = String(name ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ");
+  return !compact || compact === "OTHER" || compact === "OTHERS" || compact === "UNKNOWN DESIGN";
+}
+
 /** POS Design → HR display name (Love → Lovespell, BELLA OVAN → BELLA OVANI). */
 export function displayHrPosDesign(design: string | null | undefined): string {
   const raw = String(design ?? "").trim();
@@ -49,7 +57,39 @@ export function displayHrPosDesign(design: string | null | undefined): string {
   const compact = raw.toUpperCase().replace(/\s+/g, " ");
   if (compact === "LOVE") return HR_LOVE_DESIGN;
   if (compact === "BELLA OVAN") return HR_BELLA_DESIGN;
+  if (compact === "OTHERS" || compact === "OTHER") return HR_OTHERS_DESIGN;
   return raw;
+}
+
+/**
+ * Named design lines only; OTHER is Net Sales minus that sum so the table
+ * always plugs to the employee KPI (not a copy-pasted POS design rank).
+ */
+export function foldHrDesignSales(
+  designs: Array<{ name?: string | null; revenue?: number | null }>,
+  netSales: number
+): Array<{ name: string; revenue: number }> {
+  const totals = new Map<string, number>();
+  for (const d of designs) {
+    const name = displayHrPosDesign((d.name || "").trim());
+    if (isHrOthersDesign(name)) continue;
+    totals.set(name, (totals.get(name) ?? 0) + (d.revenue ?? 0));
+  }
+  const namedSum = [...totals.values()].reduce((s, n) => s + n, 0);
+  const other = netSales - namedSum;
+  if (Math.abs(other) >= 0.005) totals.set(HR_OTHERS_DESIGN, other);
+  return [...totals.entries()].map(([name, revenue]) => ({ name, revenue }));
+}
+
+/** OTHER always sits at the bottom, regardless of name/revenue sort. */
+export function pinHrOthersLast<T extends { name: string }>(rows: T[]): T[] {
+  const named: T[] = [];
+  const others: T[] = [];
+  for (const row of rows) {
+    if (isHrOthersDesign(row.name)) others.push(row);
+    else named.push(row);
+  }
+  return [...named, ...others];
 }
 
 /** Design bucket for HR Sales grouping / filter. UV, then Eternal-vow class, else POS Design. */
@@ -91,6 +131,7 @@ export function remapHrAvailableDesigns(designs: string[]): string[] {
   }
   if (!seen.has("uv")) out.push(HR_UV_DESIGN);
   if (!seen.has("eternal-vow")) out.push(HR_ETERNAL_VOW_DESIGN);
-  if (!seen.has("others")) out.push(HR_OTHERS_DESIGN);
-  return out;
+  const rest = out.filter((n) => n.toUpperCase() !== "OTHER" && n.toUpperCase() !== "OTHERS");
+  rest.push(HR_OTHERS_DESIGN);
+  return rest;
 }

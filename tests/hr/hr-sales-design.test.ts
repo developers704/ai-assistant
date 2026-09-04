@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   applyHrSalesDesigns,
   displayHrPosDesign,
+  foldHrDesignSales,
   hrSalesDesignName,
   isHrEternalVowClass,
   isHrUvSalesRow,
+  pinHrOthersLast,
   remapHrAvailableDesigns,
 } from "@/lib/hr/hr-sales-design";
 import { groupRows } from "@/lib/sales/sales-aggregate";
@@ -85,10 +87,11 @@ describe("HR Sales designs", () => {
     expect(names).toContain("BELLA OVANI");
     expect(names).toContain("UV");
     expect(names).toContain("Eternal-vow");
-    expect(names).toContain("Others");
+    expect(names).toContain("OTHER");
     expect(names).toContain("NOVELLO");
     expect(names).not.toContain("LOVE");
     expect(names).not.toContain("BELLA OVAN");
+    expect(names.at(-1)).toBe("OTHER");
   });
 
   it("groupRows design totals move UV vendor lines out of GOLD JEWL", () => {
@@ -141,12 +144,12 @@ describe("HR Sales designs", () => {
     expect(byName.NOVELLO).toBe(100);
   });
 
-  it("puts blank design / repairs / mulberry into Others", () => {
+  it("puts blank design / repairs / mulberry into OTHER", () => {
     expect(
       hrSalesDesignName(
         row({ design: "", vendor: "AGI", description: "Mulberry Lifetime Care Plan" })
       )
-    ).toBe("Others");
+    ).toBe("OTHER");
     const rows = applyHrSalesDesigns([
       row({ design: "NOVELLO", vendor: "AGI", description: "HALO", netRevenue: 100 }),
       row({ design: "", vendor: "AGI", description: "Mulberry Lifetime Care Plan", netRevenue: 40 }),
@@ -155,6 +158,35 @@ describe("HR Sales designs", () => {
     const designs = groupRows(rows, "design", null);
     const byName = Object.fromEntries(designs.map((d) => [d.name, d.netSales]));
     expect(byName.NOVELLO).toBe(100);
-    expect(byName.Others).toBe(55);
+    expect(byName.OTHER).toBe(55);
+  });
+
+  it("OTHER is Net Sales minus named designs, not a copy-pasted rank line", () => {
+    const folded = foldHrDesignSales(
+      [
+        { name: "NOVELLO", revenue: 47382 },
+        { name: "GOLD JEWL", revenue: 32345 },
+        { name: "Others", revenue: 15500 },
+        { name: "WATCH", revenue: 12838 },
+        { name: "OVANI", revenue: -448 },
+      ],
+      131812
+    );
+    const byName = Object.fromEntries(folded.map((d) => [d.name, d.revenue]));
+    expect(byName.NOVELLO).toBe(47382);
+    expect(byName["GOLD JEWL"]).toBe(32345);
+    expect(byName.WATCH).toBe(12838);
+    expect(byName.OVANI).toBe(-448);
+    expect(byName.OTHER).toBe(131812 - (47382 + 32345 + 12838 - 448));
+    expect(folded.reduce((s, d) => s + d.revenue, 0)).toBe(131812);
+  });
+
+  it("pins OTHER last after revenue sort", () => {
+    const pinned = pinHrOthersLast([
+      { name: "OTHER", revenue: 15500 },
+      { name: "NOVELLO", revenue: 47382 },
+      { name: "GOLD JEWL", revenue: 32345 },
+    ]);
+    expect(pinned.map((d) => d.name)).toEqual(["NOVELLO", "GOLD JEWL", "OTHER"]);
   });
 });

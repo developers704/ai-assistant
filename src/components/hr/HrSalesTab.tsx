@@ -15,7 +15,7 @@ import {
   parseMultiParam,
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
-import { displayHrPosDesign, HR_OTHERS_DESIGN } from "@/lib/hr/hr-sales-design";
+import { foldHrDesignSales, pinHrOthersLast } from "@/lib/hr/hr-sales-design";
 import { ArrowDown, ArrowUp, ArrowUpDown, Gem, UserRound } from "lucide-react";
 
 type DesignSortKey = "name" | "revenue";
@@ -30,7 +30,7 @@ function sortDesignSales(
 ): DesignSalesRow[] {
   const nameCmp = (a: string, b: string) =>
     a.localeCompare(b, undefined, { sensitivity: "base" });
-  return [...rows].sort((a, b) => {
+  const sorted = [...rows].sort((a, b) => {
     if (key === "name") {
       const c = nameCmp(a.name, b.name);
       if (c !== 0) return dir === "asc" ? c : -c;
@@ -41,6 +41,7 @@ function sortDesignSales(
     }
     return nameCmp(a.name, b.name);
   });
+  return pinHrOthersLast(sorted);
 }
 
 function DesignSortButton({
@@ -208,19 +209,8 @@ export function HrSalesTab() {
   }
 
   const salespeople = reportSummary?.topSalesPeople ?? [];
-  const designTotals = new Map<string, number>();
-  for (const d of reportSummary?.topDesigns ?? []) {
-    let name = displayHrPosDesign((d.name || "").trim());
-    if (!name || name.toLowerCase() === "unknown design") name = HR_OTHERS_DESIGN;
-    designTotals.set(name, (designTotals.get(name) ?? 0) + (d.revenue ?? 0));
-  }
-  const namedSum = [...designTotals.values()].reduce((s, n) => s + n, 0);
-  const gap = (summary.totalRevenue ?? 0) - namedSum;
-  if (Math.abs(gap) >= 0.005) {
-    designTotals.set(HR_OTHERS_DESIGN, (designTotals.get(HR_OTHERS_DESIGN) ?? 0) + gap);
-  }
   const designRows = sortDesignSales(
-    [...designTotals.entries()].map(([name, revenue]) => ({ name, revenue })),
+    foldHrDesignSales(reportSummary?.topDesigns ?? [], summary.totalRevenue ?? 0),
     designSortKey,
     designSortDir
   );
