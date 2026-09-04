@@ -164,7 +164,11 @@ export function HrSalesTab() {
           const designs: string[] = d.availableDesigns ?? [];
           const salespeople: string[] = d.availableSalespeople ?? [];
           const scope = d.hrSalesScope as HrSalesScopePayload | undefined;
-          if (scope) setHrScope(scope);
+          if (scope) {
+            setHrScope((prev) =>
+              prev && JSON.stringify(prev) === JSON.stringify(scope) ? prev : scope
+            );
+          }
           setAvailableDates(dates);
           setAvailableStores(stores);
           setAvailableDepartments(departments);
@@ -209,7 +213,7 @@ export function HrSalesTab() {
     if (!bootstrapped) return;
     const selfLocked = hrScope?.mode === "self";
     const person = selfLocked
-      ? hrScope.self?.label ?? null
+      ? hrScope.self?.code || hrScope.self?.label || null
       : filterSalespeople.length === 1
         ? filterSalespeople[0]
         : null;
@@ -234,7 +238,7 @@ export function HrSalesTab() {
         setCommission(null);
       });
     return () => ac.abort();
-  }, [bootstrapped, dateRange, filterSalespeople, hrScope]);
+  }, [bootstrapped, dateRange, filterSalespeople, hrScope?.mode, hrScope?.mode === "self" ? hrScope.self?.code : ""]);
 
   if (!summary) {
     return (
