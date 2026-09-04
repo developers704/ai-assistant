@@ -1,7 +1,13 @@
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import type { HrScheduleEntry } from "./types";
-import { parseScheduleColumnDate, parseScheduleRange } from "./time-utils";
+import { namesMatch } from "./name-match";
+import {
+  isoDateFromCell,
+  parseClockToMinutes,
+  parseScheduleColumnDate,
+  parseScheduleRange,
+} from "./time-utils";
 import { datesInIsoRange, HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "./window";
 
 function normalizeScheduleCell(raw: unknown): string {
@@ -13,6 +19,68 @@ function normalizeScheduleCell(raw: unknown): string {
   return firstLine;
 }
 
+function headerCells(row: unknown[]): string[] {
+  return row.map((c) => String(c ?? "").trim());
+}
+
+function isLongFormatHeader(headers: string[]): boolean {
+  const lower = headers.map((h) => h.toLowerCase());
+  return (
+    lower.some((h) => /^date$/.test(h)) &&
+    lower.some((h) => /employee/.test(h)) &&
+    lower.some((h) => /^time\s*in$/.test(h)) &&
+    lower.some((h) => /^time\s*out$/.test(h))
+  );
+}
+
+function colIndex(headers: string[], pattern: RegExp): number {
+  return headers.findIndex((h) => pattern.test(h.trim()));
+}
+
+function clockCell(raw: unknown): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  return parseClockToMinutes(s) != null ? s : null;
+}
+
+/** Date, Employee Name, Time In, Time Out — one scheduled shift per row. */
+export function parseLongFormatSchedule(matrix: unknown[][]): {
+  entries: HrScheduleEntry[];
+  dateFrom: string | null;
+  dateTo: string | null;
+} {
+  const rows = matrix.filter(
+    (r) => Array.isArray(r) && r.some((c) => String(c ?? "").trim())
+  ) as unknown[][];
+  const headerRowIdx = rows.findIndex((r) => isLongFormatHeader(headerCells(r)));
+  if (headerRowIdx < 0) {
+    return { entries: [], dateFrom: null, dateTo: null };
+  }
+  const headers = headerCells(rows[headerRowIdx]!);
+  const dateI = colIndex(headers, /^date$/i);
+  const nameI = colIndex(headers, /employee/i);
+  const inI = colIndex(headers, /^time\s*in$/i);
+  const outI = colIndex(headers, /^time\s*out$/i);
+  const entries: HrScheduleEntry[] = [];
+  const dates: string[] = [];
+  for (let r = headerRowIdx + 1; r < rows.length; r++) {
+    const row = rows[r]!;
+    const employeeName = String(row[nameI] ?? "").trim();
+    const date = isoDateFromCell(row[dateI]);
+    const start = clockCell(row[inI]);
+    const end = clockCell(row[outI]);
+    if (!employeeName || !date || !start || !end) continue;
+    entries.push({ employeeName, date, start, end });
+    dates.push(date);
+  }
+  dates.sort();
+  return {
+    entries,
+    dateFrom: dates[0] ?? null,
+    dateTo: dates[dates.length - 1] ?? null,
+  };
+}
+
 export function parseScheduleMatrix(matrix: unknown[][]): {
   entries: HrScheduleEntry[];
   dateFrom: string | null;
@@ -21,6 +89,10 @@ export function parseScheduleMatrix(matrix: unknown[][]): {
   const rows = matrix.filter(
     (r) => Array.isArray(r) && r.some((c) => String(c ?? "").trim())
   ) as unknown[][];
+
+  if (rows.some((r) => isLongFormatHeader(headerCells(r)))) {
+    return parseLongFormatSchedule(rows);
+  }
 
   let year = Number(HR_ATTENDANCE_FROM.slice(0, 4)) || new Date().getFullYear();
   const title = String(rows[0]?.[0] ?? "");
@@ -72,10 +144,9 @@ function utcWeekday(iso: string): number {
 }
 
 /**
- * A weekly ADP file is one week of shifts. Repeat that weekday pattern across
- * the HR attendance window (currently June 1–7, 2026).
- *
- * Files that already span more than 8 distinct dates are left as-is.
+ * A weekly ADP grid is one week of shifts. Repeat that weekday pattern across
+ * the HR attendance window. Files that already span more than 8 distinct dates
+ * (including the August long-format month file) are left as-is.
  */
 export function expandWeeklyScheduleToWindow(
   entries: HrScheduleEntry[],
@@ -150,10 +221,7 @@ export function scheduleForEmployeeDate(
   employeeName: string,
   date: string
 ): HrScheduleEntry | null {
-  const norm = employeeName.trim().toLowerCase();
   return (
-    entries.find(
-      (e) => e.date === date && e.employeeName.trim().toLowerCase() === norm
-    ) ?? null
+    entries.find((e) => e.date === date && namesMatch(e.employeeName, employeeName)) ?? null
   );
 }

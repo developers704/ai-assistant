@@ -11,8 +11,8 @@ import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "./window";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const INDEX_PATH = path.join(DATA_DIR, "index.json");
-const SEED_TIMECARD = path.join(process.cwd(), "data", "hr", "Timecard-June-2026.csv");
-const SEED_SCHEDULE = path.join(process.cwd(), "data", "hr", "Schedule-June-2026.csv");
+const SEED_TIMECARD = path.join(process.cwd(), "data", "hr", "Timecard-August-2026.csv");
+const SEED_SCHEDULE = path.join(process.cwd(), "data", "hr", "Schedule-August-2026.csv");
 
 type HrIndex = {
   timecards: HrUploadMeta[];
@@ -30,7 +30,7 @@ function seedFingerprint(): string | null {
   try {
     const tc = fs.statSync(SEED_TIMECARD);
     const sc = fs.statSync(SEED_SCHEDULE);
-    return `june2026week1:${tc.mtimeMs}:${tc.size}:${sc.mtimeMs}:${sc.size}`;
+    return `august2026:${tc.mtimeMs}:${tc.size}:${sc.mtimeMs}:${sc.size}`;
   } catch {
     return null;
   }
@@ -56,8 +56,8 @@ function ensureSeedHr() {
   }
   wipeHrFiles();
   writeIndex({ timecards: [], schedules: [], seedKey: key });
-  saveTimecardUpload("Timecard-June-2026.csv", fs.readFileSync(SEED_TIMECARD, "utf8"));
-  saveScheduleUpload("Schedule-June-2026.csv", fs.readFileSync(SEED_SCHEDULE, "utf8"));
+  saveTimecardUpload("Timecard-August-2026.csv", fs.readFileSync(SEED_TIMECARD, "utf8"));
+  saveScheduleUpload("Schedule-August-2026.csv", fs.readFileSync(SEED_SCHEDULE, "utf8"));
   const after = readIndexRaw();
   after.seedKey = key;
   writeIndex(after);

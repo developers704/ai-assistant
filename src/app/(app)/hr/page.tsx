@@ -17,6 +17,7 @@ import {
 import { SalesMultiSelectFilter } from "@/components/sales/SalesMultiSelectFilter";
 import {
   AlertTriangle,
+  CalendarOff,
   ChevronDown,
   Clock,
   Loader2,
@@ -164,6 +165,7 @@ export default function HrPage() {
       late: list.filter((e) => e.lateMinutes != null && e.lateMinutes >= 12).length,
       early: list.filter((e) => e.earlyInMinutes != null && e.earlyInMinutes >= 10).length,
       meal: list.filter(isMealViolation).length,
+      noSchedule: list.filter((e) => e.violations.some((v) => v.type === "no_schedule")).length,
     };
   }, [filteredEmployees]);
 
@@ -318,6 +320,15 @@ export default function HrPage() {
               </div>
               <div className="hr-kpi-value">{kpis.meal}</div>
             </div>
+            <div className="hr-kpi">
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">No schedule</span>
+                <span className="hr-kpi-icon hr-kpi-icon-amber">
+                  <CalendarOff size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.noSchedule}</div>
+            </div>
           </div>
 
           <div className="hr-filters">
@@ -423,8 +434,8 @@ export default function HrPage() {
               <div className="hr-list">
                 {!data.hasSchedule && (
                   <div className="hr-alert hr-alert-warn">
-                    No schedule loaded — upload the weekly ADP schedule csv (re-upload if you saw
-                    &quot;0 entries&quot;).
+                    No schedule loaded — upload the schedule csv (Date / Employee Name / Time In /
+                    Time Out, or weekly ADP grid). Re-upload if you saw &quot;0 entries&quot;.
                   </div>
                 )}
                 {data.hasSchedule &&

@@ -230,6 +230,7 @@ export function HrAttendanceEmployeeRow({
     setWriteUp(emp.writeUp ?? null);
   }, [emp.warning, emp.writeUp]);
   const hasError = emp.violations.some((v) => v.severity === "error");
+  const missingSchedule = emp.violations.some((v) => v.type === "no_schedule");
   const canSendNotice = isEligibleForHrNotice(emp);
   const tone = avatarTone(emp.employeeName);
   const late = emp.lateMinutes != null && emp.lateMinutes >= 12;
@@ -296,7 +297,7 @@ export function HrAttendanceEmployeeRow({
   const roleLine = [emp.jobTitle, emp.store].filter((s) => s?.trim()).join(" · ");
 
   return (
-    <div className={cn("hr-emp", hasError && "hr-emp-error")}>
+    <div className={cn("hr-emp", hasError && "hr-emp-error", missingSchedule && "hr-emp-no-schedule")}>
       <div className="hr-emp-head">
         <button type="button" onClick={() => setOpen((o) => !o)} className="hr-emp-main">
           {open ? (
@@ -310,9 +311,14 @@ export function HrAttendanceEmployeeRow({
           <span className="min-w-0 flex-1">
             <span className="hr-emp-name block truncate">{emp.employeeName}</span>
             <span className="hr-emp-meta block truncate">
-              {emp.schedule
-                ? `${roleLine ? `${roleLine} · ` : ""}Scheduled ${emp.schedule.start} – ${emp.schedule.end}`
-                : roleLine || "No schedule on file"}
+              {emp.schedule ? (
+                `${roleLine ? `${roleLine} · ` : ""}Scheduled ${emp.schedule.start} – ${emp.schedule.end}`
+              ) : (
+                <>
+                  {roleLine ? `${roleLine} · ` : ""}
+                  <span className="hr-emp-meta-miss">Schedule missing</span>
+                </>
+              )}
             </span>
             <span className="hr-stat-row">
               <span>
@@ -332,6 +338,7 @@ export function HrAttendanceEmployeeRow({
               )}
             </span>
             <span className="hr-pills">
+              {missingSchedule && <span className="hr-pill hr-pill-miss">Schedule missing</span>}
               {late && <span className="hr-pill hr-pill-warn">Late {emp.lateMinutes} min</span>}
               {early && <span className="hr-pill hr-pill-info">Early {emp.earlyInMinutes} min</span>}
               {mealFlag && <span className="hr-pill hr-pill-warn">Meal break</span>}
@@ -491,12 +498,19 @@ export function HrAttendanceEmployeeRow({
               <div className="hr-metric-label">Total meal break</div>
               <div className="hr-metric-value">{emp.totalMealMinutes} min</div>
             </div>
-            {emp.schedule && (
+            {emp.schedule ? (
               <div className="hr-metric">
                 <div className="hr-metric-label">Scheduled</div>
                 <div className="hr-metric-value" style={{ fontSize: "0.92rem" }}>
                   {emp.schedule.start} – {emp.schedule.end}{" "}
                   <span style={{ color: "#8b95a5", fontWeight: 600 }}>({emp.schedule.scheduledLabel})</span>
+                </div>
+              </div>
+            ) : (
+              <div className="hr-metric">
+                <div className="hr-metric-label">Scheduled</div>
+                <div className="hr-metric-value hr-emp-meta-miss" style={{ fontSize: "0.92rem" }}>
+                  Schedule missing
                 </div>
               </div>
             )}

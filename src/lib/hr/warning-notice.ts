@@ -17,15 +17,22 @@ export const HR_NOTICE_CASE_RE = /HR-(?:LATE|EARLY|MEAL|WRITEUP)-[A-Z0-9]+-\d{4}
 
 export type HrWarningReason = "late" | "early" | "meal";
 export type HrViolationKind = "late" | "early" | "meal";
-export type HrViolationFilter = "all" | HrViolationKind;
+export type HrViolationFilter = "all" | HrViolationKind | "no_schedule";
 
-export const HR_VIOLATION_FILTER_OPTIONS: HrViolationFilter[] = ["all", "late", "early", "meal"];
+export const HR_VIOLATION_FILTER_OPTIONS: HrViolationFilter[] = [
+  "all",
+  "late",
+  "early",
+  "meal",
+  "no_schedule",
+];
 
 export const HR_VIOLATION_FILTER_LABELS: Record<HrViolationFilter, string> = {
   all: "All violation",
   late: "Late arrival",
   early: "Early arrival",
   meal: "Meal break",
+  no_schedule: "Schedule missing",
 };
 
 export type HrNoticeEmployee = Pick<
@@ -140,25 +147,29 @@ export function matchesViolationFilter(
   filter: HrViolationFilter | readonly HrViolationFilter[]
 ): boolean {
   const list = Array.isArray(filter) ? filter : [filter];
-  const kinds = list.filter((f): f is HrViolationKind => f !== "all");
+  const kinds = list.filter((f): f is Exclude<HrViolationFilter, "all"> => f !== "all");
   if (kinds.length === 0) return true;
   return kinds.some((kind) => {
     if (kind === "late") return isLateForWarning(emp.lateMinutes);
     if (kind === "early") return isEarlyForWarning(emp.earlyInMinutes);
+    if (kind === "no_schedule") {
+      return emp.violations?.some((v) => v.type === "no_schedule") ?? false;
+    }
     return hasLongMealViolation(emp);
   });
 }
 
-/** Keep "All violation" exclusive of specific types; empty / all-three → all. */
+/** Keep "All violation" exclusive of specific types; empty / all-kinds → all. */
 export function normalizeViolationFilters(
   prev: readonly HrViolationFilter[],
   next: readonly string[]
 ): HrViolationFilter[] {
   const allowed = new Set<string>(HR_VIOLATION_FILTER_OPTIONS);
   const cleaned = next.filter((v): v is HrViolationFilter => allowed.has(v));
-  const kinds = cleaned.filter((v): v is HrViolationKind => v !== "all");
+  const kinds = cleaned.filter((v): v is Exclude<HrViolationFilter, "all"> => v !== "all");
   const addedAll = cleaned.includes("all") && !prev.includes("all");
-  if (addedAll || kinds.length === 3 || cleaned.length === 0) return ["all"];
+  const specificCount = HR_VIOLATION_FILTER_OPTIONS.filter((x) => x !== "all").length;
+  if (addedAll || kinds.length === specificCount || cleaned.length === 0) return ["all"];
   if (prev.includes("all") && kinds.length > 0) return kinds;
   if (kinds.length === 0) return ["all"];
   return kinds;
