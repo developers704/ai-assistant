@@ -7,7 +7,6 @@ import type { HrEmployeeDay, HrViolation, HrWarningNotice } from "@/lib/hr/types
 import { MISSING_PUNCH_LABEL } from "@/lib/hr/window";
 import {
   isEligibleForHrNotice,
-  HR_WARNING_FROM,
   noticeDescriptionForEmployee,
 } from "@/lib/hr/warning-notice";
 import {
@@ -88,7 +87,7 @@ function RemarksPanel({
     setError(null);
     setStatus(null);
     try {
-      const ready = isWarningMailSessionReady();
+      const ready = await isWarningMailSessionReady();
       if (!ready.ok) throw new Error(ready.reason);
       const next = await syncWarningRemarks(warning.caseId);
       if (next) onSynced(next);
@@ -104,7 +103,7 @@ function RemarksPanel({
     setError(null);
     setStatus(null);
     try {
-      const ready = isWarningMailSessionReady();
+      const ready = await isWarningMailSessionReady();
       if (!ready.ok) throw new Error(ready.reason);
       const next = await replyOnWarningThread(warning, replyText);
       if (next) onSynced(next);
@@ -167,7 +166,8 @@ function RemarksPanel({
           {warning.remarks.map((r) => {
             const body = stripQuotedReply(r.body);
             if (!body) return null;
-            const fromHr = r.fromEmail.toLowerCase() === HR_WARNING_FROM.toLowerCase();
+            const fromHr =
+              r.fromEmail.toLowerCase() === (warning.from || "").toLowerCase();
             return (
               <div key={r.id} className={cn("hr-bubble", fromHr ? "hr-bubble-out" : "hr-bubble-in")}>
                 <div className="hr-bubble-meta">
@@ -247,7 +247,7 @@ export function HrAttendanceEmployeeRow({
     setSending(true);
     setError(null);
     try {
-      const ready = isWarningMailSessionReady();
+      const ready = await isWarningMailSessionReady();
       if (!ready.ok) throw new Error(ready.reason);
       const next = await sendLateWarningNotice(emp);
       setWarning(next);
@@ -276,7 +276,7 @@ export function HrAttendanceEmployeeRow({
     setSendingWriteUp(true);
     setError(null);
     try {
-      const ready = isWarningMailSessionReady();
+      const ready = await isWarningMailSessionReady();
       if (!ready.ok) throw new Error(ready.reason);
       if (!writeUpText.trim()) throw new Error("Write a description before sending the write-up");
       const next = await sendWriteUpNotice(emp, writeUpText);

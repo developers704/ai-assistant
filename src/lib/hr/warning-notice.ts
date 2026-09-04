@@ -1,8 +1,14 @@
 import type { HrEmployeeDay, HrWarningNotice, HrViolation } from "./types";
 import { expectedMealPolicy } from "./meal-break-rules";
+import {
+  DEFAULT_HR_MAIL_FROM,
+  DEFAULT_HR_MAIL_TO,
+  formatHrMailTo,
+  type HrMailRouting,
+} from "./mail-routing";
 
-export const HR_WARNING_FROM = "umairj@valliani.app";
-export const HR_WARNING_TO = "umairjam.arrakconsulting@gmail.com";
+export const HR_WARNING_FROM = DEFAULT_HR_MAIL_FROM;
+export const HR_WARNING_TO = DEFAULT_HR_MAIL_TO[0]!;
 export const LATE_WARNING_THRESHOLD_MINUTES = 12;
 export const EARLY_WARNING_THRESHOLD_MINUTES = 10;
 export const HR_WARNING_CASE_RE = /HR-LATE-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
@@ -352,7 +358,10 @@ export function warningCoverHtml(input: {
 <p>Reply to this email if you have remarks.</p>`;
 }
 
-export function draftWarningNotice(emp: HrNoticeEmployee): WarningNoticeDraft {
+export function draftWarningNotice(
+  emp: HrNoticeEmployee,
+  routing?: HrMailRouting | null
+): WarningNoticeDraft {
   if (!isEligibleForHrNotice(emp)) {
     throw new Error("No attendance violation for a warning notice");
   }
@@ -371,8 +380,8 @@ export function draftWarningNotice(emp: HrNoticeEmployee): WarningNoticeDraft {
   return {
     caseId,
     ...payload,
-    from: HR_WARNING_FROM,
-    to: HR_WARNING_TO,
+    from: routing?.from?.trim() || HR_WARNING_FROM,
+    to: routing?.to?.length ? formatHrMailTo(routing.to) : HR_WARNING_TO,
     subject: warningSubject(caseId, emp.employeeName),
     html: warningCoverHtml({
       employeeName: emp.employeeName,
