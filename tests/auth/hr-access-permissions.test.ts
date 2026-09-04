@@ -11,6 +11,7 @@ import {
   canManageUsersByRole,
   canSeeRealInventoryCost,
   getDefaultPermissionMapForRole,
+  hidesWholesaleCost,
   homePathForRole,
 } from "@/lib/auth/user-permissions";
 import { costPriceForRole } from "@/lib/sales/cost-price";
@@ -95,6 +96,10 @@ describe("Admin / Employee / HR / DM roles", () => {
     expect(canSeeRealInventoryCost("admin", "admin")).toBe(true);
     expect(canSeeRealInventoryCost("marina", "admin")).toBe(true);
     expect(canSeeRealInventoryCost("keya@valliani.app", "employee")).toBe(false);
+    expect(hidesWholesaleCost("employee")).toBe(true);
+    expect(hidesWholesaleCost("admin")).toBe(false);
+    expect(hidesWholesaleCost("hr")).toBe(false);
+    expect(hidesWholesaleCost("dm")).toBe(false);
   });
 
   it("gives HR and Admin all stores, employees their sheet store", () => {

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import type { InventoryItem } from "@/lib/inventory/types";
 import { Loader2, Search, Tag } from "lucide-react";
 import { ProductThumb, ProductLightbox } from "@/components/reports/ProductImagePreview";
+import { useApp } from "@/lib/store/app-context";
 
 const money = (n: number) =>
   isFinite(n)
@@ -34,6 +35,8 @@ type LookupResponse = {
 };
 
 export default function SkuLookupPage() {
+  const { state } = useApp();
+  const hideCost = state?.user?.authRole === "employee";
   const [sku, setSku] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +107,11 @@ export default function SkuLookupPage() {
           gradient
           eyebrow="Inventory"
           title="SKU Lookup"
-          subtitle="Product details and wholesale cost — no customer offer or discounting"
+          subtitle={
+            hideCost
+              ? "Product details — no customer offer or discounting"
+              : "Product details and wholesale cost — no customer offer or discounting"
+          }
           action={
             inventoryLoaded === true ? (
               <Badge variant="success">{inventoryRows.toLocaleString()} SKUs loaded</Badge>
@@ -178,7 +185,7 @@ export default function SkuLookupPage() {
               <Detail label="Class" value={result.item.class || "—"} />
               <Detail label="Sub-Class" value={result.item.subClass || "—"} />
               <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
-              <Detail label="Wholesale cost" value={money(cost)} highlight />
+              {!hideCost && <Detail label="Wholesale cost" value={money(cost)} highlight />}
               <Detail
                 label="Avg Weight (g)"
                 value={Number.isFinite(result.item.avgWeight) ? String(result.item.avgWeight) : "—"}

@@ -844,16 +844,16 @@
     color: #f1f5f9;
     color-scheme: dark;
   }
+}
 
-  .select-dark option {
-    background-color: #0f172a;
-    color: #f1f5f9;
-  }
-
-  .select-dark option:checked {
-    background-color: #334155;
-    color: #ffffff;
-  }
+/*
+ * Chrome paints native <select> menus white and still inherits option { color }.
+ * Light-on-white lists (Users store picker, dark filters) become invisible.
+ */
+select option,
+select optgroup {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
 }
 
 @layer utilities {
