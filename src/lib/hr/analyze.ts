@@ -79,6 +79,13 @@ export function analyzeEmployeeDay(
   let totalWorkMinutes = 0;
 
   if (sorted.length === 0) {
+    if (scheduleRange) {
+      violations.push({
+        type: "absent",
+        message: "Absent — scheduled, no punch",
+        severity: "error",
+      });
+    }
     const missing: HrViolation[] = [
       {
         type: "missing_punch",

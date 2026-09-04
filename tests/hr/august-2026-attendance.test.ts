@@ -155,6 +155,7 @@ describe("August 2026 seed files", () => {
     expect(day.segments[0]!.timeIn).toBeNull();
     expect(day.segments[0]!.timeOut).toBeNull();
     expect(day.violations.filter((v) => v.type === "missing_punch")).toHaveLength(2);
+    expect(day.violations.some((v) => v.type === "absent")).toBe(true);
   });
 
   it("flags both missing Time In and Time Out on a punch row", () => {
@@ -171,6 +172,7 @@ describe("August 2026 seed files", () => {
     const day = analyzeEmployeeDay("Test, employee", "2026-08-01", punches, []);
     expect(day.violations.filter((v) => v.type === "missing_punch")).toHaveLength(2);
     expect(day.violations.some((v) => v.type === "no_schedule")).toBe(true);
+    expect(day.violations.some((v) => v.type === "absent")).toBe(false);
   });
 
   it("includes every scheduled name for August 1 even without punches", () => {

@@ -17,7 +17,7 @@ export const HR_NOTICE_CASE_RE = /HR-(?:LATE|EARLY|MEAL|WRITEUP)-[A-Z0-9]+-\d{4}
 
 export type HrWarningReason = "late" | "early" | "meal";
 export type HrViolationKind = "late" | "early" | "meal";
-export type HrViolationFilter = "all" | HrViolationKind | "no_schedule";
+export type HrViolationFilter = "all" | HrViolationKind | "no_schedule" | "absent";
 
 export const HR_VIOLATION_FILTER_OPTIONS: HrViolationFilter[] = [
   "all",
@@ -25,6 +25,7 @@ export const HR_VIOLATION_FILTER_OPTIONS: HrViolationFilter[] = [
   "early",
   "meal",
   "no_schedule",
+  "absent",
 ];
 
 export const HR_VIOLATION_FILTER_LABELS: Record<HrViolationFilter, string> = {
@@ -33,6 +34,7 @@ export const HR_VIOLATION_FILTER_LABELS: Record<HrViolationFilter, string> = {
   early: "Early arrival",
   meal: "Meal break",
   no_schedule: "Schedule missing",
+  absent: "Absent",
 };
 
 export type HrNoticeEmployee = Pick<
@@ -154,6 +156,9 @@ export function matchesViolationFilter(
     if (kind === "early") return isEarlyForWarning(emp.earlyInMinutes);
     if (kind === "no_schedule") {
       return emp.violations?.some((v) => v.type === "no_schedule") ?? false;
+    }
+    if (kind === "absent") {
+      return emp.violations?.some((v) => v.type === "absent") ?? false;
     }
     return hasLongMealViolation(emp);
   });

@@ -168,5 +168,16 @@ describe("late warning notice", () => {
       )
     ).toBe(true);
     expect(matchesViolationFilter(shazia, "no_schedule")).toBe(false);
+    expect(
+      matchesViolationFilter(
+        {
+          ...shazia,
+          lateMinutes: null,
+          violations: [{ type: "absent", message: "Absent — scheduled, no punch", severity: "error" }],
+        },
+        "absent"
+      )
+    ).toBe(true);
+    expect(matchesViolationFilter(shazia, "absent")).toBe(false);
   });
 });

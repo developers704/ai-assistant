@@ -25,6 +25,7 @@ import {
   Lock,
   Timer,
   Upload,
+  UserX,
   Users,
   Utensils,
 } from "lucide-react";
@@ -160,17 +161,20 @@ export default function HrPage() {
     }
   }, [designationFilter, designationOptions]);
 
-  const filteredEmployees = useMemo(() => {
+  const scopedEmployees = useMemo(() => {
     return (data?.employees ?? []).filter((e) => {
       if (storeFilter && (e.store ?? "").trim() !== storeFilter) return false;
       if (designationFilter && (e.jobTitle ?? "").trim() !== designationFilter) return false;
-      if (!matchesViolationFilter(e, violationFilter)) return false;
       return true;
     });
-  }, [data?.employees, storeFilter, designationFilter, violationFilter]);
+  }, [data?.employees, storeFilter, designationFilter]);
+
+  const filteredEmployees = useMemo(() => {
+    return scopedEmployees.filter((e) => matchesViolationFilter(e, violationFilter));
+  }, [scopedEmployees, violationFilter]);
 
   const kpis = useMemo(() => {
-    const list = filteredEmployees;
+    const list = scopedEmployees;
     return {
       employees: list.length,
       flagged: list.filter((e) => e.violations.length > 0).length,
@@ -178,8 +182,13 @@ export default function HrPage() {
       early: list.filter((e) => e.earlyInMinutes != null && e.earlyInMinutes >= 10).length,
       meal: list.filter(isMealViolation).length,
       noSchedule: list.filter((e) => e.violations.some((v) => v.type === "no_schedule")).length,
+      absent: list.filter((e) => e.violations.some((v) => v.type === "absent")).length,
     };
-  }, [filteredEmployees]);
+  }, [scopedEmployees]);
+
+  function selectViolationKind(kind: Exclude<HrViolationFilter, "all">) {
+    setViolationFilter((prev) => (prev.length === 1 && prev[0] === kind ? ["all"] : [kind]));
+  }
 
   return (
     <HrWorkspace>
@@ -345,6 +354,20 @@ export default function HrPage() {
               </div>
               <div className="hr-kpi-value">{kpis.noSchedule}</div>
             </div>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${violationFilter.length === 1 && violationFilter[0] === "absent" ? " hr-kpi-active" : ""}`}
+              aria-pressed={violationFilter.length === 1 && violationFilter[0] === "absent"}
+              onClick={() => selectViolationKind("absent")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Absent</span>
+                <span className="hr-kpi-icon hr-kpi-icon-rose">
+                  <UserX size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.absent}</div>
+            </button>
           </div>
 
           <div className="hr-filters">
