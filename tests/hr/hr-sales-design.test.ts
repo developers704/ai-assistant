@@ -85,6 +85,7 @@ describe("HR Sales designs", () => {
     expect(names).toContain("BELLA OVANI");
     expect(names).toContain("UV");
     expect(names).toContain("Eternal-vow");
+    expect(names).toContain("Others");
     expect(names).toContain("NOVELLO");
     expect(names).not.toContain("LOVE");
     expect(names).not.toContain("BELLA OVAN");
@@ -138,5 +139,22 @@ describe("HR Sales designs", () => {
     const byName = Object.fromEntries(designs.map((d) => [d.name, d.netSales]));
     expect(byName["Eternal-vow"]).toBe(400);
     expect(byName.NOVELLO).toBe(100);
+  });
+
+  it("puts blank design / repairs / mulberry into Others", () => {
+    expect(
+      hrSalesDesignName(
+        row({ design: "", vendor: "AGI", description: "Mulberry Lifetime Care Plan" })
+      )
+    ).toBe("Others");
+    const rows = applyHrSalesDesigns([
+      row({ design: "NOVELLO", vendor: "AGI", description: "HALO", netRevenue: 100 }),
+      row({ design: "", vendor: "AGI", description: "Mulberry Lifetime Care Plan", netRevenue: 40 }),
+      row({ design: "", sku: "ITEM", itemNumber: "ITEM", vendor: "", description: "REPAIR", netRevenue: 15 }),
+    ]);
+    const designs = groupRows(rows, "design", null);
+    const byName = Object.fromEntries(designs.map((d) => [d.name, d.netSales]));
+    expect(byName.NOVELLO).toBe(100);
+    expect(byName.Others).toBe(55);
   });
 });

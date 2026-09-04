@@ -6,6 +6,7 @@ import type { VendorPosRow } from "@/lib/reports/types";
 
 export const HR_UV_DESIGN = "UV";
 export const HR_ETERNAL_VOW_DESIGN = "Eternal-vow";
+export const HR_OTHERS_DESIGN = "Others";
 export const HR_LOVE_DESIGN = "Lovespell";
 export const HR_BELLA_DESIGN = "BELLA OVANI";
 
@@ -61,7 +62,9 @@ export function hrSalesDesignName(row: {
 }): string {
   if (isHrUvSalesRow(row)) return HR_UV_DESIGN;
   if (isHrEternalVowClass(row.productClass ?? row.class)) return HR_ETERNAL_VOW_DESIGN;
-  return displayHrPosDesign(row.design);
+  const named = displayHrPosDesign(row.design);
+  if (named === "Unknown design") return HR_OTHERS_DESIGN;
+  return named;
 }
 
 /** Copy-on-write remap so cached POS rows stay unchanged. */
@@ -69,7 +72,7 @@ export function applyHrSalesDesigns(rows: VendorPosRow[]): VendorPosRow[] {
   return rows.map((r) => {
     const next = hrSalesDesignName(r);
     const cur = (r.design || "").trim() || "Unknown design";
-    if (next === cur || (next === "Unknown design" && !r.design?.trim())) return r;
+    if (next === cur) return r;
     return { ...r, design: next };
   });
 }
@@ -80,6 +83,7 @@ export function remapHrAvailableDesigns(designs: string[]): string[] {
   const seen = new Set<string>();
   for (const d of designs) {
     const name = displayHrPosDesign(d);
+    if (name.toLowerCase() === "unknown design") continue;
     const k = name.toLowerCase();
     if (seen.has(k)) continue;
     seen.add(k);
@@ -87,5 +91,6 @@ export function remapHrAvailableDesigns(designs: string[]): string[] {
   }
   if (!seen.has("uv")) out.push(HR_UV_DESIGN);
   if (!seen.has("eternal-vow")) out.push(HR_ETERNAL_VOW_DESIGN);
+  if (!seen.has("others")) out.push(HR_OTHERS_DESIGN);
   return out;
 }
