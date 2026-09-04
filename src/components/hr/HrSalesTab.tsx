@@ -481,6 +481,4 @@ export function HrSalesTab() {
       )}
     </div>
   );
-    </div>
-  );
 }
