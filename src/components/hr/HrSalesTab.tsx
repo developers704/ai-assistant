@@ -17,6 +17,9 @@ import {
 } from "@/lib/sales/filter-params";
 import { displayHrPosDesign, HR_OTHERS_DESIGN } from "@/lib/hr/hr-sales-design";
 import { ArrowDown, ArrowUp, ArrowUpDown, Gem, UserRound } from "lucide-react";
+import { HrCommissionPanel } from "@/components/hr/HrCommissionPanel";
+import type { EmployeeCommission } from "@/lib/hr/commission";
+import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "@/lib/hr/window";
 
 type DesignSortKey = "name" | "revenue";
 type SortDir = "asc" | "desc";
@@ -109,8 +112,10 @@ export function HrSalesTab() {
   const [designSortKey, setDesignSortKey] = useState<DesignSortKey>("revenue");
   const [designSortDir, setDesignSortDir] = useState<SortDir>("desc");
   const [bootstrapped, setBootstrapped] = useState(false);
-  const autoSelectLatestRef = useRef(true);
+  const [commission, setCommission] = useState<EmployeeCommission | null>(null);
+  const autoSelectLatestRef = useRef(false);
   const fetchGenRef = useRef(0);
+  const commissionGenRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -119,22 +124,12 @@ export function HrSalesTab() {
     if (people.length) setFilterSalespeople(people);
     const range = rangeFromSearchParams(sp);
     if (range) {
-      autoSelectLatestRef.current = false;
       setDateRange(range);
       setBootstrapped(true);
       return;
     }
-    fetch("/api/sales/status", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d: { metadata?: { dataThrough?: string | null } | null }) => {
-        const through = d.metadata?.dataThrough?.trim() ?? "";
-        if (through && isValidIsoDate(through)) {
-          autoSelectLatestRef.current = false;
-          setDateRange({ from: through, to: through });
-        }
-        setBootstrapped(true);
-      })
-      .catch(() => setBootstrapped(true));
+    setDateRange({ from: HR_ATTENDANCE_FROM, to: HR_ATTENDANCE_TO });
+    setBootstrapped(true);
   }, []);
 
   useEffect(() => {
@@ -196,6 +191,32 @@ export function HrSalesTab() {
     filterDesigns,
     filterSalespeople,
   ]);
+
+  useEffect(() => {
+    if (!bootstrapped) return;
+    const person = filterSalespeople.length === 1 ? filterSalespeople[0] : null;
+    if (!person || !dateRange) {
+      setCommission(null);
+      return;
+    }
+    const params = new URLSearchParams();
+    params.set("salesperson", person);
+    params.set("from", dateRange.from);
+    params.set("to", dateRange.to);
+    const gen = ++commissionGenRef.current;
+    const ac = new AbortController();
+    fetch(`/api/hr/commission?${params}`, { signal: ac.signal, cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { commission?: EmployeeCommission }) => {
+        if (gen !== commissionGenRef.current) return;
+        setCommission(d.commission ?? null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setCommission(null);
+      });
+    return () => ac.abort();
+  }, [bootstrapped, dateRange, filterSalespeople]);
 
   if (!summary) {
     return (
@@ -396,6 +417,10 @@ export function HrSalesTab() {
             </div>
           )}
         </div>
+      )}
+
+      {filterSalespeople.length === 1 && commission && dateRange && (
+        <HrCommissionPanel commission={commission} from={dateRange.from} to={dateRange.to} />
       )}
     </div>
   );

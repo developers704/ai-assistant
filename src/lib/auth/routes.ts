@@ -63,6 +63,7 @@ const API_TO_PERMISSION: Array<{
   { prefix: "/api/social", permission: "social" },
   { prefix: "/api/markets", permission: "news_markets" },
   { prefix: "/api/news", permission: "news_markets" },
+  { prefix: "/api/hr/commission", permission: ["hr_management", "hr_sales"] },
   { prefix: "/api/hr", permission: "hr_management" },
   { prefix: "/api/admin", permission: "user_admin" },
 ];

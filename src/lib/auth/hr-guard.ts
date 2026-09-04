@@ -15,3 +15,15 @@ export async function requireHrManagement() {
   }
   return null;
 }
+
+/** HR Sales tab (employees) plus full HR Management. */
+export async function requireHrSalesAccess() {
+  const session = await readSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (session.role === "admin") return null;
+  const map = getPermissionMapForUser(session.username, session.role);
+  if (map.hr_management || map.hr_sales) return null;
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
