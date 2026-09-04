@@ -67,7 +67,7 @@ export default function HrPage() {
   const [tab, setTab] = useState<"attendance" | "sales">(salesOnly ? "sales" : "attendance");
   const [data, setData] = useState<HrApiResponse | null>(null);
   const [dateRange, setDateRange] = useState<SalesDateRangeValue>({
-    from: HR_ATTENDANCE_FROM,
+    from: HR_ATTENDANCE_TO,
     to: HR_ATTENDANCE_TO,
   });
   const [loading, setLoading] = useState(!salesOnly);
@@ -93,7 +93,7 @@ export default function HrPage() {
     setError(null);
     try {
       const params = new URLSearchParams();
-      params.set("from", opts?.from ?? HR_ATTENDANCE_FROM);
+      params.set("from", opts?.from ?? HR_ATTENDANCE_TO);
       params.set("to", opts?.to ?? HR_ATTENDANCE_TO);
       const res = await fetch(`/api/hr?${params}`, { cache: "no-store" });
       const json = (await res.json()) as HrApiResponse;
