@@ -5,6 +5,7 @@ import {
   fullCommissionRateForDesign,
   roundCommissionDollars,
 } from "@/lib/hr/commission-rates";
+import { settleHrDesignTotals } from "@/lib/hr/hr-sales-design";
 
 export type CommissionDesignLine = {
   design: string;
@@ -120,7 +121,12 @@ export function assembleEmployeeCommission(input: {
   presentDays: number;
   absences: number;
 }): EmployeeCommission {
-  const lines = buildDesignCommissionLines(input.designs);
+  const netHint = Number.isFinite(input.netSales) ? input.netSales : 0;
+  const settled = settleHrDesignTotals(
+    input.designs.map((d) => ({ design: d.design, netSales: d.netSales })),
+    netHint || input.designs.reduce((s, d) => s + d.netSales, 0)
+  );
+  const lines = buildDesignCommissionLines(settled);
   const netSales =
     Number.isFinite(input.netSales) && Math.abs(input.netSales) > 0.005
       ? input.netSales

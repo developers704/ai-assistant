@@ -6,6 +6,7 @@ import {
   isHrEternalVowClass,
   isHrUvSalesRow,
   remapHrAvailableDesigns,
+  settleHrDesignTotals,
 } from "@/lib/hr/hr-sales-design";
 import { groupRows } from "@/lib/sales/sales-aggregate";
 import type { VendorPosRow } from "@/lib/reports/types";
@@ -156,5 +157,39 @@ describe("HR Sales designs", () => {
     const byName = Object.fromEntries(designs.map((d) => [d.name, d.netSales]));
     expect(byName.NOVELLO).toBe(100);
     expect(byName.Others).toBe(55);
+  });
+
+  it("drops return lines and puts leftover vs net sales into Others", () => {
+    const settled = settleHrDesignTotals(
+      [
+        { design: "NOVELLO", netSales: 47_382 },
+        { design: "GOLD JEWL", netSales: 32_345 },
+        { design: "OVANI", netSales: -448 },
+        { design: "Others", netSales: 15_500 },
+      ],
+      131_812
+    );
+    expect(settled.find((d) => d.design === "OVANI")).toBeUndefined();
+    const namedSum = settled
+      .filter((d) => d.design !== "Others")
+      .reduce((s, d) => s + d.netSales, 0);
+    const others = settled.find((d) => d.design === "Others")?.netSales ?? 0;
+    expect(others).toBe(131_812 - namedSum);
+    expect(others).toBe(131_812 - 47_382 - 32_345);
+    expect(settled.reduce((s, d) => s + d.netSales, 0)).toBe(131_812);
+  });
+
+  it("is idempotent after the first settle", () => {
+    const first = settleHrDesignTotals(
+      [
+        { design: "NOVELLO", netSales: 100 },
+        { design: "OVANI", netSales: -20 },
+        { design: "Others", netSales: 50 },
+      ],
+      200
+    );
+    const second = settleHrDesignTotals(first, 200);
+    expect(second).toEqual(first);
+    expect(first.find((d) => d.design === "Others")?.netSales).toBe(100);
   });
 });

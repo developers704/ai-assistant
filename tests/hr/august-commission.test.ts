@@ -53,6 +53,17 @@ describe("Zoya August commission test case", () => {
     expect(roundCommissionDollars(link!.baseCommission)).toBe(50);
   });
 
+  it("hides the OVANI return and puts leftover vs net into Others", () => {
+    expect(zoya.lines.find((l) => /ovani/i.test(l.design) && l.design !== "BELLA OVANI")).toBeUndefined();
+    const others = zoya.lines.find((l) => l.design === "Others");
+    const namedSum = zoya.lines
+      .filter((l) => l.design !== "Others")
+      .reduce((s, l) => s + l.netSales, 0);
+    expect(others?.netSales).toBe(131_812 - namedSum);
+    expect(others?.netSales).toBe(14_152);
+    expect(zoya.lines.reduce((s, l) => s + l.netSales, 0)).toBe(131_812);
+  });
+
   it("qualifies for attendance, personal-goal, and store-goal bonuses", () => {
     expect(zoya.summary.attendancePassed).toBe(true);
     expect(zoya.summary.personalGoalAchieved).toBe(true);
