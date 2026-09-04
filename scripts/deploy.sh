@@ -43,16 +43,18 @@ run_with_heartbeat() {
     done
   ) &
   local hb=$!
-  # If the command fails, still kill the heartbeat before exiting.
-  if "$@"; then
-    kill "$hb" 2>/dev/null || true
-    wait "$hb" 2>/dev/null || true
+  # `local st=$?` after `if cmd` is always 0 (the `if` succeeded). Capture
+  # the real command status, then fail the deploy instead of restarting PM2.
+  set +e
+  "$@"
+  local st=$?
+  set -e
+  kill "$hb" 2>/dev/null || true
+  wait "$hb" 2>/dev/null || true
+  if [ "$st" -eq 0 ]; then
     echo "[deploy] done $label"
     return 0
   fi
-  local st=$?
-  kill "$hb" 2>/dev/null || true
-  wait "$hb" 2>/dev/null || true
   echo "[deploy] FAILED $label (exit $st)"
   return "$st"
 }
@@ -77,6 +79,11 @@ else
 fi
 
 run_with_heartbeat "next build" npm run build
+
+if [ ! -f .next/BUILD_ID ]; then
+  echo "ERROR: next build did not write .next/BUILD_ID — refusing to restart PM2 (would 502)."
+  exit 1
+fi
 
 # Reload ONLY this app after .next is fully written.
 # NEVER use `pm2 restart all` — other apps (docusign / ai-valliani on :3000) share this PM2.

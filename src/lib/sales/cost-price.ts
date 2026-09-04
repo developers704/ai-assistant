@@ -10,7 +10,7 @@ export function costPriceForRole(
   role: AuthRole | null | undefined
 ): number {
   const inventory = Number(row.inventoryCost) || 0;
-  if (role !== "dm" && role !== "employee" && role !== "hr" && role !== "hr_access") {
+  if (role !== "dm" && role !== "employee" && role !== "hr") {
     return inventory;
   }
   const wholesale = Number(row.wholesaleCost) || 0;
