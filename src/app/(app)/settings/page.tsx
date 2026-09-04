@@ -18,13 +18,7 @@ import { Input } from "@/components/ui/Input";
 
 import { Badge } from "@/components/ui/Badge";
 
-import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug, Check, X, KeyRound, RefreshCw, Copy, Eye, EyeOff } from "lucide-react";
-import {
-  USER_PERMISSION_SECTIONS,
-  canManageDmPermissions,
-  getDefaultPermissionMapForRole,
-  type UserPermissionMap,
-} from "@/lib/auth/user-permissions";
+import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug, KeyRound, Eye, EyeOff } from "lucide-react";
 
 
 
@@ -152,23 +146,7 @@ function SettingsContent() {
 
   });
 
-  const [permissionUser, setPermissionUser] = useState<string>("aj");
-  const [permissionQuery, setPermissionQuery] = useState("");
-  const [permissionUsers, setPermissionUsers] = useState<
-    Array<{
-      username: string;
-      name: string;
-      role: string;
-      roleLabel?: string;
-      permissions: UserPermissionMap;
-    }>
-  >([]);
-  const [permissionDraft, setPermissionDraft] = useState<UserPermissionMap>(
-    getDefaultPermissionMapForRole("dm")
-  );
-  const [permissionSaving, setPermissionSaving] = useState(false);
-  const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
-  const canEditPermissions = canManageDmPermissions(state?.user?.username);
+  const isAdmin = state?.user?.authRole === "admin";
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -176,23 +154,9 @@ function SettingsContent() {
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [issuedPassword, setIssuedPassword] = useState<string | null>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [adminTarget, setAdminTarget] = useState("aj");
-  const [adminReveals, setAdminReveals] = useState<
-    Array<{
-      username: string;
-      name: string;
-      role: string;
-      title: string;
-      password: string | null;
-      updatedAt: string | null;
-      updatedBy: string | null;
-      source: string | null;
-    }>
-  >([]);
 
 
 
@@ -228,44 +192,9 @@ function SettingsContent() {
 
       });
 
-      if (canManageDmPermissions(state.user.username)) {
-        setPermissionUser((prev) => prev || "aj");
-      }
-
     }
 
   }, [state?.user]);
-
-  useEffect(() => {
-    if (!canManageDmPermissions(state?.user?.username)) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/permissions");
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          users?: Array<{
-            username: string;
-            name: string;
-            role: string;
-            roleLabel?: string;
-            permissions: UserPermissionMap;
-          }>;
-        };
-        if (cancelled) return;
-        if (data.users?.length) setPermissionUsers(data.users);
-        const row = data.users?.find((u) => u.username === permissionUser);
-        if (row?.permissions) {
-          setPermissionDraft(row.permissions);
-        }
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [permissionUser, state?.user?.username]);
 
 
 
@@ -338,24 +267,6 @@ function SettingsContent() {
     };
 
   }, []);
-
-  useEffect(() => {
-    if (!canManageDmPermissions(state?.user?.username)) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/auth/password");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled) setAdminReveals(data.users ?? []);
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [state?.user?.username]);
 
   if (!state?.user) return null;
 
@@ -555,47 +466,6 @@ function SettingsContent() {
 
   };
 
-  const handlePermissionSave = async () => {
-    if (!canManageDmPermissions(state?.user?.username)) return;
-    setPermissionSaving(true);
-    setPermissionNotice(null);
-    try {
-      const res = await fetch("/api/permissions", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: permissionUser,
-          permissions: permissionDraft,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setPermissionNotice(data.error || "Could not save permissions");
-        return;
-      }
-      if (data.permissions) setPermissionDraft(data.permissions);
-      setPermissionNotice(`Saved permissions for ${permissionUser}`);
-      await refresh();
-    } catch {
-      setPermissionNotice("Could not save permissions");
-    } finally {
-      setPermissionSaving(false);
-      setTimeout(() => setPermissionNotice(null), 2500);
-    }
-  };
-
-  const refreshAdminReveals = async () => {
-    if (!canManageDmPermissions(state?.user?.username)) return;
-    try {
-      const res = await fetch("/api/auth/password");
-      if (!res.ok) return;
-      const data = await res.json();
-      setAdminReveals(data.users ?? []);
-    } catch {
-      // ignore
-    }
-  };
-
   const runPasswordAction = async (payload: Record<string, string>) => {
     setPasswordBusy(true);
     setPasswordError(null);
@@ -611,14 +481,10 @@ function SettingsContent() {
         setPasswordError(data.error || "Password update failed");
         return;
       }
-      setIssuedPassword(data.password ?? null);
       setPasswordNotice(data.message || "Password updated");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      if (canManageDmPermissions(state?.user?.username)) {
-        void refreshAdminReveals();
-      }
     } catch {
       setPasswordError("Password update failed");
     } finally {
@@ -636,38 +502,6 @@ function SettingsContent() {
       currentPassword,
       newPassword,
     });
-  };
-
-  const handleRegenerateOwnPassword = () => {
-    if (
-      !window.confirm(
-        "Generate a new password? Your current password will stop working immediately."
-      )
-    ) {
-      return;
-    }
-    void runPasswordAction({ action: "regenerate" });
-  };
-
-  const handleKashRegenerate = () => {
-    if (
-      !window.confirm(
-        `Generate a new password for ${adminTarget}? They will need the new password to sign in.`
-      )
-    ) {
-      return;
-    }
-    void runPasswordAction({ action: "regenerate", username: adminTarget });
-  };
-
-  const copyIssued = async () => {
-    if (!issuedPassword) return;
-    try {
-      await navigator.clipboard.writeText(issuedPassword);
-      setPasswordNotice("Copied to clipboard");
-    } catch {
-      setPasswordError("Could not copy — select the password manually");
-    }
   };
 
 
@@ -814,16 +648,16 @@ function SettingsContent() {
 
               </SectionCard>
 
-              <SectionCard title="Password Portal" icon={KeyRound}>
+              <SectionCard title="Change password" icon={KeyRound}>
                 <div className="space-y-4">
                   <p className="text-xs text-ink-muted">
-                    Change your password, or regenerate a new one if you forgot it. Copy any generated password now — login uses the latest value.
+                    Update the password for this account. User and role management lives under Admin.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-ink-secondary mb-1.5">
-                        Current password (for change)
+                        Current password
                       </label>
                       <div className="relative">
                         <input
@@ -894,27 +728,7 @@ function SettingsContent() {
                       {passwordBusy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
                       Change password
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleRegenerateOwnPassword}
-                      disabled={passwordBusy}
-                    >
-                      <RefreshCw size={14} /> Forget / regenerate
-                    </Button>
                   </div>
-
-                  {issuedPassword && (
-                    <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5">
-                      <p className="text-xs text-emerald-100/90 mb-1">Issued password (copy now)</p>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-sm text-white break-all">{issuedPassword}</code>
-                        <Button size="sm" variant="outline" onClick={() => void copyIssued()}>
-                          <Copy size={14} /> Copy
-                        </Button>
-                      </div>
-                    </div>
-                  )}
 
                   {passwordError && (
                     <p className="text-sm text-rose-200">{passwordError}</p>
@@ -922,169 +736,8 @@ function SettingsContent() {
                   {passwordNotice && !passwordError && (
                     <p className="text-sm text-emerald-200/90">{passwordNotice}</p>
                   )}
-
-                  {canEditPermissions && (
-                    <div className="pt-4 mt-2 border-t border-white/10 space-y-3">
-                      <p className="text-sm font-medium text-ink">Kash — all users</p>
-                      <p className="text-xs text-ink-muted">
-                        You can regenerate any account and see the last password issued from this portal (not recoverable from old bcrypt hashes).
-                      </p>
-                      <div className="flex flex-wrap items-end gap-2">
-                        <div className="min-w-[160px] flex-1">
-                          <label className="block text-sm font-medium text-ink-secondary mb-1.5">
-                            User
-                          </label>
-                          <select
-                            value={adminTarget}
-                            onChange={(e) => setAdminTarget(e.target.value)}
-                            className={`${fieldClass} bg-[#0f172a] text-white border-slate-600/80`}
-                          >
-                            {(adminReveals.length
-                              ? adminReveals
-                              : ["kash", "ross", "aj", "shaun", "adeel", "rozina"].map((u) => ({
-                                  username: u,
-                                  name: u,
-                                }))
-                            ).map((u) => (
-                              <option key={u.username} value={u.username} className="bg-slate-900 text-white">
-                                {u.name} ({u.username})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <Button size="sm" onClick={handleKashRegenerate} disabled={passwordBusy}>
-                          <RefreshCw size={14} /> Regenerate for user
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void refreshAdminReveals()}
-                          disabled={passwordBusy}
-                        >
-                          Refresh list
-                        </Button>
-                      </div>
-
-                      <div className="rounded-xl border border-white/10 overflow-hidden divide-y divide-white/10">
-                        {adminReveals.map((row) => (
-                          <div
-                            key={row.username}
-                            className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 px-3 py-2.5 bg-white/[0.02]"
-                          >
-                            <div className="min-w-[120px]">
-                              <div className="text-sm text-ink-secondary">{row.name}</div>
-                              <div className="text-[10px] text-ink-muted">
-                                {row.username} · {row.title}
-                              </div>
-                            </div>
-                            <code className="flex-1 text-xs text-white/90 break-all">
-                              {row.password ?? "(no portal password yet — still using built-in)"}
-                            </code>
-                            <div className="text-[10px] text-ink-muted sm:text-right">
-                              {row.updatedAt
-                                ? `${row.source} · ${new Date(row.updatedAt).toLocaleString()}`
-                                : ""}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </SectionCard>
-
-              {canEditPermissions && (
-                <SectionCard title="Permissions Dashboard" icon={Shield}>
-                  <div className="space-y-4">
-                    <p className="text-xs text-ink-muted">
-                      Grant or remove section access for DMs and Hr access users. Ross cannot edit this matrix. DM defaults: Sales, Stores, Calculator (wholesale cost). Hr access defaults: those plus Email, Contacts, and Vendor Info. Rozina has Vendor Info off unless you enable it.
-                    </p>
-                    <div>
-                      <label className="block text-sm font-medium text-ink-secondary mb-1.5">User / DM</label>
-                      <input
-                        type="search"
-                        value={permissionQuery}
-                        onChange={(e) => setPermissionQuery(e.target.value)}
-                        placeholder="Search name, email, or role…"
-                        className={`${fieldClass} mb-2 bg-[#0f172a] text-white border-slate-600/80`}
-                      />
-                      <select
-                        value={permissionUser}
-                        onChange={(e) => setPermissionUser(e.target.value)}
-                        className={`${fieldClass} bg-[#0f172a] text-white border-slate-600/80`}
-                      >
-                        {(permissionUsers.length
-                          ? permissionUsers.filter((u) => {
-                              const q = permissionQuery.trim().toLowerCase();
-                              if (!q) return true;
-                              return (
-                                u.name.toLowerCase().includes(q) ||
-                                u.username.toLowerCase().includes(q) ||
-                                (u.roleLabel ?? u.role).toLowerCase().includes(q)
-                              );
-                            })
-                          : [
-                              { username: "aj", name: "AJ", role: "dm", roleLabel: "District Manager" },
-                              { username: "shaun", name: "Shaun", role: "dm", roleLabel: "District Manager" },
-                              { username: "adeel", name: "Adeel", role: "dm", roleLabel: "District Manager" },
-                              { username: "rozina", name: "Rozina", role: "dm", roleLabel: "District Manager" },
-                            ]
-                        ).map((u) => (
-                          <option key={u.username} value={u.username} className="bg-slate-900 text-white">
-                            {u.name} — {u.roleLabel ?? u.role}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {USER_PERMISSION_SECTIONS.map((section) => (
-                        <label
-                          key={section.key}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
-                        >
-                          <div className="min-w-0">
-                            <div className="text-sm text-ink-secondary">{section.label}</div>
-                            <div className="text-[10px] text-ink-muted">{section.description}</div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPermissionDraft((prev) => ({
-                                ...prev,
-                                [section.key]: !prev[section.key],
-                              }))
-                            }
-                            className={
-                              "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors " +
-                              (permissionDraft[section.key]
-                                ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
-                                : "border-white/10 bg-white/5 text-ink-muted")
-                            }
-                            aria-label={`${section.label} ${permissionDraft[section.key] ? "enabled" : "disabled"}`}
-                          >
-                            {permissionDraft[section.key] ? <Check size={15} /> : <X size={15} />}
-                          </button>
-                        </label>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3">
-                      {permissionNotice ? (
-                        <p className="text-xs text-emerald-200/90">{permissionNotice}</p>
-                      ) : (
-                        <span />
-                      )}
-                      <Button size="sm" onClick={() => void handlePermissionSave()} disabled={permissionSaving}>
-                        {permissionSaving ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
-                        {permissionSaving ? "Saving…" : "Save permissions"}
-                      </Button>
-                    </div>
-                  </div>
-                </SectionCard>
-              )}
-
-
 
               <SectionCard title="Safety & Confirmations" icon={Shield}>
 
@@ -1134,7 +787,7 @@ function SettingsContent() {
 
 
 
-              {canEditPermissions && (
+              {isAdmin && (
               <SectionCard title="Integration Status" icon={Plug}>
 
                 {googleNotice && (

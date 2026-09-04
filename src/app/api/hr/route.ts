@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readSessionFromCookies } from "@/lib/auth/session";
+import { requireHrManagement } from "@/lib/auth/hr-guard";
 import {
   listHrUploads,
   loadActiveScheduleEntries,
@@ -20,17 +20,8 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function adminOnly() {
-  return readSessionFromCookies().then((session) => {
-    if (!session || session.role !== "admin") {
-      return NextResponse.json({ error: "Admin only" }, { status: 403 });
-    }
-    return null;
-  });
-}
-
 export async function GET(req: NextRequest) {
-  const denied = await adminOnly();
+  const denied = await requireHrManagement();
   if (denied) return denied;
 
   const date = req.nextUrl.searchParams.get("date")?.trim() ?? "";
@@ -83,7 +74,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const denied = await adminOnly();
+  const denied = await requireHrManagement();
   if (denied) return denied;
 
   let formData: FormData;

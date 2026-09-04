@@ -6,7 +6,7 @@ export interface UserProfile {
   username?: string;
   role: string;
   /** Auth role from session cookie — drives nav / voice access */
-  authRole?: "admin" | "dm" | "hr_access";
+  authRole?: "admin" | "dm" | "hr" | "employee";
   /** null/undefined = all stores (admin); DM = POS store codes */
   storeCodes?: string[] | null;
   /** Resolved section access (from defaults + Kash overrides) */

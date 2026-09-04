@@ -4,7 +4,8 @@ import {
   applySessionCookie,
   createSessionToken,
 } from "@/lib/auth/session";
-import { syncPermissionsCookie } from "@/lib/auth/user-permissions-store";
+import { homePathForRole } from "@/lib/auth/user-permissions";
+import { getPermissionMapForUser, syncPermissionsCookie } from "@/lib/auth/user-permissions-store";
 import { verifyUserPassword } from "@/lib/auth/password-store";
 
 export async function POST(req: NextRequest) {
@@ -38,8 +39,11 @@ export async function POST(req: NextRequest) {
     storeCodes: getAllowedStoreCodes(user),
   });
 
+  const homePath = homePathForRole(user.role, getPermissionMapForUser(user.username, user.role));
+
   const res = NextResponse.json({
     success: true,
+    homePath,
     user: {
       username: user.username,
       name: user.name,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readSessionFromCookies } from "@/lib/auth/session";
+import { requireHrManagement } from "@/lib/auth/hr-guard";
 import { validateHrMailRoutingInput } from "@/lib/hr/mail-routing";
 import { readHrMailRouting, writeHrMailRouting } from "@/lib/hr/mail-routing-store";
 
@@ -7,11 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function adminOnly() {
-  const session = await readSessionFromCookies();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Admin only" }, { status: 403 });
-  }
-  return null;
+  return requireHrManagement();
 }
 
 export async function GET() {

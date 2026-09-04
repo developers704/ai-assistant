@@ -1,11 +1,22 @@
 import { normalizeUsername } from "@/lib/auth/user-permissions";
+import { applyUserDirectory } from "@/lib/auth/user-directory-store";
 
-export type AuthRole = "admin" | "dm" | "hr_access";
+export type AuthRole = "admin" | "employee" | "hr" | "dm";
+
+export const AUTH_ROLES: AuthRole[] = ["admin", "employee", "hr", "dm"];
 
 export const AUTH_ROLE_LABEL: Record<AuthRole, string> = {
   admin: "Admin",
+  employee: "Employee",
+  hr: "HR",
   dm: "District Manager",
-  hr_access: "Hr access",
+};
+
+export const AUTH_ROLE_DESCRIPTION: Record<AuthRole, string> = {
+  admin: "Administrator with full permissions.",
+  employee: "HR sales and SKU lookup (wholesale cost, no customer offer).",
+  hr: "Full HR Management plus users, roles, and permissions.",
+  dm: "District manager — sales, stores, and price calculator.",
 };
 
 export type AuthUserRecord = {
@@ -17,10 +28,14 @@ export type AuthUserRecord = {
   /** bcrypt hash */
   passwordHash: string;
   role: AuthRole;
-  /** POS store codes; ignored when role=admin */
+  /** POS store codes; ignored when role=admin or hr */
   storeCodes: string[];
   /** Shown under avatar */
   title: string;
+  /** Timecard employee code (e.g. AS4) */
+  employeeCode?: string | null;
+  /** Timecard designation / job title */
+  designation?: string | null;
 };
 
 export const AJ_STORES = [
@@ -78,9 +93,9 @@ function sheetUser(
     name,
     email,
     passwordHash,
-    role: "hr_access",
+    role: "employee",
     storeCodes,
-    title: AUTH_ROLE_LABEL.hr_access,
+    title: AUTH_ROLE_LABEL.employee,
   };
 }
 
@@ -138,6 +153,26 @@ const USERS: AuthUserRecord[] = [
     role: "admin",
     storeCodes: [],
     title: "Global Director",
+  },
+  {
+    username: "admin",
+    name: "Admin",
+    email: "admin@valliani.app",
+    passwordHash:
+      "$2b$10$aMWWghHGuuYquQhOwa/C5.is3zcSnW7hYUMpbDbuIzPenMrMaqzoO", // 123456
+    role: "admin",
+    storeCodes: [],
+    title: "Administrator",
+  },
+  {
+    username: "marina",
+    name: "Marina",
+    email: "marina@valliani.app",
+    passwordHash:
+      "$2b$10$0re7ulK8rth6OfrTygsvku8EKfyGsML2dbqT9dp2XcBkHNSPc5GMy", // 123456
+    role: "admin",
+    storeCodes: [],
+    title: "Administrator",
   },
   sheetUser("1, security guard", "notfound1@gmail.com", ["NA"],
     "$2b$10$chUqWejxk0kIEi15ogDBN.FITWgb3Vun0wI.fU7MjAGT0QmoV.VIW"), // 123456
@@ -434,8 +469,12 @@ function parseEnvUsers(): AuthUserRecord[] | null {
   }
 }
 
+export function listBuiltinAuthUsers(): AuthUserRecord[] {
+  return USERS;
+}
+
 export function listAuthUsers(): AuthUserRecord[] {
-  return parseEnvUsers() ?? USERS;
+  return parseEnvUsers() ?? applyUserDirectory(USERS);
 }
 
 export function findAuthUser(username: string): AuthUserRecord | null {
@@ -451,13 +490,13 @@ export function findAuthUser(username: string): AuthUserRecord | null {
 }
 
 export function getAllowedStoreCodes(user: AuthUserRecord): string[] | null {
-  if (user.role === "admin") return null;
+  if (user.role === "admin" || user.role === "hr") return null;
   return user.storeCodes;
 }
 
-/** DMs + Hr access — Kash can edit their section matrix. Admins are excluded. */
+/** DMs — leftover per-user matrix helper. Admins / HR use role permissions. */
 export function isPermissionMatrixUser(user: AuthUserRecord): boolean {
-  return user.role === "dm" || user.role === "hr_access";
+  return user.role === "dm";
 }
 
 export function listPermissionMatrixUsers(): AuthUserRecord[] {

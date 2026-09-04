@@ -8,11 +8,12 @@ import {
 import {
   PERMISSION_COOKIE_NAME,
   getPermissionMapForUserFromCookie,
+  homePathForRole,
 } from "@/lib/auth/user-permissions";
 
 /**
- * Kash / admin → full Valliani Athena.
- * DMs → section access from server-synced permission cookie (defaults + Kash overrides).
+ * Kash / admin → full Valliani Athena (Users + Roles included in admin nav).
+ * Other roles → section access from permission cookie (role defaults + overrides).
  */
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -21,7 +22,17 @@ export async function middleware(req: NextRequest) {
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const token = req.cookies.get(AUTH_COOKIE)?.value;
       if (token && (await verifySessionToken(token))) {
-        return NextResponse.redirect(new URL("/sales", req.url));
+        const session = await verifySessionToken(token);
+        const cookiePermissions = req.cookies.get(PERMISSION_COOKIE_NAME)?.value;
+        const permissionMap = session
+          ? getPermissionMapForUserFromCookie(
+              session.username,
+              session.role,
+              cookiePermissions
+            )
+          : null;
+        const home = homePathForRole(session?.role, permissionMap);
+        return NextResponse.redirect(new URL(home, req.url));
       }
     }
     return NextResponse.next();
@@ -52,6 +63,7 @@ export async function middleware(req: NextRequest) {
     session.role,
     cookiePermissions
   );
+  const home = homePathForRole(session.role, permissionMap);
 
   if (pathname.startsWith("/api/")) {
     if (
@@ -68,7 +80,7 @@ export async function middleware(req: NextRequest) {
   }
 
   if (pathname === "/" || pathname === "") {
-    return NextResponse.redirect(new URL("/sales", req.url));
+    return NextResponse.redirect(new URL(home, req.url));
   }
 
   if (
@@ -79,7 +91,7 @@ export async function middleware(req: NextRequest) {
       permissionMap
     )
   ) {
-    return NextResponse.redirect(new URL("/sales", req.url));
+    return NextResponse.redirect(new URL(home, req.url));
   }
 
   return NextResponse.next();
