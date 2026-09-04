@@ -245,6 +245,7 @@ export default function AdminUsersPage() {
                   <button
                     type="button"
                     className="p-2 rounded-lg hover:bg-white/10 text-ink-secondary"
+                    title="Edit"
                     aria-label={`Edit ${user.name}`}
                     onClick={() => openEdit(user)}
                   >
@@ -253,6 +254,7 @@ export default function AdminUsersPage() {
                   <button
                     type="button"
                     className="p-2 rounded-lg hover:bg-rose-500/15 text-rose-300 disabled:opacity-30"
+                    title="Delete"
                     aria-label={`Delete ${user.name}`}
                     disabled={user.protected}
                     onClick={() => void remove(user)}

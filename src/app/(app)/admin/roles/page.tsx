@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, KeyRound, Shield, X } from "lucide-react";
+import { Check, KeyRound, Lock, Shield, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { PageShell, PageShellBody, PageShellHeader } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
@@ -186,12 +186,14 @@ export default function AdminRolesPage() {
                       <span
                         className={
                           "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border " +
-                          (on
-                            ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
-                            : "border-white/10 bg-white/5 text-ink-muted")
+                          (locked
+                            ? "border-white/15 bg-white/5 text-ink-muted"
+                            : on
+                              ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                              : "border-white/10 bg-white/5 text-ink-muted")
                         }
                       >
-                        {on ? <Check size={15} /> : <X size={15} />}
+                        {locked ? <Lock size={14} /> : on ? <Check size={15} /> : <X size={15} />}
                       </span>
                     </button>
                   );

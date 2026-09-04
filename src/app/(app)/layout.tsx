@@ -17,8 +17,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const isAdmin = state?.user?.authRole === "admin";
 
+  const isAdminTools = pathname.startsWith("/admin");
   const showFloatingVoice =
     isAdmin &&
+    !isAdminTools &&
     pathname !== "/chat" &&
     pathname !== "/voice" &&
     pathname !== "/email" &&
@@ -103,7 +105,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       {showFloatingVoice && <RealtimeVoiceButton />}
-      {isAdmin && <VoiceMiniHud />}
+      {isAdmin && !isAdminTools && <VoiceMiniHud />}
     </div>
   );
 
