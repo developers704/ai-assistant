@@ -203,7 +203,7 @@ export default function HrPage() {
       employees: list.length,
       flagged: list.filter((e) => e.violations.length > 0).length,
       late: list.filter((e) => e.lateMinutes != null && e.lateMinutes >= 12).length,
-      early: list.filter((e) => matchesAttendanceCard(e, "early")).length,
+      early: list.filter((e) => e.earlyInMinutes != null && e.earlyInMinutes >= 10).length,
       noSchedule: list.filter((e) => e.violations.some((v) => v.type === "no_schedule")).length,
       absent: list.filter((e) => e.violations.some((v) => v.type === "absent")).length,
     };

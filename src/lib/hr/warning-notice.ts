@@ -166,8 +166,7 @@ export function matchesAttendanceCard(
   if (card === "early") {
     return (
       isEarlyForWarning(emp.earlyInMinutes) ||
-      isEarlyOutForWarning(emp.earlyOutMinutes) ||
-      (emp.violations?.some((v) => v.type === "early_in" || v.type === "early_out") ?? false)
+      (emp.violations?.some((v) => v.type === "early_in") ?? false)
     );
   }
   if (card === "no_schedule") {
