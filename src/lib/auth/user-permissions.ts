@@ -87,6 +87,25 @@ export function getDefaultPermissionMapForRole(
     };
   }
 
+  /** Screenshot defaults: Sales, Stores, Calculator, Email, Contacts, Vendor Info. */
+  if (role === "hr_access") {
+    return {
+      sales_dashboard: true,
+      stores_map: true,
+      price_calculator: true,
+      discounting: false,
+      news_markets: false,
+      email: true,
+      calendar: false,
+      contacts: true,
+      ai_chat: false,
+      data_analyst: false,
+      image_generation: false,
+      social: false,
+      vendor_info: true,
+    };
+  }
+
   return {
     sales_dashboard: false,
     stores_map: false,

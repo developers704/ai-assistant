@@ -23,7 +23,7 @@ export function appStateForSession(
     id: session.sub,
     name: live?.name ?? session.name,
     username: session.username,
-    email: isAdmin ? defaultUser.email : `${session.username}@valliani.local`,
+    email: live?.email || (isAdmin ? defaultUser.email : `${session.username}@valliani.local`),
     role:
       session.username === "rozina"
         ? (live?.title ?? "")

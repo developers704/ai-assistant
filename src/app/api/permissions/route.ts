@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import {
   canManageDmPermissions,
-  DM_USERNAMES,
   USER_PERMISSION_SECTIONS,
   type UserPermissionKey,
   type UserPermissionMap,
@@ -13,6 +12,12 @@ import {
   syncPermissionsCookie,
 } from "@/lib/auth/user-permissions-store";
 import { readSessionFromCookies } from "@/lib/auth/session";
+import {
+  AUTH_ROLE_LABEL,
+  findAuthUser,
+  isPermissionMatrixUser,
+  listPermissionMatrixUsers,
+} from "@/lib/auth/users";
 
 export const runtime = "nodejs";
 
@@ -22,9 +27,13 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const users = DM_USERNAMES.map((username) => ({
-    username,
-    permissions: getPermissionMapForUser(username, "dm"),
+  const users = listPermissionMatrixUsers().map((user) => ({
+    username: user.username,
+    name: user.name,
+    role: user.role,
+    title: user.title,
+    roleLabel: AUTH_ROLE_LABEL[user.role],
+    permissions: getPermissionMapForUser(user.username, user.role),
   }));
 
   const res = NextResponse.json({
@@ -52,9 +61,9 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const username = (body.username ?? "").trim().toLowerCase();
-  if (!DM_USERNAMES.includes(username as (typeof DM_USERNAMES)[number])) {
-    return NextResponse.json({ error: "Unknown DM user" }, { status: 400 });
+  const target = findAuthUser(body.username ?? "");
+  if (!target || !isPermissionMatrixUser(target)) {
+    return NextResponse.json({ error: "Unknown user" }, { status: 400 });
   }
 
   const permissions = body.permissions ?? {};
@@ -66,8 +75,13 @@ export async function PUT(req: Request) {
     }
   }
 
-  const next = setPermissionMapForUser(username, clean);
-  const res = NextResponse.json({ username, permissions: next });
+  const next = setPermissionMapForUser(target.username, clean);
+  const res = NextResponse.json({
+    username: target.username,
+    name: target.name,
+    role: target.role,
+    permissions: next,
+  });
   syncPermissionsCookie(res);
   return res;
 }
