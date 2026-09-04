@@ -34,3 +34,24 @@ export function posStoreCodeFromHrStore(store: string | null | undefined): strin
   const key = raw.toLowerCase().replace(/\s+/g, " ");
   return HR_STORE_TO_POS[key] ?? null;
 }
+
+function titleCaseStoreName(name: string): string {
+  if (name === "greatmall") return "Great Mall";
+  return name
+    .split(" ")
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
+/** Reverse of posStoreCodeFromHrStore — VJ-VAL → "Valley Fair". */
+export function hrStoreNameFromPosCode(code: string | null | undefined): string | null {
+  const raw = String(code ?? "").trim();
+  if (!raw) return null;
+  for (const [name, pos] of Object.entries(HR_STORE_TO_POS)) {
+    if (name === "greatmall") continue;
+    if (pos === raw || pos.toUpperCase() === raw.toUpperCase()) {
+      return titleCaseStoreName(name);
+    }
+  }
+  return raw;
+}

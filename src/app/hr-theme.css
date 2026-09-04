@@ -889,6 +889,47 @@
   .hr-sales-kpis {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .hr-sales-kpis-self {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.hr-self-id {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.65rem 1.25rem;
+  padding: 0.9rem 1.05rem;
+  background: var(--hr-surface);
+  border: 1px solid var(--hr-line);
+  border-radius: var(--hr-radius-sm);
+  box-shadow: var(--hr-shadow-sm);
+}
+
+.hr-self-id-kicker {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--hr-faint);
+}
+
+.hr-self-id-name {
+  margin-top: 0.15rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--hr-ink);
+}
+
+.hr-self-id-store {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--hr-muted);
 }
 
 .hr-panel {

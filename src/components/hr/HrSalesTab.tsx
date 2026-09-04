@@ -16,10 +16,11 @@ import {
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
 import { displayHrPosDesign, HR_OTHERS_DESIGN } from "@/lib/hr/hr-sales-design";
-import { ArrowDown, ArrowUp, ArrowUpDown, Gem, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Gem, MapPin, UserRound } from "lucide-react";
 import { HrCommissionPanel } from "@/components/hr/HrCommissionPanel";
 import type { EmployeeCommission } from "@/lib/hr/commission";
 import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "@/lib/hr/window";
+import type { HrSalesScopePayload, HrSelfSalesperson } from "@/lib/hr/hr-self-sales-types";
 
 type DesignSortKey = "name" | "revenue";
 type SortDir = "asc" | "desc";
@@ -113,6 +114,7 @@ export function HrSalesTab() {
   const [designSortDir, setDesignSortDir] = useState<SortDir>("desc");
   const [bootstrapped, setBootstrapped] = useState(false);
   const [commission, setCommission] = useState<EmployeeCommission | null>(null);
+  const [hrScope, setHrScope] = useState<HrSalesScopePayload | null>(null);
   const autoSelectLatestRef = useRef(false);
   const fetchGenRef = useRef(0);
   const commissionGenRef = useRef(0);
@@ -161,11 +163,20 @@ export function HrSalesTab() {
           const departments: string[] = d.availableDepartments ?? [];
           const designs: string[] = d.availableDesigns ?? [];
           const salespeople: string[] = d.availableSalespeople ?? [];
+          const scope = d.hrSalesScope as HrSalesScopePayload | undefined;
+          if (scope) setHrScope(scope);
           setAvailableDates(dates);
           setAvailableStores(stores);
           setAvailableDepartments(departments);
           setAvailableDesigns(designs);
           setAvailableSalespeople(salespeople);
+          if (scope?.mode === "self" && scope.self) {
+            setFilterStores((prev) => (prev.length ? [] : prev));
+            setFilterDepartments((prev) => (prev.length ? [] : prev));
+            setFilterSalespeople((prev) =>
+              prev.length === 1 && prev[0] === scope.self!.label ? prev : [scope.self!.label]
+            );
+          }
           if (dates.length && autoSelectLatestRef.current && !dateRange) {
             const latest = [...dates].sort().at(-1);
             if (latest) {
@@ -173,10 +184,12 @@ export function HrSalesTab() {
               setDateRange({ from: latest, to: latest });
             }
           }
-          setFilterStores((prev) => pruneUnavailable(prev, stores));
-          setFilterDepartments((prev) => pruneUnavailable(prev, departments));
+          if (scope?.mode !== "self") {
+            setFilterStores((prev) => pruneUnavailable(prev, stores));
+            setFilterDepartments((prev) => pruneUnavailable(prev, departments));
+            setFilterSalespeople((prev) => pruneUnavailable(prev, salespeople));
+          }
           setFilterDesigns((prev) => pruneUnavailable(prev, designs));
-          setFilterSalespeople((prev) => pruneUnavailable(prev, salespeople));
         }
       })
       .catch((err: unknown) => {
@@ -194,7 +207,12 @@ export function HrSalesTab() {
 
   useEffect(() => {
     if (!bootstrapped) return;
-    const person = filterSalespeople.length === 1 ? filterSalespeople[0] : null;
+    const selfLocked = hrScope?.mode === "self";
+    const person = selfLocked
+      ? hrScope.self?.label ?? null
+      : filterSalespeople.length === 1
+        ? filterSalespeople[0]
+        : null;
     if (!person || !dateRange) {
       setCommission(null);
       return;
@@ -216,7 +234,7 @@ export function HrSalesTab() {
         setCommission(null);
       });
     return () => ac.abort();
-  }, [bootstrapped, dateRange, filterSalespeople]);
+  }, [bootstrapped, dateRange, filterSalespeople, hrScope]);
 
   if (!summary) {
     return (
@@ -246,6 +264,21 @@ export function HrSalesTab() {
     designSortDir
   );
 
+  const selfLocked = hrScope?.mode === "self";
+  const selfIdentity: HrSelfSalesperson | null = selfLocked ? hrScope.self : null;
+  const unmatchedSelf = selfLocked && !selfIdentity;
+  const showEmployeePicker = !selfLocked && availableSalespeople.length > 0;
+  const showStoreFilter = !selfLocked && availableStores.length > 0;
+  const showDepartmentFilter = !selfLocked && availableDepartments.length > 0;
+  const lockedToSelf = Boolean(selfIdentity);
+  const selectedEmployeeLabel = lockedToSelf
+    ? selfIdentity!.label
+    : filterSalespeople.length
+      ? filterSalespeople.join(", ")
+      : "All employees";
+  const showDesignSales = lockedToSelf || filterSalespeople.length > 0;
+  const showPeopleList = !selfLocked && filterSalespeople.length === 0 && salespeople.length > 0;
+
   function toggleDesignSort(key: DesignSortKey) {
     if (designSortKey === key) {
       setDesignSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -261,7 +294,7 @@ export function HrSalesTab() {
         <div className="hr-field" style={{ gridColumn: "1 / -1" }}>
           <span className="hr-field-label">Filters</span>
           <div className="flex flex-wrap items-center gap-2">
-            {availableSalespeople.length > 0 && (
+            {showEmployeePicker && (
               <SalesMultiSelectFilter
                 label="Employee"
                 allLabel="All employees"
@@ -281,7 +314,7 @@ export function HrSalesTab() {
               value={dateRange}
               onChange={setDateRange}
             />
-            {availableStores.length > 0 && (
+            {showStoreFilter && (
               <SalesMultiSelectFilter
                 label="Stores"
                 allLabel="All stores"
@@ -290,7 +323,7 @@ export function HrSalesTab() {
                 onChange={setFilterStores}
               />
             )}
-            {availableDepartments.length > 0 && (
+            {showDepartmentFilter && (
               <SalesMultiSelectFilter
                 label="Department"
                 allLabel="All departments"
@@ -312,26 +345,50 @@ export function HrSalesTab() {
         </div>
       </div>
 
-      <div className="hr-sales-kpis">
-        <div className="hr-kpi">
-          <div className="hr-kpi-label">Net Sales</div>
-          <div className="hr-kpi-value" style={{ color: "#0e9f90" }}>
-            {formatCurrency(summary.totalRevenue)}
+      {selfIdentity && (
+        <div className="hr-self-id">
+          <div>
+            <div className="hr-self-id-kicker">Employee</div>
+            <div className="hr-self-id-name">{selfIdentity.label}</div>
+          </div>
+          <div className="hr-self-id-store">
+            <MapPin size={14} aria-hidden />
+            <span>{selfIdentity.storeName || selfIdentity.storeCode || "Store"}</span>
           </div>
         </div>
-        <div className="hr-kpi">
-          <div className="hr-kpi-label">Units sold</div>
-          <div className="hr-kpi-value">{formatUnitsSold(summary.totalTransactions ?? 0)}</div>
-        </div>
-        <div className="hr-kpi">
-          <div className="hr-kpi-label">Employee</div>
-          <div className="hr-kpi-value" style={{ fontSize: "1.05rem" }}>
-            {filterSalespeople.length ? filterSalespeople.join(", ") : "All employees"}
-          </div>
-        </div>
-      </div>
+      )}
 
-      {filterSalespeople.length === 0 && salespeople.length > 0 && (
+      {unmatchedSelf && (
+        <p className="hr-empty-inline">
+          Could not match your login to a salesperson. Sales stay hidden until HR links your name or
+          employee code.
+        </p>
+      )}
+
+      {!unmatchedSelf && (
+        <div className={`hr-sales-kpis${selfLocked ? " hr-sales-kpis-self" : ""}`}>
+          <div className="hr-kpi">
+            <div className="hr-kpi-label">Net Sales</div>
+            <div className="hr-kpi-value" style={{ color: "#0e9f90" }}>
+              {formatCurrency(summary.totalRevenue)}
+            </div>
+          </div>
+          <div className="hr-kpi">
+            <div className="hr-kpi-label">Units sold</div>
+            <div className="hr-kpi-value">{formatUnitsSold(summary.totalTransactions ?? 0)}</div>
+          </div>
+          {!selfLocked && (
+            <div className="hr-kpi">
+              <div className="hr-kpi-label">Employee</div>
+              <div className="hr-kpi-value" style={{ fontSize: "1.05rem" }}>
+                {selectedEmployeeLabel}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showPeopleList && (
         <div className="hr-panel">
           <div className="hr-panel-head">
             <div>
@@ -366,7 +423,7 @@ export function HrSalesTab() {
         </div>
       )}
 
-      {filterSalespeople.length > 0 && (
+      {showDesignSales && !unmatchedSelf && (
         <div className="hr-panel">
           <div className="hr-panel-head">
             <div>
@@ -419,9 +476,11 @@ export function HrSalesTab() {
         </div>
       )}
 
-      {filterSalespeople.length === 1 && commission && dateRange && (
+      {commission && dateRange && (lockedToSelf || filterSalespeople.length === 1) && (
         <HrCommissionPanel commission={commission} from={dateRange.from} to={dateRange.to} />
       )}
+    </div>
+  );
     </div>
   );
 }
