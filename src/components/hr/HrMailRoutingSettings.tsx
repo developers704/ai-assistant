@@ -120,7 +120,7 @@ export function HrMailRoutingSettings() {
               value={from}
               onChange={(e) => setFrom(e.target.value)}
               placeholder="umairj@valliani.app"
-              disabled={loading || saving}
+              disabled={saving}
             />
           </label>
           <label className="hr-field">
@@ -131,7 +131,7 @@ export function HrMailRoutingSettings() {
               value={toText}
               onChange={(e) => setToText(e.target.value)}
               placeholder={"one@example.com\ntwo@example.com"}
-              disabled={loading || saving}
+              disabled={saving}
             />
           </label>
           <p className="hr-mail-panel-hint">
