@@ -7,6 +7,7 @@ import {
   noticeEmployeeSlug,
   type HrNoticeEmployee,
 } from "./warning-notice";
+import { formatHrMailTo, type HrMailRouting } from "./mail-routing";
 
 export type WriteUpDraft = {
   caseId: string;
@@ -85,7 +86,11 @@ export function writeUpCoverHtml(input: {
 <p>Reply to this email if you have remarks.</p>`;
 }
 
-export function draftWriteUpNotice(emp: HrNoticeEmployee, description: string): WriteUpDraft {
+export function draftWriteUpNotice(
+  emp: HrNoticeEmployee,
+  description: string,
+  routing?: HrMailRouting | null
+): WriteUpDraft {
   if (!isEligibleForHrNotice(emp)) {
     throw new Error("No attendance violation for a write-up");
   }
@@ -103,8 +108,8 @@ export function draftWriteUpNotice(emp: HrNoticeEmployee, description: string): 
     store: emp.store ?? null,
     date: emp.date,
     lateMinutes,
-    from: HR_WARNING_FROM,
-    to: HR_WARNING_TO,
+    from: routing?.from?.trim() || HR_WARNING_FROM,
+    to: routing?.to?.length ? formatHrMailTo(routing.to) : HR_WARNING_TO,
     subject: writeUpSubject(caseId, emp.employeeName),
     html: writeUpCoverHtml({
       employeeName: emp.employeeName,

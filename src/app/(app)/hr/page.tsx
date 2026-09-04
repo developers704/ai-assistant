@@ -5,6 +5,7 @@ import { HrWorkspace } from "@/components/hr/HrWorkspace";
 import type { HrEmployeeDay, HrUploadMeta } from "@/lib/hr/types";
 import { HrSalesTab } from "@/components/hr/HrSalesTab";
 import { HrAttendanceEmployeeRow } from "@/components/hr/HrAttendanceEmployeeRow";
+import { HrMailRoutingSettings } from "@/components/hr/HrMailRoutingSettings";
 import { formatHrAttendanceWindowCaption } from "@/lib/hr/window";
 import { formatHrDateLabel } from "@/lib/hr/time-utils";
 import {
@@ -237,10 +238,11 @@ export default function HrPage() {
               />
             </div>
           )}
-          <span className="hr-lock-chip">
+          <div className="hr-lock-chip">
             <Lock size={12} />
             Admin only
-          </span>
+            <HrMailRoutingSettings />
+          </div>
         </div>
       </header>
 

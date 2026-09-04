@@ -3,6 +3,7 @@ import { readSessionFromCookies } from "@/lib/auth/session";
 import { analyzeDay } from "@/lib/hr/analyze";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
 import { namesMatch } from "@/lib/hr/name-match";
+import { readHrMailRouting } from "@/lib/hr/mail-routing-store";
 import {
   draftWarningNotice,
   isEligibleForHrNotice,
@@ -107,7 +108,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const draft = isEligibleForHrNotice(emp) ? draftWarningNotice(emp) : null;
+  const draft = isEligibleForHrNotice(emp) ? draftWarningNotice(emp, readHrMailRouting()) : null;
   return NextResponse.json({
     employee: emp,
     draft,

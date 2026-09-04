@@ -10,7 +10,6 @@ import type { HrEmployeeDay, HrWarningNotice, HrWarningRemark } from "./types";
 import {
   draftWarningNotice,
   extractWarningCaseId,
-  HR_WARNING_FROM,
   HR_WARNING_TO,
   isLateForWarning,
   noticeFromDraft,
@@ -19,22 +18,45 @@ import { buildWarningNoticePdf, pdfBytesToBase64 } from "./warning-notice-pdf";
 import { draftWriteUpNotice, writeUpFromDraft } from "./write-up-notice";
 import { buildWriteUpPdf } from "./write-up-pdf";
 import { replySubjectForThread, stripQuotedReply } from "./remark-text";
+import {
+  defaultHrMailRouting,
+  normalizeHrMailRouting,
+  parseHrMailAddresses,
+  type HrMailRouting,
+} from "./mail-routing";
 
-export function isWarningMailSessionReady(): { ok: boolean; reason?: string } {
+async function loadHrMailRouting(): Promise<HrMailRouting> {
+  try {
+    const res = await fetch("/api/hr/mail-routing", { cache: "no-store" });
+    if (!res.ok) return defaultHrMailRouting();
+    return normalizeHrMailRouting(await res.json());
+  } catch {
+    return defaultHrMailRouting();
+  }
+}
+
+export async function isWarningMailSessionReady(): Promise<{
+  ok: boolean;
+  reason?: string;
+  routing: HrMailRouting;
+}> {
+  const routing = await loadHrMailRouting();
   if (!hasMailSession()) {
     return {
       ok: false,
-      reason: "Sign in to E-Mails as umairj@valliani.app, then send.",
+      routing,
+      reason: `Sign in to E-Mails as ${routing.from}, then send.`,
     };
   }
   const email = getSavedEmail();
-  if (email && email !== HR_WARNING_FROM) {
+  if (email && email.toLowerCase() !== routing.from.toLowerCase()) {
     return {
       ok: false,
-      reason: `E-Mails is signed in as ${email}. Switch to ${HR_WARNING_FROM} to send HR notices.`,
+      routing,
+      reason: `E-Mails is signed in as ${email}. Switch to ${routing.from} to send HR notices.`,
     };
   }
-  return { ok: true };
+  return { ok: true, routing };
 }
 
 function addressEmail(list: { address?: string; name?: string }[] | undefined): {
@@ -48,9 +70,9 @@ function addressEmail(list: { address?: string; name?: string }[] | undefined): 
   };
 }
 
-function isFromWarningMailbox(message: MailMessage): boolean {
+function isFromWarningMailbox(message: MailMessage, fromEmail: string): boolean {
   const from = addressEmail(message.from).email.toLowerCase();
-  return from === HR_WARNING_FROM.toLowerCase();
+  return from === fromEmail.trim().toLowerCase();
 }
 
 function remarkBody(message: MailMessage): string {
@@ -63,8 +85,12 @@ function remarkBody(message: MailMessage): string {
   return stripQuotedReply(raw);
 }
 
-function isOriginalWarningMail(message: MailMessage, caseId: string): boolean {
-  if (!isFromWarningMailbox(message)) return false;
+function isOriginalWarningMail(
+  message: MailMessage,
+  caseId: string,
+  fromEmail: string
+): boolean {
+  if (!isFromWarningMailbox(message, fromEmail)) return false;
   if (/^\s*re\s*:/i.test(message.subject || "")) return false;
   if (message.inReplyTo?.trim()) return false;
   return extractWarningCaseId(message.subject) === caseId.toUpperCase();
@@ -123,11 +149,17 @@ function sortOldestFirst(messages: MailMessage[]): MailMessage[] {
   return [...messages].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 }
 
-function replyRecipient(notice: HrWarningNotice, thread: MailMessage[]): string {
-  const inbound = [...thread].reverse().find((m) => !isFromWarningMailbox(m));
+function replyRecipient(
+  notice: HrWarningNotice,
+  thread: MailMessage[],
+  routing: HrMailRouting
+): string[] {
+  const inbound = [...thread].reverse().find((m) => !isFromWarningMailbox(m, routing.from));
   const email = addressEmail(inbound?.from).email;
-  if (email) return email;
-  return notice.to || HR_WARNING_TO;
+  if (email) return [email];
+  const stored = parseHrMailAddresses(notice.to);
+  if (stored.length) return stored;
+  return routing.to.length ? routing.to : [HR_WARNING_TO];
 }
 
 function escapeHtml(value: string): string {
@@ -156,9 +188,9 @@ async function persistRemarks(
 }
 
 export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarningNotice> {
-  const ready = isWarningMailSessionReady();
+  const ready = await isWarningMailSessionReady();
   if (!ready.ok) throw new Error(ready.reason);
-  const draft = draftWarningNotice(emp);
+  const draft = draftWarningNotice(emp, ready.routing);
   const pdfBytes = await buildWarningNoticePdf({
     employeeName: draft.employeeName,
     date: draft.date,
@@ -169,7 +201,7 @@ export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarni
     description: draft.description,
   });
   await sendMail({
-    to: [draft.to],
+    to: ready.routing.to,
     subject: draft.subject,
     body: draft.text,
     html: draft.html,
@@ -190,9 +222,9 @@ export async function sendWriteUpNotice(
   emp: HrEmployeeDay,
   description: string
 ): Promise<HrWarningNotice> {
-  const ready = isWarningMailSessionReady();
+  const ready = await isWarningMailSessionReady();
   if (!ready.ok) throw new Error(ready.reason);
-  const draft = draftWriteUpNotice(emp, description);
+  const draft = draftWriteUpNotice(emp, description, ready.routing);
   const pdfBytes = await buildWriteUpPdf({
     employeeName: draft.employeeName,
     date: draft.date,
@@ -205,7 +237,7 @@ export async function sendWriteUpNotice(
     otherViolation: !isLateForWarning(emp.lateMinutes),
   });
   await sendMail({
-    to: [draft.to],
+    to: ready.routing.to,
     subject: draft.subject,
     body: draft.text,
     html: draft.html,
@@ -236,12 +268,12 @@ async function persistNotice(notice: HrWarningNotice): Promise<HrWarningNotice> 
 }
 
 export async function syncWarningRemarks(caseId: string): Promise<HrWarningNotice | null> {
-  const ready = isWarningMailSessionReady();
+  const ready = await isWarningMailSessionReady();
   if (!ready.ok) throw new Error(ready.reason);
   const messages = await searchCaseMessages(caseId);
   const replies: HrWarningRemark[] = [];
   for (const message of messages) {
-    if (isOriginalWarningMail(message, caseId)) continue;
+    if (isOriginalWarningMail(message, caseId, ready.routing.from)) continue;
     const hydrated = await hydrateIfNeeded(message);
     const remark = mailToRemark(hydrated, caseId);
     if (!remark.body) continue;
@@ -254,19 +286,19 @@ export async function replyOnWarningThread(
   notice: HrWarningNotice,
   body: string
 ): Promise<HrWarningNotice | null> {
-  const ready = isWarningMailSessionReady();
+  const ready = await isWarningMailSessionReady();
   if (!ready.ok) throw new Error(ready.reason);
   const trimmed = stripQuotedReply(body);
   if (!trimmed) throw new Error("Write a reply first");
 
   const thread = await searchCaseMessages(notice.caseId);
   const target = sortOldestFirst(thread).at(-1) ?? null;
-  const to = replyRecipient(notice, thread);
+  const to = replyRecipient(notice, thread, ready.routing);
   const subject = replySubjectForThread(notice.subject);
   const html = `<p>${escapeHtml(trimmed).replace(/\n/g, "<br>")}</p>`;
 
   await sendMail({
-    to: [to],
+    to,
     subject,
     body: trimmed,
     html,
@@ -284,7 +316,7 @@ export async function replyOnWarningThread(
   const remark: HrWarningRemark = {
     id: `${notice.caseId}:hr-${Date.now()}`,
     fromName: "Umair",
-    fromEmail: HR_WARNING_FROM,
+    fromEmail: ready.routing.from,
     sentAt: new Date().toISOString(),
     subject,
     body: trimmed,
