@@ -3,10 +3,12 @@ import {
   applyHrSalesDesigns,
   displayHrPosDesign,
   hrSalesDesignName,
+  isHrEternalVowClass,
   isHrUvSalesRow,
   remapHrAvailableDesigns,
 } from "@/lib/hr/hr-sales-design";
 import { groupRows } from "@/lib/sales/sales-aggregate";
+import type { VendorPosRow } from "@/lib/reports/types";
 
 function row(partial: Partial<VendorPosRow>): VendorPosRow {
   return {
@@ -82,6 +84,7 @@ describe("HR Sales designs", () => {
     expect(names).toContain("Lovespell");
     expect(names).toContain("BELLA OVANI");
     expect(names).toContain("UV");
+    expect(names).toContain("Eternal-vow");
     expect(names).toContain("NOVELLO");
     expect(names).not.toContain("LOVE");
     expect(names).not.toContain("BELLA OVAN");
@@ -98,5 +101,42 @@ describe("HR Sales designs", () => {
     expect(byName.UV).toBe(80);
     expect(byName["GOLD JEWL"]).toBe(20);
     expect(byName.Lovespell).toBe(50);
+  });
+
+  it("moves Class ETERNAL-VOW off Novello into Eternal-vow", () => {
+    expect(isHrEternalVowClass("ETERNAL-VOW")).toBe(true);
+    expect(isHrEternalVowClass("Eternal-vow")).toBe(true);
+    expect(isHrEternalVowClass("ETERNITY")).toBe(false);
+    expect(
+      hrSalesDesignName(
+        row({
+          design: "NOVELLO",
+          productClass: "ETERNAL-VOW",
+          vendor: "AGI",
+          description: "BRIDAL SET",
+        })
+      )
+    ).toBe("Eternal-vow");
+
+    const rows = applyHrSalesDesigns([
+      row({
+        design: "NOVELLO",
+        productClass: "ETERNAL-VOW",
+        vendor: "AGI",
+        description: "BRIDAL",
+        netRevenue: 400,
+      }),
+      row({
+        design: "NOVELLO",
+        productClass: "14KT",
+        vendor: "AGI",
+        description: "HALO",
+        netRevenue: 100,
+      }),
+    ]);
+    const designs = groupRows(rows, "design", null);
+    const byName = Object.fromEntries(designs.map((d) => [d.name, d.netSales]));
+    expect(byName["Eternal-vow"]).toBe(400);
+    expect(byName.NOVELLO).toBe(100);
   });
 });

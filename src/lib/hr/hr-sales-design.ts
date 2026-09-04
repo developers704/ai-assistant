@@ -5,6 +5,7 @@
 import type { VendorPosRow } from "@/lib/reports/types";
 
 export const HR_UV_DESIGN = "UV";
+export const HR_ETERNAL_VOW_DESIGN = "Eternal-vow";
 export const HR_LOVE_DESIGN = "Lovespell";
 export const HR_BELLA_DESIGN = "BELLA OVANI";
 
@@ -31,6 +32,15 @@ export function isHrUvSalesRow(row: {
   return isHrUvVendor(row.vendor) && descriptionLooksUvOrUltimate(row.description);
 }
 
+/** POS Class filter value ETERNAL-VOW (not ETERNITY). */
+export function isHrEternalVowClass(productClass: string | null | undefined): boolean {
+  const compact = String(productClass ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s_]+/g, "-");
+  return compact === "ETERNAL-VOW";
+}
+
 /** POS Design → HR display name (Love → Lovespell, BELLA OVAN → BELLA OVANI). */
 export function displayHrPosDesign(design: string | null | undefined): string {
   const raw = String(design ?? "").trim();
@@ -41,13 +51,16 @@ export function displayHrPosDesign(design: string | null | undefined): string {
   return raw;
 }
 
-/** Design bucket for HR Sales grouping / filter. UV wins over POS Design. */
+/** Design bucket for HR Sales grouping / filter. UV, then Eternal-vow class, else POS Design. */
 export function hrSalesDesignName(row: {
   design?: string | null;
   description?: string | null;
   vendor?: string | null;
+  productClass?: string | null;
+  class?: string | null;
 }): string {
   if (isHrUvSalesRow(row)) return HR_UV_DESIGN;
+  if (isHrEternalVowClass(row.productClass ?? row.class)) return HR_ETERNAL_VOW_DESIGN;
   return displayHrPosDesign(row.design);
 }
 
@@ -61,7 +74,7 @@ export function applyHrSalesDesigns(rows: VendorPosRow[]): VendorPosRow[] {
   });
 }
 
-/** Design filter dropdown: rename Love / BELLA OVAN and add UV. */
+/** Design filter dropdown: rename Love / BELLA OVAN and add UV + Eternal-vow. */
 export function remapHrAvailableDesigns(designs: string[]): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
@@ -73,5 +86,6 @@ export function remapHrAvailableDesigns(designs: string[]): string[] {
     out.push(name);
   }
   if (!seen.has("uv")) out.push(HR_UV_DESIGN);
+  if (!seen.has("eternal-vow")) out.push(HR_ETERNAL_VOW_DESIGN);
   return out;
 }
