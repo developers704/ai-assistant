@@ -110,6 +110,10 @@ export function HrCommissionPanel({
             <span>Store sales</span>
             <span>{formatCurrency(s.storeTotalSales)}</span>
           </div>
+          <div className="hr-comm-row hr-comm-row-quiet">
+            <span>Personal sales</span>
+            <span>{formatCurrency(s.netSales)}</span>
+          </div>
         </div>
 
         <div className="hr-comm-card">

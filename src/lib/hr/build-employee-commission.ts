@@ -5,9 +5,6 @@ import {
   AUGUST_PERSONAL_GOALS,
   AUGUST_STORE_GOALS,
   dummyGoalAboveActual,
-  isFullAugustWindow,
-  ZOYA_AUGUST_DESIGN_SALES,
-  ZOYA_AUGUST_NET_SALES,
 } from "@/lib/hr/august-2026-commission-data";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
@@ -61,12 +58,9 @@ export function buildEmployeeCommissionFromSales(opts: {
   const all = opts.rows ?? loadRankRows() ?? [];
   const windowRows = all.filter((r) => r.date >= opts.from && r.date <= opts.to);
   const personRows = applySalespersonFilter(windowRows, [code]);
-  const liveDesigns = designTotalsFromRows(personRows);
   const liveNet = personRows.reduce((s, r) => s + (r.netRevenue ?? 0), 0);
-
-  const useZoyaOverlay = code === "ZA2" && isFullAugustWindow(opts.from, opts.to);
-  const designs = useZoyaOverlay ? ZOYA_AUGUST_DESIGN_SALES : liveDesigns;
-  const netSales = useZoyaOverlay ? ZOYA_AUGUST_NET_SALES : liveNet;
+  const designs = designTotalsFromRows(personRows);
+  const netSales = liveNet;
 
   const punches = loadActiveTimecardRows();
   const schedule = loadActiveScheduleEntries();

@@ -67,6 +67,38 @@ export function hrSalesDesignName(row: {
   return named;
 }
 
+function roundMoney(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * Named designs first; leftover vs Net Sales → Others.
+ * Negative return lines (e.g. OVANI -$448) are not shown — they fold into Others.
+ */
+export function settleHrDesignTotals(
+  designs: { design: string; netSales: number }[],
+  netSales: number
+): { design: string; netSales: number }[] {
+  const named = new Map<string, number>();
+  for (const d of designs) {
+    let name = displayHrPosDesign(d.design);
+    if (!name || name.toLowerCase() === "unknown design") name = HR_OTHERS_DESIGN;
+    if (name === HR_OTHERS_DESIGN) continue;
+    if (!(d.netSales > 0.005)) continue;
+    named.set(name, roundMoney((named.get(name) ?? 0) + d.netSales));
+  }
+  const namedSum = roundMoney([...named.values()].reduce((s, n) => s + n, 0));
+  const others = roundMoney(netSales - namedSum);
+  const out = [...named.entries()].map(([design, amount]) => ({
+    design,
+    netSales: amount,
+  }));
+  if (Math.abs(others) >= 0.005) {
+    out.push({ design: HR_OTHERS_DESIGN, netSales: others });
+  }
+  return out.sort((a, b) => b.netSales - a.netSales || a.design.localeCompare(b.design));
+}
+
 /** Copy-on-write remap so cached POS rows stay unchanged. */
 export function applyHrSalesDesigns(rows: VendorPosRow[]): VendorPosRow[] {
   return rows.map((r) => {

@@ -23,8 +23,9 @@ export const AUGUST_STORE_GOALS: Record<string, number> = {
 };
 
 /**
- * Zoya (ZA2) August design distribution from Commission Structure - AI.xlsx.
- * Live POS mix is close but not identical (UV / Novello / Others); payroll uses this overlay.
+ * Zoya (ZA2) August design mix from Commission Structure - AI.xlsx (test fixture).
+ * Includes the OVANI return and a pre-baked Others line; `settleHrDesignTotals`
+ * drops the return and recomputes Others as Net − named designs.
  */
 export const ZOYA_AUGUST_DESIGN_SALES: { design: string; netSales: number }[] = [
   { design: "LINKNLOCK", netSales: 2482 },

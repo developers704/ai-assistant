@@ -15,7 +15,7 @@ import {
   parseMultiParam,
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
-import { displayHrPosDesign, HR_OTHERS_DESIGN } from "@/lib/hr/hr-sales-design";
+import { displayHrPosDesign, HR_OTHERS_DESIGN, settleHrDesignTotals } from "@/lib/hr/hr-sales-design";
 import { ArrowDown, ArrowUp, ArrowUpDown, Gem, MapPin, UserRound } from "lucide-react";
 import { HrCommissionPanel } from "@/components/hr/HrCommissionPanel";
 import type { EmployeeCommission } from "@/lib/hr/commission";
@@ -164,7 +164,11 @@ export function HrSalesTab() {
           const designs: string[] = d.availableDesigns ?? [];
           const salespeople: string[] = d.availableSalespeople ?? [];
           const scope = d.hrSalesScope as HrSalesScopePayload | undefined;
-          if (scope) setHrScope(scope);
+          if (scope) {
+            setHrScope((prev) =>
+              prev && JSON.stringify(prev) === JSON.stringify(scope) ? prev : scope
+            );
+          }
           setAvailableDates(dates);
           setAvailableStores(stores);
           setAvailableDepartments(departments);
@@ -209,7 +213,7 @@ export function HrSalesTab() {
     if (!bootstrapped) return;
     const selfLocked = hrScope?.mode === "self";
     const person = selfLocked
-      ? hrScope.self?.label ?? null
+      ? hrScope.self?.code || hrScope.self?.label || null
       : filterSalespeople.length === 1
         ? filterSalespeople[0]
         : null;
@@ -234,7 +238,7 @@ export function HrSalesTab() {
         setCommission(null);
       });
     return () => ac.abort();
-  }, [bootstrapped, dateRange, filterSalespeople, hrScope]);
+  }, [bootstrapped, dateRange, filterSalespeople, hrScope?.mode, hrScope?.mode === "self" ? hrScope.self?.code : ""]);
 
   if (!summary) {
     return (
@@ -247,19 +251,22 @@ export function HrSalesTab() {
   }
 
   const salespeople = reportSummary?.topSalesPeople ?? [];
-  const designTotals = new Map<string, number>();
-  for (const d of reportSummary?.topDesigns ?? []) {
-    let name = displayHrPosDesign((d.name || "").trim());
-    if (!name || name.toLowerCase() === "unknown design") name = HR_OTHERS_DESIGN;
-    designTotals.set(name, (designTotals.get(name) ?? 0) + (d.revenue ?? 0));
-  }
-  const namedSum = [...designTotals.values()].reduce((s, n) => s + n, 0);
-  const gap = (summary.totalRevenue ?? 0) - namedSum;
-  if (Math.abs(gap) >= 0.005) {
-    designTotals.set(HR_OTHERS_DESIGN, (designTotals.get(HR_OTHERS_DESIGN) ?? 0) + gap);
-  }
+  const settledFromReport = settleHrDesignTotals(
+    (reportSummary?.topDesigns ?? []).map((d) => {
+      let design = displayHrPosDesign((d.name || "").trim());
+      if (!design || design.toLowerCase() === "unknown design") design = HR_OTHERS_DESIGN;
+      return { design, netSales: d.revenue ?? 0 };
+    }),
+    summary.totalRevenue ?? 0
+  );
+  const fromCommission = (commission?.lines ?? []).map((l) => ({
+    name: l.design,
+    revenue: l.netSales,
+  }));
   const designRows = sortDesignSales(
-    [...designTotals.entries()].map(([name, revenue]) => ({ name, revenue })),
+    fromCommission.length && filterDesigns.length === 0
+      ? fromCommission
+      : settledFromReport.map((d) => ({ name: d.design, revenue: d.netSales })),
     designSortKey,
     designSortDir
   );
