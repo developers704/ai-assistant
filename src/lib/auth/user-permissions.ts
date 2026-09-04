@@ -47,6 +47,11 @@ export function canSeeRealInventoryCost(
   return u === "kash" || u === "ross" || u === "admin" || u === "marina";
 }
 
+/** Employees never see wholesale / cost price (calculator, SKU lookup, inventory API). */
+export function hidesWholesaleCost(role?: string | null): boolean {
+  return role === "employee";
+}
+
 export const USER_PERMISSION_SECTIONS: Array<{
   key: UserPermissionKey;
   label: string;

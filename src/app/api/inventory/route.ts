@@ -7,7 +7,7 @@ import {
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { calculatePricing, getVisibleDmCostPrice } from "@/lib/inventory/pricing";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { canSeeRealInventoryCost } from "@/lib/auth/user-permissions";
+import { canSeeRealInventoryCost, hidesWholesaleCost } from "@/lib/auth/user-permissions";
 import {
   getPermissionMapForUser,
   hidesVendorInfoFromPermissions,
@@ -111,13 +111,19 @@ export async function GET(req: NextRequest) {
   }
 
   const hideVendor = hidesVendorInfoFromPermissions(session.username);
+  const hideCost = hidesWholesaleCost(session.role);
   const perms = getPermissionMapForUser(session.username, session.role);
   const includeOfferPricing =
     session.role === "admin" || Boolean(perms.price_calculator);
 
+  let publicItem = hideVendor ? { ...item, vendor: "" } : item;
+  if (hideCost) {
+    publicItem = { ...publicItem, costPrice: 0, wholesaleCost: 0 };
+  }
+
   return NextResponse.json({
-    item: hideVendor ? { ...item, vendor: "" } : item,
-    wholeCost: getVisibleDmCostPrice(result.item),
+    item: publicItem,
+    ...(hideCost ? {} : { wholeCost: getVisibleDmCostPrice(result.item) }),
     ...(includeOfferPricing ? { pricing } : {}),
     stores: result.stores,
     onHandTotal: result.onHandTotal,

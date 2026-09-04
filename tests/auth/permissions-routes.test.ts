@@ -96,6 +96,9 @@ describe("Employee and HR routing", () => {
       true
     );
     expect(isDmAllowedApiPath("/api/hr", "keya@valliani.app", "employee", permissions)).toBe(false);
+    expect(isDmAllowedApiPath("/api/hr/commission", "keya@valliani.app", "employee", permissions)).toBe(
+      true
+    );
   });
 
   it("lets HR into HR Management and user admin", () => {

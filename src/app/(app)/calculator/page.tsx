@@ -33,6 +33,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { ProductThumb, ProductLightbox } from "@/components/reports/ProductImagePreview";
+import { useApp } from "@/lib/store/app-context";
 
 const money = (n: number) =>
   isFinite(n)
@@ -87,6 +88,8 @@ interface LookupResponse {
 }
 
 export default function CalculatorPage() {
+  const { state } = useApp();
+  const hideCost = state?.user?.authRole === "employee";
   const [sku, setSku] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +108,10 @@ export default function CalculatorPage() {
     alt: string;
     subtitle?: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (hideCost) setCalculatorMode("pricing");
+  }, [hideCost]);
 
   const checkInventory = useCallback(async () => {
     try {
@@ -301,7 +308,11 @@ export default function CalculatorPage() {
               <CardTitle>Calculator mode</CardTitle>
             </CardHeader>
             <OptionTabs
-              options={CALCULATOR_MODE_TABS}
+              options={
+                hideCost
+                  ? CALCULATOR_MODE_TABS.filter((t) => t.id === "pricing")
+                  : CALCULATOR_MODE_TABS
+              }
               value={calculatorMode}
               onChange={setCalculatorMode}
               columns="grid-cols-1 sm:grid-cols-2"
@@ -355,7 +366,9 @@ export default function CalculatorPage() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
-                        <Detail label="Cost Price" value={money(wholeCost)} highlight />
+                        {!hideCost && (
+                          <Detail label="Cost Price" value={money(wholeCost)} highlight />
+                        )}
                       </div>
                       <Input
                         label="Customer Offer"
@@ -372,7 +385,9 @@ export default function CalculatorPage() {
 
                     <div className="space-y-3">
                       <div className="rounded-xl bg-white/5 px-4 py-3 text-sm ring-1 ring-white/10 space-y-1">
-                        <Row label="Cost price" value={money(customerOffer.wholeCost)} />
+                        {!hideCost && (
+                          <Row label="Cost price" value={money(customerOffer.wholeCost)} />
+                        )}
                         <Row
                           label={`Tax (${CUSTOMER_OFFER_TAX_PERCENT}%)`}
                           value={money(customerOffer.tax)}
@@ -478,7 +493,9 @@ export default function CalculatorPage() {
                   <Detail label="Class" value={result.item.class || "—"} />
                   <Detail label="Sub-Class" value={result.item.subClass || "—"} />
                   <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
-                  <Detail label="Cost Price" value={money(result.item.costPrice)} />
+                  {!hideCost && (
+                    <Detail label="Cost Price" value={money(result.item.costPrice)} />
+                  )}
                   <Detail
                     label="Avg Weight (g)"
                     value={
