@@ -20,7 +20,7 @@ assert.ok(sep2.length > 0, "Sep 2 rows must exist after append");
 
 const netSales = sep2.reduce((s, r) => s + r.netRevenue, 0);
 const dates = [...new Set(rows.map((r) => r.date))].sort();
-assert.equal(dates.at(-1), "2026-09-02");
+assert.ok(dates.includes("2026-09-02"), "Sep 2 must remain in the seed after later daily appends");
 assert.ok(dates.includes("2026-09-01"), "Sep 1 must still be present");
 
 async function main() {
