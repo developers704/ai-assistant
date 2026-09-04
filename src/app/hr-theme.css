@@ -347,7 +347,7 @@
 
 @media (min-width: 1100px) {
   .hr-kpi-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }
 
@@ -358,6 +358,24 @@
   padding: 0.9rem 0.95rem;
   box-shadow: var(--hr-shadow-sm);
   min-width: 0;
+}
+
+.hr-kpi-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.hr-kpi-btn:hover {
+  border-color: color-mix(in srgb, var(--hr-primary) 35%, var(--hr-line));
+}
+
+.hr-kpi-active {
+  border-color: var(--hr-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--hr-primary) 40%, transparent);
 }
 
 .hr-kpi-top {

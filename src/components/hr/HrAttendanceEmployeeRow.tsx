@@ -231,6 +231,7 @@ export function HrAttendanceEmployeeRow({
   }, [emp.warning, emp.writeUp]);
   const hasError = emp.violations.some((v) => v.severity === "error");
   const missingSchedule = emp.violations.some((v) => v.type === "no_schedule");
+  const isAbsent = emp.violations.some((v) => v.type === "absent");
   const canSendNotice = isEligibleForHrNotice(emp);
   const tone = avatarTone(emp.employeeName);
   const late = emp.lateMinutes != null && emp.lateMinutes >= 12;
@@ -339,6 +340,7 @@ export function HrAttendanceEmployeeRow({
             </span>
             <span className="hr-pills">
               {missingSchedule && <span className="hr-pill hr-pill-miss">Schedule missing</span>}
+              {isAbsent && <span className="hr-pill hr-pill-warn">Absent</span>}
               {late && <span className="hr-pill hr-pill-warn">Late {emp.lateMinutes} min</span>}
               {early && <span className="hr-pill hr-pill-info">Early {emp.earlyInMinutes} min</span>}
               {mealFlag && <span className="hr-pill hr-pill-warn">Meal break</span>}

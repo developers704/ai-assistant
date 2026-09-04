@@ -3,6 +3,7 @@ export type HrViolationType =
   | "late"
   | "early_in"
   | "no_schedule"
+  | "absent"
   | "long_meal"
   | "short_meal_total"
   | "excessive_meal_total"
