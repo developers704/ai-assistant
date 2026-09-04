@@ -153,6 +153,16 @@ function SettingsContent() {
   });
 
   const [permissionUser, setPermissionUser] = useState<string>("aj");
+  const [permissionQuery, setPermissionQuery] = useState("");
+  const [permissionUsers, setPermissionUsers] = useState<
+    Array<{
+      username: string;
+      name: string;
+      role: string;
+      roleLabel?: string;
+      permissions: UserPermissionMap;
+    }>
+  >([]);
   const [permissionDraft, setPermissionDraft] = useState<UserPermissionMap>(
     getDefaultPermissionMapForRole("dm")
   );
@@ -234,10 +244,18 @@ function SettingsContent() {
         const res = await fetch("/api/permissions");
         if (!res.ok) return;
         const data = (await res.json()) as {
-          users?: Array<{ username: string; permissions: UserPermissionMap }>;
+          users?: Array<{
+            username: string;
+            name: string;
+            role: string;
+            roleLabel?: string;
+            permissions: UserPermissionMap;
+          }>;
         };
+        if (cancelled) return;
+        if (data.users?.length) setPermissionUsers(data.users);
         const row = data.users?.find((u) => u.username === permissionUser);
-        if (!cancelled && row?.permissions) {
+        if (row?.permissions) {
           setPermissionDraft(row.permissions);
         }
       } catch {
@@ -921,9 +939,15 @@ function SettingsContent() {
                             onChange={(e) => setAdminTarget(e.target.value)}
                             className={`${fieldClass} bg-[#0f172a] text-white border-slate-600/80`}
                           >
-                            {["kash", "ross", "aj", "shaun", "adeel", "rozina"].map((u) => (
-                              <option key={u} value={u} className="bg-slate-900 text-white">
-                                {u}
+                            {(adminReveals.length
+                              ? adminReveals
+                              : ["kash", "ross", "aj", "shaun", "adeel", "rozina"].map((u) => ({
+                                  username: u,
+                                  name: u,
+                                }))
+                            ).map((u) => (
+                              <option key={u.username} value={u.username} className="bg-slate-900 text-white">
+                                {u.name} ({u.username})
                               </option>
                             ))}
                           </select>
@@ -973,19 +997,43 @@ function SettingsContent() {
                 <SectionCard title="Permissions Dashboard" icon={Shield}>
                   <div className="space-y-4">
                     <p className="text-xs text-ink-muted">
-                      Grant or remove section access for DMs. Ross cannot edit this matrix. Defaults: Sales, Stores, Calculator (wholesale cost). Rozina has Vendor Info off unless you enable it.
+                      Grant or remove section access for DMs and Hr access users. Ross cannot edit this matrix. DM defaults: Sales, Stores, Calculator (wholesale cost). Hr access defaults: those plus Email, Contacts, and Vendor Info. Rozina has Vendor Info off unless you enable it.
                     </p>
                     <div>
                       <label className="block text-sm font-medium text-ink-secondary mb-1.5">User / DM</label>
+                      <input
+                        type="search"
+                        value={permissionQuery}
+                        onChange={(e) => setPermissionQuery(e.target.value)}
+                        placeholder="Search name, email, or role…"
+                        className={`${fieldClass} mb-2 bg-[#0f172a] text-white border-slate-600/80`}
+                      />
                       <select
                         value={permissionUser}
                         onChange={(e) => setPermissionUser(e.target.value)}
                         className={`${fieldClass} bg-[#0f172a] text-white border-slate-600/80`}
                       >
-                        <option value="aj" className="bg-slate-900 text-white">AJ</option>
-                        <option value="shaun" className="bg-slate-900 text-white">Shaun</option>
-                        <option value="adeel" className="bg-slate-900 text-white">Adeel</option>
-                        <option value="rozina" className="bg-slate-900 text-white">Rozina</option>
+                        {(permissionUsers.length
+                          ? permissionUsers.filter((u) => {
+                              const q = permissionQuery.trim().toLowerCase();
+                              if (!q) return true;
+                              return (
+                                u.name.toLowerCase().includes(q) ||
+                                u.username.toLowerCase().includes(q) ||
+                                (u.roleLabel ?? u.role).toLowerCase().includes(q)
+                              );
+                            })
+                          : [
+                              { username: "aj", name: "AJ", role: "dm", roleLabel: "District Manager" },
+                              { username: "shaun", name: "Shaun", role: "dm", roleLabel: "District Manager" },
+                              { username: "adeel", name: "Adeel", role: "dm", roleLabel: "District Manager" },
+                              { username: "rozina", name: "Rozina", role: "dm", roleLabel: "District Manager" },
+                            ]
+                        ).map((u) => (
+                          <option key={u.username} value={u.username} className="bg-slate-900 text-white">
+                            {u.name} — {u.roleLabel ?? u.role}
+                          </option>
+                        ))}
                       </select>
                     </div>
 

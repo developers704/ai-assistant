@@ -44,7 +44,10 @@ export async function verifySessionToken(
   try {
     const { payload } = await jwtVerify(token, secretKey());
     const username = String(payload.username ?? "");
-    const role = payload.role === "admin" || payload.role === "dm" ? payload.role : null;
+    const role =
+      payload.role === "admin" || payload.role === "dm" || payload.role === "hr_access"
+        ? payload.role
+        : null;
     if (!username || !role || !payload.sub) return null;
     const storeCodes = Array.isArray(payload.storeCodes)
       ? (payload.storeCodes as string[])
@@ -58,7 +61,10 @@ export async function verifySessionToken(
       username,
       name: String(payload.name ?? username),
       role,
-      title: String(payload.title ?? (role === "admin" ? "Admin" : "District Manager")),
+      title: String(
+        payload.title ??
+          (role === "admin" ? "Admin" : role === "hr_access" ? "Hr access" : "District Manager")
+      ),
       storeCodes,
     };
   } catch {

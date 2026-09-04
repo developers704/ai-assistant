@@ -1,6 +1,12 @@
 import { normalizeUsername } from "@/lib/auth/user-permissions";
 
-export type AuthRole = "admin" | "dm";
+export type AuthRole = "admin" | "dm" | "hr_access";
+
+export const AUTH_ROLE_LABEL: Record<AuthRole, string> = {
+  admin: "Admin",
+  dm: "District Manager",
+  hr_access: "Hr access",
+};
 
 export type AuthUserRecord = {
   username: string;
@@ -72,9 +78,9 @@ function sheetUser(
     name,
     email,
     passwordHash,
-    role: "dm",
+    role: "hr_access",
     storeCodes,
-    title: "",
+    title: AUTH_ROLE_LABEL.hr_access,
   };
 }
 
@@ -447,6 +453,15 @@ export function findAuthUser(username: string): AuthUserRecord | null {
 export function getAllowedStoreCodes(user: AuthUserRecord): string[] | null {
   if (user.role === "admin") return null;
   return user.storeCodes;
+}
+
+/** DMs + Hr access — Kash can edit their section matrix. Admins are excluded. */
+export function isPermissionMatrixUser(user: AuthUserRecord): boolean {
+  return user.role === "dm" || user.role === "hr_access";
+}
+
+export function listPermissionMatrixUsers(): AuthUserRecord[] {
+  return listAuthUsers().filter(isPermissionMatrixUser);
 }
 
 /** Rozina default / client fallback — server APIs use hidesVendorInfoFromPermissions. */

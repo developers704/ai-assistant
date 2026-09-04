@@ -53,7 +53,8 @@ export function setPermissionMapForUser(
   const stored = loadPermissionOverrides();
   stored[key] = { ...(stored[key] ?? {}), ...updates };
   savePermissionOverrides(stored);
-  return getPermissionMapForUser(username, "dm");
+  const liveRole = findAuthUser(username)?.role ?? "dm";
+  return getPermissionMapForUser(username, liveRole);
 }
 
 /** Hide vendor names when vendor_info permission is off. */
