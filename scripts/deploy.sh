@@ -18,19 +18,65 @@ if [ ! -w ".git/objects" ]; then
   exit 1
 fi
 
+prev_head="$(git rev-parse HEAD)"
+
 git fetch --prune origin
 git checkout "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
+# Re-exec so this pull's deploy.sh (heartbeat / skip-ci) is what actually runs.
+if [ "${DEPLOY_REEXEC:-}" != "1" ]; then
+  export DEPLOY_REEXEC=1
+  exec bash "$REPO_DIR/scripts/deploy.sh"
+fi
+
 echo "Deploying commit: $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
+
+run_with_heartbeat() {
+  local label="$1"
+  shift
+  echo "[deploy] start $label"
+  (
+    while true; do
+      sleep 20
+      echo "[deploy] $label still running ($(date -u '+%H:%M:%S UTC'))"
+    done
+  ) &
+  local hb=$!
+  # If the command fails, still kill the heartbeat before exiting.
+  if "$@"; then
+    kill "$hb" 2>/dev/null || true
+    wait "$hb" 2>/dev/null || true
+    echo "[deploy] done $label"
+    return 0
+  fi
+  local st=$?
+  kill "$hb" 2>/dev/null || true
+  wait "$hb" 2>/dev/null || true
+  echo "[deploy] FAILED $label (exit $st)"
+  return "$st"
+}
 
 mkdir -p .data/reports
 
 # Clean previous build so clients never request missing chunk hashes.
 rm -rf .next
 
-npm ci
-npm run build
+need_ci=1
+if [[ -d node_modules/next ]] && git diff --quiet "$prev_head" HEAD -- package-lock.json package.json; then
+  if node -e "require('next/package.json')" >/dev/null 2>&1; then
+    echo "package-lock unchanged and next is loadable — skipping npm ci"
+    need_ci=0
+  fi
+fi
+
+if [ "$need_ci" -eq 1 ]; then
+  run_with_heartbeat "npm ci" npm ci --no-audit --no-fund
+else
+  echo "Using existing node_modules"
+fi
+
+run_with_heartbeat "next build" npm run build
 
 # Reload ONLY this app after .next is fully written.
 # NEVER use `pm2 restart all` — other apps (docusign / ai-valliani on :3000) share this PM2.
