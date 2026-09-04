@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/Sidebar";
 import { PageShell, PageShellBody, PageShellHeader } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 
 type RoleId = "admin" | "employee" | "hr" | "dm";
 
@@ -244,6 +245,7 @@ export default function AdminUsersPage() {
                   <button
                     type="button"
                     className="p-2 rounded-lg hover:bg-white/10 text-ink-secondary"
+                    title="Edit"
                     aria-label={`Edit ${user.name}`}
                     onClick={() => openEdit(user)}
                   >
@@ -252,6 +254,7 @@ export default function AdminUsersPage() {
                   <button
                     type="button"
                     className="p-2 rounded-lg hover:bg-rose-500/15 text-rose-300 disabled:opacity-30"
+                    title="Delete"
                     aria-label={`Delete ${user.name}`}
                     disabled={user.protected}
                     onClick={() => void remove(user)}
@@ -266,11 +269,15 @@ export default function AdminUsersPage() {
       </PageShellBody>
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-[#0b1220] p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <Modal
+          onClose={() => {
+            if (!saving) setModal(null);
+          }}
+          labelledBy="admin-user-dialog-title"
+        >
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-ink">
+                <h2 id="admin-user-dialog-title" className="text-lg font-semibold text-ink">
                   {modal === "create" ? "Create User" : "Edit User"}
                 </h2>
                 <p className="text-xs text-ink-muted">
@@ -279,7 +286,12 @@ export default function AdminUsersPage() {
                     : "Update this account. Leave password blank to keep the current one."}
                 </p>
               </div>
-              <button type="button" onClick={() => setModal(null)} className="p-1 text-ink-muted">
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="p-1 text-ink-muted hover:text-ink"
+                aria-label="Close"
+              >
                 <X size={18} />
               </button>
             </div>
@@ -392,8 +404,7 @@ export default function AdminUsersPage() {
                 {modal === "create" ? "Create User" : "Save"}
               </Button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </PageShell>
   );

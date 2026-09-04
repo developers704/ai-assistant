@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, KeyRound, Shield, X } from "lucide-react";
+import { Check, KeyRound, Lock, Shield, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { PageShell, PageShellBody, PageShellHeader } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import type { UserPermissionKey, UserPermissionMap } from "@/lib/auth/user-permissions";
 
 type RoleRow = {
@@ -121,48 +122,92 @@ export default function AdminRolesPage() {
         </div>
 
         {editing && draft && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-            <div className="w-full max-w-2xl rounded-2xl border border-white/15 bg-[#0b1220] p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-lg font-semibold text-ink">{editing.label} permissions</h2>
-              <p className="text-xs text-ink-muted mb-4">
-                {editing.id === "admin"
-                  ? "Admin always has full access. These switches cannot be turned off."
-                  : editing.description}
-              </p>
+          <Modal
+            size="lg"
+            onClose={() => {
+              if (!saving) {
+                setEditing(null);
+                setDraft(null);
+              }
+            }}
+            labelledBy="admin-role-dialog-title"
+          >
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h2 id="admin-role-dialog-title" className="text-lg font-semibold text-ink">
+                    {editing.label} permissions
+                  </h2>
+                  <p className="text-xs text-ink-muted">
+                    {editing.id === "admin"
+                      ? "Admin always has full access. Close this panel and edit Employee, HR, or DM to change section access."
+                      : "Click a section to turn it on or off, then save."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(null);
+                    setDraft(null);
+                  }}
+                  className="p-1 text-ink-muted hover:text-ink"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {sections.map((section) => (
-                  <label
-                    key={section.key}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-sm text-ink-secondary">{section.label}</div>
-                      <div className="text-[10px] text-ink-muted">{section.description}</div>
-                    </div>
+                {sections.map((section) => {
+                  const on = Boolean(draft[section.key]);
+                  const locked = editing.id === "admin";
+                  return (
                     <button
+                      key={section.key}
                       type="button"
-                      disabled={editing.id === "admin"}
+                      disabled={locked}
                       onClick={() =>
                         setDraft((prev) =>
                           prev ? { ...prev, [section.key]: !prev[section.key] } : prev
                         )
                       }
                       className={
-                        "flex h-8 w-8 items-center justify-center rounded-lg border " +
-                        (draft[section.key]
-                          ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
-                          : "border-white/10 bg-white/5 text-ink-muted") +
-                        (editing.id === "admin" ? " opacity-60 cursor-not-allowed" : "")
+                        "flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors " +
+                        (on
+                          ? "border-emerald-400/40 bg-emerald-500/10"
+                          : "border-white/10 bg-white/[0.03]") +
+                        (locked ? " opacity-70 cursor-not-allowed" : " hover:border-white/25")
                       }
-                      aria-label={`${section.label} ${draft[section.key] ? "enabled" : "disabled"}`}
+                      aria-pressed={on}
+                      aria-label={`${section.label} ${on ? "enabled" : "disabled"}`}
                     >
-                      {draft[section.key] ? <Check size={15} /> : <X size={15} />}
+                      <div className="min-w-0">
+                        <div className="text-sm text-ink-secondary">{section.label}</div>
+                        <div className="text-[10px] text-ink-muted">{section.description}</div>
+                      </div>
+                      <span
+                        className={
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border " +
+                          (locked
+                            ? "border-white/15 bg-white/5 text-ink-muted"
+                            : on
+                              ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                              : "border-white/10 bg-white/5 text-ink-muted")
+                        }
+                      >
+                        {locked ? <Lock size={14} /> : on ? <Check size={15} /> : <X size={15} />}
+                      </span>
                     </button>
-                  </label>
-                ))}
+                  );
+                })}
               </div>
               <div className="flex justify-end gap-2 mt-5">
-                <Button variant="outline" size="sm" onClick={() => setEditing(null)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditing(null);
+                    setDraft(null);
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button
@@ -173,8 +218,7 @@ export default function AdminRolesPage() {
                   Save permissions
                 </Button>
               </div>
-            </div>
-          </div>
+          </Modal>
         )}
       </PageShellBody>
     </PageShell>
