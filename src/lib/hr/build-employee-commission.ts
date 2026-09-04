@@ -1,12 +1,20 @@
 import { applyHrSalesDesigns, hrSalesDesignName } from "@/lib/hr/hr-sales-design";
 import { assembleEmployeeCommission, type EmployeeCommission } from "@/lib/hr/commission";
-import { commissionAttendanceForAssociate } from "@/lib/hr/commission-attendance";
+import {
+  commissionAttendanceForAssociate,
+  commissionIssuesFromDays,
+  hrRowsMatchAssociate,
+} from "@/lib/hr/commission-attendance";
 import {
   AUGUST_PERSONAL_GOALS,
   AUGUST_STORE_GOALS,
   dummyGoalAboveActual,
 } from "@/lib/hr/august-2026-commission-data";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
+import { analyzeDays } from "@/lib/hr/analyze";
+import { countedScheduleWarnings } from "@/lib/hr/warning-store";
+import { namesMatch } from "@/lib/hr/name-match";
+import { datesInIsoRange } from "@/lib/hr/window";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { applySalespersonFilter } from "@/lib/sales/paycode-overlay";
@@ -65,6 +73,30 @@ export function buildEmployeeCommissionFromSales(opts: {
   const punches = loadActiveTimecardRows();
   const schedule = loadActiveScheduleEntries();
   const attendance = commissionAttendanceForAssociate(code, opts.from, opts.to, punches, schedule);
+  const windowDates = datesInIsoRange(opts.from, opts.to);
+  const dateSet = new Set(windowDates);
+  const associatePunches = punches.filter(
+    (r) => dateSet.has(r.date) && hrRowsMatchAssociate(code, r.employeeName, r.employeeCode, r.guardsName)
+  );
+  const punchNames = [...new Set(associatePunches.map((r) => r.employeeName))];
+  const associateSchedule = schedule.filter((e) => {
+    if (!dateSet.has(e.date)) return false;
+    if (hrRowsMatchAssociate(code, e.employeeName)) return true;
+    return punchNames.some((n) => namesMatch(n, e.employeeName));
+  });
+  const associateDays = analyzeDays(windowDates, associatePunches, associateSchedule);
+  const attendanceIssues = commissionIssuesFromDays(associateDays);
+  const scheduleViolations = countedScheduleWarnings({
+    from: opts.from,
+    to: opts.to,
+  }).filter((n) => {
+    if ((n.employeeCode ?? "").trim().toUpperCase() === code) return true;
+    return associateDays.some(
+      (day) =>
+        namesMatch(n.employeeName, day.employeeName) ||
+        namesMatch(n.employeeName, day.displayName)
+    );
+  }).length;
 
   const storeTotals = storeTotalsFromRows(windowRows);
   const storeCode = attendance.posStore ?? majorityStore(personRows);
@@ -86,5 +118,7 @@ export function buildEmployeeCommissionFromSales(opts: {
     scheduledDays: attendance.scheduledDays,
     presentDays: attendance.presentDays,
     absences: attendance.absences,
+    scheduleViolations,
+    attendanceIssues,
   });
 }

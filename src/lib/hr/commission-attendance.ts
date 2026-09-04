@@ -1,8 +1,9 @@
-import type { HrScheduleEntry, HrTimecardRow } from "@/lib/hr/types";
+import type { HrEmployeeDay, HrScheduleEntry, HrTimecardRow } from "@/lib/hr/types";
 import { namesMatch } from "@/lib/hr/name-match";
 import { datesInIsoRange } from "@/lib/hr/window";
 import { loadSalespersonDirectory } from "@/lib/sales/salesperson-directory";
 import { posStoreCodeFromHrStore } from "@/lib/hr/hr-store-pos";
+import type { CommissionAttendanceIssue } from "@/lib/hr/commission";
 
 export type CommissionAttendance = {
   payrollName: string | null;
@@ -83,4 +84,35 @@ export function commissionAttendanceForAssociate(
     presentDates,
     absentDates,
   };
+}
+
+export function commissionIssuesFromDays(days: HrEmployeeDay[]): CommissionAttendanceIssue[] {
+  const issues: CommissionAttendanceIssue[] = [];
+  for (const day of days) {
+    if (day.violations.some((v) => v.type === "absent")) {
+      issues.push({ date: day.date, kind: "absent", label: "Absent" });
+    }
+    if (day.lateMinutes != null && day.lateMinutes >= 12) {
+      issues.push({
+        date: day.date,
+        kind: "late",
+        label: `Late arrival ${day.lateMinutes} min`,
+      });
+    }
+    if (day.earlyInMinutes != null && day.earlyInMinutes >= 10) {
+      issues.push({
+        date: day.date,
+        kind: "early",
+        label: `Arrived early ${day.earlyInMinutes} min`,
+      });
+    }
+    if (day.earlyOutMinutes != null && day.earlyOutMinutes >= 10) {
+      issues.push({
+        date: day.date,
+        kind: "early_out",
+        label: `Left early ${day.earlyOutMinutes} min`,
+      });
+    }
+  }
+  return issues.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind));
 }

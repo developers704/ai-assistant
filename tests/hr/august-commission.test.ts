@@ -110,9 +110,11 @@ describe("Zoya August commission test case", () => {
       storeTotalSales: 311_349,
       scheduledDays: 26,
       presentDays: 22,
-      absences: 4,
+      absences: 1,
     });
-    expect(attendancePasses(4)).toBe(false);
+    expect(attendancePasses(1)).toBe(false);
+    expect(attendancePasses(0, 4)).toBe(false);
+    expect(attendancePasses(0, 3)).toBe(true);
     expect(failed.summary.baseCommission).toBe(1_360);
     expect(failed.summary.attendanceBonus).toBe(0);
     expect(failed.summary.personalGoalBonus).toBe(0);

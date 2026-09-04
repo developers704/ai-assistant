@@ -19,8 +19,10 @@ export const DESIGN_COMMISSION_RATES: DesignCommissionRate[] = [
 export const OTHER_DESIGN_EMPLOYEE_RATE = 0.01;
 export const OTHER_DESIGN_FULL_RATE = 0.02;
 
-/** Max absences that still pass attendance (0–3). */
-export const ATTENDANCE_PASS_MAX_ABSENCES = 3;
+/** Max absences that still pass extras: 0. One or more absences → base only. */
+export const ATTENDANCE_PASS_MAX_ABSENCES = 0;
+/** Max unwaived schedule warnings that still pass extras: 3. Four or more → base only. */
+export const ATTENDANCE_PASS_MAX_SCHEDULE_VIOLATIONS = 3;
 
 function compactDesignKey(name: string): string {
   return String(name ?? "")

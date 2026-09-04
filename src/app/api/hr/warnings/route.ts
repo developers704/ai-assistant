@@ -15,6 +15,7 @@ import {
   findWriteUpForEmployee,
   listWarningNotices,
   upsertWarningNotice,
+  waiveWarningNotice,
 } from "@/lib/hr/warning-store";
 import type { HrWarningNotice, HrWarningRemark } from "@/lib/hr/types";
 
@@ -51,6 +52,8 @@ function asNotice(value: unknown): HrWarningNotice | null {
     sentAt: String(o.sentAt ?? new Date().toISOString()),
     messageId: o.messageId == null ? null : String(o.messageId),
     remarks,
+    waivedAt: o.waivedAt == null || o.waivedAt === "" ? null : String(o.waivedAt),
+    waivedBy: o.waivedBy == null || o.waivedBy === "" ? null : String(o.waivedBy),
   };
 }
 
@@ -127,6 +130,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "caseId is required" }, { status: 400 });
     }
     const updated = addWarningRemarks(caseId, remarks);
+    if (!updated) {
+      return NextResponse.json({ error: "Warning notice not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, warning: updated });
+  }
+
+  if (action === "waive") {
+    const caseId = String(body.caseId ?? "").trim();
+    if (!caseId) {
+      return NextResponse.json({ error: "caseId is required" }, { status: 400 });
+    }
+    const updated = waiveWarningNotice(caseId);
     if (!updated) {
       return NextResponse.json({ error: "Warning notice not found" }, { status: 404 });
     }

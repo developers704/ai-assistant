@@ -14,9 +14,9 @@ import {
   isLateForWarning,
   noticeFromDraft,
 } from "./warning-notice";
-import { buildWarningNoticePdf, pdfBytesToBase64 } from "./warning-notice-pdf";
 import { draftWriteUpNotice, writeUpFromDraft } from "./write-up-notice";
 import { buildWriteUpPdf } from "./write-up-pdf";
+import { pdfBytesToBase64 } from "./warning-notice-pdf";
 import { replySubjectForThread, stripQuotedReply } from "./remark-text";
 import {
   defaultHrMailRouting,
@@ -191,28 +191,11 @@ export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarni
   const ready = await isWarningMailSessionReady();
   if (!ready.ok) throw new Error(ready.reason);
   const draft = draftWarningNotice(emp, ready.routing);
-  const pdfBytes = await buildWarningNoticePdf({
-    employeeName: draft.employeeName,
-    date: draft.date,
-    employeeCode: draft.employeeCode,
-    jobTitle: draft.jobTitle,
-    manager: draft.manager,
-    lateMinutes: draft.lateMinutes,
-    description: draft.description,
-  });
   await sendMail({
     to: ready.routing.to,
     subject: draft.subject,
     body: draft.text,
     html: draft.html,
-    attachments: [
-      {
-        filename: draft.pdfFilename,
-        contentType: "application/pdf",
-        contentBase64: pdfBytesToBase64(pdfBytes),
-        size: pdfBytes.byteLength,
-      },
-    ],
   });
   const notice = noticeFromDraft(draft);
   return persistNotice(notice);
@@ -250,7 +233,11 @@ export async function sendWriteUpNotice(
       },
     ],
   });
-  return persistNotice(writeUpFromDraft(draft));
+  const saved = await persistNotice(writeUpFromDraft(draft));
+  if (emp.warning?.caseId && emp.warning.waivedAt) {
+    await persistNotice({ ...emp.warning, waivedAt: null, waivedBy: null });
+  }
+  return saved;
 }
 
 async function persistNotice(notice: HrWarningNotice): Promise<HrWarningNotice> {
@@ -324,4 +311,19 @@ export async function replyOnWarningThread(
     uid: 0,
   };
   return persistRemarks(notice.caseId, [remark]);
+}
+
+export async function waiveWarningCase(caseId: string): Promise<HrWarningNotice> {
+  const res = await fetch("/api/hr/warnings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "waive", caseId }),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    warning?: HrWarningNotice;
+  };
+  if (!res.ok) throw new Error(json.error || "Could not waive warning");
+  if (!json.warning) throw new Error("Could not waive warning");
+  return json.warning;
 }

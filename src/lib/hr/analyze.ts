@@ -8,12 +8,14 @@ import type {
 import { namesMatch } from "./name-match";
 import {
   checkLateEarly,
-  checkMealViolations,
+  checkEarlyOut,
   classifyGapMinutes,
   lateEarlyDeltaMinutes,
+  earlyOutDeltaMinutes,
   shiftTierFromScheduledMinutes,
   expectedMealPolicy,
 } from "./meal-break-rules";
+import { resolveHrEmployeeDisplayName } from "./security-guard-names";
 import {
   formatMinutes,
   minutesBetweenClocks,
@@ -154,13 +156,20 @@ export function analyzeEmployeeDay(
   }
 
   const firstIn = sorted.find((r) => r.timeIn)?.timeIn ?? null;
+  const lastOut = [...sorted].reverse().find((r) => r.timeOut)?.timeOut ?? null;
   let lateMinutes: number | null = null;
   let earlyInMinutes: number | null = null;
+  let earlyOutMinutes: number | null = null;
   if (scheduleRaw && firstIn) {
     const delta = lateEarlyDeltaMinutes(scheduleRaw.start, firstIn);
     if (delta.lateMinutes > 0) lateMinutes = delta.lateMinutes;
     if (delta.earlyMinutes > 0) earlyInMinutes = delta.earlyMinutes;
     violations.push(...checkLateEarly(scheduleRaw.start, firstIn));
+  }
+  if (scheduleRaw && lastOut) {
+    const leftEarly = earlyOutDeltaMinutes(scheduleRaw.end, lastOut);
+    if (leftEarly > 0) earlyOutMinutes = leftEarly;
+    violations.push(...checkEarlyOut(scheduleRaw.end, lastOut));
   }
 
   const shiftTier = scheduleRange
@@ -169,21 +178,20 @@ export function analyzeEmployeeDay(
 
   const mealMinutes = mealBreaks.map((m) => m.gapMinutes);
   const totalMealMinutes = mealMinutes.reduce((s, n) => s + n, 0);
-
-  if (shiftTier) {
-    violations.push(...checkMealViolations(shiftTier, mealMinutes));
-  }
+  // Meal breaks are informational only — never a flag / warning / write-up case.
 
   const policy = shiftTier ? expectedMealPolicy(shiftTier) : { count: 0, totalMinutes: 0 };
+  const guardsName = firstFilled(sorted.length ? sorted : punches, "guardsName");
 
   return {
     employeeName,
+    displayName: resolveHrEmployeeDisplayName(employeeName, guardsName),
     date,
     employeeCode: firstFilled(sorted.length ? sorted : punches, "employeeCode"),
     jobTitle: firstFilled(sorted.length ? sorted : punches, "jobTitle"),
     store: firstFilled(sorted.length ? sorted : punches, "store"),
     manager: firstFilled(sorted.length ? sorted : punches, "manager"),
-    guardsName: firstFilled(sorted.length ? sorted : punches, "guardsName"),
+    guardsName,
     schedule: scheduleRange
       ? {
           start: scheduleRaw!.start,
@@ -204,6 +212,7 @@ export function analyzeEmployeeDay(
     expectedMealCount: policy.count,
     lateMinutes,
     earlyInMinutes,
+    earlyOutMinutes,
     violations: [...violations, ...segments.flatMap((s) => s.violations)],
   };
 }
@@ -233,4 +242,16 @@ export function analyzeDay(
 
 export function distinctTimecardDates(rows: HrTimecardRow[]): string[] {
   return [...new Set(rows.map((r) => r.date))].sort();
+}
+
+export function analyzeDays(
+  dates: string[],
+  timecardRows: HrTimecardRow[],
+  scheduleEntries: HrScheduleEntry[]
+): HrEmployeeDay[] {
+  const out: HrEmployeeDay[] = [];
+  for (const date of dates) {
+    out.push(...analyzeDay(date, timecardRows, scheduleEntries));
+  }
+  return out;
 }

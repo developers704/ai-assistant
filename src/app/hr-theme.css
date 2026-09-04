@@ -347,7 +347,23 @@
 
 @media (min-width: 1100px) {
   .hr-kpi-grid {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.hr-kpi-grid-6 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .hr-kpi-grid-6 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .hr-kpi-grid-6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 
@@ -476,6 +492,59 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--hr-faint);
+}
+
+.hr-search {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.hr-search svg {
+  color: var(--hr-faint);
+  flex-shrink: 0;
+}
+
+.hr-search .hr-input {
+  flex: 1;
+}
+
+.hr-day-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.hr-day-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--hr-faint);
+  padding: 0.35rem 0.15rem 0;
+}
+
+.hr-comm-issues {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hr-comm-issues li {
+  font-size: 0.8rem;
+  color: var(--hr-ink);
+  display: flex;
+  gap: 0.55rem;
+}
+
+.hr-comm-issue-date {
+  color: var(--hr-faint);
+  font-variant-numeric: tabular-nums;
+  min-width: 6.5rem;
 }
 
 .hr-select,

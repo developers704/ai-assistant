@@ -105,6 +105,8 @@ describe("August 2026 seed files", () => {
       (r) => r.date === "2026-08-01" && namesMatch(r.employeeName, "1 security guard")
     );
     const day = analyzeEmployeeDay("1, security guard", "2026-08-01", punches, entries);
+    expect(day.displayName).toBe("Syed Muqeet Asim");
+    expect(punches[0]!.guardsName).toBe("Syed Muqeet Asim");
     expect(day.schedule?.start).toMatch(/9:15 AM/i);
     expect(day.schedule?.end).toMatch(/9:00 PM/i);
     expect(day.totalWorkLabel).toBe("11:22");

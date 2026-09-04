@@ -121,6 +121,7 @@ export function HrCommissionPanel({
           <div className="hr-comm-row">
             <span>
               {s.presentDays}/{s.scheduledDays} days · {s.absences} absent
+              {s.scheduleViolations ? ` · ${s.scheduleViolations} schedule warning${s.scheduleViolations === 1 ? "" : "s"}` : ""}
             </span>
             <Status
               yes={s.attendancePassed}
@@ -128,6 +129,16 @@ export function HrCommissionPanel({
               no="Fail"
             />
           </div>
+          {s.attendanceIssues.length > 0 && (
+            <ul className="hr-comm-issues">
+              {s.attendanceIssues.map((issue) => (
+                <li key={`${issue.date}:${issue.kind}:${issue.label}`}>
+                  <span className="hr-comm-issue-date">{issue.date}</span>
+                  {issue.label}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="hr-comm-card hr-comm-card-pay">

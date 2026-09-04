@@ -15,10 +15,12 @@ import {
   sendLateWarningNotice,
   sendWriteUpNotice,
   syncWarningRemarks,
+  waiveWarningCase,
 } from "@/lib/hr/send-warning-mail";
 import { stripQuotedReply } from "@/lib/hr/remark-text";
 import {
   AlertTriangle,
+  Ban,
   ChevronDown,
   ChevronRight,
   FileText,
@@ -70,10 +72,20 @@ function RemarksPanel({
   warning,
   label,
   onSynced,
+  onWriteUp,
+  onWaive,
+  waiving,
+  canWriteUp,
+  canWaive,
 }: {
   warning: HrWarningNotice;
   label: string;
   onSynced: (next: HrWarningNotice) => void;
+  onWriteUp?: () => void;
+  onWaive?: () => void;
+  waiving?: boolean;
+  canWriteUp?: boolean;
+  canWaive?: boolean;
 }) {
   const [syncing, setSyncing] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
@@ -204,6 +216,27 @@ function RemarksPanel({
           </div>
         </div>
       )}
+      {label === "Warning" && (canWriteUp || canWaive) && (
+        <div className="flex flex-wrap justify-end gap-2" style={{ marginTop: "0.85rem" }}>
+          {canWaive && onWaive && (
+            <button
+              type="button"
+              className="hr-btn hr-btn-ghost hr-btn-sm"
+              onClick={onWaive}
+              disabled={waiving}
+            >
+              {waiving ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+              Waive
+            </button>
+          )}
+          {canWriteUp && onWriteUp && (
+            <button type="button" className="hr-btn hr-btn-outline hr-btn-sm" onClick={onWriteUp}>
+              <FileText size={14} />
+              Write up
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -222,6 +255,7 @@ export function HrAttendanceEmployeeRow({
   const [writeUpText, setWriteUpText] = useState("");
   const [sending, setSending] = useState(false);
   const [sendingWriteUp, setSendingWriteUp] = useState(false);
+  const [waiving, setWaiving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<HrWarningNotice | null>(emp.warning ?? null);
   const [writeUp, setWriteUp] = useState<HrWarningNotice | null>(emp.writeUp ?? null);
@@ -233,16 +267,12 @@ export function HrAttendanceEmployeeRow({
   const missingSchedule = emp.violations.some((v) => v.type === "no_schedule");
   const isAbsent = emp.violations.some((v) => v.type === "absent");
   const canSendNotice = isEligibleForHrNotice(emp);
-  const tone = avatarTone(emp.employeeName);
+  const displayName = emp.displayName?.trim() || emp.employeeName;
+  const tone = avatarTone(displayName);
   const late = emp.lateMinutes != null && emp.lateMinutes >= 12;
   const early = emp.earlyInMinutes != null && emp.earlyInMinutes >= 10;
-  const mealFlag = emp.violations.some(
-    (v) =>
-      v.type === "long_meal" ||
-      v.type === "excessive_meal_total" ||
-      v.type === "short_meal_total" ||
-      v.type === "meal_count"
-  );
+  const leftEarly = emp.earlyOutMinutes != null && emp.earlyOutMinutes >= 10;
+  const warningActive = Boolean(warning && !warning.waivedAt);
 
   const sendWarning = async (event: MouseEvent) => {
     event.stopPropagation();
@@ -264,8 +294,8 @@ export function HrAttendanceEmployeeRow({
     }
   };
 
-  const openWriteUp = (event: MouseEvent) => {
-    event.stopPropagation();
+  const openWriteUp = (event?: MouseEvent) => {
+    event?.stopPropagation();
     setError(null);
     setWriteUpOpen(true);
     setOpen(true);
@@ -295,7 +325,26 @@ export function HrAttendanceEmployeeRow({
     }
   };
 
-  const roleLine = [emp.jobTitle, emp.store].filter((s) => s?.trim()).join(" · ");
+  const waiveWarning = async (event?: MouseEvent) => {
+    event?.stopPropagation();
+    if (!warning) return;
+    setWaiving(true);
+    setError(null);
+    try {
+      const next = await waiveWarningCase(warning.caseId);
+      setWarning(next);
+      setRemarksOpen(true);
+      setOpen(true);
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not waive warning");
+      setOpen(true);
+    } finally {
+      setWaiving(false);
+    }
+  };
+
+  const roleLine = [emp.employeeCode, emp.jobTitle, emp.store].filter((s) => s?.trim()).join(" · ");
 
   return (
     <div className={cn("hr-emp", hasError && "hr-emp-error", missingSchedule && "hr-emp-no-schedule")}>
@@ -307,10 +356,10 @@ export function HrAttendanceEmployeeRow({
             <ChevronRight size={16} className="shrink-0 mt-1.5" style={{ color: "#8b95a5" }} />
           )}
           <span className="hr-avatar" style={{ background: tone.bg, color: tone.fg }}>
-            {employeeInitials(emp.employeeName)}
+            {employeeInitials(displayName)}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="hr-emp-name block truncate">{emp.employeeName}</span>
+            <span className="hr-emp-name block truncate">{displayName}</span>
             <span className="hr-emp-meta block truncate">
               {emp.schedule ? (
                 `${roleLine ? `${roleLine} · ` : ""}Scheduled ${emp.schedule.start} – ${emp.schedule.end}`
@@ -343,20 +392,23 @@ export function HrAttendanceEmployeeRow({
               {isAbsent && <span className="hr-pill hr-pill-warn">Absent</span>}
               {late && <span className="hr-pill hr-pill-warn">Late {emp.lateMinutes} min</span>}
               {early && <span className="hr-pill hr-pill-info">Early {emp.earlyInMinutes} min</span>}
-              {mealFlag && <span className="hr-pill hr-pill-warn">Meal break</span>}
-              {warning && <span className="hr-pill hr-pill-sent">Warning sent</span>}
+              {leftEarly && (
+                <span className="hr-pill hr-pill-info">Left early {emp.earlyOutMinutes} min</span>
+              )}
+              {warningActive && <span className="hr-pill hr-pill-sent">Warning sent</span>}
+              {warning?.waivedAt && <span className="hr-pill">Waived</span>}
               {writeUp && <span className="hr-pill hr-pill-gold">Write-up sent</span>}
             </span>
           </span>
         </button>
         <div className="hr-emp-actions">
-          {canSendNotice && !warning && (
+          {canSendNotice && !warningActive && (
             <button
               type="button"
               className="hr-btn hr-btn-primary hr-btn-sm"
               data-action="send-warning"
               onClick={(e) => void sendWarning(e)}
-              disabled={sending || sendingWriteUp}
+              disabled={sending || sendingWriteUp || waiving}
             >
               {sending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
               Send warning
@@ -368,10 +420,22 @@ export function HrAttendanceEmployeeRow({
               className="hr-btn hr-btn-outline hr-btn-sm"
               data-action="send-write-up"
               onClick={openWriteUp}
-              disabled={sending || sendingWriteUp}
+              disabled={sending || sendingWriteUp || waiving}
             >
               <FileText size={14} />
               Write up
+            </button>
+          )}
+          {warningActive && (
+            <button
+              type="button"
+              className="hr-btn hr-btn-ghost hr-btn-sm"
+              data-action="waive-warning"
+              onClick={(e) => void waiveWarning(e)}
+              disabled={sending || sendingWriteUp || waiving}
+            >
+              {waiving ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+              Waive
             </button>
           )}
           {warning && (
@@ -556,6 +620,11 @@ export function HrAttendanceEmployeeRow({
                 setWarning(next);
                 onChanged();
               }}
+              onWriteUp={!writeUp ? () => openWriteUp() : undefined}
+              onWaive={warningActive ? () => void waiveWarning() : undefined}
+              waiving={waiving}
+              canWriteUp={!writeUp}
+              canWaive={warningActive}
             />
           )}
           {writeUpRemarksOpen && writeUp && (

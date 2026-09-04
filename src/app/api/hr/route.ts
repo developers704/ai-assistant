@@ -7,7 +7,7 @@ import {
   saveScheduleUpload,
   saveTimecardUpload,
 } from "@/lib/hr/store";
-import { analyzeDay, distinctTimecardDates } from "@/lib/hr/analyze";
+import { analyzeDays, distinctTimecardDates } from "@/lib/hr/analyze";
 import { namesMatch } from "@/lib/hr/name-match";
 import { listWarningNotices, noticeKind } from "@/lib/hr/warning-store";
 import {
@@ -25,6 +25,8 @@ export async function GET(req: NextRequest) {
   if (denied) return denied;
 
   const date = req.nextUrl.searchParams.get("date")?.trim() ?? "";
+  const fromParam = req.nextUrl.searchParams.get("from")?.trim() ?? "";
+  const toParam = req.nextUrl.searchParams.get("to")?.trim() ?? "";
   const uploads = listHrUploads();
   const timecardRows = loadActiveTimecardRows();
   const scheduleEntries = loadActiveScheduleEntries();
@@ -32,13 +34,21 @@ export async function GET(req: NextRequest) {
   const punchDates = distinctTimecardDates(timecardRows);
   const scheduleDates = [...new Set(scheduleEntries.map((e) => e.date))];
 
-  const activeDate =
-    date && dates.includes(date)
-      ? date
-      : lastHrAttendanceDateWithData(punchDates, scheduleDates);
+  let activeDates: string[] = [];
+  if (fromParam && toParam) {
+    const from = fromParam <= toParam ? fromParam : toParam;
+    const to = fromParam <= toParam ? toParam : fromParam;
+    activeDates = dates.filter((d) => d >= from && d <= to);
+  } else if (date && dates.includes(date)) {
+    activeDates = [date];
+  } else {
+    const fallback = lastHrAttendanceDateWithData(punchDates, scheduleDates);
+    activeDates = fallback ? [fallback] : [];
+  }
 
-  const employees = activeDate
-    ? analyzeDay(activeDate, timecardRows, scheduleEntries)
+  const activeDate = activeDates.at(-1) ?? null;
+  const employees = activeDates.length
+    ? analyzeDays(activeDates, timecardRows, scheduleEntries)
     : [];
   const notices = listWarningNotices();
   const withWarnings = employees.map((emp) => ({
@@ -63,6 +73,7 @@ export async function GET(req: NextRequest) {
     uploads,
     dates,
     activeDate,
+    activeDates,
     employees: withWarnings,
     hasTimecard: timecardRows.length > 0,
     hasSchedule: scheduleEntries.length > 0,

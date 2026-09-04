@@ -1,5 +1,6 @@
 import {
   ATTENDANCE_PASS_MAX_ABSENCES,
+  ATTENDANCE_PASS_MAX_SCHEDULE_VIOLATIONS,
   designCommissionDollars,
   employeeCommissionRateForDesign,
   fullCommissionRateForDesign,
@@ -16,6 +17,12 @@ export type CommissionDesignLine = {
   baseCommission: number;
 };
 
+export type CommissionAttendanceIssue = {
+  date: string;
+  kind: "late" | "early" | "early_out" | "absent";
+  label: string;
+};
+
 export type CommissionSummary = {
   netSales: number;
   personalGoal: number;
@@ -27,6 +34,8 @@ export type CommissionSummary = {
   scheduledDays: number;
   presentDays: number;
   absences: number;
+  scheduleViolations: number;
+  attendanceIssues: CommissionAttendanceIssue[];
   attendancePassed: boolean;
   baseCommission: number;
   attendanceBonus: number;
@@ -41,8 +50,8 @@ export type EmployeeCommission = {
   summary: CommissionSummary;
 };
 
-export function attendancePasses(absences: number): boolean {
-  return absences <= ATTENDANCE_PASS_MAX_ABSENCES;
+export function attendancePasses(absences: number, scheduleViolations = 0): boolean {
+  return absences <= ATTENDANCE_PASS_MAX_ABSENCES && scheduleViolations <= ATTENDANCE_PASS_MAX_SCHEDULE_VIOLATIONS;
 }
 
 export function buildDesignCommissionLines(
@@ -66,9 +75,8 @@ export function buildDesignCommissionLines(
 }
 
 /**
- * Attendance bonus equals rounded base commission when absences are 0–3.
- * Personal / store bonuses are each 50% of the attendance bonus when that
- * goal hits and attendance still passes. Base commission is always paid.
+ * Attendance extras apply only when absences are 0 and unwaived
+ * schedule warnings are 0–3. Base commission is always paid.
  */
 export function summarizeCommission(input: {
   lines: CommissionDesignLine[];
@@ -80,10 +88,13 @@ export function summarizeCommission(input: {
   scheduledDays: number;
   presentDays: number;
   absences: number;
+  scheduleViolations?: number;
+  attendanceIssues?: CommissionAttendanceIssue[];
 }): CommissionSummary {
   const exactBase = input.lines.reduce((s, l) => s + l.baseCommission, 0);
   const baseCommission = roundCommissionDollars(exactBase);
-  const passed = attendancePasses(input.absences);
+  const scheduleViolations = input.scheduleViolations ?? 0;
+  const passed = attendancePasses(input.absences, scheduleViolations);
   const personalGoalAchieved = input.netSales >= input.personalGoal && input.personalGoal > 0;
   const storeGoalAchieved = input.storeTotalSales >= input.storeGoal && input.storeGoal > 0;
   const attendanceBonus = passed ? baseCommission : 0;
@@ -100,6 +111,8 @@ export function summarizeCommission(input: {
     scheduledDays: input.scheduledDays,
     presentDays: input.presentDays,
     absences: input.absences,
+    scheduleViolations,
+    attendanceIssues: input.attendanceIssues ?? [],
     attendancePassed: passed,
     baseCommission,
     attendanceBonus,
@@ -120,6 +133,8 @@ export function assembleEmployeeCommission(input: {
   scheduledDays: number;
   presentDays: number;
   absences: number;
+  scheduleViolations?: number;
+  attendanceIssues?: CommissionAttendanceIssue[];
 }): EmployeeCommission {
   const netHint = Number.isFinite(input.netSales) ? input.netSales : 0;
   const settled = settleHrDesignTotals(
@@ -144,6 +159,8 @@ export function assembleEmployeeCommission(input: {
       scheduledDays: input.scheduledDays,
       presentDays: input.presentDays,
       absences: input.absences,
+      scheduleViolations: input.scheduleViolations,
+      attendanceIssues: input.attendanceIssues,
     }),
   };
 }

@@ -1,65 +1,65 @@
 Payroll Name,Code,Designation,Store,Manager,In Date,Time In,Time Out,Actual Gap From Previous Out,Timecard Hours (as Time),Guards Name
-"1, security guard",,,,,8/1/2026,9:22 AM,2:20 PM,,4:58,
-"1, security guard",,,,,8/1/2026,3:09 PM,9:33 PM,0:49,6:24,
-"1, security guard",,,,,8/2/2026,11:27 AM,4:26 PM,,4:59,
-"1, security guard",,,,,8/2/2026,5:08 PM,7:29 PM,0:42,2:21,
-"1, security guard",,,,,8/3/2026,9:24 AM,2:22 PM,,4:58,
-"1, security guard",,,,,8/3/2026,3:10 PM,8:26 PM,0:48,5:16,
-"1, security guard",,,,,8/4/2026,9:25 AM,1:49 PM,,4:24,
-"1, security guard",,,,,8/4/2026,2:52 PM,8:12 PM,1:03,5:20,
-"1, security guard",,,,,8/7/2026,9:27 AM,1:09 PM,,3:42,
-"1, security guard",,,,,8/7/2026,2:41 PM,9:43 PM,1:32,7:02,
-"1, security guard",,,,,8/8/2026,9:21 AM,2:12 PM,,4:51,
-"1, security guard",,,,,8/8/2026,3:07 PM,6:52 PM,0:55,3:45,
-"1, security guard",,,,,8/9/2026,11:24 AM,3:46 PM,,4:22,
-"1, security guard",,,,,8/9/2026,4:27 PM,7:26 PM,0:41,2:59,
-"1, security guard",,,,,8/10/2026,9:24 AM,12:45 PM,,3:21,
-"1, security guard",,,,,8/10/2026,1:55 PM,8:18 PM,1:10,6:23,
-"1, security guard",,,,,8/11/2026,9:24 AM,2:17 PM,,4:53,
-"1, security guard",,,,,8/11/2026,3:12 PM,8:23 PM,0:55,5:11,
-"1, security guard",,,,,8/12/2026,9:36 AM,1:10 PM,,3:34,
-"1, security guard",,,,,8/12/2026,2:03 PM,8:27 PM,0:53,6:24,
-"1, security guard",,,,,8/14/2026,9:28 AM,12:52 PM,,3:24,
-"1, security guard",,,,,8/14/2026,1:00 PM,1:06 PM,0:08,0:14,
-"1, security guard",,,,,8/14/2026,2:11 PM,6:08 PM,1:05,3:57,
-"1, security guard",,,,,8/14/2026,6:12 PM,9:34 PM,0:04,3:26,
-"1, security guard",,,,,8/15/2026,9:24 AM,1:29 PM,,4:05,
-"1, security guard",,,,,8/15/2026,2:17 PM,9:26 PM,0:48,7:09,
-"1, security guard",,,,,8/16/2026,11:28 AM,2:35 PM,,3:07,
-"1, security guard",,,,,8/16/2026,3:16 PM,7:26 PM,0:41,4:10,
-"1, security guard",,,,,8/17/2026,9:24 AM,2:16 PM,,4:52,
-"1, security guard",,,,,8/17/2026,3:09 PM,8:43 PM,0:53,5:34,
-"1, security guard",,,,,8/18/2026,9:24 AM,1:59 PM,,4:35,
-"1, security guard",,,,,8/18/2026,2:48 PM,8:33 PM,0:49,5:45,
-"1, security guard",,,,,8/19/2026,9:24 AM,11:38 AM,,2:14,
-"1, security guard",,,,,8/19/2026,11:45 AM,2:22 PM,0:07,2:44,
-"1, security guard",,,,,8/19/2026,3:28 PM,8:35 PM,1:06,5:07,
-"1, security guard",,,,,8/21/2026,9:26 AM,12:44 PM,,3:18,
-"1, security guard",,,,,8/21/2026,12:53 PM,1:06 PM,0:09,0:22,
-"1, security guard",,,,,8/21/2026,2:25 PM,9:34 PM,1:19,7:09,
-"1, security guard",,,,,8/22/2026,9:26 AM,1:49 PM,,4:23,
-"1, security guard",,,,,8/22/2026,2:36 PM,9:41 PM,0:47,7:05,
-"1, security guard",,,,,8/23/2026,11:17 AM,2:17 PM,,3:00,
-"1, security guard",,,,,8/23/2026,2:53 PM,7:29 PM,0:36,4:36,
-"1, security guard",,,,,8/24/2026,9:24 AM,11:42 AM,,2:18,
-"1, security guard",,,,,8/24/2026,11:52 AM,2:20 PM,0:10,2:38,
-"1, security guard",,,,,8/24/2026,3:30 PM,8:19 PM,1:10,4:49,
-"1, security guard",,,,,8/25/2026,9:22 AM,2:20 PM,,4:58,
-"1, security guard",,,,,8/25/2026,3:19 PM,8:40 PM,0:59,5:21,
-"1, security guard",,,,,8/26/2026,9:22 AM,1:16 PM,,3:54,
-"1, security guard",,,,,8/26/2026,1:26 PM,2:20 PM,0:10,1:04,
-"1, security guard",,,,,8/26/2026,3:43 PM,8:41 PM,1:23,4:58,
-"1, security guard",,,,,8/28/2026,9:27 AM,12:25 PM,,2:58,
-"1, security guard",,,,,8/28/2026,12:35 PM,1:05 PM,0:10,0:40,
-"1, security guard",,,,,8/28/2026,2:36 PM,9:27 PM,1:31,6:51,
-"1, security guard",,,,,8/29/2026,9:25 AM,1:24 PM,,3:59,
-"1, security guard",,,,,8/29/2026,1:34 PM,2:24 PM,0:10,1:00,
-"1, security guard",,,,,8/29/2026,3:08 PM,9:32 PM,0:44,6:24,
-"1, security guard",,,,,8/30/2026,11:20 AM,4:12 PM,,4:52,
-"1, security guard",,,,,8/30/2026,5:12 PM,7:34 PM,1:00,2:22,
-"1, security guard",,,,,8/31/2026,9:23 AM,1:28 PM,,4:05,
-"1, security guard",,,,,8/31/2026,1:38 PM,2:21 PM,0:10,0:53,
-"1, security guard",,,,,8/31/2026,3:20 PM,8:53 PM,0:59,5:33,
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/1/2026,9:22 AM,2:20 PM,,4:58,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/1/2026,3:09 PM,9:33 PM,0:49,6:24,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/2/2026,11:27 AM,4:26 PM,,4:59,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/2/2026,5:08 PM,7:29 PM,0:42,2:21,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/3/2026,9:24 AM,2:22 PM,,4:58,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/3/2026,3:10 PM,8:26 PM,0:48,5:16,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/4/2026,9:25 AM,1:49 PM,,4:24,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/4/2026,2:52 PM,8:12 PM,1:03,5:20,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/7/2026,9:27 AM,1:09 PM,,3:42,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/7/2026,2:41 PM,9:43 PM,1:32,7:02,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/8/2026,9:21 AM,2:12 PM,,4:51,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/8/2026,3:07 PM,6:52 PM,0:55,3:45,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/9/2026,11:24 AM,3:46 PM,,4:22,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/9/2026,4:27 PM,7:26 PM,0:41,2:59,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/10/2026,9:24 AM,12:45 PM,,3:21,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/10/2026,1:55 PM,8:18 PM,1:10,6:23,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/11/2026,9:24 AM,2:17 PM,,4:53,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/11/2026,3:12 PM,8:23 PM,0:55,5:11,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/12/2026,9:36 AM,1:10 PM,,3:34,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/12/2026,2:03 PM,8:27 PM,0:53,6:24,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/14/2026,9:28 AM,12:52 PM,,3:24,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/14/2026,1:00 PM,1:06 PM,0:08,0:14,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/14/2026,2:11 PM,6:08 PM,1:05,3:57,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/14/2026,6:12 PM,9:34 PM,0:04,3:26,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/15/2026,9:24 AM,1:29 PM,,4:05,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/15/2026,2:17 PM,9:26 PM,0:48,7:09,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/16/2026,11:28 AM,2:35 PM,,3:07,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/16/2026,3:16 PM,7:26 PM,0:41,4:10,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/17/2026,9:24 AM,2:16 PM,,4:52,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/17/2026,3:09 PM,8:43 PM,0:53,5:34,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/18/2026,9:24 AM,1:59 PM,,4:35,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/18/2026,2:48 PM,8:33 PM,0:49,5:45,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/19/2026,9:24 AM,11:38 AM,,2:14,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/19/2026,11:45 AM,2:22 PM,0:07,2:44,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/19/2026,3:28 PM,8:35 PM,1:06,5:07,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/21/2026,9:26 AM,12:44 PM,,3:18,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/21/2026,12:53 PM,1:06 PM,0:09,0:22,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/21/2026,2:25 PM,9:34 PM,1:19,7:09,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/22/2026,9:26 AM,1:49 PM,,4:23,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/22/2026,2:36 PM,9:41 PM,0:47,7:05,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/23/2026,11:17 AM,2:17 PM,,3:00,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/23/2026,2:53 PM,7:29 PM,0:36,4:36,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/24/2026,9:24 AM,11:42 AM,,2:18,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/24/2026,11:52 AM,2:20 PM,0:10,2:38,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/24/2026,3:30 PM,8:19 PM,1:10,4:49,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/25/2026,9:22 AM,2:20 PM,,4:58,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/25/2026,3:19 PM,8:40 PM,0:59,5:21,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/26/2026,9:22 AM,1:16 PM,,3:54,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/26/2026,1:26 PM,2:20 PM,0:10,1:04,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/26/2026,3:43 PM,8:41 PM,1:23,4:58,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/28/2026,9:27 AM,12:25 PM,,2:58,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/28/2026,12:35 PM,1:05 PM,0:10,0:40,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/28/2026,2:36 PM,9:27 PM,1:31,6:51,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/29/2026,9:25 AM,1:24 PM,,3:59,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/29/2026,1:34 PM,2:24 PM,0:10,1:00,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/29/2026,3:08 PM,9:32 PM,0:44,6:24,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/30/2026,11:20 AM,4:12 PM,,4:52,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/30/2026,5:12 PM,7:34 PM,1:00,2:22,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/31/2026,9:23 AM,1:28 PM,,4:05,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/31/2026,1:38 PM,2:21 PM,0:10,0:53,Syed Muqeet Asim
+"1, security guard",MS3,Sales Associate,Plaza Bonita,shaun,8/31/2026,3:20 PM,8:53 PM,0:59,5:33,Syed Muqeet Asim
 "2, Security Guard",AM5,Sales Associate,Oakridge,Fahad,8/1/2026,9:09 AM,1:53 PM,,4:44,Muhammad Aleem
 "2, Security Guard",AM5,Sales Associate,Oakridge,Fahad,8/1/2026,2:24 PM,6:00 PM,0:31,3:36,Muhammad Aleem
 "2, Security Guard",AM5,Sales Associate,Oakridge,Fahad,8/1/2026,6:30 PM,9:19 PM,0:30,2:49,Muhammad Aleem
