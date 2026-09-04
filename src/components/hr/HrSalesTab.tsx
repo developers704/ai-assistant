@@ -15,57 +15,11 @@ import {
   parseMultiParam,
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
-import { displayHrPosDesign, HR_OTHERS_DESIGN, settleHrDesignTotals } from "@/lib/hr/hr-sales-design";
-import { ArrowDown, ArrowUp, ArrowUpDown, Gem, MapPin, UserRound } from "lucide-react";
+import { MapPin, UserRound } from "lucide-react";
 import { HrCommissionPanel } from "@/components/hr/HrCommissionPanel";
 import type { EmployeeCommission } from "@/lib/hr/commission";
 import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "@/lib/hr/window";
 import type { HrSalesScopePayload, HrSelfSalesperson } from "@/lib/hr/hr-self-sales-types";
-
-type DesignSortKey = "name" | "revenue";
-type SortDir = "asc" | "desc";
-
-type DesignSalesRow = { name: string; revenue: number };
-
-function sortDesignSales(
-  rows: DesignSalesRow[],
-  key: DesignSortKey,
-  dir: SortDir
-): DesignSalesRow[] {
-  const nameCmp = (a: string, b: string) =>
-    a.localeCompare(b, undefined, { sensitivity: "base" });
-  return [...rows].sort((a, b) => {
-    if (key === "name") {
-      const c = nameCmp(a.name, b.name);
-      if (c !== 0) return dir === "asc" ? c : -c;
-      return b.revenue - a.revenue;
-    }
-    if (a.revenue !== b.revenue) {
-      return dir === "asc" ? a.revenue - b.revenue : b.revenue - a.revenue;
-    }
-    return nameCmp(a.name, b.name);
-  });
-}
-
-function DesignSortButton({
-  label,
-  active,
-  dir,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  dir: SortDir;
-  onClick: () => void;
-}) {
-  const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
-  return (
-    <button type="button" className="hr-sort-btn" onClick={onClick} title={`Sort by ${label}`}>
-      {label}
-      <Icon size={12} aria-hidden />
-    </button>
-  );
-}
 
 function rangeFromSearchParams(sp: URLSearchParams): SalesDateRangeValue | null {
   const from = sp.get("from")?.trim() ?? "";
@@ -110,8 +64,6 @@ export function HrSalesTab() {
   const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
   const [filterDesigns, setFilterDesigns] = useState<string[]>([]);
   const [filterSalespeople, setFilterSalespeople] = useState<string[]>([]);
-  const [designSortKey, setDesignSortKey] = useState<DesignSortKey>("revenue");
-  const [designSortDir, setDesignSortDir] = useState<SortDir>("desc");
   const [bootstrapped, setBootstrapped] = useState(false);
   const [commission, setCommission] = useState<EmployeeCommission | null>(null);
   const [hrScope, setHrScope] = useState<HrSalesScopePayload | null>(null);
@@ -251,26 +203,6 @@ export function HrSalesTab() {
   }
 
   const salespeople = reportSummary?.topSalesPeople ?? [];
-  const settledFromReport = settleHrDesignTotals(
-    (reportSummary?.topDesigns ?? []).map((d) => {
-      let design = displayHrPosDesign((d.name || "").trim());
-      if (!design || design.toLowerCase() === "unknown design") design = HR_OTHERS_DESIGN;
-      return { design, netSales: d.revenue ?? 0 };
-    }),
-    summary.totalRevenue ?? 0
-  );
-  const fromCommission = (commission?.lines ?? []).map((l) => ({
-    name: l.design,
-    revenue: l.netSales,
-  }));
-  const designRows = sortDesignSales(
-    fromCommission.length && filterDesigns.length === 0
-      ? fromCommission
-      : settledFromReport.map((d) => ({ name: d.design, revenue: d.netSales })),
-    designSortKey,
-    designSortDir
-  );
-
   const selfLocked = hrScope?.mode === "self";
   const selfIdentity: HrSelfSalesperson | null = selfLocked ? hrScope.self : null;
   const unmatchedSelf = selfLocked && !selfIdentity;
@@ -283,17 +215,8 @@ export function HrSalesTab() {
     : filterSalespeople.length
       ? filterSalespeople.join(", ")
       : "All employees";
-  const showDesignSales = lockedToSelf || filterSalespeople.length > 0;
+  const showCommission = !unmatchedSelf && (lockedToSelf || filterSalespeople.length === 1);
   const showPeopleList = !selfLocked && filterSalespeople.length === 0 && salespeople.length > 0;
-
-  function toggleDesignSort(key: DesignSortKey) {
-    if (designSortKey === key) {
-      setDesignSortDir((d) => (d === "asc" ? "desc" : "asc"));
-      return;
-    }
-    setDesignSortKey(key);
-    setDesignSortDir(key === "revenue" ? "desc" : "asc");
-  }
 
   return (
     <div className="hr-sales-panel space-y-4">
@@ -430,61 +353,11 @@ export function HrSalesTab() {
         </div>
       )}
 
-      {showDesignSales && !unmatchedSelf && (
-        <div className="hr-panel">
-          <div className="hr-panel-head">
-            <div>
-              <h3 className="hr-panel-title">
-                <Gem size={17} />
-                Design sales
-              </h3>
-              <p className="hr-panel-sub">
-                {designRows.length} design line{designRows.length === 1 ? "" : "s"} · tap a column to
-                sort
-              </p>
-            </div>
-          </div>
-          {designRows.length === 0 ? (
-            <p className="hr-empty-inline">No design sales for this employee filter.</p>
-          ) : (
-            <div className="hr-design-table-wrap">
-              <table className="hr-design-table">
-                <thead>
-                  <tr>
-                    <th>
-                      <DesignSortButton
-                        label="Design name"
-                        active={designSortKey === "name"}
-                        dir={designSortDir}
-                        onClick={() => toggleDesignSort("name")}
-                      />
-                    </th>
-                    <th className="hr-design-table-num">
-                      <DesignSortButton
-                        label="Net sale"
-                        active={designSortKey === "revenue"}
-                        dir={designSortDir}
-                        onClick={() => toggleDesignSort("revenue")}
-                      />
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {designRows.map((d) => (
-                    <tr key={d.name}>
-                      <td className="hr-design-name">{d.name}</td>
-                      <td className="hr-design-rev">{formatCurrency(d.revenue)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {commission && dateRange && (lockedToSelf || filterSalespeople.length === 1) && (
+      {showCommission && dateRange && commission && (
         <HrCommissionPanel commission={commission} from={dateRange.from} to={dateRange.to} />
+      )}
+      {showCommission && dateRange && !commission && (
+        <p className="hr-empty-inline">Loading commission…</p>
       )}
     </div>
   );

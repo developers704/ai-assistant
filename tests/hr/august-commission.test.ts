@@ -29,6 +29,31 @@ describe("design commission rates", () => {
     expect(employeeCommissionRateForDesign("NOVELLO")).toBe(0.01);
     expect(employeeCommissionRateForDesign("GOLD JEWL")).toBe(0.01);
   });
+
+  it("matches Commission Structure - AI sheet line commissions (rounded)", () => {
+    const sheet: { design: string; netSales: number; commission: number }[] = [
+      { design: "LINKNLOCK", netSales: 2482, commission: 50 },
+      { design: "LOVE", netSales: 1140, commission: 17 },
+      { design: "OROVENTI", netSales: 3243, commission: 49 },
+      { design: "UV", netSales: 900, commission: 5 },
+      { design: "NOVELLO", netSales: 49761, commission: 498 },
+      { design: "GOLD JEWL", netSales: 32345, commission: 323 },
+      { design: "WATCH", netSales: 12838, commission: 128 },
+      { design: "NATURAL", netSales: 5666, commission: 57 },
+      { design: "BELLA OVAN", netSales: 3900, commission: 39 },
+      { design: "AANIKA.V", netSales: 3418, commission: 34 },
+      { design: "QUINCE", netSales: 751, commission: 8 },
+      { design: "PLAIN", netSales: 625, commission: 6 },
+      { design: "DIANI", netSales: 591, commission: 6 },
+      { design: "OVANI", netSales: -448, commission: -4 },
+      { design: "Others", netSales: 14600, commission: 146 },
+    ];
+    for (const row of sheet) {
+      expect(roundCommissionDollars(row.netSales * employeeCommissionRateForDesign(row.design))).toBe(
+        row.commission
+      );
+    }
+  });
 });
 
 describe("Zoya August commission test case", () => {

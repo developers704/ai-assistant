@@ -32,6 +32,7 @@ function compactDesignKey(name: string): string {
 
 /**
  * Map a POS / HR design label to the employee base-commission rate.
+ * Verified against Commission Structure - AI sheet:
  * Link N Lock 2%, Love Spell 1.5%, Oroventi 1.5%, UV 0.5%, all others 1%.
  */
 export function employeeCommissionRateForDesign(design: string): number {

@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/Input";
 
 import { Badge } from "@/components/ui/Badge";
 
-import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug, KeyRound, Eye, EyeOff } from "lucide-react";
+import { Save, Brain, Link2, Unlink, Loader2, User, Plug, KeyRound, Eye, EyeOff } from "lucide-react";
 
 
 
@@ -738,54 +738,6 @@ function SettingsContent() {
                   )}
                 </div>
               </SectionCard>
-
-              <SectionCard title="Safety & Confirmations" icon={Shield}>
-
-                <div className="space-y-3">
-
-                  {[
-
-                    { key: "confirmBeforeSend" as const, label: "Confirm before sending emails & WhatsApp" },
-
-                    { key: "confirmBeforeCall" as const, label: "Confirm before placing calls" },
-
-                    { key: "confirmBeforeMeeting" as const, label: "Confirm before scheduling meetings" },
-
-                    { key: "voiceEnabled" as const, label: "Enable voice responses" },
-
-                  ].map((pref) => (
-
-                    <label
-
-                      key={pref.key}
-
-                      className="flex items-center gap-3 cursor-pointer rounded-xl px-3 py-2 hover:bg-white/[0.04] transition-colors"
-
-                    >
-
-                      <input
-
-                        type="checkbox"
-
-                        checked={profile[pref.key]}
-
-                        onChange={(e) => setProfile({ ...profile, [pref.key]: e.target.checked })}
-
-                        className="w-4 h-4 rounded border-white/30 bg-white/10 text-slate-400 focus:ring-slate-400/40"
-
-                      />
-
-                      <span className="text-sm text-ink-secondary">{pref.label}</span>
-
-                    </label>
-
-                  ))}
-
-                </div>
-
-              </SectionCard>
-
-
 
               {isAdmin && (
               <SectionCard title="Integration Status" icon={Plug}>
