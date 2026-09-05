@@ -51,24 +51,28 @@ export async function GET(req: NextRequest) {
     ? analyzeDays(activeDates, timecardRows, scheduleEntries)
     : [];
   const notices = listWarningNotices();
-  const withWarnings = employees.map((emp) => ({
-    ...emp,
-    warning:
-      notices.find(
-        (n) =>
-          n.date === emp.date &&
-          namesMatch(n.employeeName, emp.employeeName) &&
-          noticeKind(n) === "warning"
-      ) ?? null,
-    writeUp:
-      notices.find(
-        (n) =>
-          n.date === emp.date &&
-          namesMatch(n.employeeName, emp.employeeName) &&
-          noticeKind(n) === "writeup"
-      ) ?? null,
-    absenceWaived: Boolean(findAbsenceWaiver(emp.employeeName, emp.date, emp.employeeCode)),
-  }));
+  const withWarnings = employees.map((emp) => {
+    const absenceWaiver = findAbsenceWaiver(emp.employeeName, emp.date, emp.employeeCode);
+    return {
+      ...emp,
+      warning:
+        notices.find(
+          (n) =>
+            n.date === emp.date &&
+            namesMatch(n.employeeName, emp.employeeName) &&
+            noticeKind(n) === "warning"
+        ) ?? null,
+      writeUp:
+        notices.find(
+          (n) =>
+            n.date === emp.date &&
+            namesMatch(n.employeeName, emp.employeeName) &&
+            noticeKind(n) === "writeup"
+        ) ?? null,
+      absenceWaiver,
+      absenceWaived: Boolean(absenceWaiver),
+    };
+  });
 
   return NextResponse.json({
     uploads,

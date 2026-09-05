@@ -66,6 +66,7 @@ export type HrEmployeeDay = {
   writeUp?: HrWarningNotice | null;
   /** Absent day was waived — still shown, but it does not count for commission extras. */
   absenceWaived?: boolean;
+  absenceWaiver?: HrAbsenceWaiver | null;
 };
 
 export type HrAbsenceWaiver = {
@@ -74,6 +75,7 @@ export type HrAbsenceWaiver = {
   date: string;
   waivedAt: string;
   waivedBy?: string | null;
+  comment?: string | null;
 };
 
 export type HrWarningRemark = {
@@ -109,6 +111,7 @@ export type HrWarningNotice = {
   /** When set, this warning does not count as a schedule violation. */
   waivedAt?: string | null;
   waivedBy?: string | null;
+  waivedComment?: string | null;
 };
 
 export type HrTimecardRow = {

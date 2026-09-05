@@ -518,5 +518,6 @@ export function noticeFromDraft(
     remarks: [],
     waivedAt: null,
     waivedBy: null,
+    waivedComment: null,
   };
 }

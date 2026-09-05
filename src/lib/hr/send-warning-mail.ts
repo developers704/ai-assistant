@@ -6,7 +6,7 @@ import {
 import { htmlToPlain } from "@/lib/valliani-mail/compose-html";
 import { getSavedEmail, hasMailSession } from "@/lib/valliani-mail/session";
 import { ALL_MAIL_FOLDER, type MailMessage } from "@/lib/valliani-mail/types";
-import type { HrEmployeeDay, HrWarningNotice, HrWarningRemark } from "./types";
+import type { HrAbsenceWaiver, HrEmployeeDay, HrWarningNotice, HrWarningRemark } from "./types";
 import {
   draftWarningNotice,
   extractWarningCaseId,
@@ -235,7 +235,7 @@ export async function sendWriteUpNotice(
   });
   const saved = await persistNotice(writeUpFromDraft(draft));
   if (emp.warning?.caseId && emp.warning.waivedAt) {
-    await persistNotice({ ...emp.warning, waivedAt: null, waivedBy: null });
+    await persistNotice({ ...emp.warning, waivedAt: null, waivedBy: null, waivedComment: null });
   }
   return saved;
 }
@@ -313,11 +313,11 @@ export async function replyOnWarningThread(
   return persistRemarks(notice.caseId, [remark]);
 }
 
-export async function waiveWarningCase(caseId: string): Promise<HrWarningNotice> {
+export async function waiveWarningCase(caseId: string, comment: string): Promise<HrWarningNotice> {
   const res = await fetch("/api/hr/warnings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "waive", caseId }),
+    body: JSON.stringify({ action: "waive", caseId, comment }),
   });
   const json = (await res.json().catch(() => ({}))) as {
     error?: string;
@@ -328,11 +328,29 @@ export async function waiveWarningCase(caseId: string): Promise<HrWarningNotice>
   return json.warning;
 }
 
-export async function waiveAbsenceDay(emp: {
-  employeeName: string;
-  date: string;
-  employeeCode?: string | null;
-}): Promise<{ employeeName: string; date: string; waivedAt: string }> {
+export async function restoreWarningCase(caseId: string): Promise<HrWarningNotice> {
+  const res = await fetch("/api/hr/warnings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "unwaive", caseId }),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    warning?: HrWarningNotice;
+  };
+  if (!res.ok) throw new Error(json.error || "Could not restore warning");
+  if (!json.warning) throw new Error("Could not restore warning");
+  return json.warning;
+}
+
+export async function waiveAbsenceDay(
+  emp: {
+    employeeName: string;
+    date: string;
+    employeeCode?: string | null;
+  },
+  comment: string
+): Promise<HrAbsenceWaiver> {
   const res = await fetch("/api/hr/warnings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -341,13 +359,38 @@ export async function waiveAbsenceDay(emp: {
       employeeName: emp.employeeName,
       employeeCode: emp.employeeCode ?? null,
       date: emp.date,
+      comment,
     }),
   });
   const json = (await res.json().catch(() => ({}))) as {
     error?: string;
-    absenceWaiver?: { employeeName: string; date: string; waivedAt: string };
+    absenceWaiver?: HrAbsenceWaiver;
   };
   if (!res.ok) throw new Error(json.error || "Could not waive absence");
   if (!json.absenceWaiver) throw new Error("Could not waive absence");
+  return json.absenceWaiver;
+}
+
+export async function restoreAbsenceDay(emp: {
+  employeeName: string;
+  date: string;
+  employeeCode?: string | null;
+}): Promise<HrAbsenceWaiver> {
+  const res = await fetch("/api/hr/warnings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "unwaive-absence",
+      employeeName: emp.employeeName,
+      employeeCode: emp.employeeCode ?? null,
+      date: emp.date,
+    }),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    absenceWaiver?: HrAbsenceWaiver;
+  };
+  if (!res.ok) throw new Error(json.error || "Could not restore absence");
+  if (!json.absenceWaiver) throw new Error("Could not restore absence");
   return json.absenceWaiver;
 }
