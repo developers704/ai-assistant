@@ -5,6 +5,12 @@ import {
   type SalespersonDirectoryEntry,
 } from "@/lib/sales/salesperson-directory";
 import { salesUnitsSold } from "@/lib/utils";
+import {
+  pruneSalespersonSelection,
+  resolveSalespersonFilterCode,
+} from "@/lib/sales/salesperson-filter";
+
+export { pruneSalespersonSelection, resolveSalespersonFilterCode };
 
 export type SalespersonSplit = { code: string; percent: number };
 
@@ -138,13 +144,6 @@ export function creditSalespersonRows(
     .sort((a, b) => b.netSales - a.netSales || a.code.localeCompare(b.code));
 }
 
-/** Accept `CODE` or `Name (CODE)`. */
-export function resolveSalespersonFilterCode(value: string): string {
-  const raw = value.trim();
-  const paren = raw.match(/\(([A-Za-z0-9_.-]+)\)\s*$/);
-  if (paren) return paren[1].toUpperCase();
-  return raw.toUpperCase();
-}
 export function listSalespeopleFromRows(
   rows: VendorPosRow[],
   directory?: Map<string, SalespersonDirectoryEntry>
@@ -162,39 +161,4 @@ export function listSalespeopleFromRows(
     .sort(
       (a, b) => a.label.localeCompare(b.label) || a.value.localeCompare(b.value)
     );
-}
-
-/**
- * Keep dashboard / HR employee selections that still exist.
- * Accepts POS `CODE` or `Name (CODE)` and maps onto available labels.
- */
-export function pruneSalespersonSelection(
-  selected: string[],
-  availableLabels: string[]
-): string[] {
-  if (!selected.length) return selected;
-  if (!availableLabels.length) return selected;
-  const availableSet = new Set(availableLabels);
-  const byCode = new Map<string, string>();
-  for (const label of availableLabels) {
-    const code = resolveSalespersonFilterCode(label);
-    if (code && !byCode.has(code)) byCode.set(code, label);
-  }
-  const next: string[] = [];
-  const seen = new Set<string>();
-  for (const v of selected) {
-    const mapped = availableSet.has(v)
-      ? v
-      : byCode.get(resolveSalespersonFilterCode(v));
-    if (!mapped || seen.has(mapped)) continue;
-    seen.add(mapped);
-    next.push(mapped);
-  }
-  if (
-    next.length === selected.length &&
-    next.every((v, i) => v === selected[i])
-  ) {
-    return selected;
-  }
-  return next;
 }

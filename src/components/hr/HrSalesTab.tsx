@@ -15,7 +15,7 @@ import {
   parseMultiParam,
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
-import { pruneSalespersonSelection } from "@/lib/sales/salesperson-credit";
+import { pruneSalespersonSelection } from "@/lib/sales/salesperson-filter";
 import { MapPin, UserRound } from "lucide-react";
 import { HrCommissionPanel } from "@/components/hr/HrCommissionPanel";
 import type { EmployeeCommission } from "@/lib/hr/commission";

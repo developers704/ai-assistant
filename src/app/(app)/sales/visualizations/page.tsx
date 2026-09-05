@@ -30,7 +30,7 @@ import {
   appendMultiParam,
   parseMultiParam,
 } from "@/lib/sales/filter-params";
-import { pruneSalespersonSelection } from "@/lib/sales/salesperson-credit";
+import { pruneSalespersonSelection } from "@/lib/sales/salesperson-filter";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { ArrowLeft, LineChart, Sparkles } from "lucide-react";
 import { useApp } from "@/lib/store/app-context";

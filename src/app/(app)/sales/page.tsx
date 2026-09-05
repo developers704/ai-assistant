@@ -38,7 +38,7 @@ import {
   pruneUnavailable,
   type SalesUiFilterValues,
 } from "@/lib/sales/filter-params";
-import { pruneSalespersonSelection } from "@/lib/sales/salesperson-credit";
+import { pruneSalespersonSelection } from "@/lib/sales/salesperson-filter";
 import { canonicalizePaycodeList, paycodeMatchesFilterQuery } from "@/lib/sales/paycode-normalize";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { useApp } from "@/lib/store/app-context";
