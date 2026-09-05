@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { attendancePasses } from "@/lib/hr/commission";
-import { absenceWaiverAppliesTo, unwaivedAbsentDates } from "@/lib/hr/warning-store";
+import { absenceWaiverAppliesTo, normalizeWaiverComment, unwaivedAbsentDates } from "@/lib/hr/warning-store";
 import { countedCommissionViolations } from "@/lib/hr/commission-attendance";
 import type { HrWarningNotice } from "@/lib/hr/types";
 
@@ -81,6 +81,22 @@ describe("absence waivers", () => {
     );
     expect(remaining).toEqual([]);
     expect(attendancePasses(remaining.length, 0)).toBe(true);
+  });
+
+  it("requires a trimmed waive note", () => {
+    expect(normalizeWaiverComment("  doctor visit  ")).toBe("doctor visit");
+    expect(normalizeWaiverComment("   ")).toBe("");
+    expect(normalizeWaiverComment(null)).toBe("");
+  });
+
+  it("counts an absence again when the waiver is gone", () => {
+    const remaining = unwaivedAbsentDates(
+      ["2026-08-06"],
+      [],
+      { employeeName: "Evangelista, Karla M", employeeCode: "KB" }
+    );
+    expect(remaining).toEqual(["2026-08-06"]);
+    expect(attendancePasses(remaining.length, 0)).toBe(false);
   });
 });
 

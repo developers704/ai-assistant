@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireHrManagement } from "@/lib/auth/hr-guard";
+import { readSessionFromCookies } from "@/lib/auth/session";
 import { analyzeDay } from "@/lib/hr/analyze";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
 import { namesMatch } from "@/lib/hr/name-match";
@@ -16,7 +17,10 @@ import {
   listWarningNotices,
   upsertWarningNotice,
   waiveWarningNotice,
+  unwaiveWarningNotice,
   upsertAbsenceWaiver,
+  removeAbsenceWaiver,
+  normalizeWaiverComment,
 } from "@/lib/hr/warning-store";
 import type { HrWarningNotice, HrWarningRemark } from "@/lib/hr/types";
 
@@ -55,6 +59,7 @@ function asNotice(value: unknown): HrWarningNotice | null {
     remarks,
     waivedAt: o.waivedAt == null || o.waivedAt === "" ? null : String(o.waivedAt),
     waivedBy: o.waivedBy == null || o.waivedBy === "" ? null : String(o.waivedBy),
+    waivedComment: o.waivedComment == null || o.waivedComment === "" ? null : String(o.waivedComment),
   };
 }
 
@@ -137,12 +142,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, warning: updated });
   }
 
+  const session = await readSessionFromCookies();
+  const actor = session?.name?.trim() || session?.username || null;
+
   if (action === "waive") {
+    const caseId = String(body.caseId ?? "").trim();
+    const comment = normalizeWaiverComment(body.comment);
+    if (!caseId) {
+      return NextResponse.json({ error: "caseId is required" }, { status: 400 });
+    }
+    if (!comment) {
+      return NextResponse.json({ error: "A waive note is required" }, { status: 400 });
+    }
+    const updated = waiveWarningNotice(caseId, actor, comment);
+    if (!updated) {
+      return NextResponse.json({ error: "Warning notice not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, warning: updated });
+  }
+
+  if (action === "unwaive") {
     const caseId = String(body.caseId ?? "").trim();
     if (!caseId) {
       return NextResponse.json({ error: "caseId is required" }, { status: 400 });
     }
-    const updated = waiveWarningNotice(caseId);
+    const updated = unwaiveWarningNotice(caseId);
     if (!updated) {
       return NextResponse.json({ error: "Warning notice not found" }, { status: 404 });
     }
@@ -153,10 +177,28 @@ export async function POST(req: NextRequest) {
     const employeeName = String(body.employeeName ?? "").trim();
     const date = String(body.date ?? "").trim();
     const employeeCode = body.employeeCode == null ? null : String(body.employeeCode).trim();
+    const comment = normalizeWaiverComment(body.comment);
     if (!employeeName || !date) {
       return NextResponse.json({ error: "employeeName and date are required" }, { status: 400 });
     }
-    const waiver = upsertAbsenceWaiver({ employeeName, employeeCode, date });
+    if (!comment) {
+      return NextResponse.json({ error: "A waive note is required" }, { status: 400 });
+    }
+    const waiver = upsertAbsenceWaiver({ employeeName, employeeCode, date, waivedBy: actor, comment });
+    return NextResponse.json({ ok: true, absenceWaiver: waiver });
+  }
+
+  if (action === "unwaive-absence") {
+    const employeeName = String(body.employeeName ?? "").trim();
+    const date = String(body.date ?? "").trim();
+    const employeeCode = body.employeeCode == null ? null : String(body.employeeCode).trim();
+    if (!employeeName || !date) {
+      return NextResponse.json({ error: "employeeName and date are required" }, { status: 400 });
+    }
+    const waiver = removeAbsenceWaiver({ employeeName, employeeCode, date });
+    if (!waiver) {
+      return NextResponse.json({ error: "Absence waiver not found" }, { status: 404 });
+    }
     return NextResponse.json({ ok: true, absenceWaiver: waiver });
   }
 

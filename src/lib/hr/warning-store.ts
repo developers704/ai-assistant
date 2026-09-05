@@ -162,7 +162,18 @@ export function isWarningWaived(notice: Pick<HrWarningNotice, "waivedAt"> | null
   return Boolean(notice?.waivedAt);
 }
 
-export function waiveWarningNotice(caseId: string, waivedBy?: string | null): HrWarningNotice | null {
+export function normalizeWaiverComment(value: unknown, max = 500): string {
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
+export function waiveWarningNotice(
+  caseId: string,
+  waivedBy?: string | null,
+  comment?: string | null
+): HrWarningNotice | null {
   const store = readStore();
   const idx = store.notices.findIndex(
     (n) => n.caseId.toUpperCase() === caseId.trim().toUpperCase()
@@ -174,6 +185,26 @@ export function waiveWarningNotice(caseId: string, waivedBy?: string | null): Hr
     kind: noticeKind(current),
     waivedAt: new Date().toISOString(),
     waivedBy: waivedBy ?? current.waivedBy ?? null,
+    waivedComment: normalizeWaiverComment(comment) || current.waivedComment || null,
+  };
+  store.notices[idx] = next;
+  writeStore(store);
+  return next;
+}
+
+export function unwaiveWarningNotice(caseId: string): HrWarningNotice | null {
+  const store = readStore();
+  const idx = store.notices.findIndex(
+    (n) => n.caseId.toUpperCase() === caseId.trim().toUpperCase()
+  );
+  if (idx < 0) return null;
+  const current = store.notices[idx]!;
+  const next: HrWarningNotice = {
+    ...current,
+    kind: noticeKind(current),
+    waivedAt: null,
+    waivedBy: null,
+    waivedComment: null,
   };
   store.notices[idx] = next;
   writeStore(store);
@@ -234,6 +265,7 @@ export function upsertAbsenceWaiver(input: {
   employeeCode?: string | null;
   date: string;
   waivedBy?: string | null;
+  comment?: string | null;
 }): HrAbsenceWaiver {
   const store = readStore();
   const waivers = [...(store.absenceWaivers ?? [])];
@@ -244,18 +276,41 @@ export function upsertAbsenceWaiver(input: {
       date: input.date,
     })
   );
+  const existing = idx >= 0 ? waivers[idx] : null;
   const next: HrAbsenceWaiver = {
     employeeName: input.employeeName.trim(),
     employeeCode: input.employeeCode?.trim() || null,
     date: input.date,
     waivedAt: new Date().toISOString(),
-    waivedBy: input.waivedBy ?? (idx >= 0 ? waivers[idx]!.waivedBy : null) ?? null,
+    waivedBy: input.waivedBy ?? existing?.waivedBy ?? null,
+    comment: normalizeWaiverComment(input.comment) || existing?.comment || null,
   };
   if (idx >= 0) waivers[idx] = next;
   else waivers.unshift(next);
   store.absenceWaivers = waivers;
   writeStore(store);
   return next;
+}
+
+export function removeAbsenceWaiver(input: {
+  employeeName: string;
+  employeeCode?: string | null;
+  date: string;
+}): HrAbsenceWaiver | null {
+  const store = readStore();
+  const waivers = [...(store.absenceWaivers ?? [])];
+  const idx = waivers.findIndex((w) =>
+    absenceWaiverAppliesTo(w, {
+      employeeName: input.employeeName,
+      employeeCode: input.employeeCode,
+      date: input.date,
+    })
+  );
+  if (idx < 0) return null;
+  const [removed] = waivers.splice(idx, 1);
+  store.absenceWaivers = waivers;
+  writeStore(store);
+  return removed ?? null;
 }
 
 export function unwaivedAbsentDates(
