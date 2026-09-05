@@ -99,6 +99,65 @@ describe("Zoya August commission test case", () => {
     expect(zoya.summary.totalCommission).toBe(4_080);
   });
 
+  it("pays extras when absences are 0 and schedule warnings are under 4", () => {
+    const three = assembleEmployeeCommission({
+      code: "ZA2",
+      designs: ZOYA_AUGUST_DESIGN_SALES,
+      netSales: ZOYA_AUGUST_NET_SALES,
+      personalGoal: AUGUST_PERSONAL_GOALS.ZA2!,
+      storeCode: "VJ-VAL",
+      storeGoal: AUGUST_STORE_GOALS["VJ-VAL"]!,
+      storeTotalSales: 311_349,
+      scheduledDays: 26,
+      presentDays: 26,
+      absences: 0,
+      scheduleViolations: 3,
+    });
+    expect(attendancePasses(0, 3)).toBe(true);
+    expect(three.summary.attendancePassed).toBe(true);
+    expect(three.summary.attendanceBonus).toBe(1_360);
+    expect(three.summary.personalGoalBonus).toBe(680);
+    expect(three.summary.storeGoalBonus).toBe(680);
+    expect(three.summary.totalCommission).toBe(4_080);
+
+    const one = assembleEmployeeCommission({
+      ...{
+        code: "ZA2",
+        designs: ZOYA_AUGUST_DESIGN_SALES,
+        netSales: ZOYA_AUGUST_NET_SALES,
+        personalGoal: AUGUST_PERSONAL_GOALS.ZA2!,
+        storeCode: "VJ-VAL",
+        storeGoal: AUGUST_STORE_GOALS["VJ-VAL"]!,
+        storeTotalSales: 311_349,
+        scheduledDays: 26,
+        presentDays: 26,
+        absences: 0,
+      },
+      scheduleViolations: 1,
+    });
+    expect(one.summary.attendancePassed).toBe(true);
+    expect(one.summary.attendanceBonus).toBe(1_360);
+
+    const four = assembleEmployeeCommission({
+      code: "ZA2",
+      designs: ZOYA_AUGUST_DESIGN_SALES,
+      netSales: ZOYA_AUGUST_NET_SALES,
+      personalGoal: AUGUST_PERSONAL_GOALS.ZA2!,
+      storeCode: "VJ-VAL",
+      storeGoal: AUGUST_STORE_GOALS["VJ-VAL"]!,
+      storeTotalSales: 311_349,
+      scheduledDays: 26,
+      presentDays: 26,
+      absences: 0,
+      scheduleViolations: 4,
+    });
+    expect(attendancePasses(0, 4)).toBe(false);
+    expect(four.summary.attendancePassed).toBe(false);
+    expect(four.summary.baseCommission).toBe(1_360);
+    expect(four.summary.attendanceBonus).toBe(0);
+    expect(four.summary.totalCommission).toBe(1_360);
+  });
+
   it("still pays base commission when attendance fails", () => {
     const failed = assembleEmployeeCommission({
       code: "ZA2",

@@ -525,6 +525,15 @@
   padding: 0.35rem 0.15rem 0;
 }
 
+.hr-comm-violations {
+  margin-top: 0.55rem;
+}
+
+.hr-comm-violations .hr-btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 .hr-comm-issues {
   list-style: none;
   margin: 0.65rem 0 0;

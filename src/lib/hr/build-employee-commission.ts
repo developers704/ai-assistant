@@ -2,7 +2,7 @@ import { applyHrSalesDesigns, hrSalesDesignName } from "@/lib/hr/hr-sales-design
 import { assembleEmployeeCommission, type EmployeeCommission } from "@/lib/hr/commission";
 import {
   commissionAttendanceForAssociate,
-  commissionIssuesFromDays,
+  countedCommissionViolations,
   hrRowsMatchAssociate,
 } from "@/lib/hr/commission-attendance";
 import {
@@ -93,12 +93,7 @@ export function buildEmployeeCommissionFromSales(opts: {
     displayName,
   };
   const unwaivedAbsent = unwaivedAbsentDates(attendance.absentDates, listAbsenceWaivers(), person);
-  const waivedAbsent = new Set(attendance.absentDates.filter((d) => !unwaivedAbsent.includes(d)));
-  const attendanceIssues = commissionIssuesFromDays(associateDays).map((issue) => {
-    if (issue.kind !== "absent") return issue;
-    return waivedAbsent.has(issue.date) ? { ...issue, label: "Absent (waived)" } : issue;
-  });
-  const scheduleViolations = countedScheduleWarnings({
+  const warningNotices = countedScheduleWarnings({
     from: opts.from,
     to: opts.to,
   }).filter((n) => {
@@ -108,7 +103,12 @@ export function buildEmployeeCommissionFromSales(opts: {
         namesMatch(n.employeeName, day.employeeName) ||
         namesMatch(n.employeeName, day.displayName)
     );
-  }).length;
+  });
+  const scheduleViolations = warningNotices.length;
+  const attendanceIssues = countedCommissionViolations({
+    unwaivedAbsentDates: unwaivedAbsent,
+    warnings: warningNotices,
+  });
 
   const storeTotals = storeTotalsFromRows(windowRows);
   const storeCode = attendance.posStore ?? majorityStore(personRows);

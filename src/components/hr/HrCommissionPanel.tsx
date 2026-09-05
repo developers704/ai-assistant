@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import type { EmployeeCommission } from "@/lib/hr/commission";
-import { BadgeCheck, Ban } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Ban, ChevronDown, ChevronRight } from "lucide-react";
 
 function rateLabel(rate: number): string {
   const pct = rate * 100;
@@ -27,6 +28,40 @@ function Status({ yes, ok, no }: { yes: boolean; ok: string; no: string }) {
     <span className="hr-comm-pill hr-comm-pill-no">
       <Ban size={12} /> {no}
     </span>
+  );
+}
+
+function CommissionViolations({
+  issues,
+}: {
+  issues: EmployeeCommission["summary"]["attendanceIssues"];
+}) {
+  const [open, setOpen] = useState(false);
+  if (issues.length === 0) return null;
+  return (
+    <div className="hr-comm-violations">
+      <button
+        type="button"
+        className="hr-btn hr-btn-outline hr-btn-sm"
+        data-action="commission-violations"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <AlertTriangle size={14} />
+        Violations ({issues.length})
+      </button>
+      {open && (
+        <ul className="hr-comm-issues">
+          {issues.map((issue) => (
+            <li key={`${issue.date}:${issue.kind}:${issue.label}`}>
+              <span className="hr-comm-issue-date">{issue.date}</span>
+              {issue.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -120,9 +155,9 @@ export function HrCommissionPanel({
           <p className="hr-comm-card-label">Attendance</p>
           <div className="hr-comm-row">
             <span>
-              {s.presentDays}/{s.scheduledDays} days · {s.absences} unwaived absent
+              {s.presentDays}/{s.scheduledDays} days · {s.absences} absent
               {s.scheduleViolations
-                ? ` · ${s.scheduleViolations} unwaived schedule warning${s.scheduleViolations === 1 ? "" : "s"}`
+                ? ` · ${s.scheduleViolations} schedule warning${s.scheduleViolations === 1 ? "" : "s"}`
                 : ""}
             </span>
             <Status
@@ -131,16 +166,7 @@ export function HrCommissionPanel({
               no="Fail"
             />
           </div>
-          {s.attendanceIssues.length > 0 && (
-            <ul className="hr-comm-issues">
-              {s.attendanceIssues.map((issue) => (
-                <li key={`${issue.date}:${issue.kind}:${issue.label}`}>
-                  <span className="hr-comm-issue-date">{issue.date}</span>
-                  {issue.label}
-                </li>
-              ))}
-            </ul>
-          )}
+          <CommissionViolations issues={s.attendanceIssues} />
         </div>
 
         <div className="hr-comm-card hr-comm-card-pay">

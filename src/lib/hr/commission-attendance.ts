@@ -1,4 +1,4 @@
-import type { HrEmployeeDay, HrScheduleEntry, HrTimecardRow } from "@/lib/hr/types";
+import type { HrScheduleEntry, HrTimecardRow, HrWarningNotice } from "@/lib/hr/types";
 import { namesMatch } from "@/lib/hr/name-match";
 import { datesInIsoRange } from "@/lib/hr/window";
 import { loadSalespersonDirectory } from "@/lib/sales/salesperson-directory";
@@ -86,33 +86,47 @@ export function commissionAttendanceForAssociate(
   };
 }
 
-export function commissionIssuesFromDays(days: HrEmployeeDay[]): CommissionAttendanceIssue[] {
-  const issues: CommissionAttendanceIssue[] = [];
-  for (const day of days) {
-    if (day.violations.some((v) => v.type === "absent")) {
-      issues.push({ date: day.date, kind: "absent", label: "Absent" });
-    }
-    if (day.lateMinutes != null && day.lateMinutes >= 12) {
-      issues.push({
-        date: day.date,
-        kind: "late",
-        label: `Late arrival ${day.lateMinutes} min`,
-      });
-    }
-    if (day.earlyInMinutes != null && day.earlyInMinutes >= 10) {
-      issues.push({
-        date: day.date,
-        kind: "early",
-        label: `Arrived early ${day.earlyInMinutes} min`,
-      });
-    }
-    if (day.earlyOutMinutes != null && day.earlyOutMinutes >= 10) {
-      issues.push({
-        date: day.date,
-        kind: "early_out",
-        label: `Left early ${day.earlyOutMinutes} min`,
-      });
-    }
-  }
-  return issues.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind));
+export function scheduleWarningIssueKind(
+  notice: Pick<HrWarningNotice, "caseId">
+): "late" | "early" | "early_out" {
+  const id = notice.caseId.toUpperCase();
+  if (id.includes("-EARLY-")) return "early";
+  if (id.includes("-LEAVE-")) return "early_out";
+  return "late";
+}
+
+export function scheduleWarningIssueLabel(
+  notice: Pick<HrWarningNotice, "caseId" | "description" | "lateMinutes">
+): string {
+  const desc = (notice.description ?? "").trim().replace(/\.$/, "");
+  if (desc) return desc;
+  const kind = scheduleWarningIssueKind(notice);
+  const mins = notice.lateMinutes;
+  if (kind === "early") return mins ? `Arrived early ${mins} min` : "Schedule warning";
+  if (kind === "early_out") return mins ? `Left early ${mins} min` : "Schedule warning";
+  return mins ? `Late arrival ${mins} min` : "Schedule warning";
+}
+
+/**
+ * Commission Violations list = header counts only:
+ * unwaived absences + unwaived sent schedule warnings.
+ * Punch-level early/late days are not listed unless a warning was sent.
+ */
+export function countedCommissionViolations(opts: {
+  unwaivedAbsentDates: string[];
+  warnings: HrWarningNotice[];
+}): CommissionAttendanceIssue[] {
+  const absents: CommissionAttendanceIssue[] = opts.unwaivedAbsentDates.map((date) => ({
+    date,
+    kind: "absent",
+    label: "Absent",
+  }));
+  const warns: CommissionAttendanceIssue[] = opts.warnings.map((n) => ({
+    date: n.date,
+    kind: scheduleWarningIssueKind(n),
+    label: scheduleWarningIssueLabel(n),
+  }));
+  return [...absents, ...warns].sort(
+    (a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind)
+  );
 }
