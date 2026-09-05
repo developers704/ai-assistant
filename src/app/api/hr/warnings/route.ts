@@ -11,6 +11,7 @@ import {
   noticeFromDraft,
   warningChatMessageFromDraft,
 } from "@/lib/hr/warning-notice";
+import { buildWarningNoticePdf, pdfBytesToBase64 } from "@/lib/hr/warning-notice-pdf";
 import {
   addWarningRemarks,
   findWarningForEmployee,
@@ -206,6 +207,7 @@ export async function POST(req: NextRequest) {
 
   if (action === "chatAttachment" || action === "chatMessage") {
     const notice = asNotice(body.notice ?? body);
+    const sendPdf = body.sendPdf === true || body.includePdf === true || action === "chatAttachment";
     if (!notice) {
       return NextResponse.json({ error: "Invalid warning notice" }, { status: 400 });
     }
@@ -225,12 +227,29 @@ export async function POST(req: NextRequest) {
       remarks: findWarningNotice(notice.caseId)?.remarks ?? notice.remarks ?? [],
     });
 
-    return NextResponse.json({
+    const payload: Record<string, unknown> = {
       ok: true,
       success: true,
       notice: saved,
       message: draft ? warningChatMessageFromDraft(draft) : String(body.message || notice.description || notice.subject),
-    });
+    };
+
+    if (sendPdf) {
+      const source = draft ?? notice;
+      const pdfBytes = await buildWarningNoticePdf({
+        employeeName: source.employeeName,
+        date: source.date,
+        employeeCode: source.employeeCode,
+        jobTitle: source.jobTitle,
+        manager: source.manager,
+        lateMinutes: source.lateMinutes,
+        description: source.description ?? notice.description ?? "Attendance warning.",
+      });
+      payload.pdfBase64 = pdfBytesToBase64(pdfBytes);
+      payload.pdfFilename = `Employee-Warning-Notice-${String(source.employeeCode || source.employeeName || "employee").replace(/[^A-Za-z0-9]+/g, "-")}.pdf`;
+    }
+
+    return NextResponse.json(payload);
   }
 
   const notice = asNotice(body.notice ?? body);
