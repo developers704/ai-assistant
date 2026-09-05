@@ -225,6 +225,34 @@ export function matchesAttendanceCard(
   return emp.violations?.some((v) => v.type === "absent") ?? false;
 }
 
+export function matchesEmployeeSearch(
+  emp: Pick<HrEmployeeDay, "displayName" | "employeeName" | "employeeCode" | "guardsName">,
+  query: string
+): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  const hay = [emp.displayName, emp.employeeName, emp.employeeCode, emp.guardsName]
+    .filter((s): s is string => Boolean(s?.trim()))
+    .join(" ")
+    .toLowerCase();
+  return hay.includes(needle);
+}
+
+export function attendanceKpisFromDays(
+  list: Array<
+    Pick<HrEmployeeDay, "violations" | "lateMinutes" | "earlyInMinutes">
+  >
+) {
+  return {
+    employees: list.length,
+    flagged: list.filter((e) => e.violations.length > 0).length,
+    late: list.filter((e) => isLateForWarning(e.lateMinutes)).length,
+    early: list.filter((e) => isEarlyForWarning(e.earlyInMinutes)).length,
+    noSchedule: list.filter((e) => e.violations.some((v) => v.type === "no_schedule")).length,
+    absent: list.filter((e) => e.violations.some((v) => v.type === "absent")).length,
+  };
+}
+
 export function matchesViolationFilter(
   emp: HrNoticeEmployee,
   filter: HrViolationFilter | readonly HrViolationFilter[]

@@ -33,6 +33,12 @@ describe("dynamic user directory", () => {
     expect(findAuthUser("kash")?.role).toBe("admin");
   });
 
+  it("shows security guards under their real names", () => {
+    expect(findAuthUser("notfound2@gmail.com")?.name).toBe("Muhammad Aleem");
+    expect(findAuthUser("notfound1@gmail.com")?.name).toBe("Syed Muqeet Asim");
+    expect(listAuthUsers().some((u) => /^(\d+)\s*,?\s*security guard$/i.test(u.name))).toBe(false);
+  });
+
   it("creates, edits, and deletes overlay users on top of builtins", () => {
     expect(findAuthUser(TEST_USER.username)).toBeNull();
     writeDirectoryUser(TEST_USER);

@@ -1,5 +1,6 @@
 import { normalizeUsername } from "@/lib/auth/user-permissions";
 import { applyUserDirectory } from "@/lib/auth/user-directory-store";
+import { resolveHrEmployeeDisplayName } from "@/lib/hr/security-guard-names";
 
 export type AuthRole = "admin" | "employee" | "hr" | "dm";
 
@@ -174,19 +175,19 @@ const USERS: AuthUserRecord[] = [
     storeCodes: [],
     title: "Administrator",
   },
-  sheetUser("1, security guard", "notfound1@gmail.com", ["NA"],
+  sheetUser("Syed Muqeet Asim", "notfound1@gmail.com", ["NA"],
     "$2b$10$chUqWejxk0kIEi15ogDBN.FITWgb3Vun0wI.fU7MjAGT0QmoV.VIW"), // 123456
-  sheetUser("2, Security Guard", "notfound2@gmail.com", ["VJ-OAK"],
+  sheetUser("Muhammad Aleem", "notfound2@gmail.com", ["VJ-OAK"],
     "$2b$10$2.Tqm9PVT9qHAVXkikBUseGmxwE8WOS8CFZMwnj9kNHhx.73Yui2e"), // 123456
-  sheetUser("3, security guard", "notfound3@gmail.com", ["DBC-GM"],
+  sheetUser("Akber Shaik", "notfound3@gmail.com", ["DBC-GM"],
     "$2b$10$h6wVgZA2wZYhhOZjxuvi8ueoGReTf64KsXY8PDKfHZSwL3vYxMD8."), // 123456
-  sheetUser("4, Security Guard", "notfound4@gmail.com", ["NA"],
+  sheetUser("Mohammad Azeem", "notfound4@gmail.com", ["NA"],
     "$2b$10$ZhSv7Voh96pAIGCCu.hNberMezl/m1DF.JsmFzm11rQhu4qhNeQMy"), // 123456
-  sheetUser("6, security guard", "notfound5@gmail.com", ["DBC-GM"],
+  sheetUser("Mohammad Akram", "notfound5@gmail.com", ["DBC-GM"],
     "$2b$10$A5x4RkO2SAPq2mMnjvpaz.ujrIzQ/K8WhawIdbG4LtSY/eqfF.SUC"), // 123456
-  sheetUser("8, security guard", "notfound6@gmail.com", ["VJ-SERRA"],
+  sheetUser("Sultan Ansari", "notfound6@gmail.com", ["VJ-SERRA"],
     "$2b$10$oO7C8wZowJn33GrT7pRZvuLiHW5X94TplWOCCOJIIMjiHwlb6nI5S"), // 123456
-  sheetUser("9, security guard", "notfound7@gmail.com", ["VJ-EAST"],
+  sheetUser("Tayab Abdul", "notfound7@gmail.com", ["VJ-EAST"],
     "$2b$10$7t.ro1VMUaJCfx5XfCSbFu.TSTj5.wADKRXwl.m83LDlIyQQJ8E4u"), // 123456
   sheetUser("Acosta, Jesus A", "jesus@valliani.app", ["VJ-S.ANITA"],
     "$2b$10$qGtT2z8f1sT1g1dk9VD69.IQDNriuTqVnsInQtKA72IN.aQ0Oa1Sa"), // 123456
@@ -469,12 +470,19 @@ function parseEnvUsers(): AuthUserRecord[] | null {
   }
 }
 
+function withGuardDisplayNames(users: AuthUserRecord[]): AuthUserRecord[] {
+  return users.map((user) => {
+    const name = resolveHrEmployeeDisplayName(user.name);
+    return name === user.name ? user : { ...user, name };
+  });
+}
+
 export function listBuiltinAuthUsers(): AuthUserRecord[] {
-  return USERS;
+  return withGuardDisplayNames(USERS);
 }
 
 export function listAuthUsers(): AuthUserRecord[] {
-  return parseEnvUsers() ?? applyUserDirectory(USERS);
+  return withGuardDisplayNames(parseEnvUsers() ?? applyUserDirectory(USERS));
 }
 
 export function findAuthUser(username: string): AuthUserRecord | null {
