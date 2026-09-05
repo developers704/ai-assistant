@@ -8,6 +8,8 @@ import { readHrMailRouting } from "@/lib/hr/mail-routing-store";
 import {
   draftWarningNotice,
   isEligibleForHrNotice,
+  noticeFromDraft,
+  warningChatMessageFromDraft,
 } from "@/lib/hr/warning-notice";
 import {
   addWarningRemarks,
@@ -200,6 +202,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Absence waiver not found" }, { status: 404 });
     }
     return NextResponse.json({ ok: true, absenceWaiver: waiver });
+  }
+
+  if (action === "chatAttachment" || action === "chatMessage") {
+    const notice = asNotice(body.notice ?? body);
+    if (!notice) {
+      return NextResponse.json({ error: "Invalid warning notice" }, { status: 400 });
+    }
+
+    const rows = loadActiveTimecardRows();
+    const schedule = loadActiveScheduleEntries();
+    const employees = analyzeDay(notice.date, rows, schedule);
+    const emp = employees.find((e) => namesMatch(e.employeeName, notice.employeeName));
+    const draft = emp && isEligibleForHrNotice(emp)
+      ? draftWarningNotice({ ...emp, employeeCode: notice.employeeCode ?? emp.employeeCode }, readHrMailRouting())
+      : null;
+    const saved = upsertWarningNotice({
+      ...(draft ? noticeFromDraft(draft, { messageId: `chat:${draft.caseId}` }) : notice),
+      to: notice.to || draft?.to || "",
+      sentAt: new Date().toISOString(),
+      messageId: notice.messageId ?? (draft ? `chat:${draft.caseId}` : `chat:${notice.caseId}`),
+      remarks: findWarningNotice(notice.caseId)?.remarks ?? notice.remarks ?? [],
+    });
+
+    return NextResponse.json({
+      ok: true,
+      success: true,
+      notice: saved,
+      message: draft ? warningChatMessageFromDraft(draft) : String(body.message || notice.description || notice.subject),
+    });
   }
 
   const notice = asNotice(body.notice ?? body);

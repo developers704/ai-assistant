@@ -415,6 +415,11 @@ export function warningMailPlainText(
   return warningMailParagraphs(name, date, events, details).join("\n\n");
 }
 
+export function warningChatMessageFromDraft(draft: Pick<WarningNoticeDraft, "caseId" | "text">): string {
+  const body = draft.text.trim();
+  return body.includes(draft.caseId) ? body : `[${draft.caseId}]\n\n${body}`;
+}
+
 export function warningMailHtml(
   name: string,
   date: string,
