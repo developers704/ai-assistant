@@ -3,6 +3,7 @@ import {
   resolveHrEmployeeDisplayName,
   securityGuardIdFromPayrollName,
 } from "@/lib/hr/security-guard-names";
+import { attendanceKpisFromDays, matchesEmployeeSearch } from "@/lib/hr/warning-notice";
 import { analyzeEmployeeDay } from "@/lib/hr/analyze";
 import type { HrScheduleEntry, HrTimecardRow } from "@/lib/hr/types";
 
@@ -39,5 +40,50 @@ describe("security guard proper names", () => {
     const day = analyzeEmployeeDay("1 security guard", "2026-08-06", punches, schedule);
     expect(day.displayName).toBe("Syed Muqeet Asim");
     expect(day.employeeName).toBe("1 security guard");
+  });
+});
+
+describe("attendance search KPIs", () => {
+  it("counts only the searched employee's days", () => {
+    const aleemDays = [
+      {
+        displayName: "Muhammad Aleem",
+        employeeName: "2, Security Guard",
+        employeeCode: "AM5",
+        guardsName: "Muhammad Aleem",
+        lateMinutes: 15,
+        earlyInMinutes: null,
+        violations: [{ type: "late" as const, message: "Late", severity: "error" as const }],
+      },
+      {
+        displayName: "Muhammad Aleem",
+        employeeName: "2, Security Guard",
+        employeeCode: "AM5",
+        guardsName: "Muhammad Aleem",
+        lateMinutes: null,
+        earlyInMinutes: null,
+        violations: [{ type: "absent" as const, message: "Absent", severity: "error" as const }],
+      },
+      {
+        displayName: "Keya Biswas",
+        employeeName: "Biswas, Keya",
+        employeeCode: "KB2",
+        guardsName: null,
+        lateMinutes: 20,
+        earlyInMinutes: null,
+        violations: [{ type: "late" as const, message: "Late", severity: "error" as const }],
+      },
+    ];
+    const matched = aleemDays.filter((d) => matchesEmployeeSearch(d, "aleem"));
+    expect(matched).toHaveLength(2);
+    expect(attendanceKpisFromDays(aleemDays).employees).toBe(3);
+    expect(attendanceKpisFromDays(matched)).toEqual({
+      employees: 2,
+      flagged: 2,
+      late: 1,
+      early: 0,
+      noSchedule: 0,
+      absent: 1,
+    });
   });
 });

@@ -14,7 +14,9 @@ import {
 } from "@/lib/hr/window";
 import { formatHrDateLabel } from "@/lib/hr/time-utils";
 import {
+  attendanceKpisFromDays,
   matchesAttendanceCard,
+  matchesEmployeeSearch,
   type HrAttendanceCardFilter,
 } from "@/lib/hr/warning-notice";
 import {
@@ -46,16 +48,6 @@ type HrApiResponse = {
   scheduleDateTo: string | null;
   error?: string;
 };
-
-function matchesEmployeeSearch(emp: HrEmployeeDay, query: string): boolean {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-  const hay = [emp.displayName, emp.employeeName, emp.employeeCode, emp.guardsName]
-    .filter((s): s is string => Boolean(s?.trim()))
-    .join(" ")
-    .toLowerCase();
-  return hay.includes(needle);
-}
 
 export default function HrPage() {
   const { state } = useApp();
@@ -179,11 +171,13 @@ export default function HrPage() {
     });
   }, [data?.employees, storeFilter, designationFilter]);
 
+  const searchScopedEmployees = useMemo(() => {
+    return scopedEmployees.filter((e) => matchesEmployeeSearch(e, employeeSearch));
+  }, [scopedEmployees, employeeSearch]);
+
   const filteredEmployees = useMemo(() => {
-    return scopedEmployees
-      .filter((e) => matchesAttendanceCard(e, cardFilter))
-      .filter((e) => matchesEmployeeSearch(e, employeeSearch));
-  }, [scopedEmployees, cardFilter, employeeSearch]);
+    return searchScopedEmployees.filter((e) => matchesAttendanceCard(e, cardFilter));
+  }, [searchScopedEmployees, cardFilter]);
 
   const groupedEmployees = useMemo(() => {
     const map = new Map<string, HrEmployeeDay[]>();
@@ -197,22 +191,14 @@ export default function HrPage() {
 
   const multiDay = dateRange.from !== dateRange.to;
 
-  const kpis = useMemo(() => {
-    const list = scopedEmployees;
-    return {
-      employees: list.length,
-      flagged: list.filter((e) => e.violations.length > 0).length,
-      late: list.filter((e) => e.lateMinutes != null && e.lateMinutes >= 12).length,
-      early: list.filter((e) => e.earlyInMinutes != null && e.earlyInMinutes >= 10).length,
-      noSchedule: list.filter((e) => e.violations.some((v) => v.type === "no_schedule")).length,
-      absent: list.filter((e) => e.violations.some((v) => v.type === "absent")).length,
-    };
-  }, [scopedEmployees]);
+  const kpis = useMemo(
+    () => attendanceKpisFromDays(searchScopedEmployees),
+    [searchScopedEmployees]
+  );
 
   function selectCard(kind: HrAttendanceCardFilter) {
     if (kind === "all") {
       setCardFilter("all");
-      setEmployeeSearch("");
       requestAnimationFrame(() => searchInputRef.current?.focus());
       return;
     }
