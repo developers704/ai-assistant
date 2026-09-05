@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   creditSalespersonRows,
   parseSalespersonSplits,
+  pruneSalespersonSelection,
+  resolveSalespersonFilterCode,
+  salespersonFilterSlice,
+  salespersonShareForCodes,
 } from "@/lib/sales/salesperson-credit";
 import {
   clearSalespersonDirectoryCache,
@@ -134,5 +138,84 @@ describe("summarizeVendorPos topSalesPeople", () => {
       ])
     );
     expect(summary.totalRevenue).toBe(100);
+  });
+});
+
+describe("resolveSalespersonFilterCode", () => {
+  it("accepts CODE or Name (CODE)", () => {
+    expect(resolveSalespersonFilterCode("SN")).toBe("SN");
+    expect(resolveSalespersonFilterCode("Shakib Nakhwa (Ali) (SN)")).toBe("SN");
+    expect(resolveSalespersonFilterCode("shiela paclibar (sp)")).toBe("SP");
+  });
+});
+
+describe("salespersonFilterSlice", () => {
+  const splitRow: VendorPosRow = {
+    date: "2026-09-03",
+    transactionId: "T1",
+    storeName: "VJ-LIV",
+    department: "LADYS RING",
+    design: "X",
+    itemNumber: "1",
+    sku: "1",
+    style: "",
+    description: "Ring",
+    vendor: "V",
+    vendorModel: "M",
+    productClass: "14KT",
+    subClass: "",
+    quantity: 1,
+    inventoryCost: 40,
+    grossSales: 100,
+    discountAmount: 0,
+    netRevenue: 100,
+    margin: 60,
+    discountRate: 0,
+    imageDir: "",
+    salespersons: "SN/65% - SP/35% -",
+  };
+
+  it("credits SN 65% of a $100 SN/SP split", () => {
+    expect(salespersonShareForCodes(splitRow, ["SN"])).toBeCloseTo(0.65, 8);
+    const slice = salespersonFilterSlice(splitRow, ["Shakib Nakhwa (Ali) (SN)"]);
+    expect(slice?.share).toBeCloseTo(0.65, 8);
+    expect(slice?.salespersons).toBe("SN/100%");
+  });
+
+  it("credits SN+SP the full $100 on a 65/35 line", () => {
+    const slice = salespersonFilterSlice(splitRow, ["SN", "SP"]);
+    expect(slice?.share).toBeCloseTo(1, 8);
+    expect(slice?.salespersons).toContain("SN/");
+    expect(slice?.salespersons).toContain("SP/");
+  });
+
+  it("credits two of three splits at 80% and renormalizes percents", () => {
+    const three: VendorPosRow = {
+      ...splitRow,
+      salespersons: "RJ1/40% - SD/20% - AG1/40% -",
+    };
+    const slice = salespersonFilterSlice(three, ["RJ1", "AG1"]);
+    expect(slice?.share).toBeCloseTo(0.8, 8);
+    expect(slice?.salespersons).toBe("RJ1/50% - AG1/50%");
+  });
+
+  it("drops lines with no matching associate", () => {
+    expect(salespersonFilterSlice(splitRow, ["ZZ9"])).toBeNull();
+  });
+});
+
+describe("pruneSalespersonSelection", () => {
+  it("maps POS codes onto Name (CODE) labels", () => {
+    const available = [
+      "Shakib Nakhwa (Ali) (SN)",
+      "Shiela Paclibar (SP)",
+    ];
+    expect(pruneSalespersonSelection(["SN"], available)).toEqual([
+      "Shakib Nakhwa (Ali) (SN)",
+    ]);
+    expect(
+      pruneSalespersonSelection(["Shiela Paclibar (SP)"], available)
+    ).toEqual(["Shiela Paclibar (SP)"]);
+    expect(pruneSalespersonSelection(["ZZ9"], available)).toEqual([]);
   });
 });

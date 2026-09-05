@@ -25,6 +25,12 @@ import {
   SalesDateRangePicker,
   type SalesDateRangeValue,
 } from "@/components/sales/SalesDateRangePicker";
+import { SalesMultiSelectFilter } from "@/components/sales/SalesMultiSelectFilter";
+import {
+  appendMultiParam,
+  parseMultiParam,
+} from "@/lib/sales/filter-params";
+import { pruneSalespersonSelection } from "@/lib/sales/salesperson-credit";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { ArrowLeft, LineChart, Sparkles } from "lucide-react";
 import { useApp } from "@/lib/store/app-context";
@@ -92,6 +98,9 @@ function SalesVisualizationsContent() {
   const [filterDesign, setFilterDesign] = useState(() => searchParams.get("design") ?? "");
   const [filterVendor, setFilterVendor] = useState(() => searchParams.get("vendor") ?? "");
   const [filterClass, setFilterClass] = useState(() => searchParams.get("class") ?? "");
+  const [filterSalespeople, setFilterSalespeople] = useState<string[]>(() =>
+    parseMultiParam(searchParams, "salesperson", "salespeople")
+  );
 
   useEffect(() => {
     return subscribeSalesReportUpdated(() => {
@@ -101,6 +110,7 @@ function SalesVisualizationsContent() {
       setFilterDesign("");
       setFilterVendor("");
       setFilterClass("");
+      setFilterSalespeople([]);
       router.replace("/sales/visualizations", { scroll: false });
       setRefreshNonce((n) => n + 1);
     });
@@ -114,6 +124,7 @@ function SalesVisualizationsContent() {
     if (filterDesign) params.set("design", filterDesign);
     if (!hideVendors && filterVendor) params.set("vendor", filterVendor);
     if (filterClass) params.set("class", filterClass);
+    appendMultiParam(params, "salesperson", filterSalespeople);
     const qs = params.toString();
     router.replace(qs ? `/sales/visualizations?${qs}` : "/sales/visualizations", {
       scroll: false,
@@ -160,6 +171,15 @@ function SalesVisualizationsContent() {
         if (filterClass && f.classes.length && !f.classes.includes(filterClass)) {
           setFilterClass("");
         }
+        if (filterSalespeople.length && (f.salespeople ?? []).length) {
+          const next = pruneSalespersonSelection(filterSalespeople, f.salespeople ?? []);
+          if (
+            next.length !== filterSalespeople.length ||
+            next.some((v, i) => v !== filterSalespeople[i])
+          ) {
+            setFilterSalespeople(next);
+          }
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -177,6 +197,7 @@ function SalesVisualizationsContent() {
     filterDesign,
     filterVendor,
     filterClass,
+    filterSalespeople,
     refreshNonce,
     router,
   ]);
@@ -189,9 +210,10 @@ function SalesVisualizationsContent() {
     if (filterDesign) params.set("design", filterDesign);
     if (!hideVendors && filterVendor) params.set("vendor", filterVendor);
     if (filterClass) params.set("class", filterClass);
+    appendMultiParam(params, "salesperson", filterSalespeople);
     const qs = params.toString();
     return qs ? `/sales?${qs}` : "/sales";
-  }, [dateRange, filterStore, filterDepartment, filterDesign, filterVendor, filterClass, hideVendors]);
+  }, [dateRange, filterStore, filterDepartment, filterDesign, filterVendor, filterClass, filterSalespeople, hideVendors]);
 
   const clearFilters = () => {
     setDateRange(null);
@@ -200,10 +222,17 @@ function SalesVisualizationsContent() {
     setFilterDesign("");
     setFilterVendor("");
     setFilterClass("");
+    setFilterSalespeople([]);
   };
 
   const hasFilters = Boolean(
-    dateRange || filterStore || filterDepartment || filterDesign || filterVendor || filterClass
+    dateRange ||
+      filterStore ||
+      filterDepartment ||
+      filterDesign ||
+      filterVendor ||
+      filterClass ||
+      filterSalespeople.length
   );
 
   return (
@@ -263,6 +292,13 @@ function SalesVisualizationsContent() {
                 </option>
               ))}
             </select>
+            <SalesMultiSelectFilter
+              label="Employees"
+              allLabel="All employees"
+              options={data?.filters.salespeople ?? []}
+              value={filterSalespeople}
+              onChange={setFilterSalespeople}
+            />
             <select
               value={filterDepartment}
               onChange={(e) => setFilterDepartment(e.target.value)}

@@ -370,6 +370,38 @@ describe("applySalespersonFilter", () => {
     expect(sn[0]!.quantity).toBeCloseTo(1.3, 5);
     expect(sn[0]!.salespersons).toBe("SN/100%");
   });
+
+  it("combines SN+SP on a 65/35 line to the full $100", () => {
+    const rows = [
+      row({
+        transactionId: "T1",
+        netRevenue: 100,
+        quantity: 1,
+        salespersons: "SN/65% - SP/35% -",
+      }),
+    ];
+    const both = applySalespersonFilter(rows, ["SN", "SP"]);
+    expect(both).toHaveLength(1);
+    expect(both[0]!.netRevenue).toBeCloseTo(100, 5);
+    expect(both[0]!.quantity).toBeCloseTo(1, 5);
+  });
+
+  it("keeps 80% of a 40/20/40 line when two associates are selected", () => {
+    const rows = [
+      row({
+        transactionId: "T2",
+        netRevenue: 100,
+        quantity: 1,
+        margin: 60,
+        salespersons: "RJ1/40% - SD/20% - AG1/40% -",
+      }),
+    ];
+    const two = applySalespersonFilter(rows, ["RJ1", "AG1"]);
+    expect(two).toHaveLength(1);
+    expect(two[0]!.netRevenue).toBeCloseTo(80, 5);
+    expect(two[0]!.margin).toBeCloseTo(48, 5);
+    expect(two[0]!.salespersons).toBe("RJ1/50% - AG1/50%");
+  });
 });
 
 describe("bundled Payment-Transactions.csv", () => {

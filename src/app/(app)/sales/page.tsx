@@ -38,6 +38,7 @@ import {
   pruneUnavailable,
   type SalesUiFilterValues,
 } from "@/lib/sales/filter-params";
+import { pruneSalespersonSelection } from "@/lib/sales/salesperson-credit";
 import { canonicalizePaycodeList, paycodeMatchesFilterQuery } from "@/lib/sales/paycode-normalize";
 import { subscribeSalesReportUpdated } from "@/lib/sales/report-updated-client";
 import { useApp } from "@/lib/store/app-context";
@@ -122,6 +123,10 @@ export default function SalesPage() {
   const [filterPaycodes, setFilterPaycodes] = useState<string[]>(() =>
     canonicalizePaycodeList(parseMultiParam(searchParams, "paycode", "paycodes"))
   );
+  const [filterSalespeople, setFilterSalespeople] = useState<string[]>(() =>
+    parseMultiParam(searchParams, "salesperson", "salespeople")
+  );
+  const [availableSalespeople, setAvailableSalespeople] = useState<string[]>([]);
   const [dateWarning, setDateWarning] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
@@ -152,6 +157,7 @@ export default function SalesPage() {
     setFilterClasses([]);
     setFilterSubclasses([]);
     setFilterPaycodes([]);
+    setFilterSalespeople([]);
     setRankDetail(null);
     lastUrlKeyRef.current = "";
     router.replace("/sales", { scroll: false });
@@ -220,6 +226,7 @@ export default function SalesPage() {
     setFilterPaycodes(
       canonicalizePaycodeList(parseMultiParam(searchParams, "paycode", "paycodes"))
     );
+    setFilterSalespeople(parseMultiParam(searchParams, "salesperson", "salespeople"));
   }, [searchParams]);
 
   // Manual filter changes → keep the URL in sync so voice deep-links and UI stay aligned.
@@ -237,6 +244,7 @@ export default function SalesPage() {
       classes: filterClasses,
       subclasses: filterSubclasses,
       paycodes: filterPaycodes,
+      salespeople: filterSalespeople,
     });
     const key = params.toString();
     if (key === lastUrlKeyRef.current) return;
@@ -251,6 +259,7 @@ export default function SalesPage() {
     filterClasses,
     filterSubclasses,
     filterPaycodes,
+    filterSalespeople,
     router,
   ]);
 
@@ -280,6 +289,7 @@ export default function SalesPage() {
       classes: filterClasses,
       subclasses: filterSubclasses,
       paycodes: filterPaycodes,
+      salespeople: filterSalespeople,
     });
     const qs = params.toString() ? `?${params}` : "";
     const gen = ++salesFetchGenRef.current;
@@ -338,6 +348,7 @@ export default function SalesPage() {
           const vendors: string[] = d.availableVendors ?? [];
           const subclasses: string[] = d.availableSubClasses ?? [];
           const paycodes: string[] = d.availablePaycodes ?? [];
+          const salespeople: string[] = d.availableSalespeople ?? [];
           setAvailableDates(dates);
           setAvailableStores(stores);
           setAvailableDepartments(departments);
@@ -346,6 +357,7 @@ export default function SalesPage() {
           setAvailableVendors(vendors);
           setAvailableSubClasses(subclasses);
           setAvailablePaycodes(paycodes);
+          setAvailableSalespeople(salespeople);
           setReportId(nextReportId ?? dateRange?.to ?? d.reportDate ?? "latest");
 
           if (dates.length > 0) {
@@ -375,6 +387,9 @@ export default function SalesPage() {
           setFilterPaycodes((prev) =>
             pruneUnavailable(canonicalizePaycodeList(prev), paycodes)
           );
+          setFilterSalespeople((prev) =>
+            pruneSalespersonSelection(prev, salespeople)
+          );
         } else {
           setReportSummary(null);
           setAvailableDates([]);
@@ -385,6 +400,7 @@ export default function SalesPage() {
           setAvailableVendors([]);
           setAvailableSubClasses([]);
           setAvailablePaycodes([]);
+          setAvailableSalespeople([]);
           setReportId(undefined);
           knownReportIdRef.current = null;
         }
@@ -407,6 +423,7 @@ export default function SalesPage() {
     filterClasses,
     filterSubclasses,
     filterPaycodes,
+    filterSalespeople,
     refreshNonce,
   ]);
 
@@ -494,6 +511,7 @@ export default function SalesPage() {
                     classes: filterClasses,
                     subclasses: filterSubclasses,
                     paycodes: filterPaycodes,
+                    salespeople: filterSalespeople,
                   });
                   const qs = params.toString();
                   return qs
@@ -518,6 +536,7 @@ export default function SalesPage() {
                     classes: filterClasses,
                     subclasses: filterSubclasses,
                     paycodes: filterPaycodes,
+                    salespeople: filterSalespeople,
                   });
                   const qs = params.toString();
                   return qs ? `/sales/visualizations?${qs}` : "/sales/visualizations";
@@ -540,6 +559,7 @@ export default function SalesPage() {
           availableClasses.length > 0 ||
           availableSubClasses.length > 0 ||
           availablePaycodes.length > 0 ||
+          availableSalespeople.length > 0 ||
           reportSummary?.dateRange) && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <SalesDateRangePicker
@@ -563,6 +583,15 @@ export default function SalesPage() {
                 options={availableStores}
                 value={filterStores}
                 onChange={setFilterStores}
+              />
+            )}
+            {availableSalespeople.length > 0 && (
+              <SalesMultiSelectFilter
+                label="Employees"
+                allLabel="All employees"
+                options={availableSalespeople}
+                value={filterSalespeople}
+                onChange={setFilterSalespeople}
               />
             )}
             {availableDepartments.length > 0 && (
@@ -845,6 +874,7 @@ export default function SalesPage() {
       <VendorModelDetailDrawer
         selection={vendorModelDetail}
         filterStore={filterStores.length ? filterStores.join(",") : undefined}
+        filterSalesperson={filterSalespeople.length ? filterSalespeople.join(",") : undefined}
         dateFrom={dateRange?.from}
         dateTo={dateRange?.to}
         reportId={
@@ -869,6 +899,7 @@ export default function SalesPage() {
         filterClass={filterClasses.length ? filterClasses.join(",") : undefined}
         filterSubclass={filterSubclasses.length ? filterSubclasses.join(",") : undefined}
         filterPaycode={filterPaycodes.length ? filterPaycodes.join(",") : undefined}
+        filterSalesperson={filterSalespeople.length ? filterSalespeople.join(",") : undefined}
         reportId={
           reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
             ? reportId

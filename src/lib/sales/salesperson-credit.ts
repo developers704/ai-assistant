@@ -51,6 +51,48 @@ export function rowIncludesSalesperson(row: VendorPosRow, code: string): boolean
   return salespersonShare(row, code) > 0;
 }
 
+/** Combined credit fraction for any of the selected codes (capped at 1). */
+export function salespersonShareForCodes(row: VendorPosRow, codes: string[]): number {
+  const needles = [
+    ...new Set(codes.map((c) => resolveSalespersonFilterCode(c)).filter(Boolean)),
+  ];
+  let share = 0;
+  for (const code of needles) share += salespersonShare(row, code);
+  if (share <= 0) return 0;
+  return Math.min(share, 1);
+}
+
+/**
+ * How to keep a line when the dashboard employee filter is on:
+ * scale by the selected associates' split %, and rewrite Salespersons
+ * so later rankings credit only those people.
+ */
+export function salespersonFilterSlice(
+  row: VendorPosRow,
+  codes: string[]
+): { share: number; salespersons: string } | null {
+  const needles = [
+    ...new Set(codes.map((c) => resolveSalespersonFilterCode(c)).filter(Boolean)),
+  ];
+  const matched = needles.filter((c) => salespersonShare(row, c) > 0);
+  if (!matched.length) return null;
+  const share = Math.min(
+    matched.reduce((sum, c) => sum + salespersonShare(row, c), 0),
+    1
+  );
+  if (matched.length === 1) {
+    return { share, salespersons: `${matched[0]}/100%` };
+  }
+  const salespersons = matched
+    .map((c) => {
+      const pct = (salespersonShare(row, c) / share) * 100;
+      const rounded = Math.round(pct * 10000) / 10000;
+      return `${c}/${rounded}%`;
+    })
+    .join(" - ");
+  return { share, salespersons };
+}
+
 /**
  * Credit each associate their share of line Total (net).
  * Units / margin attributed by share; ranking is primarily by credited net.
@@ -113,9 +155,46 @@ export function listSalespeopleFromRows(
     for (const s of parseSalespersonSplits(r.salespersons)) codes.add(s.code);
   }
   return [...codes]
-    .sort((a, b) => a.localeCompare(b))
     .map((code) => ({
       value: code,
       label: resolveSalespersonLabelWithCode(code, dir),
-    }));
+    }))
+    .sort(
+      (a, b) => a.label.localeCompare(b.label) || a.value.localeCompare(b.value)
+    );
+}
+
+/**
+ * Keep dashboard / HR employee selections that still exist.
+ * Accepts POS `CODE` or `Name (CODE)` and maps onto available labels.
+ */
+export function pruneSalespersonSelection(
+  selected: string[],
+  availableLabels: string[]
+): string[] {
+  if (!selected.length) return selected;
+  if (!availableLabels.length) return selected;
+  const availableSet = new Set(availableLabels);
+  const byCode = new Map<string, string>();
+  for (const label of availableLabels) {
+    const code = resolveSalespersonFilterCode(label);
+    if (code && !byCode.has(code)) byCode.set(code, label);
+  }
+  const next: string[] = [];
+  const seen = new Set<string>();
+  for (const v of selected) {
+    const mapped = availableSet.has(v)
+      ? v
+      : byCode.get(resolveSalespersonFilterCode(v));
+    if (!mapped || seen.has(mapped)) continue;
+    seen.add(mapped);
+    next.push(mapped);
+  }
+  if (
+    next.length === selected.length &&
+    next.every((v, i) => v === selected[i])
+  ) {
+    return selected;
+  }
+  return next;
 }

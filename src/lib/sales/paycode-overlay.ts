@@ -28,7 +28,7 @@ import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
 import type { VendorPosRow } from "@/lib/reports/types";
-import { rowIncludesSalesperson, salespersonShare, resolveSalespersonFilterCode } from "@/lib/sales/salesperson-credit";
+import { salespersonFilterSlice } from "@/lib/sales/salesperson-credit";
 import { parseReportFilterDate } from "@/lib/reports/date-utils";
 import {
   canonicalPaycode,
@@ -520,26 +520,20 @@ export function paycodeTotalsForRows(
   return toPaycodeShareList(totals);
 }
 
-/** Keep lines credited to this salesperson; scale money/qty by their split %. */
+/** Keep lines credited to these salespeople; scale money/qty by their split %. */
 export function applySalespersonFilter(
   rows: VendorPosRow[],
   codes: string[]
 ): VendorPosRow[] {
   if (!codes.length) return rows;
-  const needles = codes
-    .map((c) => resolveSalespersonFilterCode(c))
-    .filter(Boolean);
   const out: VendorPosRow[] = [];
   for (const r of rows) {
-    for (const code of needles) {
-      if (!rowIncludesSalesperson(r, code)) continue;
-      const share = salespersonShare(r, code);
-      out.push({
-        ...scaleRow(r, share),
-        salespersons: `${code}/100%`,
-      });
-      break;
-    }
+    const slice = salespersonFilterSlice(r, codes);
+    if (!slice) continue;
+    out.push({
+      ...scaleRow(r, slice.share),
+      salespersons: slice.salespersons,
+    });
   }
   return out;
 }

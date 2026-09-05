@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
   if (single && !requested.length) requested.push(single);
   const { stores } = scopeStoresForUser(session, requested);
   const hideVendors = hidesVendorInfoFromPermissions(session.username);
+  const salespeople = parseMultiParam(sp, "salesperson", "salespeople");
 
   const payload = buildSalesVisualizations({
     date: dateFrom && dateTo && dateFrom === dateTo ? dateFrom : undefined,
@@ -68,6 +69,7 @@ export async function GET(req: NextRequest) {
     design: sp.get("design")?.trim() || undefined,
     vendor: hideVendors ? undefined : sp.get("vendor")?.trim() || undefined,
     className: sp.get("class")?.trim() || undefined,
+    salespeople: salespeople.length ? salespeople : undefined,
   });
 
   payload.filters.stores = filterAvailableStores(session, payload.filters.stores);
