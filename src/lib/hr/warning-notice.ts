@@ -6,6 +6,7 @@ import {
   type HrMailRouting,
 } from "./mail-routing";
 import { resolveHrEmployeeDisplayName } from "./security-guard-names";
+import { parseClockToMinutes } from "./time-utils";
 
 export const HR_WARNING_FROM = DEFAULT_HR_MAIL_FROM;
 export const HR_WARNING_TO = DEFAULT_HR_MAIL_TO[0]!;
@@ -50,6 +51,18 @@ export type HrNoticeEmployee = Pick<
   shiftTier?: HrEmployeeDay["shiftTier"];
   violations?: HrViolation[];
   store?: string | null;
+  schedule?: HrEmployeeDay["schedule"];
+  segments?: HrEmployeeDay["segments"];
+};
+
+export type WarningMailDetails = {
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  clockIn?: string | null;
+  clockOut?: string | null;
+  lateMinutes?: number | null;
+  earlyInMinutes?: number | null;
+  earlyOutMinutes?: number | null;
 };
 
 export type WarningNoticeDraft = {
@@ -113,11 +126,48 @@ export function formatNoticeDate(iso: string): string {
 export function formatWarningMailDate(iso: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
   return new Date(`${iso}T12:00:00.000Z`).toLocaleDateString("en-US", {
+    weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
     timeZone: "UTC",
   });
+}
+
+export function formatClockLabel(raw: string | null | undefined): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  const mins = parseClockToMinutes(s);
+  if (mins == null) return s;
+  let h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${String(m).padStart(2, "0")} ${ap}`;
+}
+
+export function formatDurationWords(mins: number): string {
+  const n = Math.max(0, Math.round(mins));
+  const h = Math.floor(n / 60);
+  const m = n % 60;
+  const parts: string[] = [];
+  if (h) parts.push(`${h} hour${h === 1 ? "" : "s"}`);
+  if (m) parts.push(`${m} minute${m === 1 ? "" : "s"}`);
+  return parts.join(" and ") || "0 minutes";
+}
+
+export function warningMailDetailsFromEmployee(emp: HrNoticeEmployee): WarningMailDetails {
+  const segs = emp.segments ?? [];
+  return {
+    scheduledStart: emp.schedule?.start ?? null,
+    scheduledEnd: emp.schedule?.end ?? null,
+    clockIn: segs.find((s) => s.timeIn)?.timeIn ?? null,
+    clockOut: [...segs].reverse().find((s) => s.timeOut)?.timeOut ?? null,
+    lateMinutes: emp.lateMinutes ?? null,
+    earlyInMinutes: emp.earlyInMinutes ?? null,
+    earlyOutMinutes: emp.earlyOutMinutes ?? null,
+  };
 }
 
 export function warningDescription(lateMinutes: number): string {
@@ -244,21 +294,109 @@ function joinEventPhrases(parts: string[]): string {
   return `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
 }
 
-export function warningMailPlainText(name: string, date: string, events: string[]): string {
-  const when = formatWarningMailDate(date);
-  return [
-    `Hi, ${name}`,
-    `you ${joinEventPhrases(events)} from your scheduled time on ${when} pls confirm the reason`,
-    "note:",
-    "pls confirm reason otherwise you will get automated writeup.",
-  ].join("\n");
+function replyReasonLine(events: string[]): string {
+  const left = events.some((e) => /left/i.test(e));
+  const late = events.some((e) => /late/i.test(e));
+  const early = events.some((e) => /arrived store early/i.test(e));
+  if (left && !late && !early) {
+    return "Please reply to this email with the reason you left early.";
+  }
+  if (late && !left && !early) {
+    return "Please reply to this email with the reason you arrived late.";
+  }
+  if (early && !left && !late) {
+    return "Please reply to this email with the reason you arrived early.";
+  }
+  return "Please reply to this email with the reason for this attendance exception.";
 }
 
-export function warningMailHtml(name: string, date: string, events: string[]): string {
+function violationSentences(events: string[], details?: WarningMailDetails): string[] {
+  const out: string[] = [];
+  if (isLateForWarning(details?.lateMinutes)) {
+    out.push(
+      `You arrived ${formatDurationWords(details!.lateMinutes!)} after your scheduled start time.`
+    );
+  }
+  if (isEarlyForWarning(details?.earlyInMinutes)) {
+    out.push(
+      `You arrived ${formatDurationWords(details!.earlyInMinutes!)} before your scheduled start time.`
+    );
+  }
+  if (isEarlyOutForWarning(details?.earlyOutMinutes)) {
+    out.push(
+      `You left the store ${formatDurationWords(details!.earlyOutMinutes!)} before the end of your scheduled shift.`
+    );
+  }
+  if (out.length) return out;
+  if (events.length) {
+    return [
+      `You ${joinEventPhrases(events)} relative to your scheduled time.`,
+    ];
+  }
+  return [];
+}
+
+function recordedTimeLine(details?: WarningMailDetails): string | null {
+  const clockIn = formatClockLabel(details?.clockIn);
+  const clockOut = formatClockLabel(details?.clockOut);
+  if (clockIn && clockOut) {
+    return `Time recorded: clocked in at ${clockIn} and clocked out at ${clockOut}.`;
+  }
+  if (clockOut) return `Time recorded: clocked out at ${clockOut}.`;
+  if (clockIn) return `Time recorded: clocked in at ${clockIn}.`;
+  return null;
+}
+
+function scheduledShiftLine(details?: WarningMailDetails): string | null {
+  const start = formatClockLabel(details?.scheduledStart);
+  const end = formatClockLabel(details?.scheduledEnd);
+  if (start && end) return `Scheduled shift: ${start} – ${end}.`;
+  if (start) return `Scheduled start: ${start}.`;
+  if (end) return `Scheduled end: ${end}.`;
+  return null;
+}
+
+export function warningMailParagraphs(
+  name: string,
+  date: string,
+  events: string[],
+  details?: WarningMailDetails
+): string[] {
   const when = formatWarningMailDate(date);
-  return `<p>Hi, ${escapeHtml(name)}</p>
-<p>you ${escapeHtml(joinEventPhrases(events))} from your scheduled time on ${escapeHtml(when)} pls confirm the reason</p>
-<p>note:<br>pls confirm reason otherwise you will get automated writeup.</p>`;
+  const facts = [
+    scheduledShiftLine(details),
+    recordedTimeLine(details),
+    ...violationSentences(events, details),
+  ].filter((s): s is string => Boolean(s));
+  return [
+    `Dear ${name},`,
+    `This notice concerns your attendance on ${when}.`,
+    ...facts,
+    replyReasonLine(events),
+    "If we do not receive a confirmation, an automated write-up will be issued.",
+    "Sincerely,\nHuman Resources\nValliani Jewelers",
+  ];
+}
+
+export function warningMailPlainText(
+  name: string,
+  date: string,
+  events: string[],
+  details?: WarningMailDetails
+): string {
+  return warningMailParagraphs(name, date, events, details).join("\n\n");
+}
+
+export function warningMailHtml(
+  name: string,
+  date: string,
+  events: string[],
+  details?: WarningMailDetails
+): string {
+  const paras = warningMailParagraphs(name, date, events, details);
+  return paras
+    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
+    .join("\n");
 }
 
 export function extractWarningCaseId(subject: string | null | undefined): string | null {
@@ -278,7 +416,9 @@ export function buildWarningNoticeHtml(input: {
     : input.lateMinutes && input.lateMinutes >= LATE_WARNING_THRESHOLD_MINUTES
       ? ["arrived store late"]
       : ["arrived/left store early/late"];
-  return warningMailHtml(input.employeeName, input.date, events);
+  return warningMailHtml(input.employeeName, input.date, events, {
+    lateMinutes: input.lateMinutes ?? null,
+  });
 }
 
 export function buildWarningNoticeText(input: {
@@ -293,7 +433,9 @@ export function buildWarningNoticeText(input: {
     : input.lateMinutes && input.lateMinutes >= LATE_WARNING_THRESHOLD_MINUTES
       ? ["arrived store late"]
       : ["arrived/left store early/late"];
-  return warningMailPlainText(input.employeeName, input.date, events);
+  return warningMailPlainText(input.employeeName, input.date, events, {
+    lateMinutes: input.lateMinutes ?? null,
+  });
 }
 
 export function draftWarningNotice(
@@ -307,6 +449,7 @@ export function draftWarningNotice(
   const display = noticeDisplayName(emp);
   const events = scheduleEventPhrases(emp);
   const description = noticeDescriptionForEmployee(emp);
+  const details = warningMailDetailsFromEmployee(emp);
   const caseId = warningCaseId(emp.employeeCode, emp.date, emp.employeeName, warningReason(emp));
   return {
     caseId,
@@ -319,8 +462,8 @@ export function draftWarningNotice(
     from: routing?.from?.trim() || HR_WARNING_FROM,
     to: routing?.to?.length ? formatHrMailTo(routing.to) : HR_WARNING_TO,
     subject: warningSubject(caseId, display),
-    html: warningMailHtml(display, emp.date, events),
-    text: warningMailPlainText(display, emp.date, events),
+    html: warningMailHtml(display, emp.date, events, details),
+    text: warningMailPlainText(display, emp.date, events, details),
     description,
   };
 }
