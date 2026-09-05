@@ -5,13 +5,14 @@ import {
   draftWarningNotice,
   extractWarningCaseId,
   formatNoticeDate,
+  matchesAttendanceCard,
   matchesViolationFilter,
   normalizeViolationFilters,
   warningCaseId,
   warningDescription,
-  warningPdfFilename,
+  warningMailPlainText,
 } from "@/lib/hr/warning-notice";
-import { buildWarningNoticePdf } from "@/lib/hr/warning-notice-pdf";
+import { isEligibleForHrNotice } from "@/lib/hr/warning-notice";
 
 const shazia = {
   employeeName: "Ahmed, Shazia",
@@ -23,43 +24,7 @@ const shazia = {
 };
 
 describe("late warning notice", () => {
-  it("puts Manager from the timecard where the sheet had #REF!", () => {
-    const html = buildWarningNoticeHtml(shazia);
-    const text = buildWarningNoticeText(shazia);
-    expect(html).toContain("Manager");
-    expect(html).toContain("AJ");
-    expect(html).not.toContain("#REF!");
-    expect(text).toContain("Manager :- AJ");
-    expect(html).toContain("SA2");
-    expect(html).toContain("Corporate Manager");
-    expect(html).toContain("Ahmed, Shazia");
-  });
-
-  it("omits Plan for Improvement and Consequences of Further Infraction", () => {
-    const html = buildWarningNoticeHtml(shazia);
-    const text = buildWarningNoticeText(shazia);
-    expect(html).not.toMatch(/Plan for Improvement/i);
-    expect(html).not.toMatch(/Consequences of Further Infraction/i);
-    expect(text).not.toMatch(/Plan for Improvement/i);
-    expect(text).not.toMatch(/Consequences of Further Infraction/i);
-  });
-
-  it("describes the actual late minutes", () => {
-    expect(warningDescription(29)).toBe("Late Arrival by 29 minutes.");
-    expect(buildWarningNoticeHtml(shazia)).toContain("Late Arrival by 29 minutes.");
-    expect(buildWarningNoticeHtml(shazia)).not.toContain("Late Leaving");
-    expect(formatNoticeDate("2026-06-07")).toBe("06.07.2026");
-  });
-
-  it("checks company policy + schedule violation", () => {
-    const html = buildWarningNoticeHtml(shazia);
-    expect(html).toContain("Violation of Company Policies");
-    expect(html).toContain("Other :- Schedule Violation");
-    expect(html).toMatch(/☑ Violation of Company Policies/);
-    expect(html).toMatch(/☑ Other :- Schedule Violation/);
-  });
-
-  it("builds a unique case id for reply matching", () => {
+  it("sends a text warning without a PDF attachment copy", () => {
     const draft = draftWarningNotice(shazia);
     expect(draft.caseId).toBe("HR-LATE-SA2-2026-06-07");
     expect(draft.subject).toBe(
@@ -67,10 +32,15 @@ describe("late warning notice", () => {
     );
     expect(draft.from).toBe("umairj@valliani.app");
     expect(draft.to).toBe("umairjam.arrakconsulting@gmail.com");
-    expect(draft.pdfFilename).toBe("Employee-Warning-Notice-SA2-2026-06-07.pdf");
-    expect(draft.text).toContain("attached PDF");
-    expect(draft.text).not.toContain("Type of Offenses");
+    expect(draft.text).toContain("Hi, Ahmed, Shazia");
+    expect(draft.text).toContain("arrived store late");
+    expect(draft.text).toContain("June 7, 2026");
+    expect(draft.text).toContain("pls confirm the reason");
+    expect(draft.text).toContain("automated writeup");
+    expect(draft.text).not.toContain("attached PDF");
     expect(draft.html).not.toContain("Type of Offenses");
+    expect(draft.html).not.toContain("application/pdf");
+    expect("pdfFilename" in draft).toBe(false);
     expect(extractWarningCaseId(`Re: ${draft.subject}`)).toBe("HR-LATE-SA2-2026-06-07");
     expect(
       extractWarningCaseId("[HR-WRITEUP-SA2-2026-06-07] Disciplinary Action Form — Ahmed, Shazia")
@@ -79,31 +49,40 @@ describe("late warning notice", () => {
       extractWarningCaseId("[HR-EARLY-SA2-2026-06-07] Employee Warning Notice — Ahmed, Shazia")
     ).toBe("HR-EARLY-SA2-2026-06-07");
     expect(
+      extractWarningCaseId("[HR-LEAVE-SA2-2026-06-07] Employee Warning Notice — Ahmed, Shazia")
+    ).toBe("HR-LEAVE-SA2-2026-06-07");
+    expect(
       extractWarningCaseId("[HR-MEAL-FM2-2026-06-07] Employee Warning Notice — Martinez, Filemon")
     ).toBe("HR-MEAL-FM2-2026-06-07");
     expect(warningCaseId(null, "2026-06-07", "Ahmed, Shazia")).toBe(
       "HR-LATE-AHMEDSHAZIA-2026-06-07"
     );
-    expect(warningPdfFilename("SA2", "2026-06-07", "Ahmed, Shazia")).toBe(
-      "Employee-Warning-Notice-SA2-2026-06-07.pdf"
-    );
   });
 
-  it("builds a PDF form instead of dumping the notice in the email body", async () => {
-    const { PDFDocument } = await import("pdf-lib");
-    const pdf = await buildWarningNoticePdf(shazia);
-    const header = Buffer.from(pdf.subarray(0, 5)).toString("ascii");
-    expect(header).toBe("%PDF-");
-    expect(pdf.byteLength).toBeGreaterThan(800);
-    const loaded = await PDFDocument.load(pdf);
-    expect(loaded.getPageCount()).toBe(1);
-    const page = loaded.getPage(0);
-    const { width, height } = page.getSize();
-    expect(width).toBe(612);
-    expect(height).toBe(792);
+  it("uses the security-guard proper name in the greeting", () => {
+    const draft = draftWarningNotice({
+      employeeName: "1, security guard",
+      displayName: "Syed Muqeet Asim",
+      date: "2026-08-04",
+      employeeCode: "MS3",
+      jobTitle: "Sales Associate",
+      manager: "shaun",
+      lateMinutes: 15,
+    });
+    expect(draft.text.startsWith("Hi, Syed Muqeet Asim")).toBe(true);
+    expect(draft.subject).toContain("Syed Muqeet Asim");
+    expect(draft.employeeName).toBe("1, security guard");
   });
 
-  it("describes early arrival and long meal breaks on the same warning format", () => {
+  it("describes late minutes for write-ups and formats the notice date", () => {
+    expect(warningDescription(29)).toBe("Late Arrival by 29 minutes.");
+    expect(formatNoticeDate("2026-06-07")).toBe("06.07.2026");
+    expect(buildWarningNoticeText(shazia)).toContain("arrived store late");
+    expect(buildWarningNoticeHtml(shazia)).toContain("arrived store late");
+    expect(buildWarningNoticeHtml(shazia)).not.toContain("Type of Offenses");
+  });
+
+  it("describes early arrival and leaving early — not meal breaks", () => {
     const early = draftWarningNotice({
       ...shazia,
       lateMinutes: null,
@@ -111,34 +90,40 @@ describe("late warning notice", () => {
     });
     expect(early.caseId).toBe("HR-EARLY-SA2-2026-06-07");
     expect(early.description).toBe("Early Arrival by 18 minutes.");
-    expect(early.text).toContain("Early Arrival by 18 minutes.");
+    expect(early.text).toContain("arrived store early");
 
-    const meal = draftWarningNotice({
-      employeeName: "Martinez, Filemon",
-      date: "2026-06-07",
-      employeeCode: "FM2",
-      jobTitle: "Jewelry Technician",
-      manager: "Fahad",
+    const leftEarly = draftWarningNotice({
+      ...shazia,
       lateMinutes: null,
-      shiftTier: "ten",
-      mealBreaks: [{ gapMinutes: 82, gapLabel: "1:22" }],
-      totalMealMinutes: 82,
-      violations: [
-        {
-          type: "long_meal",
-          message: "Meal break 1:22 exceeds 75 min limit",
-          severity: "error",
-        },
-      ],
+      earlyOutMinutes: 22,
     });
-    expect(meal.caseId).toBe("HR-MEAL-FM2-2026-06-07");
-    expect(meal.description).toBe(
-      "Took a long meal break of 82 minutes (exceeds 75 min limit)."
-    );
-    expect(meal.text).toContain("long meal break of 82 minutes");
+    expect(leftEarly.caseId).toBe("HR-LEAVE-SA2-2026-06-07");
+    expect(leftEarly.description).toBe("Left Early by 22 minutes.");
+    expect(leftEarly.text).toContain("left store early");
+
+    expect(
+      isEligibleForHrNotice({
+        employeeName: "Martinez, Filemon",
+        date: "2026-06-07",
+        employeeCode: "FM2",
+        jobTitle: "Jewelry Technician",
+        manager: "Fahad",
+        lateMinutes: null,
+        shiftTier: "ten",
+        mealBreaks: [{ gapMinutes: 82, gapLabel: "1:22" }],
+        totalMealMinutes: 82,
+        violations: [
+          {
+            type: "long_meal",
+            message: "Meal break 1:22 exceeds 75 min limit",
+            severity: "error",
+          },
+        ],
+      })
+    ).toBe(false);
   });
 
-  it("filters late, early, and long meal break violations", () => {
+  it("filters late, early, no-schedule, and absent from cards — not meal", () => {
     const mealEmp = {
       ...shazia,
       lateMinutes: null,
@@ -152,11 +137,9 @@ describe("late warning notice", () => {
     expect(matchesViolationFilter(shazia, "late")).toBe(true);
     expect(matchesViolationFilter(earlyEmp, "early")).toBe(true);
     expect(matchesViolationFilter(earlyEmp, "late")).toBe(false);
-    expect(matchesViolationFilter(mealEmp, "meal")).toBe(true);
-    expect(matchesViolationFilter(shazia, "meal")).toBe(false);
-    expect(matchesViolationFilter(shazia, ["late", "meal"])).toBe(true);
-    expect(matchesViolationFilter(earlyEmp, ["late", "meal"])).toBe(false);
-    expect(matchesViolationFilter(earlyEmp, ["late", "early"])).toBe(true);
+    expect(matchesAttendanceCard(mealEmp, "flagged")).toBe(true);
+    expect(matchesAttendanceCard(shazia, "late")).toBe(true);
+    expect(matchesAttendanceCard(earlyEmp, "early")).toBe(true);
     expect(normalizeViolationFilters(["all"], ["all", "late"])).toEqual(["late"]);
     expect(normalizeViolationFilters(["late"], ["late", "all"])).toEqual(["all"]);
     expect(normalizeViolationFilters(["late"], ["late", "early"])).toEqual(["late", "early"]);
@@ -179,5 +162,13 @@ describe("late warning notice", () => {
       )
     ).toBe(true);
     expect(matchesViolationFilter(shazia, "absent")).toBe(false);
+    expect(
+      warningMailPlainText("Umair", "2026-08-04", ["arrived store late"]).split("\n")
+    ).toEqual([
+      "Hi, Umair",
+      "you arrived store late from your scheduled time on August 4, 2026 pls confirm the reason",
+      "note:",
+      "pls confirm reason otherwise you will get automated writeup.",
+    ]);
   });
 });

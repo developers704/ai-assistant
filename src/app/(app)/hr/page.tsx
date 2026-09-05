@@ -7,15 +7,20 @@ import type { HrEmployeeDay, HrUploadMeta } from "@/lib/hr/types";
 import { HrSalesTab } from "@/components/hr/HrSalesTab";
 import { HrAttendanceEmployeeRow } from "@/components/hr/HrAttendanceEmployeeRow";
 import { HrMailRoutingSettings } from "@/components/hr/HrMailRoutingSettings";
-import { formatHrAttendanceWindowCaption } from "@/lib/hr/window";
+import {
+  formatHrAttendanceWindowCaption,
+  HR_ATTENDANCE_FROM,
+  HR_ATTENDANCE_TO,
+} from "@/lib/hr/window";
 import { formatHrDateLabel } from "@/lib/hr/time-utils";
 import {
-  HR_VIOLATION_FILTER_LABELS,
-  HR_VIOLATION_FILTER_OPTIONS,
-  matchesViolationFilter,
-  type HrViolationFilter,
+  matchesAttendanceCard,
+  type HrAttendanceCardFilter,
 } from "@/lib/hr/warning-notice";
-import { SalesMultiSelectFilter } from "@/components/sales/SalesMultiSelectFilter";
+import {
+  SalesDateRangePicker,
+  type SalesDateRangeValue,
+} from "@/components/sales/SalesDateRangePicker";
 import {
   AlertTriangle,
   CalendarOff,
@@ -23,11 +28,11 @@ import {
   Clock,
   Loader2,
   Lock,
+  Search,
   Timer,
   Upload,
   UserX,
   Users,
-  Utensils,
 } from "lucide-react";
 
 type HrApiResponse = {
@@ -42,14 +47,14 @@ type HrApiResponse = {
   error?: string;
 };
 
-function isMealViolation(emp: HrEmployeeDay): boolean {
-  return emp.violations.some(
-    (v) =>
-      v.type === "long_meal" ||
-      v.type === "excessive_meal_total" ||
-      v.type === "short_meal_total" ||
-      v.type === "meal_count"
-  );
+function matchesEmployeeSearch(emp: HrEmployeeDay, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  const hay = [emp.displayName, emp.employeeName, emp.employeeCode, emp.guardsName]
+    .filter((s): s is string => Boolean(s?.trim()))
+    .join(" ")
+    .toLowerCase();
+  return hay.includes(needle);
 }
 
 export default function HrPage() {
@@ -61,16 +66,21 @@ export default function HrPage() {
   const salesOnly = !canManageHr;
   const [tab, setTab] = useState<"attendance" | "sales">(salesOnly ? "sales" : "attendance");
   const [data, setData] = useState<HrApiResponse | null>(null);
-  const [date, setDate] = useState("");
+  const [dateRange, setDateRange] = useState<SalesDateRangeValue>({
+    from: HR_ATTENDANCE_TO,
+    to: HR_ATTENDANCE_TO,
+  });
   const [loading, setLoading] = useState(!salesOnly);
   const [uploading, setUploading] = useState<"timecard" | "schedule" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [storeFilter, setStoreFilter] = useState("");
   const [designationFilter, setDesignationFilter] = useState("");
-  const [violationFilter, setViolationFilter] = useState<HrViolationFilter[]>(["all"]);
+  const [cardFilter, setCardFilter] = useState<HrAttendanceCardFilter>("all");
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const timecardInputRef = useRef<HTMLInputElement>(null);
   const scheduleInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,17 +88,17 @@ export default function HrPage() {
     if (salesOnly) setTab("sales");
   }, [salesOnly]);
 
-  const load = useCallback(async (opts?: { date?: string; quiet?: boolean }) => {
+  const load = useCallback(async (opts?: { from?: string; to?: string; quiet?: boolean }) => {
     if (!opts?.quiet) setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (opts?.date) params.set("date", opts.date);
+      params.set("from", opts?.from ?? HR_ATTENDANCE_TO);
+      params.set("to", opts?.to ?? HR_ATTENDANCE_TO);
       const res = await fetch(`/api/hr?${params}`, { cache: "no-store" });
       const json = (await res.json()) as HrApiResponse;
       if (!res.ok) throw new Error(json.error || "Failed to load");
       setData(json);
-      if (json.activeDate) setDate(json.activeDate);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
       setData(null);
@@ -99,8 +109,8 @@ export default function HrPage() {
 
   useEffect(() => {
     if (salesOnly) return;
-    void load(date ? { date } : undefined);
-  }, [load, date, salesOnly]);
+    void load({ from: dateRange.from, to: dateRange.to });
+  }, [load, dateRange.from, dateRange.to, salesOnly]);
 
   useEffect(() => {
     if (!uploadOpen) return;
@@ -127,7 +137,7 @@ export default function HrPage() {
           ? `Timecard uploaded (${json.rowCount} rows)`
           : `Schedule uploaded (${json.entryCount} entries)`
       );
-      await load({ date });
+      await load({ from: dateRange.from, to: dateRange.to });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -170,8 +180,22 @@ export default function HrPage() {
   }, [data?.employees, storeFilter, designationFilter]);
 
   const filteredEmployees = useMemo(() => {
-    return scopedEmployees.filter((e) => matchesViolationFilter(e, violationFilter));
-  }, [scopedEmployees, violationFilter]);
+    return scopedEmployees
+      .filter((e) => matchesAttendanceCard(e, cardFilter))
+      .filter((e) => matchesEmployeeSearch(e, employeeSearch));
+  }, [scopedEmployees, cardFilter, employeeSearch]);
+
+  const groupedEmployees = useMemo(() => {
+    const map = new Map<string, HrEmployeeDay[]>();
+    for (const emp of filteredEmployees) {
+      const list = map.get(emp.date) ?? [];
+      list.push(emp);
+      map.set(emp.date, list);
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [filteredEmployees]);
+
+  const multiDay = dateRange.from !== dateRange.to;
 
   const kpis = useMemo(() => {
     const list = scopedEmployees;
@@ -180,14 +204,19 @@ export default function HrPage() {
       flagged: list.filter((e) => e.violations.length > 0).length,
       late: list.filter((e) => e.lateMinutes != null && e.lateMinutes >= 12).length,
       early: list.filter((e) => e.earlyInMinutes != null && e.earlyInMinutes >= 10).length,
-      meal: list.filter(isMealViolation).length,
       noSchedule: list.filter((e) => e.violations.some((v) => v.type === "no_schedule")).length,
       absent: list.filter((e) => e.violations.some((v) => v.type === "absent")).length,
     };
   }, [scopedEmployees]);
 
-  function selectViolationKind(kind: Exclude<HrViolationFilter, "all">) {
-    setViolationFilter((prev) => (prev.length === 1 && prev[0] === kind ? ["all"] : [kind]));
+  function selectCard(kind: HrAttendanceCardFilter) {
+    if (kind === "all") {
+      setCardFilter("all");
+      setEmployeeSearch("");
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+      return;
+    }
+    setCardFilter((prev) => (prev === kind ? "all" : kind));
   }
 
   return (
@@ -199,7 +228,7 @@ export default function HrPage() {
           <p className="hr-subtitle">
             {salesOnly || tab === "sales"
               ? "Employee sales · Name (CODE) · design totals"
-              : `${formatHrAttendanceWindowCaption()} · ADP timecards · schedules · meal break & attendance rules`}
+              : `${formatHrAttendanceWindowCaption()} · ADP timecards · schedules · attendance rules`}
           </p>
         </div>
         {canManageHr && (
@@ -299,8 +328,13 @@ export default function HrPage() {
 
       {!salesOnly && tab === "attendance" && (data?.dates.length ?? 0) > 0 && (
         <>
-          <div className="hr-kpi-grid">
-            <div className="hr-kpi">
+          <div className="hr-kpi-grid hr-kpi-grid-6">
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "all" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "all"}
+              onClick={() => selectCard("all")}
+            >
               <div className="hr-kpi-top">
                 <span className="hr-kpi-label">Employees</span>
                 <span className="hr-kpi-icon hr-kpi-icon-violet">
@@ -308,8 +342,13 @@ export default function HrPage() {
                 </span>
               </div>
               <div className="hr-kpi-value">{kpis.employees}</div>
-            </div>
-            <div className="hr-kpi">
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "flagged" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "flagged"}
+              onClick={() => selectCard("flagged")}
+            >
               <div className="hr-kpi-top">
                 <span className="hr-kpi-label">Flagged</span>
                 <span className="hr-kpi-icon hr-kpi-icon-amber">
@@ -317,8 +356,13 @@ export default function HrPage() {
                 </span>
               </div>
               <div className="hr-kpi-value">{kpis.flagged}</div>
-            </div>
-            <div className="hr-kpi">
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "late" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "late"}
+              onClick={() => selectCard("late")}
+            >
               <div className="hr-kpi-top">
                 <span className="hr-kpi-label">Late</span>
                 <span className="hr-kpi-icon hr-kpi-icon-rose">
@@ -326,8 +370,13 @@ export default function HrPage() {
                 </span>
               </div>
               <div className="hr-kpi-value">{kpis.late}</div>
-            </div>
-            <div className="hr-kpi">
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "early" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "early"}
+              onClick={() => selectCard("early")}
+            >
               <div className="hr-kpi-top">
                 <span className="hr-kpi-label">Early</span>
                 <span className="hr-kpi-icon hr-kpi-icon-sky">
@@ -335,17 +384,13 @@ export default function HrPage() {
                 </span>
               </div>
               <div className="hr-kpi-value">{kpis.early}</div>
-            </div>
-            <div className="hr-kpi">
-              <div className="hr-kpi-top">
-                <span className="hr-kpi-label">Meal</span>
-                <span className="hr-kpi-icon hr-kpi-icon-teal">
-                  <Utensils size={14} />
-                </span>
-              </div>
-              <div className="hr-kpi-value">{kpis.meal}</div>
-            </div>
-            <div className="hr-kpi">
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "no_schedule" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "no_schedule"}
+              onClick={() => selectCard("no_schedule")}
+            >
               <div className="hr-kpi-top">
                 <span className="hr-kpi-label">No schedule</span>
                 <span className="hr-kpi-icon hr-kpi-icon-amber">
@@ -353,12 +398,12 @@ export default function HrPage() {
                 </span>
               </div>
               <div className="hr-kpi-value">{kpis.noSchedule}</div>
-            </div>
+            </button>
             <button
               type="button"
-              className={`hr-kpi hr-kpi-btn${violationFilter.length === 1 && violationFilter[0] === "absent" ? " hr-kpi-active" : ""}`}
-              aria-pressed={violationFilter.length === 1 && violationFilter[0] === "absent"}
-              onClick={() => selectViolationKind("absent")}
+              className={`hr-kpi hr-kpi-btn${cardFilter === "absent" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "absent"}
+              onClick={() => selectCard("absent")}
             >
               <div className="hr-kpi-top">
                 <span className="hr-kpi-label">Absent</span>
@@ -371,72 +416,66 @@ export default function HrPage() {
           </div>
 
           <div className="hr-filters">
-            <label className="hr-field">
-              <span className="hr-field-label">Date</span>
-              <select
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="hr-select"
-                aria-label={`Attendance date, ${formatHrAttendanceWindowCaption()}`}
-              >
-                {data!.dates.map((d) => (
-                  <option key={d} value={d}>
-                    {formatHrDateLabel(d)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="hr-field">
-              <span className="hr-field-label">Store</span>
-              <select
-                value={storeFilter}
-                onChange={(e) => setStoreFilter(e.target.value)}
-                className="hr-select"
-                aria-label="Filter by store"
-              >
-                <option value="">All stores</option>
-                {storeOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="hr-field">
-              <span className="hr-field-label">Designation</span>
-              <select
-                value={designationFilter}
-                onChange={(e) => setDesignationFilter(e.target.value)}
-                className="hr-select"
-                aria-label="Filter by designation"
-              >
-                <option value="">All designations</option>
-                {designationOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="hr-field">
-              <span className="hr-field-label">Violations</span>
-              <SalesMultiSelectFilter
-                label="Violation"
-                allLabel="All violation"
-                options={[...HR_VIOLATION_FILTER_OPTIONS]}
-                value={violationFilter.includes("all") ? [] : violationFilter.filter((v) => v !== "all")}
-                treatEmptyAsAllValue="all"
-                fullWidth
-                formatOption={(v) => HR_VIOLATION_FILTER_LABELS[v as HrViolationFilter] ?? v}
-                onChange={(next) =>
-                  setViolationFilter(
-                    next.length === 0 || next.includes("all")
-                      ? ["all"]
-                      : next.filter((v): v is Exclude<HrViolationFilter, "all"> => v !== "all")
-                  )
-                }
-              />
+            <div className="hr-field" style={{ gridColumn: "1 / -1" }}>
+              <span className="hr-field-label">Filters</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <SalesDateRangePicker
+                  availableDates={data!.dates}
+                  reportRange={{ from: HR_ATTENDANCE_FROM, to: HR_ATTENDANCE_TO }}
+                  value={dateRange}
+                  onChange={(next) =>
+                    setDateRange(next ?? { from: HR_ATTENDANCE_FROM, to: HR_ATTENDANCE_TO })
+                  }
+                />
+                <label className="hr-field" style={{ minWidth: "10rem" }}>
+                  <span className="sr-only">Store</span>
+                  <select
+                    value={storeFilter}
+                    onChange={(e) => setStoreFilter(e.target.value)}
+                    className="hr-select"
+                    aria-label="Filter by store"
+                  >
+                    <option value="">All stores</option>
+                    {storeOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="hr-field" style={{ minWidth: "10rem" }}>
+                  <span className="sr-only">Designation</span>
+                  <select
+                    value={designationFilter}
+                    onChange={(e) => setDesignationFilter(e.target.value)}
+                    className="hr-select"
+                    aria-label="Filter by designation"
+                  >
+                    <option value="">All designations</option>
+                    {designationOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             </div>
+            <label className="hr-field" style={{ gridColumn: "1 / -1" }}>
+              <span className="hr-field-label">Search employees</span>
+              <span className="hr-search">
+                <Search size={14} />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                  className="hr-input"
+                  placeholder="Code or name"
+                  aria-label="Search employees by code or name"
+                />
+              </span>
+            </label>
             <div className="hr-filter-meta">
               <span>{formatHrAttendanceWindowCaption()}</span>
               {kpis.flagged > 0 && (
@@ -463,6 +502,11 @@ export default function HrPage() {
             {status && <div className="hr-alert hr-alert-ok">{status}</div>}
             {error && <div className="hr-alert hr-alert-err">{error}</div>}
 
+            {loading && data && (
+              <div className="hr-upload-row">
+                <Loader2 size={16} className="animate-spin" /> Loading attendance…
+              </div>
+            )}
             {loading && !data ? (
               <div className="flex justify-center py-16" style={{ color: "#8b95a5" }}>
                 <Loader2 className="animate-spin" />
@@ -480,12 +524,11 @@ export default function HrPage() {
                 {data.hasSchedule &&
                   data.scheduleDateFrom &&
                   data.scheduleDateTo &&
-                  data.activeDate &&
-                  (data.activeDate < data.scheduleDateFrom || data.activeDate > data.scheduleDateTo) && (
+                  (dateRange.to < data.scheduleDateFrom || dateRange.from > data.scheduleDateTo) && (
                     <div className="hr-alert hr-alert-warn">
-                      Timecard day <strong>{data.activeDate}</strong> is outside the uploaded schedule (
-                      {data.scheduleDateFrom} → {data.scheduleDateTo}). Pick a matching date or upload a
-                      schedule that covers this day.
+                      Selected dates are outside the uploaded schedule (
+                      {data.scheduleDateFrom} → {data.scheduleDateTo}). Pick a matching range or
+                      upload a schedule that covers these days.
                     </div>
                   )}
                 {data.hasSchedule && !data.scheduleDateFrom && (
@@ -496,12 +539,19 @@ export default function HrPage() {
                 {filteredEmployees.length === 0 ? (
                   <div className="hr-empty">No employees match these filters.</div>
                 ) : (
-                  filteredEmployees.map((emp) => (
-                    <HrAttendanceEmployeeRow
-                      key={emp.employeeName}
-                      emp={emp}
-                      onChanged={() => void load({ date, quiet: true })}
-                    />
+                  groupedEmployees.map(([day, rows]) => (
+                    <div key={day} className="hr-day-group">
+                      {multiDay && <div className="hr-day-label">{formatHrDateLabel(day)}</div>}
+                      {rows.map((emp) => (
+                        <HrAttendanceEmployeeRow
+                          key={`${emp.date}:${emp.employeeName}`}
+                          emp={emp}
+                          onChanged={() =>
+                            void load({ from: dateRange.from, to: dateRange.to, quiet: true })
+                          }
+                        />
+                      ))}
+                    </div>
                   ))
                 )}
               </div>

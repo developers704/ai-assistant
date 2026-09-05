@@ -155,3 +155,40 @@ export function addWarningRemarks(
   writeStore(store);
   return next;
 }
+
+export function isWarningWaived(notice: Pick<HrWarningNotice, "waivedAt"> | null | undefined): boolean {
+  return Boolean(notice?.waivedAt);
+}
+
+export function waiveWarningNotice(caseId: string, waivedBy?: string | null): HrWarningNotice | null {
+  const store = readStore();
+  const idx = store.notices.findIndex(
+    (n) => n.caseId.toUpperCase() === caseId.trim().toUpperCase()
+  );
+  if (idx < 0) return null;
+  const current = store.notices[idx]!;
+  const next: HrWarningNotice = {
+    ...current,
+    kind: noticeKind(current),
+    waivedAt: new Date().toISOString(),
+    waivedBy: waivedBy ?? current.waivedBy ?? null,
+  };
+  store.notices[idx] = next;
+  writeStore(store);
+  return next;
+}
+
+export function countedScheduleWarnings(opts: {
+  from: string;
+  to: string;
+  notices?: HrWarningNotice[];
+}): HrWarningNotice[] {
+  const notices = opts.notices ?? listWarningNotices();
+  return notices.filter(
+    (n) =>
+      noticeKind(n) === "warning" &&
+      !isWarningWaived(n) &&
+      n.date >= opts.from &&
+      n.date <= opts.to
+  );
+}

@@ -54,6 +54,34 @@ describe("security guard 1 sample day", () => {
   it("flags no long meal for 63 min break on 10h shift", () => {
     const day = analyzeEmployeeDay("1, security guard", "2026-08-04", punches, schedule);
     expect(day.violations.some((v) => v.type === "long_meal")).toBe(false);
+    expect(day.displayName).toBe("Syed Muqeet Asim");
+  });
+
+  it("does not treat a long meal as a flag or warning case", () => {
+    const longMeal: HrTimecardRow[] = [
+      {
+        employeeName: "1, security guard",
+        date: "2026-08-04",
+        timeIn: "09:25 AM",
+        timeOut: "01:00 PM",
+        gapFromPrevious: null,
+        hoursLabel: "3:35",
+      },
+      {
+        employeeName: "1, security guard",
+        date: "2026-08-04",
+        timeIn: "02:30 PM",
+        timeOut: "08:12 PM",
+        gapFromPrevious: "01:30",
+        hoursLabel: "5:42",
+      },
+    ];
+    const day = analyzeEmployeeDay("1, security guard", "2026-08-04", longMeal, schedule);
+    expect(day.mealBreaks[0]?.gapMinutes).toBe(90);
+    expect(day.totalMealMinutes).toBe(90);
+    expect(day.violations.some((v) => v.type === "long_meal" || v.type === "excessive_meal_total")).toBe(
+      false
+    );
   });
 });
 

@@ -2,6 +2,7 @@ export type HrViolationType =
   | "missing_punch"
   | "late"
   | "early_in"
+  | "early_out"
   | "no_schedule"
   | "absent"
   | "long_meal"
@@ -35,6 +36,8 @@ export type HrScheduleSlot = {
 
 export type HrEmployeeDay = {
   employeeName: string;
+  /** Proper name for UI / mail (security-guard map or Guards Name). */
+  displayName: string;
   date: string;
   employeeCode: string | null;
   jobTitle: string | null;
@@ -54,8 +57,10 @@ export type HrEmployeeDay = {
   expectedMealCount: number;
   /** Minutes late vs schedule (≥12 min threshold). */
   lateMinutes: number | null;
-  /** Minutes early vs schedule (≥10 min threshold). */
+  /** Minutes early vs schedule start (≥10 min threshold). */
   earlyInMinutes: number | null;
+  /** Minutes early vs schedule end (≥10 min threshold). */
+  earlyOutMinutes: number | null;
   violations: HrViolation[];
   warning?: HrWarningNotice | null;
   writeUp?: HrWarningNotice | null;
@@ -91,6 +96,9 @@ export type HrWarningNotice = {
   sentAt: string;
   messageId: string | null;
   remarks: HrWarningRemark[];
+  /** When set, this warning does not count as a schedule violation. */
+  waivedAt?: string | null;
+  waivedBy?: string | null;
 };
 
 export type HrTimecardRow = {
