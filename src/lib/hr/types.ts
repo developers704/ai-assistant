@@ -64,6 +64,16 @@ export type HrEmployeeDay = {
   violations: HrViolation[];
   warning?: HrWarningNotice | null;
   writeUp?: HrWarningNotice | null;
+  /** Absent day was waived — still shown, but it does not count for commission extras. */
+  absenceWaived?: boolean;
+};
+
+export type HrAbsenceWaiver = {
+  employeeName: string;
+  employeeCode: string | null;
+  date: string;
+  waivedAt: string;
+  waivedBy?: string | null;
 };
 
 export type HrWarningRemark = {

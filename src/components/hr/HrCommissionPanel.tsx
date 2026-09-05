@@ -120,8 +120,10 @@ export function HrCommissionPanel({
           <p className="hr-comm-card-label">Attendance</p>
           <div className="hr-comm-row">
             <span>
-              {s.presentDays}/{s.scheduledDays} days · {s.absences} absent
-              {s.scheduleViolations ? ` · ${s.scheduleViolations} schedule warning${s.scheduleViolations === 1 ? "" : "s"}` : ""}
+              {s.presentDays}/{s.scheduledDays} days · {s.absences} unwaived absent
+              {s.scheduleViolations
+                ? ` · ${s.scheduleViolations} unwaived schedule warning${s.scheduleViolations === 1 ? "" : "s"}`
+                : ""}
             </span>
             <Status
               yes={s.attendancePassed}

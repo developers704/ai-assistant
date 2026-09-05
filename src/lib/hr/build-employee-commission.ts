@@ -12,7 +12,7 @@ import {
 } from "@/lib/hr/august-2026-commission-data";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
 import { analyzeDays } from "@/lib/hr/analyze";
-import { countedScheduleWarnings } from "@/lib/hr/warning-store";
+import { countedScheduleWarnings, listAbsenceWaivers, unwaivedAbsentDates } from "@/lib/hr/warning-store";
 import { namesMatch } from "@/lib/hr/name-match";
 import { datesInIsoRange } from "@/lib/hr/window";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
@@ -85,7 +85,19 @@ export function buildEmployeeCommissionFromSales(opts: {
     return punchNames.some((n) => namesMatch(n, e.employeeName));
   });
   const associateDays = analyzeDays(windowDates, associatePunches, associateSchedule);
-  const attendanceIssues = commissionIssuesFromDays(associateDays);
+  const payrollName = attendance.payrollName ?? associateDays[0]?.employeeName ?? code;
+  const displayName = associateDays[0]?.displayName ?? payrollName;
+  const person = {
+    employeeName: payrollName,
+    employeeCode: attendance.employeeCode ?? code,
+    displayName,
+  };
+  const unwaivedAbsent = unwaivedAbsentDates(attendance.absentDates, listAbsenceWaivers(), person);
+  const waivedAbsent = new Set(attendance.absentDates.filter((d) => !unwaivedAbsent.includes(d)));
+  const attendanceIssues = commissionIssuesFromDays(associateDays).map((issue) => {
+    if (issue.kind !== "absent") return issue;
+    return waivedAbsent.has(issue.date) ? { ...issue, label: "Absent (waived)" } : issue;
+  });
   const scheduleViolations = countedScheduleWarnings({
     from: opts.from,
     to: opts.to,
@@ -117,7 +129,7 @@ export function buildEmployeeCommissionFromSales(opts: {
     storeTotalSales,
     scheduledDays: attendance.scheduledDays,
     presentDays: attendance.presentDays,
-    absences: attendance.absences,
+    absences: unwaivedAbsent.length,
     scheduleViolations,
     attendanceIssues,
   });

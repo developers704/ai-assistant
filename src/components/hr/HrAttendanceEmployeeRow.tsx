@@ -16,6 +16,7 @@ import {
   sendWriteUpNotice,
   syncWarningRemarks,
   waiveWarningCase,
+  waiveAbsenceDay,
 } from "@/lib/hr/send-warning-mail";
 import { stripQuotedReply } from "@/lib/hr/remark-text";
 import {
@@ -259,10 +260,12 @@ export function HrAttendanceEmployeeRow({
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<HrWarningNotice | null>(emp.warning ?? null);
   const [writeUp, setWriteUp] = useState<HrWarningNotice | null>(emp.writeUp ?? null);
+  const [absenceWaived, setAbsenceWaived] = useState(Boolean(emp.absenceWaived));
   useEffect(() => {
     setWarning(emp.warning ?? null);
     setWriteUp(emp.writeUp ?? null);
-  }, [emp.warning, emp.writeUp]);
+    setAbsenceWaived(Boolean(emp.absenceWaived));
+  }, [emp.warning, emp.writeUp, emp.absenceWaived]);
   const hasError = emp.violations.some((v) => v.severity === "error");
   const missingSchedule = emp.violations.some((v) => v.type === "no_schedule");
   const isAbsent = emp.violations.some((v) => v.type === "absent");
@@ -344,6 +347,22 @@ export function HrAttendanceEmployeeRow({
     }
   };
 
+  const waiveAbsence = async (event?: MouseEvent) => {
+    event?.stopPropagation();
+    setWaiving(true);
+    setError(null);
+    try {
+      await waiveAbsenceDay(emp);
+      setAbsenceWaived(true);
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not waive absence");
+      setOpen(true);
+    } finally {
+      setWaiving(false);
+    }
+  };
+
   const roleLine = [emp.employeeCode, emp.jobTitle, emp.store].filter((s) => s?.trim()).join(" · ");
 
   return (
@@ -396,7 +415,7 @@ export function HrAttendanceEmployeeRow({
                 <span className="hr-pill hr-pill-info">Left early {emp.earlyOutMinutes} min</span>
               )}
               {warningActive && <span className="hr-pill hr-pill-sent">Warning sent</span>}
-              {warning?.waivedAt && <span className="hr-pill">Waived</span>}
+              {(warning?.waivedAt || absenceWaived) && <span className="hr-pill">Waived</span>}
               {writeUp && <span className="hr-pill hr-pill-gold">Write-up sent</span>}
             </span>
           </span>
@@ -432,6 +451,18 @@ export function HrAttendanceEmployeeRow({
               className="hr-btn hr-btn-ghost hr-btn-sm"
               data-action="waive-warning"
               onClick={(e) => void waiveWarning(e)}
+              disabled={sending || sendingWriteUp || waiving}
+            >
+              {waiving ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+              Waive
+            </button>
+          )}
+          {isAbsent && !absenceWaived && (
+            <button
+              type="button"
+              className="hr-btn hr-btn-ghost hr-btn-sm"
+              data-action="waive-absence"
+              onClick={(e) => void waiveAbsence(e)}
               disabled={sending || sendingWriteUp || waiving}
             >
               {waiving ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}

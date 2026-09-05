@@ -16,6 +16,7 @@ import {
   listWarningNotices,
   upsertWarningNotice,
   waiveWarningNotice,
+  upsertAbsenceWaiver,
 } from "@/lib/hr/warning-store";
 import type { HrWarningNotice, HrWarningRemark } from "@/lib/hr/types";
 
@@ -146,6 +147,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Warning notice not found" }, { status: 404 });
     }
     return NextResponse.json({ ok: true, warning: updated });
+  }
+
+  if (action === "waive-absence") {
+    const employeeName = String(body.employeeName ?? "").trim();
+    const date = String(body.date ?? "").trim();
+    const employeeCode = body.employeeCode == null ? null : String(body.employeeCode).trim();
+    if (!employeeName || !date) {
+      return NextResponse.json({ error: "employeeName and date are required" }, { status: 400 });
+    }
+    const waiver = upsertAbsenceWaiver({ employeeName, employeeCode, date });
+    return NextResponse.json({ ok: true, absenceWaiver: waiver });
   }
 
   const notice = asNotice(body.notice ?? body);

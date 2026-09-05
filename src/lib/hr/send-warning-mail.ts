@@ -327,3 +327,27 @@ export async function waiveWarningCase(caseId: string): Promise<HrWarningNotice>
   if (!json.warning) throw new Error("Could not waive warning");
   return json.warning;
 }
+
+export async function waiveAbsenceDay(emp: {
+  employeeName: string;
+  date: string;
+  employeeCode?: string | null;
+}): Promise<{ employeeName: string; date: string; waivedAt: string }> {
+  const res = await fetch("/api/hr/warnings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "waive-absence",
+      employeeName: emp.employeeName,
+      employeeCode: emp.employeeCode ?? null,
+      date: emp.date,
+    }),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    absenceWaiver?: { employeeName: string; date: string; waivedAt: string };
+  };
+  if (!res.ok) throw new Error(json.error || "Could not waive absence");
+  if (!json.absenceWaiver) throw new Error("Could not waive absence");
+  return json.absenceWaiver;
+}
