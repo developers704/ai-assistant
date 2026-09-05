@@ -31,6 +31,7 @@ export type VendorModelDetailSelection = {
 type VendorModelDetailDrawerProps = {
   selection: VendorModelDetailSelection | null;
   filterStore?: string;
+  filterSalesperson?: string;
   dateFrom?: string;
   dateTo?: string;
   reportId?: string;
@@ -227,6 +228,7 @@ function UnitsTrendChart({
 export function VendorModelDetailDrawer({
   selection,
   filterStore,
+  filterSalesperson,
   dateFrom,
   dateTo,
   reportId,
@@ -260,6 +262,7 @@ export function VendorModelDetailDrawer({
 
     const params = new URLSearchParams({ vendorModel: selection.vendorModel });
     if (filterStore) params.set("store", filterStore);
+    if (filterSalesperson) params.set("salesperson", filterSalesperson);
     if (reportId) params.set("id", reportId);
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
@@ -285,7 +288,7 @@ export function VendorModelDetailDrawer({
     return () => {
       cancelled = true;
     };
-  }, [selection, filterStore, reportId, dateFrom, dateTo]);
+  }, [selection, filterStore, filterSalesperson, reportId, dateFrom, dateTo]);
 
   useEffect(() => {
     if (!selection) return;

@@ -15,6 +15,7 @@ import {
   parseMultiParam,
   pruneUnavailable,
 } from "@/lib/sales/filter-params";
+import { pruneSalespersonSelection } from "@/lib/sales/salesperson-filter";
 import { MapPin, UserRound } from "lucide-react";
 import { HrCommissionPanel } from "@/components/hr/HrCommissionPanel";
 import type { EmployeeCommission } from "@/lib/hr/commission";
@@ -143,7 +144,7 @@ export function HrSalesTab() {
           if (scope?.mode !== "self") {
             setFilterStores((prev) => pruneUnavailable(prev, stores));
             setFilterDepartments((prev) => pruneUnavailable(prev, departments));
-            setFilterSalespeople((prev) => pruneUnavailable(prev, salespeople));
+            setFilterSalespeople((prev) => pruneSalespersonSelection(prev, salespeople));
           }
           setFilterDesigns((prev) => pruneUnavailable(prev, designs));
         }

@@ -10,6 +10,8 @@ import {
 import { isSalesUnifiedIntelligenceEnabled } from "@/lib/sales/flags";
 import { filterRows, groupRows, summarizeRows } from "@/lib/sales/sales-aggregate";
 import { getTopVendorModels } from "@/lib/sales/sales-product-analysis";
+import { applySalespersonFilter } from "@/lib/sales/paycode-overlay";
+import { listSalespeopleFromRows } from "@/lib/sales/salesperson-credit";
 import type { VendorPosRow } from "@/lib/reports/types";
 
 export interface VizChartRow {
@@ -46,6 +48,7 @@ export interface SalesVisualizationPayload {
     designs: string[];
     vendors: string[];
     classes: string[];
+    salespeople: string[];
   };
   applied: {
     date?: string;
@@ -56,6 +59,7 @@ export interface SalesVisualizationPayload {
     design?: string;
     vendor?: string;
     className?: string;
+    salespeople?: string[];
   };
   reportLabel: string | null;
   dateRange: { from: string | null; to: string | null };
@@ -115,6 +119,7 @@ export function buildSalesVisualizations(opts: {
   design?: string;
   vendor?: string;
   className?: string;
+  salespeople?: string[];
 }): SalesVisualizationPayload {
   const { rows: allRows, reportLabel } = loadAllRows();
   const dates = uniqSorted(allRows.map((r) => r.date));
@@ -151,8 +156,12 @@ export function buildSalesVisualizations(opts: {
     classes: opts.className ? [opts.className] : undefined,
   });
 
-  const summary = summarizeRows(filtered);
-  const byDate = groupRows(filtered, "date", 366, "netSales", "asc").sort((a, b) =>
+  const filteredRows = opts.salespeople?.length
+    ? applySalespersonFilter(filtered, opts.salespeople)
+    : filtered;
+
+  const summary = summarizeRows(filteredRows);
+  const byDate = groupRows(filteredRows, "date", 366, "netSales", "asc").sort((a, b) =>
     a.name.localeCompare(b.name)
   );
 
@@ -171,20 +180,28 @@ export function buildSalesVisualizations(opts: {
       averageUnitPrice: summary.averageUnitPrice ?? 0,
       discounts: summary.discounts ?? 0,
       grossSales: summary.grossSales ?? 0,
-      matchingRowCount: filtered.length,
+      matchingRowCount: filteredRows.length,
     },
     charts: {
       byDate: toChartRows(byDate),
-      byStore: toChartRows(groupRows(filtered, "store", 25, "netSales", "desc")),
-      byDepartment: toChartRows(groupRows(filtered, "department", 20, "netSales", "desc")),
-      byDesign: toChartRows(groupRows(filtered, "design", 20, "netSales", "desc")),
-      byVendor: toChartRows(groupRows(filtered, "vendor", 20, "netSales", "desc")),
-      byClass: toChartRows(groupRows(filtered, "class", 20, "netSales", "desc")),
+      byStore: toChartRows(groupRows(filteredRows, "store", 25, "netSales", "desc")),
+      byDepartment: toChartRows(groupRows(filteredRows, "department", 20, "netSales", "desc")),
+      byDesign: toChartRows(groupRows(filteredRows, "design", 20, "netSales", "desc")),
+      byVendor: toChartRows(groupRows(filteredRows, "vendor", 20, "netSales", "desc")),
+      byClass: toChartRows(groupRows(filteredRows, "class", 20, "netSales", "desc")),
       topVendorModels: toChartRows(
-        getTopVendorModels(filtered, { limit: 15, sortBy: "quantity" })
+        getTopVendorModels(filteredRows, { limit: 15, sortBy: "quantity" })
       ),
     },
-    filters: { dates, stores, departments, designs, vendors, classes },
+    filters: {
+      dates,
+      stores,
+      departments,
+      designs,
+      vendors,
+      classes,
+      salespeople: listSalespeopleFromRows(allRows).map((s) => s.label),
+    },
     applied: {
       date: appliedFrom && appliedTo && appliedFrom === appliedTo ? appliedFrom : undefined,
       dateFrom: appliedFrom,
@@ -194,6 +211,7 @@ export function buildSalesVisualizations(opts: {
       design: opts.design,
       vendor: opts.vendor,
       className: opts.className,
+      salespeople: opts.salespeople,
     },
     reportLabel,
     dateRange: {
