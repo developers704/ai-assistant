@@ -55,7 +55,7 @@ When changing Top Models soft-hide rules, update `src/lib/utils.ts` and this fil
 
 - File: `data/reports/Sales-Report.csv`
 - Seeded via `src/lib/reports/store.ts`; app refreshes `.data/reports/` when the file changes
-- Current seed window: **2025-01-01 → 2026-09-03**
+- Current seed window: **2025-01-01 → 2026-09-04**
 - Companion paycode overlay: `data/reports/Payment-Transactions.csv` (Applied Amt by Transaction # / Pay Code; daily files append / replace same day)
 
 ## Paycode overlay (Sales Dashboard only)
