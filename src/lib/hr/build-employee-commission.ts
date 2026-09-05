@@ -2,7 +2,7 @@ import { applyHrSalesDesigns, hrSalesDesignName } from "@/lib/hr/hr-sales-design
 import { assembleEmployeeCommission, type EmployeeCommission } from "@/lib/hr/commission";
 import {
   commissionAttendanceForAssociate,
-  commissionIssuesFromDays,
+  countedCommissionViolations,
   hrRowsMatchAssociate,
 } from "@/lib/hr/commission-attendance";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/lib/hr/august-2026-commission-data";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
 import { analyzeDays } from "@/lib/hr/analyze";
-import { countedScheduleWarnings } from "@/lib/hr/warning-store";
+import { countedScheduleWarnings, listAbsenceWaivers, unwaivedAbsentDates } from "@/lib/hr/warning-store";
 import { namesMatch } from "@/lib/hr/name-match";
 import { datesInIsoRange } from "@/lib/hr/window";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
@@ -85,8 +85,15 @@ export function buildEmployeeCommissionFromSales(opts: {
     return punchNames.some((n) => namesMatch(n, e.employeeName));
   });
   const associateDays = analyzeDays(windowDates, associatePunches, associateSchedule);
-  const attendanceIssues = commissionIssuesFromDays(associateDays);
-  const scheduleViolations = countedScheduleWarnings({
+  const payrollName = attendance.payrollName ?? associateDays[0]?.employeeName ?? code;
+  const displayName = associateDays[0]?.displayName ?? payrollName;
+  const person = {
+    employeeName: payrollName,
+    employeeCode: attendance.employeeCode ?? code,
+    displayName,
+  };
+  const unwaivedAbsent = unwaivedAbsentDates(attendance.absentDates, listAbsenceWaivers(), person);
+  const warningNotices = countedScheduleWarnings({
     from: opts.from,
     to: opts.to,
   }).filter((n) => {
@@ -96,7 +103,12 @@ export function buildEmployeeCommissionFromSales(opts: {
         namesMatch(n.employeeName, day.employeeName) ||
         namesMatch(n.employeeName, day.displayName)
     );
-  }).length;
+  });
+  const scheduleViolations = warningNotices.length;
+  const attendanceIssues = countedCommissionViolations({
+    unwaivedAbsentDates: unwaivedAbsent,
+    warnings: warningNotices,
+  });
 
   const storeTotals = storeTotalsFromRows(windowRows);
   const storeCode = attendance.posStore ?? majorityStore(personRows);
@@ -117,7 +129,7 @@ export function buildEmployeeCommissionFromSales(opts: {
     storeTotalSales,
     scheduledDays: attendance.scheduledDays,
     presentDays: attendance.presentDays,
-    absences: attendance.absences,
+    absences: unwaivedAbsent.length,
     scheduleViolations,
     attendanceIssues,
   });

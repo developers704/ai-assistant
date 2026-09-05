@@ -51,7 +51,11 @@ export type EmployeeCommission = {
 };
 
 export function attendancePasses(absences: number, scheduleViolations = 0): boolean {
-  return absences <= ATTENDANCE_PASS_MAX_ABSENCES && scheduleViolations <= ATTENDANCE_PASS_MAX_SCHEDULE_VIOLATIONS;
+  // Unwaived absences must be 0. Unwaived schedule warnings ≤ 3 is the same as < 4.
+  return (
+    absences <= ATTENDANCE_PASS_MAX_ABSENCES &&
+    scheduleViolations <= ATTENDANCE_PASS_MAX_SCHEDULE_VIOLATIONS
+  );
 }
 
 export function buildDesignCommissionLines(
@@ -75,8 +79,8 @@ export function buildDesignCommissionLines(
 }
 
 /**
- * Attendance extras apply only when absences are 0 and unwaived
- * schedule warnings are 0–3. Base commission is always paid.
+ * Attendance extras apply only when unwaived absences are 0 and unwaived
+ * schedule warnings are ≤ 3 (< 4). Base commission is always paid.
  */
 export function summarizeCommission(input: {
   lines: CommissionDesignLine[];

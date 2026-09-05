@@ -9,7 +9,7 @@ import {
 } from "@/lib/hr/store";
 import { analyzeDays, distinctTimecardDates } from "@/lib/hr/analyze";
 import { namesMatch } from "@/lib/hr/name-match";
-import { listWarningNotices, noticeKind } from "@/lib/hr/warning-store";
+import { listWarningNotices, noticeKind, findAbsenceWaiver } from "@/lib/hr/warning-store";
 import {
   HR_ATTENDANCE_DATES,
   HR_ATTENDANCE_FROM,
@@ -67,6 +67,7 @@ export async function GET(req: NextRequest) {
           namesMatch(n.employeeName, emp.employeeName) &&
           noticeKind(n) === "writeup"
       ) ?? null,
+    absenceWaived: Boolean(findAbsenceWaiver(emp.employeeName, emp.date, emp.employeeCode)),
   }));
 
   return NextResponse.json({

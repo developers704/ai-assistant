@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import type { HrNoticeKind, HrWarningNotice, HrWarningRemark } from "./types";
+import type { HrAbsenceWaiver, HrNoticeKind, HrWarningNotice, HrWarningRemark } from "./types";
 import { namesMatch } from "./name-match";
 import { stripQuotedReply } from "./remark-text";
 
@@ -9,6 +9,7 @@ const STORE_PATH = path.join(DATA_DIR, "warnings.json");
 
 type WarningStoreFile = {
   notices: HrWarningNotice[];
+  absenceWaivers?: HrAbsenceWaiver[];
 };
 
 function ensureDir() {
@@ -17,18 +18,19 @@ function ensureDir() {
 
 function readStore(): WarningStoreFile {
   ensureDir();
-  if (!fs.existsSync(STORE_PATH)) return { notices: [] };
+  if (!fs.existsSync(STORE_PATH)) return { notices: [], absenceWaivers: [] };
   try {
     const parsed = JSON.parse(fs.readFileSync(STORE_PATH, "utf8")) as WarningStoreFile;
-    if (!parsed || !Array.isArray(parsed.notices)) return { notices: [] };
+    if (!parsed || !Array.isArray(parsed.notices)) return { notices: [], absenceWaivers: [] };
     return {
       notices: parsed.notices.map((n) => ({
         ...n,
         remarks: Array.isArray(n.remarks) ? n.remarks : [],
       })),
+      absenceWaivers: Array.isArray(parsed.absenceWaivers) ? parsed.absenceWaivers : [],
     };
   } catch {
-    return { notices: [] };
+    return { notices: [], absenceWaivers: [] };
   }
 }
 
@@ -190,5 +192,82 @@ export function countedScheduleWarnings(opts: {
       !isWarningWaived(n) &&
       n.date >= opts.from &&
       n.date <= opts.to
+  );
+}
+
+export function listAbsenceWaivers(): HrAbsenceWaiver[] {
+  return readStore().absenceWaivers ?? [];
+}
+
+export function absenceWaiverAppliesTo(
+  waiver: Pick<HrAbsenceWaiver, "employeeName" | "employeeCode" | "date">,
+  person: {
+    date?: string;
+    employeeName: string;
+    employeeCode?: string | null;
+    displayName?: string | null;
+  }
+): boolean {
+  if (person.date && waiver.date !== person.date) return false;
+  const code = (person.employeeCode ?? "").trim().toUpperCase();
+  const waiverCode = (waiver.employeeCode ?? "").trim().toUpperCase();
+  if (code && waiverCode && code === waiverCode) return true;
+  if (namesMatch(waiver.employeeName, person.employeeName)) return true;
+  if (person.displayName && namesMatch(waiver.employeeName, person.displayName)) return true;
+  return false;
+}
+
+export function findAbsenceWaiver(
+  employeeName: string,
+  date: string,
+  employeeCode?: string | null
+): HrAbsenceWaiver | null {
+  return (
+    listAbsenceWaivers().find((w) =>
+      absenceWaiverAppliesTo(w, { employeeName, date, employeeCode })
+    ) ?? null
+  );
+}
+
+export function upsertAbsenceWaiver(input: {
+  employeeName: string;
+  employeeCode?: string | null;
+  date: string;
+  waivedBy?: string | null;
+}): HrAbsenceWaiver {
+  const store = readStore();
+  const waivers = [...(store.absenceWaivers ?? [])];
+  const idx = waivers.findIndex((w) =>
+    absenceWaiverAppliesTo(w, {
+      employeeName: input.employeeName,
+      employeeCode: input.employeeCode,
+      date: input.date,
+    })
+  );
+  const next: HrAbsenceWaiver = {
+    employeeName: input.employeeName.trim(),
+    employeeCode: input.employeeCode?.trim() || null,
+    date: input.date,
+    waivedAt: new Date().toISOString(),
+    waivedBy: input.waivedBy ?? (idx >= 0 ? waivers[idx]!.waivedBy : null) ?? null,
+  };
+  if (idx >= 0) waivers[idx] = next;
+  else waivers.unshift(next);
+  store.absenceWaivers = waivers;
+  writeStore(store);
+  return next;
+}
+
+export function unwaivedAbsentDates(
+  absentDates: string[],
+  waivers: HrAbsenceWaiver[],
+  person: {
+    employeeName: string;
+    employeeCode?: string | null;
+    displayName?: string | null;
+  }
+): string[] {
+  return absentDates.filter(
+    (date) => !waivers.some((w) => absenceWaiverAppliesTo(w, { ...person, date }))
   );
 }
