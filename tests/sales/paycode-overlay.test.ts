@@ -609,4 +609,28 @@ describe("bundled Payment-Transactions.csv", () => {
     const sum = totals.reduce((s, t) => s + t.revenue, 0);
     expect(sum).toBeCloseTo(254709.05, 2);
   });
+
+  it("Paycodes card Sep 5 2026 matches the appended daily payment CSV", () => {
+    const file = path.join(process.cwd(), "data/reports/Payment-Transactions.csv");
+    const totals = paycodeTotalsForPaymentWindow({
+      from: "2026-09-05",
+      to: "2026-09-05",
+      legs: parsePaycodeLegs(fs.readFileSync(file, "utf8")),
+    });
+    const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
+    expect(byName["CC"]).toBeCloseTo(142748.74, 2);
+    expect(byName["IDDEAL"]).toBeCloseTo(120021.1, 2);
+    expect(byName["KAFE"]).toBeCloseTo(48895.27, 2);
+    expect(byName["CASH"]).toBeCloseTo(25334.27, 2);
+    expect(byName["SYNC"]).toBeCloseTo(25073.9, 2);
+    expect(byName["BREAD"]).toBeCloseTo(5116.64, 2);
+    expect(byName["PROG"]).toBeCloseTo(3467, 2);
+    expect(byName["WELLS"]).toBeCloseTo(2795, 2);
+    expect(byName["GAFCO"]).toBeCloseTo(2575, 2);
+    expect(byName["AFFIRM"]).toBeCloseTo(1897.39, 2);
+    expect(byName["ACIMA"]).toBeCloseTo(1875, 2);
+    expect(byName["GE"]).toBeUndefined();
+    const sum = totals.reduce((s, t) => s + t.revenue, 0);
+    expect(sum).toBeCloseTo(379799.31, 2);
+  });
 });
