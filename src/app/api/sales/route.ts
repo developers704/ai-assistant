@@ -107,16 +107,28 @@ function salespersonCreditCodes(value: unknown): string[] {
  * This keeps the Flutter table fast: it can render Store immediately instead
  * of issuing a commission request just to discover the employee's store.
  */
+type SalesSummaryPeopleFields = {
+  topSalesPeople?: unknown;
+  topSalespersons?: unknown;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function enrichTopSalesPeopleWithStore(
-  summary: Record<string, any>,
+  summary: SalesSummaryPeopleFields,
   rows: NonNullable<ReturnType<typeof readNormalizedRows>>
 ): void {
-  const ranking = Array.isArray(summary.topSalesPeople)
+  const rawRanking = Array.isArray(summary.topSalesPeople)
     ? summary.topSalesPeople
     : Array.isArray(summary.topSalespersons)
       ? summary.topSalespersons
       : null;
-  if (!ranking?.length || !rows.length) return;
+  if (!rawRanking?.length || !rows.length) return;
+
+  const ranking = rawRanking.filter(isRecord);
+  if (!ranking.length) return;
 
   const storesByCode = new Map<string, Set<string>>();
   for (const row of rows) {
@@ -493,7 +505,7 @@ export async function GET(req: NextRequest) {
         previousWeek,
       });
       const versionRows = version ? readNormalizedRows(version) ?? [] : [];
-      enrichTopSalesPeopleWithStore(summary as unknown as Record<string, any>, versionRows);
+      enrichTopSalesPeopleWithStore(summary as unknown as SalesSummaryPeopleFields, versionRows);
       if (hideVendors) {
         summary.topVendors = [];
         summary.recommendations = summary.recommendations.filter(
