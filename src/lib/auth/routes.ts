@@ -32,7 +32,7 @@ const APP_TO_PERMISSION: Record<string, UserPermissionKey | UserPermissionKey[]>
   "/social": "social",
   "/hr": ["hr_management", "hr_sales"],
   "/admin/users": "user_admin",
-  "/admin/roles": "user_admin",
+  "/admin/roles": "role_admin",
 };
 
 const API_TO_PERMISSION: Array<{
@@ -66,6 +66,8 @@ const API_TO_PERMISSION: Array<{
   { prefix: "/api/hr/commission", permission: ["hr_management", "hr_sales"] },
   { prefix: "/api/hr/employee-sales", permission: ["hr_management", "hr_sales"] },
   { prefix: "/api/hr", permission: "hr_management" },
+  { prefix: "/api/admin/roles", permission: "role_admin" },
+  { prefix: "/api/admin/users", permission: "user_admin" },
   { prefix: "/api/admin", permission: "user_admin" },
 ];
 

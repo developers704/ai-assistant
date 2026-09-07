@@ -9,7 +9,7 @@ import {
   type AuthRole,
   type AuthUserRecord,
 } from "@/lib/auth/users";
-import { canManageUsersByRole } from "@/lib/auth/user-permissions";
+import { canManageUsersByRole, hasUsersPermission } from "@/lib/auth/user-permissions";
 import { getPermissionMapForUser } from "@/lib/auth/user-permissions-store";
 import {
   deleteDirectoryUser,
@@ -43,7 +43,8 @@ async function requireManager() {
   if (!session || !canManageUsersByRole(session.role)) {
     return { session: null, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
-  if (!getPermissionMapForUser(session.username, session.role).user_admin && session.role !== "admin") {
+  const map = getPermissionMapForUser(session.username, session.role);
+  if (!hasUsersPermission(session.role, map)) {
     return { session: null, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
   return { session, error: null };

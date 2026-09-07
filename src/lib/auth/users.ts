@@ -16,7 +16,7 @@ export const AUTH_ROLE_LABEL: Record<AuthRole, string> = {
 export const AUTH_ROLE_DESCRIPTION: Record<AuthRole, string> = {
   admin: "Administrator with full permissions.",
   employee: "HR sales and SKU lookup (wholesale cost, no customer offer).",
-  hr: "Full HR Management plus users, roles, and permissions.",
+  hr: "HR Management and employee records. Roles & Permissions is granted separately.",
   dm: "District manager — sales, stores, and price calculator.",
 };
 

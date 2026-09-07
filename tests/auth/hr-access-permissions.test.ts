@@ -61,14 +61,16 @@ describe("Admin / Employee / HR / DM roles", () => {
     expect(map.discounting).toBe(false);
     expect(map.hr_management).toBe(false);
     expect(map.user_admin).toBe(false);
+    expect(map.role_admin).toBe(false);
     expect(homePathForRole("employee", map)).toBe("/hr");
   });
 
-  it("defaults HR to full HR Management plus users/roles", () => {
+  it("defaults HR to HR Management and Users, not Roles & Permissions", () => {
     const map = getDefaultPermissionMapForRole("hr");
     expect(map.hr_management).toBe(true);
     expect(map.hr_sales).toBe(true);
     expect(map.user_admin).toBe(true);
+    expect(map.role_admin).toBe(false);
     expect(map.sales_dashboard).toBe(false);
     expect(map.price_calculator).toBe(false);
     expect(canManageUsersByRole("hr")).toBe(true);
@@ -85,6 +87,7 @@ describe("Admin / Employee / HR / DM roles", () => {
     expect(map.discounting).toBe(false);
     expect(map.hr_management).toBe(false);
     expect(map.user_admin).toBe(false);
+    expect(map.role_admin).toBe(false);
   });
 
   it("uses wholesale cost for Employee, HR, and DMs; real cost for admins", () => {

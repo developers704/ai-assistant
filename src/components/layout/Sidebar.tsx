@@ -150,7 +150,7 @@ function fallbackNavForRole(role?: string | null): NavItem[] {
     return [HR_SALES_NAV, SKU_LOOKUP_NAV, ALL_NAV_ITEMS["/settings"]!];
   }
   if (role === "hr") {
-    return [HR_MANAGEMENT_NAV, USERS_NAV, ROLES_NAV, ALL_NAV_ITEMS["/settings"]!];
+    return [HR_MANAGEMENT_NAV, USERS_NAV, ALL_NAV_ITEMS["/settings"]!];
   }
   return [
     ALL_NAV_ITEMS["/sales"]!,
@@ -193,9 +193,8 @@ function useNavItems(): NavItem[] {
     if (Boolean(permissions[key])) items.push(item);
   }
 
-  if (permissions.user_admin) {
-    items.push(USERS_NAV, ROLES_NAV);
-  }
+  if (permissions.user_admin) items.push(USERS_NAV);
+  if (permissions.role_admin) items.push(ROLES_NAV);
   items.push(ALL_NAV_ITEMS["/settings"]!);
   return withoutHiddenNav(items);
 }

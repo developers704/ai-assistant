@@ -17,7 +17,8 @@ export type UserPermissionKey =
   | "hr_management"
   | "hr_sales"
   | "sku_lookup"
-  | "user_admin";
+  | "user_admin"
+  | "role_admin";
 
 export type UserPermissionMap = Record<UserPermissionKey, boolean>;
 export type PermissionOverrides = Record<string, Partial<UserPermissionMap>>;
@@ -27,9 +28,27 @@ export type RolePermissionOverrides = Partial<
 
 export const PERMISSION_COOKIE_NAME = "alexa-user-permissions-v1";
 
-/** Admin or HR may manage users and role permissions. */
+/** Admin or HR may be granted Users and/or Roles & Permissions. */
 export function canManageUsersByRole(role?: string | null): boolean {
   return role === "admin" || role === "hr";
+}
+
+/** Add / edit / remove employee records (Users page). Admins always have it. */
+export function hasUsersPermission(
+  role?: string | null,
+  map?: Partial<UserPermissionMap> | null
+): boolean {
+  if (role === "admin") return true;
+  return Boolean(map?.user_admin);
+}
+
+/** Grant section access on Roles & Permissions. Admins always have it. */
+export function hasRolesPermission(
+  role?: string | null,
+  map?: Partial<UserPermissionMap> | null
+): boolean {
+  if (role === "admin") return true;
+  return Boolean(map?.role_admin);
 }
 
 /** @deprecated Settings matrix; use canManageUsersByRole. */
@@ -73,7 +92,12 @@ export const USER_PERMISSION_SECTIONS: Array<{
   { key: "image_generation", label: "Image Generation", description: "Image creation tools" },
   { key: "social", label: "Social", description: "Instagram and social workflows" },
   { key: "vendor_info", label: "Vendor Info", description: "Vendor names and vendor-level detail" },
-  { key: "user_admin", label: "Users & Roles", description: "Create, edit, and delete users and role permissions" },
+  { key: "user_admin", label: "Users", description: "Add, edit, and remove employee records" },
+  {
+    key: "role_admin",
+    label: "Roles & Permissions",
+    description: "Grant section access for each role",
+  },
 ];
 
 export const DM_USERNAMES = ["aj", "shaun", "adeel", "rozina"] as const;
@@ -121,6 +145,7 @@ export function getDefaultPermissionMapForRole(
       hr_management: true,
       hr_sales: true,
       user_admin: true,
+      role_admin: false,
       vendor_info: true,
     };
   }
