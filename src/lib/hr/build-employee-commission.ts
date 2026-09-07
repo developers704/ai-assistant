@@ -4,6 +4,7 @@ import {
   commissionAttendanceForAssociate,
   countedCommissionViolations,
   hrRowsMatchAssociate,
+  presentDaysWithWaivedAbsences,
 } from "@/lib/hr/commission-attendance";
 import {
   AUGUST_PERSONAL_GOALS,
@@ -128,7 +129,11 @@ export function buildEmployeeCommissionFromSales(opts: {
     storeGoal,
     storeTotalSales,
     scheduledDays: attendance.scheduledDays,
-    presentDays: attendance.presentDays,
+    presentDays: presentDaysWithWaivedAbsences(
+      attendance.presentDays,
+      attendance.absentDates,
+      unwaivedAbsent
+    ),
     absences: unwaivedAbsent.length,
     scheduleViolations,
     attendanceIssues,

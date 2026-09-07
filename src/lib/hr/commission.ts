@@ -32,6 +32,7 @@ export type CommissionSummary = {
   storeTotalSales: number;
   storeGoalAchieved: boolean;
   scheduledDays: number;
+  /** Punched scheduled days plus waived scheduled no-punch days. */
   presentDays: number;
   absences: number;
   scheduleViolations: number;

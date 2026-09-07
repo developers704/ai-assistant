@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { attendancePasses } from "@/lib/hr/commission";
 import { absenceWaiverAppliesTo, normalizeWaiverComment, unwaivedAbsentDates } from "@/lib/hr/warning-store";
-import { countedCommissionViolations } from "@/lib/hr/commission-attendance";
+import { countedCommissionViolations, presentDaysWithWaivedAbsences } from "@/lib/hr/commission-attendance";
 import type { HrWarningNotice } from "@/lib/hr/types";
 
 describe("commission extra gates", () => {
@@ -81,6 +81,25 @@ describe("absence waivers", () => {
     );
     expect(remaining).toEqual([]);
     expect(attendancePasses(remaining.length, 0)).toBe(true);
+  });
+
+  it("counts waived scheduled days as present so 0 absent reads as 21/21", () => {
+    const rawAbsent = ["2026-08-27"];
+    const remaining = unwaivedAbsentDates(
+      rawAbsent,
+      [
+        {
+          employeeName: "8, security guard",
+          employeeCode: "SA4",
+          date: "2026-08-27",
+          waivedAt: "2026-09-05T00:00:00.000Z",
+        },
+      ],
+      { employeeName: "8, security guard", employeeCode: "SA4" }
+    );
+    expect(remaining).toEqual([]);
+    expect(presentDaysWithWaivedAbsences(20, rawAbsent, remaining)).toBe(21);
+    expect(presentDaysWithWaivedAbsences(20, rawAbsent, rawAbsent)).toBe(20);
   });
 
   it("requires a trimmed waive note", () => {

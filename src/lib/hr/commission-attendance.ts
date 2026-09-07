@@ -86,6 +86,20 @@ export function commissionAttendanceForAssociate(
   };
 }
 
+/**
+ * Commission header `present/scheduled` uses punches, then adds waived
+ * scheduled no-punch days so a waived absence reads as 21/21 · 0 absent
+ * instead of 20/21 · 0 absent.
+ */
+export function presentDaysWithWaivedAbsences(
+  presentDays: number,
+  rawAbsentDates: string[],
+  unwaivedAbsent: string[]
+): number {
+  const waived = rawAbsentDates.filter((date) => !unwaivedAbsent.includes(date)).length;
+  return presentDays + Math.max(0, waived);
+}
+
 export function scheduleWarningIssueKind(
   notice: Pick<HrWarningNotice, "caseId">
 ): "late" | "early" | "early_out" {
