@@ -48,7 +48,14 @@ const SALES_RANGE_OPTIONS = [
 ] as const;
 
 type SalesRangeId = (typeof SALES_RANGE_OPTIONS)[number]["id"];
-type SortKey = "netSales" | "units" | "presentDays" | "base" | "attendanceBonus" | "personalBonus" | "commission";
+type SortKey =
+  | "netSales"
+  | "presentDays"
+  | "base"
+  | "attendanceBonus"
+  | "personalBonus"
+  | "storeBonus"
+  | "commission";
 
 function rangeFromSearchParams(sp: URLSearchParams): SalesDateRangeValue | null {
   const from = sp.get("from")?.trim() ?? "";
@@ -96,11 +103,11 @@ function employeeInitials(label: string): string {
 function sortValue(row: EmployeeSalesRosterRow, key: SortKey): number {
   const s = row.commission.summary;
   if (key === "netSales") return s.netSales;
-  if (key === "units") return row.units;
   if (key === "presentDays") return s.presentDays;
   if (key === "base") return s.baseCommission;
   if (key === "attendanceBonus") return s.attendanceBonus;
   if (key === "personalBonus") return s.personalGoalBonus;
+  if (key === "storeBonus") return s.storeGoalBonus;
   return s.totalCommission;
 }
 
@@ -562,12 +569,6 @@ export function HrSalesTab() {
                         onClick={() => toggleSort("netSales")}
                       />
                       <SortTh
-                        label="Units"
-                        active={sortKey === "units"}
-                        dir={sortDir}
-                        onClick={() => toggleSort("units")}
-                      />
-                      <SortTh
                         label="Worked days"
                         active={sortKey === "presentDays"}
                         dir={sortDir}
@@ -586,13 +587,19 @@ export function HrSalesTab() {
                         onClick={() => toggleSort("attendanceBonus")}
                       />
                       <SortTh
-                        label="Personal sale/bonus"
+                        label="Personal Goal Bonus"
                         active={sortKey === "personalBonus"}
                         dir={sortDir}
                         onClick={() => toggleSort("personalBonus")}
                       />
                       <SortTh
-                        label="Commission"
+                        label="Store goal bonus"
+                        active={sortKey === "storeBonus"}
+                        dir={sortDir}
+                        onClick={() => toggleSort("storeBonus")}
+                      />
+                      <SortTh
+                        label="T.Comission"
                         active={sortKey === "commission"}
                         dir={sortDir}
                         onClick={() => toggleSort("commission")}
@@ -710,14 +717,18 @@ function EmployeeTableBlock({
           </span>
         </td>
         <td className="hr-esr-num">{formatCurrency(s.netSales)}</td>
-        <td className="hr-esr-num">{formatUnitsSold(row.units)}</td>
-        <td className="hr-esr-num">{s.presentDays}</td>
+        <td className="hr-esr-num">
+          {s.presentDays}/{s.scheduledDays}
+        </td>
         <td className="hr-esr-num">{formatCurrency(s.baseCommission)}</td>
         <td className="hr-esr-num">
           {s.attendanceBonus ? formatCurrency(s.attendanceBonus) : "—"}
         </td>
         <td className="hr-esr-num">
-          {formatCurrency(s.netSales)} / {formatCurrency(s.personalGoalBonus)}
+          {s.personalGoalBonus ? formatCurrency(s.personalGoalBonus) : "—"}
+        </td>
+        <td className="hr-esr-num">
+          {s.storeGoalBonus ? formatCurrency(s.storeGoalBonus) : "—"}
         </td>
         <td className="hr-esr-num hr-esr-num-em">{formatCurrency(s.totalCommission)}</td>
       </tr>
