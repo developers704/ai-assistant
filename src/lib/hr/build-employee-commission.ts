@@ -1,10 +1,12 @@
-import { applyHrSalesDesigns, hrSalesDesignName } from "@/lib/hr/hr-sales-design";
+import { applyHrSalesDesigns } from "@/lib/hr/hr-sales-design";
 import { assembleEmployeeCommission, type EmployeeCommission } from "@/lib/hr/commission";
 import {
+  buildHrAttendanceIndex,
   commissionAttendanceForAssociate,
   countedCommissionViolations,
-  hrRowsMatchAssociate,
+  directoryNamesForCode,
   presentDaysWithWaivedAbsences,
+  type HrAttendanceIndex,
 } from "@/lib/hr/commission-attendance";
 import {
   AUGUST_PERSONAL_GOALS,
@@ -12,7 +14,6 @@ import {
   dummyGoalAboveActual,
 } from "@/lib/hr/august-2026-commission-data";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
-import { analyzeDays } from "@/lib/hr/analyze";
 import {
   countedScheduleWarnings,
   listAbsenceWaivers,
@@ -20,22 +21,22 @@ import {
 } from "@/lib/hr/warning-store";
 import type { HrAbsenceWaiver, HrScheduleEntry, HrTimecardRow, HrWarningNotice } from "@/lib/hr/types";
 import { namesMatch } from "@/lib/hr/name-match";
-import { datesInIsoRange } from "@/lib/hr/window";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { applySalespersonFilter } from "@/lib/sales/paycode-overlay";
 import {
   creditSalespersonRows,
+  parseSalespersonSplits,
   resolveSalespersonFilterCode,
+  salespersonFilterSlice,
 } from "@/lib/sales/salesperson-credit";
 import { filterRows } from "@/lib/sales/sales-aggregate";
 import { resolveSalespersonLabelWithCode } from "@/lib/sales/salesperson-directory";
 
-function designTotalsFromRows(rows: VendorPosRow[]): { design: string; netSales: number }[] {
-  const mapped = applyHrSalesDesigns(rows);
+function designTotalsFromMappedRows(rows: VendorPosRow[]): { design: string; netSales: number }[] {
   const totals = new Map<string, number>();
-  for (const r of mapped) {
-    const name = hrSalesDesignName(r);
+  for (const r of rows) {
+    const name = (r.design || "").trim() || "Others";
     totals.set(name, (totals.get(name) ?? 0) + (r.netRevenue ?? 0));
   }
   return [...totals.entries()]
@@ -66,20 +67,132 @@ function majorityStore(rows: VendorPosRow[]): string | null {
   return best;
 }
 
+function groupPersonRows(rows: VendorPosRow[]): Map<string, VendorPosRow[]> {
+  const grouped = new Map<string, VendorPosRow[]>();
+  for (const r of rows) {
+    const splits = parseSalespersonSplits(r.salespersons);
+    if (!splits.length) continue;
+    for (const s of splits) {
+      const slice = salespersonFilterSlice(r, [s.code]);
+      if (!slice) continue;
+      const next =
+        slice.share === 1
+          ? { ...r, salespersons: slice.salespersons }
+          : { ...r, netRevenue: r.netRevenue * slice.share, salespersons: slice.salespersons };
+      const list = grouped.get(s.code);
+      if (list) list.push(next);
+      else grouped.set(s.code, [next]);
+    }
+  }
+  return grouped;
+}
+
 export type EmployeeCommissionBuildCache = {
   punches: HrTimecardRow[];
   schedule: HrScheduleEntry[];
   waivers: HrAbsenceWaiver[];
   windowWarnings: HrWarningNotice[];
+  hrIndex?: HrAttendanceIndex;
 };
 
 export function loadEmployeeCommissionBuildCache(from: string, to: string): EmployeeCommissionBuildCache {
+  const punches = loadActiveTimecardRows();
+  const schedule = loadActiveScheduleEntries();
   return {
-    punches: loadActiveTimecardRows(),
-    schedule: loadActiveScheduleEntries(),
+    punches,
+    schedule,
     waivers: listAbsenceWaivers(),
     windowWarnings: countedScheduleWarnings({ from, to }),
+    hrIndex: buildHrAttendanceIndex(from, to, punches, schedule),
   };
+}
+
+type AttendanceParts = {
+  attendance: ReturnType<typeof commissionAttendanceForAssociate>;
+  unwaivedAbsent: string[];
+  attendanceIssues: ReturnType<typeof countedCommissionViolations>;
+  presentDays: number;
+};
+
+function attendancePartsFor(
+  cache: EmployeeCommissionBuildCache,
+  code: string,
+  from: string,
+  to: string,
+  memo?: Map<string, AttendanceParts>
+): AttendanceParts {
+  const hit = memo?.get(code);
+  if (hit) return hit;
+  const attendance = commissionAttendanceForAssociate(
+    code,
+    from,
+    to,
+    cache.punches,
+    cache.schedule,
+    cache.hrIndex
+  );
+  const person = {
+    employeeName: attendance.payrollName ?? code,
+    employeeCode: attendance.employeeCode ?? code,
+    displayName: attendance.payrollName ?? code,
+  };
+  const unwaivedAbsent = unwaivedAbsentDates(attendance.absentDates, cache.waivers, person);
+  const nameHints = [attendance.payrollName, ...directoryNamesForCode(code)].filter(
+    (n): n is string => Boolean(n)
+  );
+  const warningNotices = cache.windowWarnings.filter((n) => {
+    if ((n.employeeCode ?? "").trim().toUpperCase() === code) return true;
+    return nameHints.some((nm) => namesMatch(n.employeeName, nm));
+  });
+  const parts: AttendanceParts = {
+    attendance,
+    unwaivedAbsent,
+    attendanceIssues: countedCommissionViolations({
+      unwaivedAbsentDates: unwaivedAbsent,
+      warnings: warningNotices,
+    }),
+    presentDays: presentDaysWithWaivedAbsences(
+      attendance.presentDays,
+      attendance.absentDates,
+      unwaivedAbsent
+    ),
+  };
+  memo?.set(code, parts);
+  return parts;
+}
+
+type WindowPrep = {
+  remapped: VendorPosRow[];
+  storeTotals: Map<string, number>;
+  cache: EmployeeCommissionBuildCache;
+  attendanceMemo: Map<string, AttendanceParts>;
+};
+
+const WINDOW_PREP_TTL_MS = 120_000;
+const windowPrepByKey = new Map<string, { at: number; prep: WindowPrep }>();
+
+function getWindowPrep(from: string, to: string, rows?: VendorPosRow[]): WindowPrep {
+  const key = rows ? "" : `${from}|${to}`;
+  if (key) {
+    const cached = windowPrepByKey.get(key);
+    if (cached && Date.now() - cached.at < WINDOW_PREP_TTL_MS) return cached.prep;
+  }
+  const all = rows ?? loadRankRows() ?? [];
+  const windowRows = all.filter((r) => r.date >= from && r.date <= to);
+  const prep: WindowPrep = {
+    remapped: applyHrSalesDesigns(windowRows),
+    storeTotals: storeTotalsFromRows(windowRows),
+    cache: loadEmployeeCommissionBuildCache(from, to),
+    attendanceMemo: new Map(),
+  };
+  if (key) {
+    windowPrepByKey.set(key, { at: Date.now(), prep });
+    if (windowPrepByKey.size > 6) {
+      const oldest = [...windowPrepByKey.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+      if (oldest) windowPrepByKey.delete(oldest[0]);
+    }
+  }
+  return prep;
 }
 
 export function buildEmployeeCommissionFromSales(opts: {
@@ -93,57 +206,27 @@ export function buildEmployeeCommissionFromSales(opts: {
 }): EmployeeCommission | null {
   const code = resolveSalespersonFilterCode(opts.salesperson);
   if (!code) return null;
-  const all = opts.rows ?? loadRankRows() ?? [];
-  const windowRows = all.filter((r) => r.date >= opts.from && r.date <= opts.to);
-  const personRows = opts.personRows ?? applySalespersonFilter(windowRows, [code]);
-  const storeTotalRows = opts.storeTotalRows ?? windowRows;
+  const prep = opts.rows || opts.cache ? null : getWindowPrep(opts.from, opts.to);
+  const cache = opts.cache ?? prep?.cache ?? loadEmployeeCommissionBuildCache(opts.from, opts.to);
+  if (!cache.hrIndex) {
+    cache.hrIndex = buildHrAttendanceIndex(opts.from, opts.to, cache.punches, cache.schedule);
+  }
+  const all = opts.rows ?? prep?.remapped ?? loadRankRows() ?? [];
+  const windowRows = opts.rows
+    ? all.filter((r) => r.date >= opts.from && r.date <= opts.to)
+    : prep?.remapped ?? all.filter((r) => r.date >= opts.from && r.date <= opts.to);
+  const rawPerson = opts.personRows ?? applySalespersonFilter(windowRows, [code]);
+  const personRows = opts.personRows ? rawPerson : applyHrSalesDesigns(rawPerson);
+  const storeTotals =
+    opts.storeTotalRows
+      ? storeTotalsFromRows(opts.storeTotalRows)
+      : prep?.storeTotals ?? storeTotalsFromRows(windowRows);
   const liveNet = personRows.reduce((s, r) => s + (r.netRevenue ?? 0), 0);
-  const designs = designTotalsFromRows(personRows);
-  const netSales = liveNet;
-
-  const cache = opts.cache ?? loadEmployeeCommissionBuildCache(opts.from, opts.to);
-  const punches = cache.punches;
-  const schedule = cache.schedule;
-  const attendance = commissionAttendanceForAssociate(code, opts.from, opts.to, punches, schedule);
-  const windowDates = datesInIsoRange(opts.from, opts.to);
-  const dateSet = new Set(windowDates);
-  const associatePunches = punches.filter(
-    (r) => dateSet.has(r.date) && hrRowsMatchAssociate(code, r.employeeName, r.employeeCode, r.guardsName)
-  );
-  const punchNames = [...new Set(associatePunches.map((r) => r.employeeName))];
-  const associateSchedule = schedule.filter((e) => {
-    if (!dateSet.has(e.date)) return false;
-    if (hrRowsMatchAssociate(code, e.employeeName)) return true;
-    return punchNames.some((n) => namesMatch(n, e.employeeName));
-  });
-  const associateDays = analyzeDays(windowDates, associatePunches, associateSchedule);
-  const payrollName = attendance.payrollName ?? associateDays[0]?.employeeName ?? code;
-  const displayName = associateDays[0]?.displayName ?? payrollName;
-  const person = {
-    employeeName: payrollName,
-    employeeCode: attendance.employeeCode ?? code,
-    displayName,
-  };
-  const unwaivedAbsent = unwaivedAbsentDates(attendance.absentDates, cache.waivers, person);
-  const warningNotices = cache.windowWarnings.filter((n) => {
-    if ((n.employeeCode ?? "").trim().toUpperCase() === code) return true;
-    return associateDays.some(
-      (day) =>
-        namesMatch(n.employeeName, day.employeeName) ||
-        namesMatch(n.employeeName, day.displayName)
-    );
-  });
-  const scheduleViolations = warningNotices.length;
-  const attendanceIssues = countedCommissionViolations({
-    unwaivedAbsentDates: unwaivedAbsent,
-    warnings: warningNotices,
-  });
-
-  const storeTotals = storeTotalsFromRows(storeTotalRows);
-  const storeCode = attendance.posStore ?? majorityStore(personRows);
+  const designs = designTotalsFromMappedRows(personRows);
+  const parts = attendancePartsFor(cache, code, opts.from, opts.to, prep?.attendanceMemo);
+  const storeCode = parts.attendance.posStore ?? majorityStore(personRows);
   const storeTotalSales = storeCode ? (storeTotals.get(storeCode) ?? 0) : 0;
-
-  const personalGoal = AUGUST_PERSONAL_GOALS[code] ?? dummyGoalAboveActual(netSales);
+  const personalGoal = AUGUST_PERSONAL_GOALS[code] ?? dummyGoalAboveActual(liveNet);
   const storeGoal = storeCode
     ? (AUGUST_STORE_GOALS[storeCode] ?? dummyGoalAboveActual(storeTotalSales))
     : dummyGoalAboveActual(storeTotalSales);
@@ -151,20 +234,16 @@ export function buildEmployeeCommissionFromSales(opts: {
   return assembleEmployeeCommission({
     code,
     designs,
-    netSales,
+    netSales: liveNet,
     personalGoal,
     storeCode,
     storeGoal,
     storeTotalSales,
-    scheduledDays: attendance.scheduledDays,
-    presentDays: presentDaysWithWaivedAbsences(
-      attendance.presentDays,
-      attendance.absentDates,
-      unwaivedAbsent
-    ),
-    absences: unwaivedAbsent.length,
-    scheduleViolations,
-    attendanceIssues,
+    scheduledDays: parts.attendance.scheduledDays,
+    presentDays: parts.presentDays,
+    absences: parts.unwaivedAbsent.length,
+    scheduleViolations: parts.attendanceIssues.filter((i) => i.kind !== "absent").length,
+    attendanceIssues: parts.attendanceIssues,
   });
 }
 
@@ -184,10 +263,8 @@ export function buildEmployeeSalesRoster(opts: {
   salespeople?: string[];
   rows?: VendorPosRow[];
 }): EmployeeSalesRosterRow[] {
-  const all = opts.rows ?? loadRankRows() ?? [];
-  const windowRows = all.filter((r) => r.date >= opts.from && r.date <= opts.to);
-  const remapped = applyHrSalesDesigns(windowRows);
-  const scoped = filterRows(remapped, {
+  const prep = getWindowPrep(opts.from, opts.to, opts.rows);
+  const scoped = filterRows(prep.remapped, {
     dateFrom: opts.from,
     dateTo: opts.to,
     stores: opts.stores,
@@ -200,20 +277,38 @@ export function buildEmployeeSalesRoster(opts: {
   const credits = creditSalespersonRows(scoped).filter((c) =>
     wanted.length ? wanted.includes(c.code) : true
   );
-  const cache = loadEmployeeCommissionBuildCache(opts.from, opts.to);
+  const personByCode = groupPersonRows(scoped);
   const out: EmployeeSalesRosterRow[] = [];
   for (const credit of credits) {
-    const personRows = applySalespersonFilter(scoped, [credit.code]);
-    const commission = buildEmployeeCommissionFromSales({
-      salesperson: credit.code,
-      from: opts.from,
-      to: opts.to,
-      rows: windowRows,
-      personRows,
-      storeTotalRows: windowRows,
-      cache,
+    const personRows = personByCode.get(credit.code) ?? [];
+    const parts = attendancePartsFor(
+      prep.cache,
+      credit.code,
+      opts.from,
+      opts.to,
+      prep.attendanceMemo
+    );
+    const netSales = personRows.reduce((s, r) => s + (r.netRevenue ?? 0), 0);
+    const storeCode = parts.attendance.posStore ?? majorityStore(personRows);
+    const storeTotalSales = storeCode ? (prep.storeTotals.get(storeCode) ?? 0) : 0;
+    const personalGoal = AUGUST_PERSONAL_GOALS[credit.code] ?? dummyGoalAboveActual(netSales);
+    const storeGoal = storeCode
+      ? (AUGUST_STORE_GOALS[storeCode] ?? dummyGoalAboveActual(storeTotalSales))
+      : dummyGoalAboveActual(storeTotalSales);
+    const commission = assembleEmployeeCommission({
+      code: credit.code,
+      designs: designTotalsFromMappedRows(personRows),
+      netSales,
+      personalGoal,
+      storeCode,
+      storeGoal,
+      storeTotalSales,
+      scheduledDays: parts.attendance.scheduledDays,
+      presentDays: parts.presentDays,
+      absences: parts.unwaivedAbsent.length,
+      scheduleViolations: parts.attendanceIssues.filter((i) => i.kind !== "absent").length,
+      attendanceIssues: parts.attendanceIssues,
     });
-    if (!commission) continue;
     out.push({
       code: credit.code,
       label: credit.name || resolveSalespersonLabelWithCode(credit.code),
