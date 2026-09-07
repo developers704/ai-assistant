@@ -47,8 +47,15 @@ describe("employee sales roster", () => {
       salespeople: ["SA4"],
     });
     const csv = employeeSalesRosterCsv(rows);
-    expect(csv).toContain("Employee,Code,Net sales");
+    expect(csv).toContain(
+      "Employee,Code,Net sales,Worked days,Absences,Base,Attendance bonus,Personal Goal Bonus,Store goal bonus,T.Comission"
+    );
+    expect(csv).not.toMatch(/,Units,/);
     expect(csv).toMatch(/Sultan Ansari \(SA4\)/);
     expect(csv).not.toMatch(/VJ-SERRA/);
+    const sultan = rows[0]!;
+    expect(csv).toContain(
+      `${sultan.commission.summary.presentDays}/${sultan.commission.summary.scheduledDays}`
+    );
   });
 });
