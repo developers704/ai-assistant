@@ -9,6 +9,7 @@ import {
 import {
   USER_PERMISSION_SECTIONS,
   canManageUsersByRole,
+  hasRolesPermission,
   type UserPermissionKey,
   type UserPermissionMap,
 } from "@/lib/auth/user-permissions";
@@ -25,7 +26,8 @@ async function requireManager() {
   if (!session || !canManageUsersByRole(session.role)) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
-  if (!getPermissionMapForUser(session.username, session.role).user_admin && session.role !== "admin") {
+  const map = getPermissionMapForUser(session.username, session.role);
+  if (!hasRolesPermission(session.role, map)) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
   return { error: null };
