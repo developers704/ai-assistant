@@ -412,45 +412,57 @@ export function HrSalesTab() {
           <aside className="hr-esr-filters">
             <p className="hr-field-label">Filters</p>
             {availableDesigns.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Design"
-                allLabel="All designs"
-                options={availableDesigns}
-                value={filterDesigns}
-                onChange={setFilterDesigns}
-                formatOption={formatHrDesignFilterLabel}
-                fullWidth
-              />
+              <div className="hr-field">
+                <span className="hr-field-label">Design</span>
+                <SalesMultiSelectFilter
+                  label="Design"
+                  allLabel="All designs"
+                  options={availableDesigns}
+                  value={filterDesigns}
+                  onChange={setFilterDesigns}
+                  formatOption={formatHrDesignFilterLabel}
+                  fullWidth
+                />
+              </div>
             )}
             {showStoreFilter && (
-              <SalesMultiSelectFilter
-                label="Store"
-                allLabel="All stores"
-                options={availableStores}
-                value={filterStores}
-                onChange={setFilterStores}
-                fullWidth
-              />
+              <div className="hr-field">
+                <span className="hr-field-label">Store</span>
+                <SalesMultiSelectFilter
+                  label="Store"
+                  allLabel="All stores"
+                  options={availableStores}
+                  value={filterStores}
+                  onChange={setFilterStores}
+                  fullWidth
+                />
+              </div>
             )}
             {showEmployeePicker && (
-              <SalesMultiSelectFilter
-                label="Employee"
-                allLabel="All employees"
-                options={availableSalespeople}
-                value={filterSalespeople}
-                onChange={setFilterSalespeople}
-                fullWidth
-              />
+              <div className="hr-field">
+                <span className="hr-field-label">Employee</span>
+                <SalesMultiSelectFilter
+                  label="Employee"
+                  allLabel="All employees"
+                  options={availableSalespeople}
+                  value={filterSalespeople}
+                  onChange={setFilterSalespeople}
+                  fullWidth
+                />
+              </div>
             )}
             {showDepartmentFilter && (
-              <SalesMultiSelectFilter
-                label="Department"
-                allLabel="All departments"
-                options={availableDepartments}
-                value={filterDepartments}
-                onChange={setFilterDepartments}
-                fullWidth
-              />
+              <div className="hr-field">
+                <span className="hr-field-label">Department</span>
+                <SalesMultiSelectFilter
+                  label="Department"
+                  allLabel="All departments"
+                  options={availableDepartments}
+                  value={filterDepartments}
+                  onChange={setFilterDepartments}
+                  fullWidth
+                />
+              </div>
             )}
             <label className="hr-field" style={{ minWidth: 0 }}>
               <span className="hr-field-label">Sales range</span>
