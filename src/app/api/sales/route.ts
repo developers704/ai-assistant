@@ -40,7 +40,7 @@ import {
 } from "@/lib/sales/paycode-overlay";
 import { listSalespeopleFromRows } from "@/lib/sales/salesperson-credit";
 import { filterRows } from "@/lib/sales/sales-aggregate";
-import { remapHrAvailableDesigns } from "@/lib/hr/hr-sales-design";
+import { applyHrSalesDesigns, remapHrAvailableDesigns } from "@/lib/hr/hr-sales-design";
 import { lockHrSalesQuery, type HrSalesScopePayload } from "@/lib/hr/hr-self-sales";
 
 function attachHrSalesScope<T extends Record<string, unknown>>(
@@ -128,9 +128,11 @@ function salesTableRows(
     classes: string[];
     subclasses: string[];
     salespeople: string[];
+    hrSalesDesigns?: boolean;
   }
 ) {
-  const scoped = filterRows(rows, {
+  const sourceRows = opts.hrSalesDesigns ? applyHrSalesDesigns(rows) : rows;
+  const scoped = filterRows(sourceRows, {
     dateFrom: opts.dateFrom,
     dateTo: opts.dateTo,
     stores: opts.stores,
@@ -422,6 +424,7 @@ export async function GET(req: NextRequest) {
         classes: filterClasses,
         subclasses: filterSubclasses,
         salespeople: filterSalespeople,
+        hrSalesDesigns,
       });
       return NextResponse.json(
         attachHrSalesScope(
