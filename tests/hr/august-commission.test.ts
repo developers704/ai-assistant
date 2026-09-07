@@ -204,6 +204,20 @@ describe("August dummy attendance absences", () => {
     expect(zoya.posStore).toBe("VJ-VAL");
   });
 
+  it("counts Sultan as 20 punched of 21 scheduled (Aug 27 no punch)", () => {
+    const sultan = commissionAttendanceForAssociate(
+      "SA4",
+      HR_ATTENDANCE_FROM,
+      HR_ATTENDANCE_TO,
+      punches,
+      entries
+    );
+    expect(sultan.scheduledDays).toBe(21);
+    expect(sultan.presentDays).toBe(20);
+    expect(sultan.absentDates).toEqual(["2026-08-27"]);
+    expect(sultan.absences).toBe(1);
+  });
+
   it("counts Lynette dummy unworked schedule days as 4 absences", () => {
     const lynette = commissionAttendanceForAssociate(
       "LY",
