@@ -33,8 +33,13 @@ import {
 } from "@/lib/auth/scope-stores";
 import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
 import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
-import { listPaycodes, uniqueSubClasses } from "@/lib/sales/paycode-overlay";
+import {
+  applySalespersonFilter,
+  listPaycodes,
+  uniqueSubClasses,
+} from "@/lib/sales/paycode-overlay";
 import { listSalespeopleFromRows } from "@/lib/sales/salesperson-credit";
+import { filterRows } from "@/lib/sales/sales-aggregate";
 import { remapHrAvailableDesigns } from "@/lib/hr/hr-sales-design";
 import { lockHrSalesQuery, type HrSalesScopePayload } from "@/lib/hr/hr-self-sales";
 
@@ -109,6 +114,58 @@ function loadUnifiedSalesShell(version: string): {
     availableClasses: filterValues(snapshot.availableFilters.classes),
     availableVendors: filterValues(snapshot.availableFilters.vendors),
   };
+}
+
+function salesTableRows(
+  rows: NonNullable<ReturnType<typeof readNormalizedRows>>,
+  opts: {
+    dateFrom?: string;
+    dateTo?: string;
+    stores: string[];
+    departments: string[];
+    designs: string[];
+    vendors: string[];
+    classes: string[];
+    subclasses: string[];
+    salespeople: string[];
+  }
+) {
+  const scoped = filterRows(rows, {
+    dateFrom: opts.dateFrom,
+    dateTo: opts.dateTo,
+    stores: opts.stores,
+    departments: opts.departments,
+    designs: opts.designs,
+    vendors: opts.vendors,
+    classes: opts.classes,
+    subclasses: opts.subclasses,
+  });
+  const credited = applySalespersonFilter(scoped, opts.salespeople);
+  return credited.slice(0, 500).map((row) => ({
+    date: row.date,
+    transactionId: row.transactionId,
+    storeName: row.storeName,
+    store: row.storeName,
+    salespersons: row.salespersons ?? "",
+    department: row.department,
+    design: row.design,
+    vendor: row.vendor,
+    vendorModel: row.vendorModel,
+    sku: row.sku || row.itemNumber,
+    itemNumber: row.itemNumber,
+    description: row.description,
+    productClass: row.productClass,
+    class: row.productClass,
+    subClass: row.subClass,
+    quantity: row.quantity,
+    grossSales: row.grossSales,
+    discountAmount: row.discountAmount,
+    netRevenue: row.netRevenue,
+    netSales: row.netRevenue,
+    margin: row.margin,
+    discountRate: row.discountRate,
+    payCode: row.payCode ?? "",
+  }));
 }
 
 async function queryDashboardSlice(opts: {
@@ -355,12 +412,24 @@ export async function GET(req: NextRequest) {
       }
       const versionRows = version ? readNormalizedRows(version) ?? [] : [];
       const salespeople = listSalespeopleFromRows(versionRows);
+      const tableRows = salesTableRows(versionRows, {
+        dateFrom: filterDateFrom,
+        dateTo: filterDateTo,
+        stores: filterStores,
+        departments: filterDepartments,
+        designs: filterDesigns,
+        vendors: filterVendors,
+        classes: filterClasses,
+        subclasses: filterSubclasses,
+        salespeople: filterSalespeople,
+      });
       return NextResponse.json(
         attachHrSalesScope(
           {
             summary,
             report: shell.report,
             data: [],
+            tableRows,
             source: "report",
             reportLabel: summary.reportLabel,
             reportDate: summary.reportDate,
