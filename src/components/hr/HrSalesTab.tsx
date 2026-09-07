@@ -142,7 +142,6 @@ export function HrSalesTab() {
   const [rosterLoading, setRosterLoading] = useState(false);
   const [hrScope, setHrScope] = useState<HrSalesScopePayload | null>(null);
   const [query, setQuery] = useState("");
-  const [designWise, setDesignWise] = useState(false);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("netSales");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
@@ -330,7 +329,7 @@ export function HrSalesTab() {
     : "employee-sales";
 
   const exportCsv = () => {
-    const csv = employeeSalesRosterCsv(filteredRows, { designWise });
+    const csv = employeeSalesRosterCsv(filteredRows, { designWise: true });
     downloadBlob(
       `${exportName}.csv`,
       new Blob([csv], { type: "text/csv;charset=utf-8" })
@@ -346,13 +345,11 @@ export function HrSalesTab() {
       ...employeeSalesSummaryRows(filteredRows),
     ]);
     XLSX.utils.book_append_sheet(wb, summarySheet, "Employees");
-    if (designWise) {
-      const designSheet = XLSX.utils.aoa_to_sheet([
-        [...EMPLOYEE_SALES_DESIGN_CSV_HEADERS],
-        ...employeeSalesDesignRows(filteredRows),
-      ]);
-      XLSX.utils.book_append_sheet(wb, designSheet, "Designs");
-    }
+    const designSheet = XLSX.utils.aoa_to_sheet([
+      [...EMPLOYEE_SALES_DESIGN_CSV_HEADERS],
+      ...employeeSalesDesignRows(filteredRows),
+    ]);
+    XLSX.utils.book_append_sheet(wb, designSheet, "Designs");
     XLSX.writeFile(wb, `${exportName}.xlsx`);
     setExportOpen(false);
   };
@@ -504,18 +501,6 @@ export function HrSalesTab() {
                 value={dateRange}
                 onChange={setDateRange}
               />
-              <label className="hr-esr-switch">
-                <span>Design Wise</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={designWise}
-                  className={`hr-esr-toggle${designWise ? " is-on" : ""}`}
-                  onClick={() => setDesignWise((v) => !v)}
-                >
-                  <span />
-                </button>
-              </label>
               <div className="relative" ref={exportMenuRef}>
                 <button
                   type="button"
@@ -604,7 +589,6 @@ export function HrSalesTab() {
                           row={row}
                           summary={s}
                           open={open}
-                          designWise={designWise}
                           from={dateRange?.from ?? ""}
                           to={dateRange?.to ?? ""}
                           onSelect={() => setSelectedCode(open ? null : row.code)}
@@ -673,7 +657,6 @@ function EmployeeTableBlock({
   row,
   summary: s,
   open,
-  designWise,
   from,
   to,
   onSelect,
@@ -681,7 +664,6 @@ function EmployeeTableBlock({
   row: EmployeeSalesRosterRow;
   summary: EmployeeCommission["summary"];
   open: boolean;
-  designWise: boolean;
   from: string;
   to: string;
   onSelect: () => void;
@@ -731,44 +713,43 @@ function EmployeeTableBlock({
           onClick={(e) => e.stopPropagation()}
         >
           <td colSpan={8}>
-            {designWise &&
-              (row.commission.lines.length === 0 ? (
-                <p className="hr-empty-inline" style={{ padding: "0.5rem 0" }}>
-                  No design sales in this window.
-                </p>
-              ) : (
-                <table className="hr-design-table hr-comm-table">
-                  <thead>
-                    <tr>
-                      <th>Design</th>
-                      <th className="hr-design-table-num">Net sales</th>
-                      <th className="hr-design-table-num">Rate</th>
-                      <th className="hr-design-table-num">Commission</th>
+            {row.commission.lines.length === 0 ? (
+              <p className="hr-empty-inline" style={{ padding: "0.5rem 0" }}>
+                No design sales in this window.
+              </p>
+            ) : (
+              <table className="hr-design-table hr-comm-table">
+                <thead>
+                  <tr>
+                    <th>Design</th>
+                    <th className="hr-design-table-num">Net sales</th>
+                    <th className="hr-design-table-num">Rate</th>
+                    <th className="hr-design-table-num">Commission</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {row.commission.lines.map((line) => (
+                    <tr key={line.design}>
+                      <td className="hr-design-name">{formatHrDesignFilterLabel(line.design)}</td>
+                      <td className="hr-comm-num">{formatCurrency(line.netSales)}</td>
+                      <td className="hr-comm-rate">
+                        {Number.isInteger(line.employeeRate * 100)
+                          ? `${line.employeeRate * 100}%`
+                          : `${(line.employeeRate * 100).toFixed(1)}%`}
+                      </td>
+                      <td className="hr-comm-num hr-comm-num-em">
+                        {formatCurrency(line.baseCommission)}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {row.commission.lines.map((line) => (
-                      <tr key={line.design}>
-                        <td className="hr-design-name">{formatHrDesignFilterLabel(line.design)}</td>
-                        <td className="hr-comm-num">{formatCurrency(line.netSales)}</td>
-                        <td className="hr-comm-rate">
-                          {Number.isInteger(line.employeeRate * 100)
-                            ? `${line.employeeRate * 100}%`
-                            : `${(line.employeeRate * 100).toFixed(1)}%`}
-                        </td>
-                        <td className="hr-comm-num hr-comm-num-em">
-                          {formatCurrency(line.baseCommission)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ))}
+                  ))}
+                </tbody>
+              </table>
+            )}
             <HrCommissionPanel
               commission={row.commission}
               from={from}
               to={to}
-              hideDesignTable={designWise}
+              hideDesignTable
             />
           </td>
         </tr>
