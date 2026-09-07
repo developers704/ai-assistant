@@ -36,6 +36,7 @@ import {
 } from "@/lib/hr/employee-sales-export";
 import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "@/lib/hr/window";
 import type { HrSalesScopePayload } from "@/lib/hr/hr-self-sales-types";
+import { hrSalesChrome } from "@/lib/hr/hr-sales-chrome";
 
 const PAGE_SIZE = 20;
 
@@ -297,6 +298,8 @@ export function HrSalesTab() {
 
   const selfLocked = hrScope?.mode === "self";
   const unmatchedSelf = hrScope?.mode === "self" && !hrScope.self;
+  const chrome = hrSalesChrome(selfLocked);
+  const designWiseOn = chrome.forceDesignWise || designWise;
 
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -323,6 +326,12 @@ export function HrSalesTab() {
       setSelectedCode(null);
     }
   }, [filteredRows, selectedCode]);
+
+  useEffect(() => {
+    if (!chrome.lockRowExpanded) return;
+    const only = roster[0];
+    if (only) setSelectedCode(only.code);
+  }, [chrome.lockRowExpanded, roster]);
 
   const kpiNet = filteredRows.reduce((s, r) => s + r.commission.summary.netSales, 0);
   const kpiUnits = filteredRows.reduce((s, r) => s + r.units, 0);
@@ -378,9 +387,9 @@ export function HrSalesTab() {
     );
   }
 
-  const showEmployeePicker = !selfLocked && availableSalespeople.length > 0;
-  const showStoreFilter = !selfLocked && availableStores.length > 0;
-  const showDepartmentFilter = !selfLocked && availableDepartments.length > 0;
+  const showEmployeePicker = chrome.showEmployeePicker && availableSalespeople.length > 0;
+  const showStoreFilter = chrome.showStoreFilter && availableStores.length > 0;
+  const showDepartmentFilter = chrome.showDepartmentFilter && availableDepartments.length > 0;
 
   return (
     <div className="hr-esr">
@@ -470,40 +479,46 @@ export function HrSalesTab() {
                 />
               </div>
             )}
-            <label className="hr-field" style={{ minWidth: 0 }}>
-              <span className="hr-field-label">Sales range</span>
-              <select
-                className="hr-select"
-                aria-label="Sales range"
-                value={salesRange}
-                onChange={(e) => setSalesRange(e.target.value as SalesRangeId)}
-              >
-                {SALES_RANGE_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="hr-esr-count">{filteredRows.length} employees shown</p>
+            {chrome.showSalesRange && (
+              <label className="hr-field" style={{ minWidth: 0 }}>
+                <span className="hr-field-label">Sales range</span>
+                <select
+                  className="hr-select"
+                  aria-label="Sales range"
+                  value={salesRange}
+                  onChange={(e) => setSalesRange(e.target.value as SalesRangeId)}
+                >
+                  {SALES_RANGE_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {chrome.showEmployeeCount && (
+              <p className="hr-esr-count">{filteredRows.length} employees shown</p>
+            )}
           </aside>
 
           <div className="hr-esr-main">
             <div className="hr-esr-toolbar">
-              <label className="hr-search hr-esr-search">
-                <Search size={14} />
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setShowAll(false);
-                  }}
-                  className="hr-input"
-                  placeholder="Search employees..."
-                  aria-label="Search employees"
-                />
-              </label>
+              {chrome.showSearch && (
+                <label className="hr-search hr-esr-search">
+                  <Search size={14} />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setShowAll(false);
+                    }}
+                    className="hr-input"
+                    placeholder="Search employees..."
+                    aria-label="Search employees"
+                  />
+                </label>
+              )}
               <SalesDateRangePicker
                 availableDates={availableDates}
                 reportRange={
@@ -515,40 +530,44 @@ export function HrSalesTab() {
                 value={dateRange}
                 onChange={setDateRange}
               />
-              <label className="hr-esr-switch">
-                <span>Design Wise</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={designWise}
-                  className={`hr-esr-toggle${designWise ? " is-on" : ""}`}
-                  onClick={() => setDesignWise((v) => !v)}
-                >
-                  <span />
-                </button>
-              </label>
-              <div className="relative" ref={exportMenuRef}>
-                <button
-                  type="button"
-                  className="hr-btn hr-btn-outline"
-                  onClick={() => setExportOpen((o) => !o)}
-                  disabled={!filteredRows.length}
-                >
-                  <Download size={14} />
-                  Export
-                  <ChevronDown size={14} style={{ opacity: 0.7 }} />
-                </button>
-                {exportOpen && (
-                  <div className="hr-menu">
-                    <button type="button" onClick={exportCsv}>
-                      Download CSV
-                    </button>
-                    <button type="button" onClick={() => void exportXlsx()}>
-                      Download Excel
-                    </button>
-                  </div>
-                )}
-              </div>
+              {chrome.showDesignWiseToggle && (
+                <label className="hr-esr-switch">
+                  <span>Design Wise</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={designWiseOn}
+                    className={`hr-esr-toggle${designWiseOn ? " is-on" : ""}`}
+                    onClick={() => setDesignWise((v) => !v)}
+                  >
+                    <span />
+                  </button>
+                </label>
+              )}
+              {chrome.showExport && (
+                <div className="relative" ref={exportMenuRef}>
+                  <button
+                    type="button"
+                    className="hr-btn hr-btn-outline"
+                    onClick={() => setExportOpen((o) => !o)}
+                    disabled={!filteredRows.length}
+                  >
+                    <Download size={14} />
+                    Export
+                    <ChevronDown size={14} style={{ opacity: 0.7 }} />
+                  </button>
+                  {exportOpen && (
+                    <div className="hr-menu">
+                      <button type="button" onClick={exportCsv}>
+                        Download CSV
+                      </button>
+                      <button type="button" onClick={() => void exportXlsx()}>
+                        Download Excel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {rosterLoading ? (
@@ -615,10 +634,14 @@ export function HrSalesTab() {
                           row={row}
                           summary={s}
                           open={open}
-                          designWise={designWise}
+                          designWise={designWiseOn}
                           from={dateRange?.from ?? ""}
                           to={dateRange?.to ?? ""}
-                          onSelect={() => setSelectedCode(open ? null : row.code)}
+                          onSelect={() => {
+                            if (chrome.lockRowExpanded) return;
+                            setSelectedCode(open ? null : row.code);
+                          }}
+                          clickable={!chrome.lockRowExpanded}
                         />
                       );
                     })}
@@ -627,7 +650,7 @@ export function HrSalesTab() {
               </div>
             )}
 
-            {filteredRows.length > 0 && (
+            {chrome.showPager && filteredRows.length > 0 && (
               <div className="hr-esr-foot">
                 {filteredRows.length > PAGE_SIZE && !showAll ? (
                   <button type="button" className="hr-link" onClick={() => setShowAll(true)}>
@@ -688,6 +711,7 @@ function EmployeeTableBlock({
   from,
   to,
   onSelect,
+  clickable = true,
 }: {
   row: EmployeeSalesRosterRow;
   summary: EmployeeCommission["summary"];
@@ -696,6 +720,7 @@ function EmployeeTableBlock({
   from: string;
   to: string;
   onSelect: () => void;
+  clickable?: boolean;
 }) {
   const detailRef = useRef<HTMLTableRowElement>(null);
 
@@ -708,8 +733,8 @@ function EmployeeTableBlock({
     <>
       <tr
         className={open ? "is-open" : undefined}
-        onClick={onSelect}
-        style={{ cursor: "pointer" }}
+        onClick={clickable ? onSelect : undefined}
+        style={clickable ? { cursor: "pointer" } : undefined}
       >
         <td>
           <span className="hr-esr-emp">
