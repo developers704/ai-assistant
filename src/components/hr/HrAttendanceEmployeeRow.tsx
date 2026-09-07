@@ -426,7 +426,7 @@ export function HrAttendanceEmployeeRow({
   const roleLine = [emp.employeeCode, emp.jobTitle, emp.store].filter((s) => s?.trim()).join(" · ");
 
   return (
-    <div className={cn("hr-emp", hasError && "hr-emp-error", missingSchedule && "hr-emp-no-schedule")}>
+    <div className={cn("hr-emp", open && "hr-emp-open", hasError && "hr-emp-error", missingSchedule && "hr-emp-no-schedule")}>
       <div className="hr-emp-head">
         <div
           role="button"

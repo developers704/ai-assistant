@@ -12,6 +12,8 @@
   --hr-primary: #6c4dff;
   --hr-primary-hover: #5a3df0;
   --hr-primary-soft: #f1eeff;
+  --hr-primary-tint: #e8e4fe;
+  --hr-primary-line: #ddd6fe;
   --hr-teal: #0e9f90;
   --hr-teal-soft: #e7f7f4;
   --hr-amber: #c2410c;
@@ -660,6 +662,20 @@
   background: #fffbeb;
 }
 
+.hr-emp.hr-emp-open {
+  background: var(--hr-primary-soft);
+  border-color: var(--hr-primary-line);
+}
+
+.hr-emp.hr-emp-open.hr-emp-no-schedule {
+  background: #fffbeb;
+  border-color: #fbbf24;
+}
+
+.hr-emp.hr-emp-open.hr-emp-error {
+  border-color: #fecdd3;
+}
+
 .hr-emp-meta-miss {
   color: #c2410c;
   font-weight: 700;
@@ -815,6 +831,29 @@ button.hr-pill:hover:not(:disabled) {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+}
+
+.hr-emp-open .hr-emp-body {
+  background: var(--hr-primary-soft);
+  border-top-color: var(--hr-primary-line);
+}
+
+.hr-emp-open.hr-emp-no-schedule .hr-emp-body {
+  background: #fffbeb;
+  border-top-color: #fde68a;
+}
+
+.hr-emp-open .hr-metric {
+  background: var(--hr-primary-tint);
+}
+
+.hr-emp-open .hr-table th {
+  background: var(--hr-primary-tint);
+}
+
+.hr-emp-open .hr-table-wrap {
+  background: transparent;
+  border-color: var(--hr-primary-line);
 }
 
 @media (min-width: 768px) {
@@ -1547,12 +1586,13 @@ button.hr-pill:hover:not(:disabled) {
   white-space: nowrap;
 }
 
-.hr-esr-table tbody tr.is-open {
-  background: var(--hr-primary-soft);
-}
-
 .hr-esr-table tbody tr:hover {
   background: #f7f8fc;
+}
+
+.hr-esr-table tbody tr.is-open,
+.hr-esr-table tbody tr.is-open:hover {
+  background: var(--hr-primary-soft);
 }
 
 .hr-esr-num {
@@ -1609,9 +1649,31 @@ button.hr-pill:hover:not(:disabled) {
 
 .hr-esr-design-row td,
 .hr-esr-detail-row td {
-  background: #fbfcfe;
+  background: var(--hr-primary-soft);
   padding: 0.4rem 0.65rem 0.85rem;
   vertical-align: top;
+}
+
+.hr-esr-table tbody tr.hr-esr-detail-row:hover,
+.hr-esr-table tbody tr.hr-esr-design-row:hover {
+  background: var(--hr-primary-soft);
+}
+
+.hr-esr-detail-row .hr-design-table thead th,
+.hr-esr-design-row .hr-design-table thead th {
+  background: var(--hr-primary-tint);
+}
+
+.hr-esr-detail-row .hr-comm,
+.hr-esr-detail-row .hr-panel {
+  background: var(--hr-primary-soft);
+  border-color: var(--hr-primary-line);
+  box-shadow: none;
+}
+
+.hr-esr-detail-row .hr-comm-meta,
+.hr-esr-detail-row .hr-comm-table tfoot td {
+  background: var(--hr-primary-tint);
 }
 
 .hr-esr-detail-row .hr-comm {
