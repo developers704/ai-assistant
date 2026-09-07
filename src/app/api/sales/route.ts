@@ -78,6 +78,86 @@ function filterValues(
   return (options ?? []).map((o) => o.value).filter(Boolean).sort((a, b) => a.localeCompare(b));
 }
 
+function normalizeEmployeeCode(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function employeeCodeFromLabel(value: unknown): string {
+  const text = String(value ?? "").trim();
+  const match = text.match(/\(([^()]+)\)\s*$/);
+  return (match?.[1] ?? "").trim();
+}
+
+function salespersonCreditCodes(value: unknown): string[] {
+  const text = String(value ?? "").trim();
+  if (!text) return [];
+  const codes = new Set<string>();
+  for (const rawPart of text.split(/[,;|]/)) {
+    let part = rawPart.trim();
+    if (!part) continue;
+    part = part.replace(/\/\s*\d+(?:\.\d+)?%.*$/i, "");
+    part = part.replace(/\s+-\s*.*$/, "").trim();
+    if (part) codes.add(normalizeEmployeeCode(part));
+  }
+  return [...codes];
+}
+
+/**
+ * Adds store metadata to the already-filtered top-salesperson aggregate.
+ * This keeps the Flutter table fast: it can render Store immediately instead
+ * of issuing a commission request just to discover the employee's store.
+ */
+function enrichTopSalesPeopleWithStore(
+  summary: Record<string, any>,
+  rows: NonNullable<ReturnType<typeof readNormalizedRows>>
+): void {
+  const ranking = Array.isArray(summary.topSalesPeople)
+    ? summary.topSalesPeople
+    : Array.isArray(summary.topSalespersons)
+      ? summary.topSalespersons
+      : null;
+  if (!ranking?.length || !rows.length) return;
+
+  const storesByCode = new Map<string, Set<string>>();
+  for (const row of rows) {
+    const store = String(row.storeName ?? "").trim();
+    if (!store) continue;
+    const codes = salespersonCreditCodes(row.salespersons ?? "");
+    for (const code of codes) {
+      if (!code) continue;
+      const stores = storesByCode.get(code) ?? new Set<string>();
+      stores.add(store);
+      storesByCode.set(code, stores);
+    }
+  }
+
+  for (const item of ranking) {
+    if (!item || typeof item !== "object") continue;
+    const existingStore = String(
+      item.storeName ?? item.store ?? item.storeCode ?? ""
+    ).trim();
+    if (existingStore) continue;
+
+    const directCode = String(
+      item.employeeCode ?? item.salespersonCode ?? item.code ?? ""
+    ).trim();
+    const label =
+      item.label ??
+      item.employeeName ??
+      item.employee ??
+      item.salesperson ??
+      item.name ??
+      "";
+    const code = normalizeEmployeeCode(directCode || employeeCodeFromLabel(label));
+    if (!code) continue;
+
+    const stores = storesByCode.get(code);
+    if (!stores?.size) continue;
+    const sortedStores = [...stores].sort((a, b) => a.localeCompare(b));
+    item.storeName = sortedStores.join(", ");
+  }
+}
+
 /** Shell for dashboard UI — version snapshot + report index meta (no CSV summarize). */
 function loadUnifiedSalesShell(version: string): {
   report: StoredReportMeta;
@@ -148,7 +228,13 @@ function salesTableRows(
     transactionId: row.transactionId,
     storeName: row.storeName,
     store: row.storeName,
+    // Keep the normalized source field and also expose canonical aliases.
+    // The HR employee report aggregates transaction rows by salesperson when
+    // store/department/design filters are active. Older clients only read the
+    // singular key, which previously collapsed every filtered row to Unassigned.
     salespersons: row.salespersons ?? "",
+    salesperson: row.salespersons ?? "",
+    employeeName: row.salespersons ?? "",
     department: row.department,
     design: row.design,
     vendor: row.vendor,
@@ -406,13 +492,14 @@ export async function GET(req: NextRequest) {
         previousDay,
         previousWeek,
       });
+      const versionRows = version ? readNormalizedRows(version) ?? [] : [];
+      enrichTopSalesPeopleWithStore(summary as unknown as Record<string, any>, versionRows);
       if (hideVendors) {
         summary.topVendors = [];
         summary.recommendations = summary.recommendations.filter(
           (r) => !/top vendor/i.test(r)
         );
       }
-      const versionRows = version ? readNormalizedRows(version) ?? [] : [];
       const salespeople = listSalespeopleFromRows(versionRows);
       const tableRows = salesTableRows(versionRows, {
         dateFrom: filterDateFrom,
