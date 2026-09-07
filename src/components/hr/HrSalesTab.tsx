@@ -317,7 +317,6 @@ export function HrSalesTab() {
   }, [roster, query, salesRange, sortKey, sortDir]);
 
   const visibleRows = showAll ? filteredRows : filteredRows.slice(0, PAGE_SIZE);
-  const selected = filteredRows.find((r) => r.code === selectedCode) ?? null;
 
   useEffect(() => {
     if (selectedCode && !filteredRows.some((r) => r.code === selectedCode)) {
@@ -617,6 +616,8 @@ export function HrSalesTab() {
                           summary={s}
                           open={open}
                           designWise={designWise}
+                          from={dateRange?.from ?? ""}
+                          to={dateRange?.to ?? ""}
                           onSelect={() => setSelectedCode(open ? null : row.code)}
                         />
                       );
@@ -651,15 +652,6 @@ export function HrSalesTab() {
                 </div>
               </div>
             )}
-
-            {selected && dateRange && (
-              <HrCommissionPanel
-                commission={selected.commission}
-                from={dateRange.from}
-                to={dateRange.to}
-                hideDesignTable={designWise}
-              />
-            )}
           </div>
         </div>
       )}
@@ -693,14 +685,25 @@ function EmployeeTableBlock({
   summary: s,
   open,
   designWise,
+  from,
+  to,
   onSelect,
 }: {
   row: EmployeeSalesRosterRow;
   summary: EmployeeCommission["summary"];
   open: boolean;
   designWise: boolean;
+  from: string;
+  to: string;
   onSelect: () => void;
 }) {
+  const detailRef = useRef<HTMLTableRowElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    detailRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [open]);
+
   return (
     <>
       <tr
@@ -732,41 +735,52 @@ function EmployeeTableBlock({
         </td>
         <td className="hr-esr-num hr-esr-num-em">{formatCurrency(s.totalCommission)}</td>
       </tr>
-      {open && designWise && (
-        <tr className="hr-esr-design-row">
+      {open && from && to && (
+        <tr
+          ref={detailRef}
+          className="hr-esr-detail-row"
+          onClick={(e) => e.stopPropagation()}
+        >
           <td colSpan={8}>
-            {row.commission.lines.length === 0 ? (
-              <p className="hr-empty-inline" style={{ padding: "0.5rem 0" }}>
-                No design sales in this window.
-              </p>
-            ) : (
-              <table className="hr-design-table hr-comm-table">
-                <thead>
-                  <tr>
-                    <th>Design</th>
-                    <th className="hr-design-table-num">Net sales</th>
-                    <th className="hr-design-table-num">Rate</th>
-                    <th className="hr-design-table-num">Commission</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {row.commission.lines.map((line) => (
-                    <tr key={line.design}>
-                      <td className="hr-design-name">{formatHrDesignFilterLabel(line.design)}</td>
-                      <td className="hr-comm-num">{formatCurrency(line.netSales)}</td>
-                      <td className="hr-comm-rate">
-                        {Number.isInteger(line.employeeRate * 100)
-                          ? `${line.employeeRate * 100}%`
-                          : `${(line.employeeRate * 100).toFixed(1)}%`}
-                      </td>
-                      <td className="hr-comm-num hr-comm-num-em">
-                        {formatCurrency(line.baseCommission)}
-                      </td>
+            {designWise &&
+              (row.commission.lines.length === 0 ? (
+                <p className="hr-empty-inline" style={{ padding: "0.5rem 0" }}>
+                  No design sales in this window.
+                </p>
+              ) : (
+                <table className="hr-design-table hr-comm-table">
+                  <thead>
+                    <tr>
+                      <th>Design</th>
+                      <th className="hr-design-table-num">Net sales</th>
+                      <th className="hr-design-table-num">Rate</th>
+                      <th className="hr-design-table-num">Commission</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody>
+                    {row.commission.lines.map((line) => (
+                      <tr key={line.design}>
+                        <td className="hr-design-name">{formatHrDesignFilterLabel(line.design)}</td>
+                        <td className="hr-comm-num">{formatCurrency(line.netSales)}</td>
+                        <td className="hr-comm-rate">
+                          {Number.isInteger(line.employeeRate * 100)
+                            ? `${line.employeeRate * 100}%`
+                            : `${(line.employeeRate * 100).toFixed(1)}%`}
+                        </td>
+                        <td className="hr-comm-num hr-comm-num-em">
+                          {formatCurrency(line.baseCommission)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ))}
+            <HrCommissionPanel
+              commission={row.commission}
+              from={from}
+              to={to}
+              hideDesignTable={designWise}
+            />
           </td>
         </tr>
       )}
