@@ -210,10 +210,12 @@ export default function HrPage() {
       <header className="hr-header">
         <div>
           <p className="hr-kicker">{salesOnly ? "Sales" : "People ops"}</p>
-          <h1 className="hr-title">{salesOnly ? "Sales dashboard" : "HR Management"}</h1>
+          <h1 className="hr-title">
+            {salesOnly || tab === "sales" ? "Employee Sales Report" : "HR Management"}
+          </h1>
           <p className="hr-subtitle">
             {salesOnly || tab === "sales"
-              ? "Employee sales · Name (CODE) · design totals"
+              ? "Employee sales, commission and payout details."
               : `${formatHrAttendanceWindowCaption()} · ADP timecards · schedules · attendance rules`}
           </p>
         </div>

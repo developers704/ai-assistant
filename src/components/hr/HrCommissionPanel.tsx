@@ -25,7 +25,7 @@ function Status({ yes, ok, no }: { yes: boolean; ok: string; no: string }) {
       <BadgeCheck size={12} /> {ok}
     </span>
   ) : (
-    <span className="hr-comm-pill hr-comm-pill-no">
+    <span className={`hr-comm-pill ${no.toLowerCase() === "review" ? "hr-comm-pill-review" : "hr-comm-pill-no"}`}>
       <Ban size={12} /> {no}
     </span>
   );
@@ -69,10 +69,12 @@ export function HrCommissionPanel({
   commission,
   from,
   to,
+  hideDesignTable = false,
 }: {
   commission: EmployeeCommission;
   from: string;
   to: string;
+  hideDesignTable?: boolean;
 }) {
   const s = commission.summary;
   const lines = [...commission.lines].sort(
@@ -92,40 +94,41 @@ export function HrCommissionPanel({
         </div>
       </div>
 
-      {lines.length === 0 ? (
-        <p className="hr-empty-inline">No design sales in this window.</p>
-      ) : (
-        <div className="hr-design-table-wrap">
-          <table className="hr-design-table hr-comm-table">
-            <thead>
-              <tr>
-                <th>Design</th>
-                <th className="hr-design-table-num">Net sales</th>
-                <th className="hr-design-table-num">Rate</th>
-                <th className="hr-design-table-num">Commission</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line) => (
-                <tr key={line.design}>
-                  <td className="hr-design-name">{line.design}</td>
-                  <td className="hr-comm-num">{formatCurrency(line.netSales)}</td>
-                  <td className="hr-comm-rate">{rateLabel(line.employeeRate)}</td>
-                  <td className="hr-comm-num hr-comm-num-em">{formatCurrency(line.baseCommission)}</td>
+      {!hideDesignTable &&
+        (lines.length === 0 ? (
+          <p className="hr-empty-inline">No design sales in this window.</p>
+        ) : (
+          <div className="hr-design-table-wrap">
+            <table className="hr-design-table hr-comm-table">
+              <thead>
+                <tr>
+                  <th>Design</th>
+                  <th className="hr-design-table-num">Net sales</th>
+                  <th className="hr-design-table-num">Rate</th>
+                  <th className="hr-design-table-num">Commission</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td>Base</td>
-                <td className="hr-comm-num">{formatCurrency(s.netSales)}</td>
-                <td />
-                <td className="hr-comm-num hr-comm-num-em">{formatCurrency(s.baseCommission)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {lines.map((line) => (
+                  <tr key={line.design}>
+                    <td className="hr-design-name">{line.design.trim().toUpperCase()}</td>
+                    <td className="hr-comm-num">{formatCurrency(line.netSales)}</td>
+                    <td className="hr-comm-rate">{rateLabel(line.employeeRate)}</td>
+                    <td className="hr-comm-num hr-comm-num-em">{formatCurrency(line.baseCommission)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Base</td>
+                  <td className="hr-comm-num">{formatCurrency(s.netSales)}</td>
+                  <td />
+                  <td className="hr-comm-num hr-comm-num-em">{formatCurrency(s.baseCommission)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ))}
 
       <div className="hr-comm-meta">
         <div className="hr-comm-card">
@@ -135,10 +138,7 @@ export function HrCommissionPanel({
             <Status yes={s.personalGoalAchieved} ok="Hit" no="Miss" />
           </div>
           <div className="hr-comm-row">
-            <span>
-              Store {s.storeCode ? `${s.storeCode} ` : ""}
-              {formatCurrency(s.storeGoal)}
-            </span>
+            <span>Store {formatCurrency(s.storeGoal)}</span>
             <Status yes={s.storeGoalAchieved} ok="Hit" no="Miss" />
           </div>
           <div className="hr-comm-row hr-comm-row-quiet">
@@ -153,18 +153,23 @@ export function HrCommissionPanel({
 
         <div className="hr-comm-card">
           <p className="hr-comm-card-label">Attendance</p>
-          <div className="hr-comm-row">
+          <div className="hr-comm-row hr-comm-row-quiet">
+            <span>Worked</span>
             <span>
-              {s.presentDays}/{s.scheduledDays} days · {s.absences} absent
-              {s.scheduleViolations
-                ? ` · ${s.scheduleViolations} schedule warning${s.scheduleViolations === 1 ? "" : "s"}`
-                : ""}
+              {s.presentDays}/{s.scheduledDays} days
             </span>
-            <Status
-              yes={s.attendancePassed}
-              ok="Pass"
-              no="Fail"
-            />
+          </div>
+          <div className="hr-comm-row hr-comm-row-quiet">
+            <span>Absences</span>
+            <span>{s.absences}</span>
+          </div>
+          <div className="hr-comm-row hr-comm-row-quiet">
+            <span>Schedule warnings</span>
+            <span>{s.scheduleViolations}</span>
+          </div>
+          <div className="hr-comm-row">
+            <span />
+            <Status yes={s.attendancePassed} ok="Pass" no="Review" />
           </div>
           <CommissionViolations issues={s.attendanceIssues} />
         </div>
