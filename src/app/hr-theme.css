@@ -49,6 +49,10 @@
   padding: 1.1rem 1rem 2.5rem;
 }
 
+.hr-page:has(.hr-esr) {
+  max-width: 92rem;
+}
+
 @media (min-width: 640px) {
   .hr-page {
     padding: 1.5rem 1.5rem 3rem;
@@ -1303,6 +1307,11 @@ button.hr-pill:hover:not(:disabled) {
   color: var(--hr-rose);
 }
 
+.hr-comm-pill-review {
+  background: var(--hr-amber-soft);
+  color: var(--hr-amber);
+}
+
 .hr-sort-btn {
   display: inline-flex;
   align-items: center;
@@ -1395,4 +1404,230 @@ button.hr-pill:hover:not(:disabled) {
   font-size: 0.8125rem;
   color: var(--hr-muted);
   margin-bottom: 0.75rem;
+}
+
+.hr-kpi-sub {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--hr-faint);
+}
+
+.hr-esr-kpis {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 900px) {
+  .hr-esr-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.hr-esr-body {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 960px) {
+  .hr-esr-body {
+    grid-template-columns: 16.5rem minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.hr-esr-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.95rem 0.9rem 1rem;
+  background: var(--hr-surface);
+  border: 1px solid var(--hr-line);
+  border-radius: var(--hr-radius);
+  box-shadow: var(--hr-shadow-sm);
+}
+
+.hr-esr-filters .hr-field-label {
+  margin-bottom: 0.15rem;
+}
+
+.hr-esr-filters .hr-select {
+  width: 100%;
+}
+
+.hr-esr-count {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--hr-muted);
+}
+
+.hr-esr-main {
+  min-width: 0;
+  background: var(--hr-surface);
+  border: 1px solid var(--hr-line);
+  border-radius: var(--hr-radius);
+  box-shadow: var(--hr-shadow-sm);
+  padding: 0.85rem 0.85rem 1rem;
+}
+
+.hr-esr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.hr-esr-search {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+}
+
+.hr-esr-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--hr-muted);
+}
+
+.hr-esr-toggle {
+  width: 2.4rem;
+  height: 1.35rem;
+  border: 0;
+  border-radius: 999px;
+  background: #d5dbe6;
+  padding: 0.15rem;
+  cursor: pointer;
+}
+
+.hr-esr-toggle span {
+  display: block;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: #fff;
+  transform: translateX(0);
+  transition: transform 0.15s ease;
+}
+
+.hr-esr-toggle.is-on {
+  background: var(--hr-primary);
+}
+
+.hr-esr-toggle.is-on span {
+  transform: translateX(1.05rem);
+}
+
+.hr-esr-table-wrap {
+  overflow-x: auto;
+}
+
+.hr-esr-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hr-esr-table th,
+.hr-esr-table td {
+  padding: 0.7rem 0.65rem;
+  font-size: 0.8125rem;
+  text-align: left;
+  border-bottom: 1px solid var(--hr-line);
+  vertical-align: middle;
+}
+
+.hr-esr-table thead th {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--hr-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #f7f8fc;
+  white-space: nowrap;
+}
+
+.hr-esr-table tbody tr.is-open {
+  background: var(--hr-primary-soft);
+}
+
+.hr-esr-table tbody tr:hover {
+  background: #f7f8fc;
+}
+
+.hr-esr-num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hr-esr-num-em {
+  font-weight: 700;
+}
+
+.hr-esr-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hr-esr-emp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: var(--hr-ink);
+}
+
+.hr-esr-avatar {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #f3e8ff;
+  color: #7e22ce;
+  flex-shrink: 0;
+}
+
+.hr-esr-emp-name {
+  font-weight: 650;
+}
+
+.hr-esr-design-row td {
+  background: #fbfcfe;
+  padding: 0.4rem 0.65rem 0.85rem;
+}
+
+.hr-esr-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--hr-muted);
+}
+
+.hr-esr-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.hr-esr-main .hr-comm {
+  margin-top: 1rem;
 }

@@ -109,6 +109,11 @@ export function applyHrSalesDesigns(rows: VendorPosRow[]): VendorPosRow[] {
   });
 }
 
+/** Filter dropdown label — always capital letters. */
+export function formatHrDesignFilterLabel(design: string): string {
+  return design.trim().toUpperCase();
+}
+
 /** Design filter dropdown: rename Love / BELLA OVAN and add UV + Eternal-vow. */
 export function remapHrAvailableDesigns(designs: string[]): string[] {
   const out: string[] = [];

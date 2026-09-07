@@ -269,6 +269,9 @@ describe("commission API access", () => {
     expect(isDmAllowedApiPath("/api/hr/commission", "zoya@valliani.app", "employee", permissions)).toBe(
       true
     );
+    expect(isDmAllowedApiPath("/api/hr/employee-sales", "zoya@valliani.app", "employee", permissions)).toBe(
+      true
+    );
     expect(isDmAllowedApiPath("/api/hr", "zoya@valliani.app", "employee", permissions)).toBe(false);
   });
 });

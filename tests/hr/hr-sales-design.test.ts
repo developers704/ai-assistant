@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyHrSalesDesigns,
   displayHrPosDesign,
+  formatHrDesignFilterLabel,
   hrSalesDesignName,
   isHrEternalVowClass,
   isHrUvSalesRow,
@@ -191,5 +192,17 @@ describe("HR Sales designs", () => {
     const second = settleHrDesignTotals(first, 200);
     expect(second).toEqual(first);
     expect(first.find((d) => d.design === "Others")?.netSales).toBe(100);
+  });
+});
+
+describe("HR design filter labels", () => {
+  it("shows every design option in capital letters", () => {
+    const options = remapHrAvailableDesigns(["Love", "BELLA OVAN", "NOVELLO", "Lovespell"]);
+    for (const name of options) {
+      expect(formatHrDesignFilterLabel(name)).toBe(formatHrDesignFilterLabel(name).toUpperCase());
+      expect(formatHrDesignFilterLabel(name)).toMatch(/^[A-Z0-9 .+-]+$/);
+    }
+    expect(formatHrDesignFilterLabel("Lovespell")).toBe("LOVESPELL");
+    expect(formatHrDesignFilterLabel("Others")).toBe("OTHERS");
   });
 });
