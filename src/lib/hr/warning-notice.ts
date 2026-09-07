@@ -322,66 +322,47 @@ function joinEventPhrases(parts: string[]): string {
   return `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
 }
 
-function replyReasonLine(events: string[]): string {
-  const left = events.some((e) => /left/i.test(e));
-  const late = events.some((e) => /late/i.test(e));
-  const early = events.some((e) => /arrived store early/i.test(e));
-  if (left && !late && !early) {
-    return "Please reply to this email with the reason you left early.";
+/** Greeting uses given name only: "Altaf, Fahad" → Fahad. */
+export function warningGreetingFirstName(fullName: string): string {
+  const raw = String(fullName ?? "").trim();
+  if (!raw) return "Team member";
+  if (raw.includes(",")) {
+    const given = raw.split(",").slice(1).join(" ").trim();
+    const first = given.split(/\s+/).find(Boolean);
+    if (first) return first;
   }
-  if (late && !left && !early) {
-    return "Please reply to this email with the reason you arrived late.";
-  }
-  if (early && !left && !late) {
-    return "Please reply to this email with the reason you arrived early.";
-  }
-  return "Please reply to this email with the reason for this attendance exception.";
+  return raw.split(/\s+/).find(Boolean) ?? raw;
 }
 
-function violationSentences(events: string[], details?: WarningMailDetails): string[] {
+const WARNING_JUSTIFICATION_NOTE =
+  "Please reply to this email with justification within 24 hours otherwise an automated write-up will be issued.";
+
+function violationSentences(
+  events: string[],
+  details: WarningMailDetails | undefined,
+  when: string
+): string[] {
   const out: string[] = [];
   if (isLateForWarning(details?.lateMinutes)) {
     out.push(
-      `You arrived ${formatDurationWords(details!.lateMinutes!)} after your scheduled start time.`
+      `You have arrived ${formatDurationWords(details!.lateMinutes!)} after your scheduled start time on ${when}.`
     );
   }
   if (isEarlyForWarning(details?.earlyInMinutes)) {
     out.push(
-      `You arrived ${formatDurationWords(details!.earlyInMinutes!)} before your scheduled start time.`
+      `You have arrived ${formatDurationWords(details!.earlyInMinutes!)} before your scheduled start time on ${when}.`
     );
   }
   if (isEarlyOutForWarning(details?.earlyOutMinutes)) {
     out.push(
-      `You left the store ${formatDurationWords(details!.earlyOutMinutes!)} before the end of your scheduled shift.`
+      `You left the store ${formatDurationWords(details!.earlyOutMinutes!)} before the end of your scheduled shift on ${when}.`
     );
   }
   if (out.length) return out;
   if (events.length) {
-    return [
-      `You ${joinEventPhrases(events)} relative to your scheduled time.`,
-    ];
+    return [`You ${joinEventPhrases(events)} relative to your scheduled time on ${when}.`];
   }
   return [];
-}
-
-function recordedTimeLine(details?: WarningMailDetails): string | null {
-  const clockIn = formatClockLabel(details?.clockIn);
-  const clockOut = formatClockLabel(details?.clockOut);
-  if (clockIn && clockOut) {
-    return `Time recorded: clocked in at ${clockIn} and clocked out at ${clockOut}.`;
-  }
-  if (clockOut) return `Time recorded: clocked out at ${clockOut}.`;
-  if (clockIn) return `Time recorded: clocked in at ${clockIn}.`;
-  return null;
-}
-
-function scheduledShiftLine(details?: WarningMailDetails): string | null {
-  const start = formatClockLabel(details?.scheduledStart);
-  const end = formatClockLabel(details?.scheduledEnd);
-  if (start && end) return `Scheduled shift: ${start} – ${end}.`;
-  if (start) return `Scheduled start: ${start}.`;
-  if (end) return `Scheduled end: ${end}.`;
-  return null;
 }
 
 export function warningMailParagraphs(
@@ -391,18 +372,13 @@ export function warningMailParagraphs(
   details?: WarningMailDetails
 ): string[] {
   const when = formatWarningMailDate(date);
-  const facts = [
-    scheduledShiftLine(details),
-    recordedTimeLine(details),
-    ...violationSentences(events, details),
-  ].filter((s): s is string => Boolean(s));
+  const first = warningGreetingFirstName(name);
+  const facts = violationSentences(events, details, when);
   return [
-    `Dear ${name},`,
-    `This notice concerns your attendance on ${when}.`,
+    `Dear ${first},`,
     ...facts,
-    replyReasonLine(events),
-    "If we do not receive a confirmation, an automated write-up will be issued.",
-    "Sincerely,\nHuman Resources\nValliani Jewelers",
+    `Note:\n${WARNING_JUSTIFICATION_NOTE}`,
+    "Sincerely,\nHR\nValliani Jewelers",
   ];
 }
 
@@ -427,9 +403,10 @@ export function warningMailHtml(
   details?: WarningMailDetails
 ): string {
   const paras = warningMailParagraphs(name, date, events, details);
-  return paras
-    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
+  const inner = paras
+    .map((p) => `<p style="margin:0 0 14px 0;">${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
     .join("\n");
+  return `<div style="text-align:left;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;">${inner}</div>`;
 }
 
 export function extractWarningCaseId(subject: string | null | undefined): string | null {

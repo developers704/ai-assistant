@@ -11,6 +11,7 @@ import {
   warningCaseId,
   warningDescription,
   warningMailPlainText,
+  warningGreetingFirstName,
 } from "@/lib/hr/warning-notice";
 import { isEligibleForHrNotice } from "@/lib/hr/warning-notice";
 
@@ -32,12 +33,22 @@ describe("late warning notice", () => {
     );
     expect(draft.from).toBe("umairj@valliani.app");
     expect(draft.to).toBe("umairjam.arrakconsulting@gmail.com");
-    expect(draft.text).toContain("Dear Ahmed, Shazia");
-    expect(draft.text).toContain("You arrived 29 minutes after your scheduled start time.");
+    expect(draft.text).toContain("Dear Shazia,");
+    expect(draft.text).not.toContain("Dear Ahmed, Shazia");
+    expect(draft.text).toContain(
+      "You have arrived 29 minutes after your scheduled start time on Sunday, June 7, 2026."
+    );
     expect(draft.text).toContain("Sunday, June 7, 2026");
-    expect(draft.text).toContain("Please reply to this email with the reason you arrived late.");
-    expect(draft.text).toContain("automated write-up");
-    expect(draft.text).toContain("Human Resources");
+    expect(draft.text).toContain("Note:");
+    expect(draft.text).toContain(
+      "Please reply to this email with justification within 24 hours otherwise an automated write-up will be issued."
+    );
+    expect(draft.text).toContain("Sincerely,");
+    expect(draft.text).toContain("HR");
+    expect(draft.text).toContain("Valliani Jewelers");
+    expect(draft.text).not.toContain("Human Resources");
+    expect(draft.text).not.toContain("This notice concerns");
+    expect(draft.text).not.toContain("Please reply to this email with the reason you arrived late.");
     expect(draft.text).not.toContain("pls confirm");
     expect(draft.text).not.toContain("attached PDF");
     expect(draft.html).not.toContain("Type of Offenses");
@@ -71,7 +82,8 @@ describe("late warning notice", () => {
       manager: "shaun",
       lateMinutes: 15,
     });
-    expect(draft.text.startsWith("Dear Syed Muqeet Asim")).toBe(true);
+    expect(draft.text.startsWith("Dear Syed,")).toBe(true);
+    expect(draft.text).not.toContain("Dear Syed Muqeet Asim");
     expect(draft.subject).toContain("Syed Muqeet Asim");
     expect(draft.employeeName).toBe("1, security guard");
   });
@@ -79,8 +91,12 @@ describe("late warning notice", () => {
   it("describes late minutes for write-ups and formats the notice date", () => {
     expect(warningDescription(29)).toBe("Late Arrival by 29 minutes.");
     expect(formatNoticeDate("2026-06-07")).toBe("06.07.2026");
-    expect(buildWarningNoticeText(shazia)).toContain("You arrived 29 minutes after your scheduled start time.");
-    expect(buildWarningNoticeHtml(shazia)).toContain("You arrived 29 minutes after your scheduled start time.");
+    expect(buildWarningNoticeText(shazia)).toContain(
+      "You have arrived 29 minutes after your scheduled start time on Sunday, June 7, 2026."
+    );
+    expect(buildWarningNoticeHtml(shazia)).toContain(
+      "You have arrived 29 minutes after your scheduled start time on Sunday, June 7, 2026."
+    );
     expect(buildWarningNoticeHtml(shazia)).not.toContain("Type of Offenses");
   });
 
@@ -92,7 +108,9 @@ describe("late warning notice", () => {
     });
     expect(early.caseId).toBe("HR-EARLY-SA2-2026-06-07");
     expect(early.description).toBe("Early Arrival by 18 minutes.");
-    expect(early.text).toContain("You arrived 18 minutes before your scheduled start time.");
+    expect(early.text).toContain(
+      "You have arrived 18 minutes before your scheduled start time on Sunday, June 7, 2026."
+    );
 
     const leftEarly = draftWarningNotice({
       ...shazia,
@@ -102,7 +120,7 @@ describe("late warning notice", () => {
     expect(leftEarly.caseId).toBe("HR-LEAVE-SA2-2026-06-07");
     expect(leftEarly.description).toBe("Left Early by 22 minutes.");
     expect(leftEarly.text).toContain(
-      "You left the store 22 minutes before the end of your scheduled shift."
+      "You left the store 22 minutes before the end of your scheduled shift on Sunday, June 7, 2026."
     );
 
     expect(
@@ -171,10 +189,12 @@ describe("late warning notice", () => {
     ).toContain("Dear Umair,");
     expect(
       warningMailPlainText("Umair", "2026-08-04", ["arrived store late"], { lateMinutes: 12 })
-    ).toContain("You arrived 12 minutes after your scheduled start time.");
+    ).toContain("You have arrived 12 minutes after your scheduled start time on Tuesday, August 4, 2026.");
     expect(
       warningMailPlainText("Umair", "2026-08-04", ["arrived store late"], { lateMinutes: 12 })
-    ).toContain("If we do not receive a confirmation, an automated write-up will be issued.");
+    ).toContain(
+      "Please reply to this email with justification within 24 hours otherwise an automated write-up will be issued."
+    );
     expect(
       warningMailPlainText("Umair", "2026-08-04", ["arrived store late"], { lateMinutes: 12 })
     ).not.toContain("pls confirm");
@@ -209,15 +229,36 @@ describe("late warning notice", () => {
         },
       ],
     });
-    expect(aleem.text).toContain("Dear Muhammad Aleem,");
-    expect(aleem.text).toContain("Thursday, August 27, 2026");
-    expect(aleem.text).toContain("Scheduled shift: 9:15 AM – 9:15 PM.");
-    expect(aleem.text).toContain("clocked in at 9:18 AM and clocked out at 2:16 PM.");
+    expect(aleem.text).toContain("Dear Muhammad,");
     expect(aleem.text).toContain(
-      "You left the store 6 hours and 59 minutes before the end of your scheduled shift."
+      "You left the store 6 hours and 59 minutes before the end of your scheduled shift on Thursday, August 27, 2026."
     );
-    expect(aleem.text).toContain("Please reply to this email with the reason you left early.");
-    expect(aleem.html).toContain("Scheduled shift: 9:15 AM – 9:15 PM.");
-    expect(aleem.html).toContain("clocked out at 2:16 PM");
+    expect(aleem.text).toContain("Note:");
+    expect(aleem.text).toContain("within 24 hours");
+    expect(aleem.text).not.toContain("Scheduled shift:");
+    expect(aleem.text).not.toContain("clocked in at");
+    expect(aleem.text).not.toContain("Please reply to this email with the reason you left early.");
+    expect(aleem.html).toContain("Dear Muhammad,");
+    expect(aleem.html).toContain("Thursday, August 27, 2026");
+  });
+
+  it("greets Fahad by first name and uses the 24-hour justification note", () => {
+    expect(warningGreetingFirstName("Altaf, Fahad")).toBe("Fahad");
+    const fahad = draftWarningNotice({
+      employeeName: "Altaf, Fahad",
+      date: "2026-08-31",
+      employeeCode: "FA",
+      jobTitle: "Sales Associate",
+      manager: "AJ",
+      lateMinutes: 24,
+    });
+    expect(fahad.text).toBe(
+      [
+        "Dear Fahad,",
+        "You have arrived 24 minutes after your scheduled start time on Monday, August 31, 2026.",
+        "Note:\nPlease reply to this email with justification within 24 hours otherwise an automated write-up will be issued.",
+        "Sincerely,\nHR\nValliani Jewelers",
+      ].join("\n\n")
+    );
   });
 });
