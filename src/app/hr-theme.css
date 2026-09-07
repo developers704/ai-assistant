@@ -1607,9 +1607,20 @@ button.hr-pill:hover:not(:disabled) {
   font-weight: 650;
 }
 
-.hr-esr-design-row td {
+.hr-esr-design-row td,
+.hr-esr-detail-row td {
   background: #fbfcfe;
   padding: 0.4rem 0.65rem 0.85rem;
+  vertical-align: top;
+}
+
+.hr-esr-detail-row .hr-comm {
+  margin-top: 0.65rem;
+}
+
+.hr-esr-detail-row .hr-design-table + .hr-comm,
+.hr-esr-detail-row .hr-empty-inline + .hr-comm {
+  margin-top: 0.85rem;
 }
 
 .hr-esr-foot {
@@ -1628,6 +1639,6 @@ button.hr-pill:hover:not(:disabled) {
   gap: 0.55rem;
 }
 
-.hr-esr-main .hr-comm {
-  margin-top: 1rem;
+.hr-esr-main .hr-esr-detail-row .hr-comm {
+  margin-top: 0.65rem;
 }
