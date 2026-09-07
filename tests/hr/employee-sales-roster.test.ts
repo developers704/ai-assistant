@@ -40,6 +40,24 @@ describe("employee sales roster", () => {
     );
   });
 
+  it("reuses the August window so a design filter still keeps attendance", () => {
+    const all = buildEmployeeSalesRoster({
+      from: HR_ATTENDANCE_FROM,
+      to: HR_ATTENDANCE_TO,
+      salespeople: ["SA4"],
+    });
+    const watch = buildEmployeeSalesRoster({
+      from: HR_ATTENDANCE_FROM,
+      to: HR_ATTENDANCE_TO,
+      salespeople: ["SA4"],
+      designs: ["WATCH"],
+    });
+    expect(watch[0]?.commission.summary.presentDays).toBe(all[0]?.commission.summary.presentDays);
+    expect(watch[0]?.commission.summary.scheduledDays).toBe(all[0]?.commission.summary.scheduledDays);
+    expect(watch[0]?.commission.summary.netSales).toBeGreaterThan(0);
+    expect(watch[0]?.commission.summary.netSales).toBeLessThan(all[0]?.commission.summary.netSales ?? 0);
+  });
+
   it("exports filtered employees as CSV", () => {
     const rows = buildEmployeeSalesRoster({
       from: HR_ATTENDANCE_FROM,

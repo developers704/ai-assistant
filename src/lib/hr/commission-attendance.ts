@@ -1,5 +1,5 @@
 import type { HrScheduleEntry, HrTimecardRow, HrWarningNotice } from "@/lib/hr/types";
-import { namesMatch } from "@/lib/hr/name-match";
+import { employeeNameTokens, namesMatch } from "@/lib/hr/name-match";
 import { datesInIsoRange } from "@/lib/hr/window";
 import { loadSalespersonDirectory } from "@/lib/sales/salesperson-directory";
 import { posStoreCodeFromHrStore } from "@/lib/hr/hr-store-pos";
@@ -18,11 +18,20 @@ export type CommissionAttendance = {
   absentDates: string[];
 };
 
-function directoryNames(code: string): string[] {
-  const dir = loadSalespersonDirectory().get(code.trim().toUpperCase());
-  if (!dir) return [];
-  const out = [dir.displayName, `${dir.lastName}, ${dir.firstName}`, `${dir.firstName} ${dir.lastName}`];
-  return out.filter((n) => n.replace(/[^a-z]/gi, "").length > 2);
+const directoryNamesMemo = new Map<string, string[]>();
+
+export function directoryNamesForCode(code: string): string[] {
+  const key = code.trim().toUpperCase();
+  const hit = directoryNamesMemo.get(key);
+  if (hit) return hit;
+  const dir = loadSalespersonDirectory().get(key);
+  const out = dir
+    ? [dir.displayName, `${dir.lastName}, ${dir.firstName}`, `${dir.firstName} ${dir.lastName}`].filter(
+        (n) => n.replace(/[^a-z]/gi, "").length > 2
+      )
+    : [];
+  directoryNamesMemo.set(key, out);
+  return out;
 }
 
 export function hrRowsMatchAssociate(
@@ -34,11 +43,96 @@ export function hrRowsMatchAssociate(
   const key = code.trim().toUpperCase();
   if ((employeeCode ?? "").trim().toUpperCase() === key) return true;
   if (namesMatch(employeeName, key)) return true;
-  for (const n of directoryNames(key)) {
+  for (const n of directoryNamesForCode(key)) {
     if (namesMatch(employeeName, n)) return true;
     if (guardsName && namesMatch(guardsName, n)) return true;
   }
   return false;
+}
+
+export type AssociateRowIndex<T> = {
+  byCode: Map<string, T[]>;
+  byLast: Map<string, T[]>;
+};
+
+function pushIndex<T>(map: Map<string, T[]>, key: string, row: T) {
+  if (!key) return;
+  const list = map.get(key);
+  if (list) list.push(row);
+  else map.set(key, [row]);
+}
+
+export function indexTimecardRows(
+  rows: HrTimecardRow[],
+  dateSet: Set<string>
+): AssociateRowIndex<HrTimecardRow> {
+  const byCode = new Map<string, HrTimecardRow[]>();
+  const byLast = new Map<string, HrTimecardRow[]>();
+  for (const r of rows) {
+    if (!dateSet.has(r.date)) continue;
+    pushIndex(byCode, (r.employeeCode ?? "").trim().toUpperCase(), r);
+    pushIndex(byLast, employeeNameTokens(r.employeeName)[0] ?? "", r);
+    if (r.guardsName) pushIndex(byLast, employeeNameTokens(r.guardsName)[0] ?? "", r);
+  }
+  return { byCode, byLast };
+}
+
+export function indexScheduleRows(
+  rows: HrScheduleEntry[],
+  dateSet: Set<string>
+): AssociateRowIndex<HrScheduleEntry> {
+  const byCode = new Map<string, HrScheduleEntry[]>();
+  const byLast = new Map<string, HrScheduleEntry[]>();
+  for (const r of rows) {
+    if (!dateSet.has(r.date)) continue;
+    pushIndex(byLast, employeeNameTokens(r.employeeName)[0] ?? "", r);
+  }
+  return { byCode, byLast };
+}
+
+function collectIndexedRows<T>(
+  index: AssociateRowIndex<T>,
+  code: string,
+  extraLastTokens: string[]
+): T[] {
+  const key = code.trim().toUpperCase();
+  const seen = new Set<T>();
+  const out: T[] = [];
+  const consider = (rows?: T[]) => {
+    if (!rows) return;
+    for (const r of rows) {
+      if (seen.has(r)) continue;
+      seen.add(r);
+      out.push(r);
+    }
+  };
+  consider(index.byCode.get(key));
+  for (const n of directoryNamesForCode(key)) {
+    consider(index.byLast.get(employeeNameTokens(n)[0] ?? ""));
+  }
+  consider(index.byLast.get(employeeNameTokens(key)[0] ?? ""));
+  for (const tok of extraLastTokens) consider(index.byLast.get(tok));
+  return out;
+}
+
+export type HrAttendanceIndex = {
+  dateSet: Set<string>;
+  punches: AssociateRowIndex<HrTimecardRow>;
+  schedule: AssociateRowIndex<HrScheduleEntry>;
+};
+
+export function buildHrAttendanceIndex(
+  from: string,
+  to: string,
+  punches: HrTimecardRow[],
+  schedule: HrScheduleEntry[]
+): HrAttendanceIndex {
+  const dateSet = new Set(datesInIsoRange(from, to));
+  return {
+    dateSet,
+    punches: indexTimecardRows(punches, dateSet),
+    schedule: indexScheduleRows(schedule, dateSet),
+  };
 }
 
 /**
@@ -50,17 +144,25 @@ export function commissionAttendanceForAssociate(
   from: string,
   to: string,
   punches: HrTimecardRow[],
-  schedule: HrScheduleEntry[]
+  schedule: HrScheduleEntry[],
+  index?: HrAttendanceIndex
 ): CommissionAttendance {
-  const dates = new Set(datesInIsoRange(from, to));
-  const punchRows = punches.filter(
+  const dateSet = index?.dateSet ?? new Set(datesInIsoRange(from, to));
+  const punchCandidates = index
+    ? collectIndexedRows(index.punches, code, [])
+    : punches;
+  const punchRows = punchCandidates.filter(
     (r) =>
-      dates.has(r.date) &&
+      dateSet.has(r.date) &&
       hrRowsMatchAssociate(code, r.employeeName, r.employeeCode, r.guardsName)
   );
   const punchNames = [...new Set(punchRows.map((r) => r.employeeName))];
-  const schedRows = schedule.filter((e) => {
-    if (!dates.has(e.date)) return false;
+  const extraLast = punchNames.map((n) => employeeNameTokens(n)[0] ?? "").filter(Boolean);
+  const scheduleCandidates = index
+    ? collectIndexedRows(index.schedule, code, extraLast)
+    : schedule;
+  const schedRows = scheduleCandidates.filter((e) => {
+    if (!dateSet.has(e.date)) return false;
     if (hrRowsMatchAssociate(code, e.employeeName)) return true;
     return punchNames.some((n) => namesMatch(n, e.employeeName));
   });

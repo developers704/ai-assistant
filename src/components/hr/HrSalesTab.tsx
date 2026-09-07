@@ -183,15 +183,6 @@ export function HrSalesTab() {
     if (!bootstrapped) return;
     const params = new URLSearchParams();
     appendDateParams(params, dateRange);
-    appendSalesFilterParams(params, {
-      stores: filterStores,
-      departments: filterDepartments,
-      designs: filterDesigns,
-      vendors: [],
-      classes: [],
-      subclasses: [],
-      salespeople: filterSalespeople,
-    });
     params.set("hrSales", "1");
     const qs = params.toString() ? `?${params}` : "";
     const gen = ++fetchGenRef.current;
@@ -245,14 +236,7 @@ export function HrSalesTab() {
         if (err instanceof DOMException && err.name === "AbortError") return;
       });
     return () => ac.abort();
-  }, [
-    bootstrapped,
-    dateRange,
-    filterStores,
-    filterDepartments,
-    filterDesigns,
-    filterSalespeople,
-  ]);
+  }, [bootstrapped, dateRange]);
 
   useEffect(() => {
     if (!bootstrapped || !dateRange) return;
@@ -271,21 +255,26 @@ export function HrSalesTab() {
     const gen = ++rosterGenRef.current;
     const ac = new AbortController();
     setRosterLoading(true);
-    fetch(`/api/hr/employee-sales?${params}`, { signal: ac.signal, cache: "no-store" })
-      .then((r) => r.json())
-      .then((d: { employees?: EmployeeSalesRosterRow[] }) => {
-        if (gen !== rosterGenRef.current) return;
-        setRoster(Array.isArray(d.employees) ? d.employees : []);
-      })
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        if (gen !== rosterGenRef.current) return;
-        setRoster([]);
-      })
-      .finally(() => {
-        if (gen === rosterGenRef.current) setRosterLoading(false);
-      });
-    return () => ac.abort();
+    const timer = window.setTimeout(() => {
+      fetch(`/api/hr/employee-sales?${params}`, { signal: ac.signal, cache: "no-store" })
+        .then((r) => r.json())
+        .then((d: { employees?: EmployeeSalesRosterRow[] }) => {
+          if (gen !== rosterGenRef.current) return;
+          setRoster(Array.isArray(d.employees) ? d.employees : []);
+        })
+        .catch((err: unknown) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          if (gen !== rosterGenRef.current) return;
+          setRoster([]);
+        })
+        .finally(() => {
+          if (gen === rosterGenRef.current) setRosterLoading(false);
+        });
+    }, 80);
+    return () => {
+      window.clearTimeout(timer);
+      ac.abort();
+    };
   }, [
     bootstrapped,
     dateRange,
