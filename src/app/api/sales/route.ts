@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from "next/server";
 import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import {
   getLatestReportMeta,
@@ -255,7 +256,7 @@ function salesTableRows(
     itemNumber: row.itemNumber,
     description: row.description,
     imageDir: row.imageDir ?? null,
-    imageUrl: row.imageUrl ?? resolveProductImageUrl(row.imageDir),
+    imageUrl: resolveProductImageUrl(row.imageDir),
     productClass: row.productClass,
     class: row.productClass,
     subClass: row.subClass,

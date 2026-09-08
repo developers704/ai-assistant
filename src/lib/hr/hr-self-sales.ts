@@ -1,5 +1,6 @@
 import { getPermissionMapForUser } from "@/lib/auth/user-permissions-store";
 import { normalizeUsername } from "@/lib/auth/user-permissions";
+import { findAuthUser } from "@/lib/auth/users";
 import { employeeNameTokens, namesMatch } from "@/lib/hr/name-match";
 import { loadActiveTimecardRows } from "@/lib/hr/store";
 import { hrStoreNameFromPosCode, posStoreCodeFromHrStore } from "@/lib/hr/hr-store-pos";
@@ -270,4 +271,3 @@ export function salespersonForHrCommissionRequest(opts: {
   }
   return { ok: true, salesperson: self.label };
 }
-
