@@ -1,4 +1,3 @@
-import { findAuthUser } from "@/lib/auth/users";
 import { getPermissionMapForUser } from "@/lib/auth/user-permissions-store";
 import { normalizeUsername } from "@/lib/auth/user-permissions";
 import { employeeNameTokens, namesMatch } from "@/lib/hr/name-match";
@@ -36,7 +35,8 @@ export function canViewAllHrSales(user: {
   username?: string | null;
   role?: string | null;
 }): boolean {
-  if (user.role === "admin" || user.role === "hr") return true;
+  const role = (user.role ?? "").trim().toLowerCase();
+  if (role === "admin" || role === "hr" || role === "ceo") return true;
   const u = normalizeUsername(user.username);
   if (VIEW_ALL_USERNAMES.has(u)) return true;
   const map = getPermissionMapForUser(user.username, user.role);
@@ -270,3 +270,4 @@ export function salespersonForHrCommissionRequest(opts: {
   }
   return { ok: true, salesperson: self.label };
 }
+

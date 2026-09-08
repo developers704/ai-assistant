@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
 import { computeSalesSummary, mockSalesData } from "@/lib/mock-data";
 import {
   getLatestReportMeta,
@@ -42,6 +41,7 @@ import { listSalespeopleFromRows } from "@/lib/sales/salesperson-credit";
 import { filterRows } from "@/lib/sales/sales-aggregate";
 import { applyHrSalesDesigns, remapHrAvailableDesigns } from "@/lib/hr/hr-sales-design";
 import { lockHrSalesQuery, type HrSalesScopePayload } from "@/lib/hr/hr-self-sales";
+import { resolveProductImageUrl } from "@/lib/reports/product-image";
 
 function attachHrSalesScope<T extends Record<string, unknown>>(
   payload: T,
@@ -254,6 +254,8 @@ function salesTableRows(
     sku: row.sku || row.itemNumber,
     itemNumber: row.itemNumber,
     description: row.description,
+    imageDir: row.imageDir ?? null,
+    imageUrl: row.imageUrl ?? resolveProductImageUrl(row.imageDir),
     productClass: row.productClass,
     class: row.productClass,
     subClass: row.subClass,
@@ -672,3 +674,5 @@ export async function GET(req: NextRequest) {
     )
   );
 }
+
+	
