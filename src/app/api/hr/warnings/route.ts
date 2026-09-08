@@ -8,10 +8,17 @@ import { readHrMailRouting } from "@/lib/hr/mail-routing-store";
 import {
   draftWarningNotice,
   isEligibleForHrNotice,
+  isLateForWarning,
   noticeFromDraft,
   warningChatMessageFromDraft,
 } from "@/lib/hr/warning-notice";
 import { buildWarningNoticePdf, pdfBytesToBase64 } from "@/lib/hr/warning-notice-pdf";
+import {
+  draftWriteUpNotice,
+  requireWriteUpDescription,
+  writeUpFromDraft,
+} from "@/lib/hr/write-up-notice";
+import { buildWriteUpPdf } from "@/lib/hr/write-up-pdf";
 import {
   addWarningRemarks,
   findWarningForEmployee,
@@ -203,6 +210,121 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Absence waiver not found" }, { status: 404 });
     }
     return NextResponse.json({ ok: true, absenceWaiver: waiver });
+  }
+
+  // Additive for Valliani app chat/mail write-ups. Website still builds PDF client-side.
+  if (action === "writeUpAttachment" || action === "writeUpMessage") {
+    const employeeName = String(
+      (body.notice as Record<string, unknown> | undefined)?.employeeName ??
+        body.employeeName ??
+        ""
+    ).trim();
+    const date = String(
+      (body.notice as Record<string, unknown> | undefined)?.date ?? body.date ?? ""
+    ).trim();
+    const descriptionRaw = String(
+      body.description ??
+        (body.notice as Record<string, unknown> | undefined)?.description ??
+        ""
+    );
+    if (!employeeName || !date) {
+      return NextResponse.json(
+        { error: "employeeName and date are required" },
+        { status: 400 }
+      );
+    }
+    let description: string;
+    try {
+      description = requireWriteUpDescription(descriptionRaw);
+    } catch (e) {
+      return NextResponse.json(
+        {
+          error:
+            e instanceof Error
+              ? e.message
+              : "Write a description before sending the write-up",
+        },
+        { status: 400 }
+      );
+    }
+
+    const rows = loadActiveTimecardRows();
+    const schedule = loadActiveScheduleEntries();
+    const employees = analyzeDay(date, rows, schedule);
+    const emp = employees.find((e) => namesMatch(e.employeeName, employeeName));
+    if (!emp) {
+      return NextResponse.json({ error: "Employee not found for that date" }, { status: 404 });
+    }
+    if (!isEligibleForHrNotice(emp)) {
+      return NextResponse.json(
+        { error: "No attendance violation for a write-up" },
+        { status: 400 }
+      );
+    }
+
+    const existingWriteUp = findWriteUpForEmployee(employeeName, date);
+    if (existingWriteUp && body.resend !== true) {
+      return NextResponse.json(
+        {
+          error: "A write-up was already sent for this employee and date",
+          writeUp: existingWriteUp,
+        },
+        { status: 409 }
+      );
+    }
+
+    const noticeIn = asNotice(body.notice ?? body);
+    const draft = draftWriteUpNotice(
+      {
+        ...emp,
+        employeeCode: noticeIn?.employeeCode ?? emp.employeeCode,
+        store: noticeIn?.store ?? emp.store,
+      },
+      description,
+      readHrMailRouting()
+    );
+    const saved = upsertWarningNotice({
+      ...writeUpFromDraft(draft, {
+        messageId: noticeIn?.messageId ?? `writeup:${draft.caseId}`,
+      }),
+      to: noticeIn?.to || draft.to,
+      from: noticeIn?.from || draft.from,
+      remarks: findWarningNotice(draft.caseId)?.remarks ?? [],
+    });
+
+    const warning = findWarningForEmployee(employeeName, date);
+    if (warning?.waivedAt) {
+      unwaiveWarningNotice(warning.caseId);
+    }
+
+    const payload: Record<string, unknown> = {
+      ok: true,
+      success: true,
+      notice: saved,
+      writeUp: saved,
+      message: draft.text,
+      subject: draft.subject,
+      html: draft.html,
+      text: draft.text,
+    };
+
+    if (action === "writeUpAttachment") {
+      const pdfBytes = await buildWriteUpPdf({
+        employeeName: draft.employeeName,
+        date: draft.date,
+        employeeCode: draft.employeeCode,
+        jobTitle: draft.jobTitle,
+        manager: draft.manager,
+        store: draft.store,
+        description: draft.description,
+        tardiness: isLateForWarning(emp.lateMinutes),
+        otherViolation: !isLateForWarning(emp.lateMinutes),
+      });
+      payload.pdfBase64 = pdfBytesToBase64(pdfBytes);
+      payload.pdfFilename = draft.pdfFilename;
+    }
+
+    return NextResponse.json(payload);
   }
 
   if (action === "chatAttachment" || action === "chatMessage") {
