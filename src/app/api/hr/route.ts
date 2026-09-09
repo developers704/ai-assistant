@@ -76,6 +76,9 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  const hasContactEmails = timecardRows.some(
+    (r) => Boolean(r.userEmail?.trim()) || Boolean(r.mail?.trim())
+  );
   const response = {
     uploads,
     dates,
@@ -84,6 +87,7 @@ export async function GET(req: NextRequest) {
     employees: withWarnings,
     hasTimecard: timecardRows.length > 0,
     hasSchedule: scheduleEntries.length > 0,
+    hasContactEmails,
     dateFrom: HR_ATTENDANCE_FROM,
     dateTo: HR_ATTENDANCE_TO,
     scheduleDateFrom: uploads.schedules[0]?.dateFrom ?? null,
@@ -129,11 +133,23 @@ export async function POST(req: NextRequest) {
     const payload =
       name.endsWith(".csv") ? await file.text() : Buffer.from(await file.arrayBuffer());
     const { meta, rows } = saveTimecardUpload(file.name, payload);
-    routeLog("src/app/api/hr/route.ts", "POST timecard complete", { fileName: file.name, rowCount: rows.length, meta });
+    const hasContactEmails = rows.some(
+      (r) => Boolean(r.userEmail?.trim()) || Boolean(r.mail?.trim())
+    );
+    routeLog("src/app/api/hr/route.ts", "POST timecard complete", {
+      fileName: file.name,
+      rowCount: rows.length,
+      hasContactEmails,
+      meta,
+    });
     return NextResponse.json({
       ok: true,
       meta,
       rowCount: rows.length,
+      hasContactEmails,
+      warning: hasContactEmails
+        ? undefined
+        : "Timecard uploaded, but UserEmail / Mail columns were not found. Warning chat and email need those columns.",
       dates: distinctTimecardDates(rows),
     });
   }

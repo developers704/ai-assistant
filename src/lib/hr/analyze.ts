@@ -58,7 +58,9 @@ export function analyzeEmployeeDay(
   employeeName: string,
   date: string,
   punches: HrTimecardRow[],
-  scheduleEntries: HrScheduleEntry[]
+  scheduleEntries: HrScheduleEntry[],
+  /** Any-day rows for this employee — used for contact / profile fields when today's punches are empty. */
+  profileRows: HrTimecardRow[] = punches
 ): HrEmployeeDay {
   const sorted = [...punches].sort((a, b) => {
     const ta = parseClockToMinutes(a.timeIn) ?? 0;
@@ -177,16 +179,20 @@ export function analyzeEmployeeDay(
   // Meal breaks are informational only — never a flag / warning / write-up case.
 
   const policy = shiftTier ? expectedMealPolicy(shiftTier) : { count: 0, totalMinutes: 0 };
-  const guardsName = firstFilled(sorted.length ? sorted : punches, "guardsName");
+  // Prefer today's punches; fall back to any-day profile rows (emails often only on first row / absent days have no punches).
+  const metaSource = sorted.length ? sorted : profileRows.length ? profileRows : punches;
+  const guardsName =
+    firstFilled(metaSource, "guardsName") ?? firstFilled(profileRows, "guardsName");
 
   return {
     employeeName,
     displayName: resolveHrEmployeeDisplayName(employeeName, guardsName),
     date,
-    employeeCode: firstFilled(sorted.length ? sorted : punches, "employeeCode"),
-    jobTitle: firstFilled(sorted.length ? sorted : punches, "jobTitle"),
-    store: firstFilled(sorted.length ? sorted : punches, "store"),
-    manager: firstFilled(sorted.length ? sorted : punches, "manager"),
+    employeeCode:
+      firstFilled(metaSource, "employeeCode") ?? firstFilled(profileRows, "employeeCode"),
+    jobTitle: firstFilled(metaSource, "jobTitle") ?? firstFilled(profileRows, "jobTitle"),
+    store: firstFilled(metaSource, "store") ?? firstFilled(profileRows, "store"),
+    manager: firstFilled(metaSource, "manager") ?? firstFilled(profileRows, "manager"),
     guardsName,
     schedule: scheduleRange
       ? {
@@ -209,8 +215,9 @@ export function analyzeEmployeeDay(
     lateMinutes,
     earlyInMinutes,
     earlyOutMinutes,
-    userEmail: firstFilled(sorted.length ? sorted : punches, "userEmail"),
-    mail: firstFilled(sorted.length ? sorted : punches, "mail"),
+    userEmail:
+      firstFilled(metaSource, "userEmail") ?? firstFilled(profileRows, "userEmail"),
+    mail: firstFilled(metaSource, "mail") ?? firstFilled(profileRows, "mail"),
     violations: [...violations, ...segments.flatMap((s) => s.violations)],
   };
 }
@@ -234,7 +241,8 @@ export function analyzeDay(
     .sort((a, b) => a.localeCompare(b))
     .map((name) => {
       const punches = dayRows.filter((r) => namesMatch(r.employeeName, name));
-      return analyzeEmployeeDay(name, date, punches, scheduleEntries);
+      const profileRows = timecardRows.filter((r) => namesMatch(r.employeeName, name));
+      return analyzeEmployeeDay(name, date, punches, scheduleEntries, profileRows);
     });
 }
 

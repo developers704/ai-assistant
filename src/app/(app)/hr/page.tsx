@@ -45,6 +45,7 @@ type HrApiResponse = {
   employees: HrEmployeeDay[];
   hasTimecard: boolean;
   hasSchedule: boolean;
+  hasContactEmails?: boolean;
   scheduleDateFrom: string | null;
   scheduleDateTo: string | null;
   error?: string;
@@ -128,9 +129,16 @@ export default function HrPage() {
       if (!res.ok) throw new Error(json.error || "Upload failed");
       setStatus(
         kind === "timecard"
-          ? `Timecard uploaded (${json.rowCount} rows)`
+          ? json.hasContactEmails === false
+            ? `Timecard uploaded (${json.rowCount} rows) — missing UserEmail / Mail columns`
+            : `Timecard uploaded (${json.rowCount} rows)`
           : `Schedule uploaded (${json.entryCount} entries)`
       );
+      if (kind === "timecard" && json.hasContactEmails === false) {
+        setError(
+          "Timecard has no UserEmail / Mail values. Warning chat and email need those columns on the sheet."
+        );
+      }
       await load({ from: dateRange.from, to: dateRange.to });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
@@ -540,6 +548,12 @@ export default function HrPage() {
                   <div className="hr-alert hr-alert-warn">
                     No schedule loaded — upload the schedule csv (Date / Employee Name / Time In /
                     Time Out, or weekly ADP grid). Re-upload if you saw &quot;0 entries&quot;.
+                  </div>
+                )}
+                {data.hasTimecard && data.hasContactEmails === false && (
+                  <div className="hr-alert hr-alert-warn">
+                    Timecard has no UserEmail / Mail columns. Re-upload a sheet that includes those
+                    columns so warning chat and email can send.
                   </div>
                 )}
                 {data.hasSchedule &&
