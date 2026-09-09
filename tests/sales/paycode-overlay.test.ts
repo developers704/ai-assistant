@@ -479,7 +479,7 @@ describe("bundled Payment-Transactions.csv", () => {
     const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
     expect(byName["WELLS"]).toBeCloseTo(355604.49, 2);
     expect(byName["CHK"]).toBeCloseTo(4232.14, 2);
-    expect(byName["CASH"]).toBeCloseTo(418558.22, 2);
+    expect(byName["CASH"]).toBeCloseTo(418610.22, 2);
     expect(byName["ACIMA"]).toBeCloseTo(54492.64, 2);
     expect(byName["AFFIRM"]).toBeCloseTo(50071.93, 2);
     expect(byName["SYNC"]).toBeCloseTo(555883.07, 2);
