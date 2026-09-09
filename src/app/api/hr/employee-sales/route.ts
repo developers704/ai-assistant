@@ -6,6 +6,7 @@ import { buildEmployeeSalesRoster } from "@/lib/hr/build-employee-commission";
 import { AUGUST_COMMISSION_FROM, AUGUST_COMMISSION_TO } from "@/lib/hr/august-2026-commission-data";
 import { lockHrSalesQuery } from "@/lib/hr/hr-self-sales";
 import { parseMultiParam } from "@/lib/sales/filter-params";
+import { routeLog } from "@/lib/hr/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
   const from = isValidIsoDate(fromRaw) ? fromRaw : AUGUST_COMMISSION_FROM;
   const to = isValidIsoDate(toRaw) ? toRaw : AUGUST_COMMISSION_TO;
   const window = from <= to ? { from, to } : { from: to, to: from };
+  routeLog("src/app/api/hr/employee-sales/route.ts", "GET sales start", { actor: session.username, from: window.from, to: window.to });
 
   const locked = lockHrSalesQuery({
     hrSales: true,
@@ -51,6 +53,7 @@ export async function GET(req: NextRequest) {
     designs,
     salespeople: locked.salespeople,
   });
+  routeLog("src/app/api/hr/employee-sales/route.ts", "GET sales complete", { actor: session.username, from: window.from, to: window.to, employeeCount: employees.length, scope: locked.hrSalesScope });
 
   return NextResponse.json({
     from: window.from,

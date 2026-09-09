@@ -5,6 +5,7 @@ import { isValidIsoDate } from "@/lib/reports/date-utils";
 import { buildEmployeeCommissionFromSales } from "@/lib/hr/build-employee-commission";
 import { AUGUST_COMMISSION_FROM, AUGUST_COMMISSION_TO } from "@/lib/hr/august-2026-commission-data";
 import { salespersonForHrCommissionRequest } from "@/lib/hr/hr-self-sales";
+import { routeLog } from "@/lib/hr/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export async function GET(req: NextRequest) {
   const from = isValidIsoDate(fromRaw) ? fromRaw : AUGUST_COMMISSION_FROM;
   const to = isValidIsoDate(toRaw) ? toRaw : AUGUST_COMMISSION_TO;
   const window = from <= to ? { from, to } : { from: to, to: from };
+  routeLog("src/app/api/hr/commission/route.ts", "GET commission start", { actor: session.username, salesperson, from: window.from, to: window.to });
 
   const commission = buildEmployeeCommissionFromSales({
     salesperson,
@@ -39,6 +41,7 @@ export async function GET(req: NextRequest) {
   if (!commission) {
     return NextResponse.json({ error: "Could not resolve salesperson" }, { status: 404 });
   }
+  routeLog("src/app/api/hr/commission/route.ts", "GET commission complete", { actor: session.username, salesperson, from: window.from, to: window.to, commission });
   return NextResponse.json({
     from: window.from,
     to: window.to,

@@ -33,6 +33,7 @@ import {
   normalizeWaiverComment,
 } from "@/lib/hr/warning-store";
 import type { HrWarningNotice, HrWarningRemark } from "@/lib/hr/types";
+import { routeLog } from "@/lib/hr/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,6 +103,7 @@ export async function GET(req: NextRequest) {
 
   const date = req.nextUrl.searchParams.get("date")?.trim() ?? "";
   const employeeName = req.nextUrl.searchParams.get("employeeName")?.trim() ?? "";
+  routeLog("src/app/api/hr/warnings/route.ts", "GET warnings", { date, employeeName });
 
   if (!date || !employeeName) {
     return NextResponse.json({ notices: listWarningNotices() });
@@ -138,6 +140,12 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const action = String(body.action ?? "record").trim();
+  routeLog("src/app/api/hr/warnings/route.ts", "POST warning action", {
+    action,
+    caseId: body.caseId,
+    employeeName: body.employeeName ?? (body.notice as Record<string, unknown> | undefined)?.employeeName,
+    date: body.date ?? (body.notice as Record<string, unknown> | undefined)?.date,
+  });
 
   if (action === "remarks") {
     const caseId = String(body.caseId ?? "").trim();
@@ -385,4 +393,3 @@ export async function POST(req: NextRequest) {
   });
   return NextResponse.json({ ok: true, warning: saved });
 }
-

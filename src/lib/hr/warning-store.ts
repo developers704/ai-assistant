@@ -3,6 +3,7 @@ import path from "path";
 import type { HrAbsenceWaiver, HrNoticeKind, HrWarningNotice, HrWarningRemark } from "./types";
 import { namesMatch } from "./name-match";
 import { stripQuotedReply } from "./remark-text";
+import { hrLog } from "./logger";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const STORE_PATH = path.join(DATA_DIR, "warnings.json");
@@ -102,6 +103,16 @@ export function upsertWarningNotice(notice: HrWarningNotice): HrWarningNotice {
     store.notices.unshift(next);
   }
   writeStore(store);
+  hrLog.info(idx >= 0 ? "db.update" : "db.insert", {
+    file: STORE_PATH,
+    table: "hr_warning_notices",
+    caseId: next.caseId,
+    kind: next.kind,
+    employeeName: next.employeeName,
+    employeeCode: next.employeeCode,
+    date: next.date,
+    notice: next,
+  });
   return next;
 }
 
@@ -155,6 +166,7 @@ export function addWarningRemarks(
   };
   store.notices[idx] = next;
   writeStore(store);
+  hrLog.info("db.update", { file: STORE_PATH, table: "hr_warning_remarks", caseId, remarkCount: next.remarks.length, remarks });
   return next;
 }
 
@@ -189,6 +201,7 @@ export function waiveWarningNotice(
   };
   store.notices[idx] = next;
   writeStore(store);
+  hrLog.info("db.update", { file: STORE_PATH, table: "hr_warning_notices", action: "waive", caseId, employeeName: next.employeeName, date: next.date, waivedBy: next.waivedBy, comment: next.waivedComment });
   return next;
 }
 
@@ -208,6 +221,7 @@ export function unwaiveWarningNotice(caseId: string): HrWarningNotice | null {
   };
   store.notices[idx] = next;
   writeStore(store);
+  hrLog.info("db.update", { file: STORE_PATH, table: "hr_warning_notices", action: "unwaive", caseId, employeeName: next.employeeName, date: next.date });
   return next;
 }
 
@@ -289,6 +303,7 @@ export function upsertAbsenceWaiver(input: {
   else waivers.unshift(next);
   store.absenceWaivers = waivers;
   writeStore(store);
+  hrLog.info(idx >= 0 ? "db.update" : "db.insert", { file: STORE_PATH, table: "hr_absence_waivers", employeeName: next.employeeName, employeeCode: next.employeeCode, date: next.date, waivedBy: next.waivedBy, comment: next.comment });
   return next;
 }
 
@@ -310,6 +325,7 @@ export function removeAbsenceWaiver(input: {
   const [removed] = waivers.splice(idx, 1);
   store.absenceWaivers = waivers;
   writeStore(store);
+  hrLog.info("db.delete", { file: STORE_PATH, table: "hr_absence_waivers", employeeName: removed?.employeeName, employeeCode: removed?.employeeCode, date: removed?.date });
   return removed ?? null;
 }
 

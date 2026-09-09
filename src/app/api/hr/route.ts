@@ -16,6 +16,7 @@ import {
   HR_ATTENDANCE_TO,
   lastHrAttendanceDateWithData,
 } from "@/lib/hr/window";
+import { routeLog } from "@/lib/hr/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export async function GET(req: NextRequest) {
   const date = req.nextUrl.searchParams.get("date")?.trim() ?? "";
   const fromParam = req.nextUrl.searchParams.get("from")?.trim() ?? "";
   const toParam = req.nextUrl.searchParams.get("to")?.trim() ?? "";
+  routeLog("src/app/api/hr/route.ts", "GET attendance", { date, from: fromParam, to: toParam });
   const uploads = listHrUploads();
   const timecardRows = loadActiveTimecardRows();
   const scheduleEntries = loadActiveScheduleEntries();
@@ -74,7 +76,7 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json({
+  const response = {
     uploads,
     dates,
     activeDate,
@@ -86,7 +88,16 @@ export async function GET(req: NextRequest) {
     dateTo: HR_ATTENDANCE_TO,
     scheduleDateFrom: uploads.schedules[0]?.dateFrom ?? null,
     scheduleDateTo: uploads.schedules[0]?.dateTo ?? null,
+  };
+  routeLog("src/app/api/hr/route.ts", "GET attendance complete", {
+    activeDates,
+    employeeCount: withWarnings.length,
+    warningCount: withWarnings.filter((e) => e.warning).length,
+    writeUpCount: withWarnings.filter((e) => e.writeUp).length,
+    timecardRows: timecardRows.length,
+    scheduleEntries: scheduleEntries.length,
   });
+  return NextResponse.json(response);
 }
 
 export async function POST(req: NextRequest) {
@@ -102,6 +113,7 @@ export async function POST(req: NextRequest) {
 
   const kind = String(formData.get("kind") ?? "").trim();
   const file = formData.get("file") as File | null;
+  routeLog("src/app/api/hr/route.ts", "POST upload", { kind, fileName: file?.name, fileSize: file?.size });
   if (!file) {
     return NextResponse.json({ error: "File is required" }, { status: 400 });
   }
@@ -117,6 +129,7 @@ export async function POST(req: NextRequest) {
     const payload =
       name.endsWith(".csv") ? await file.text() : Buffer.from(await file.arrayBuffer());
     const { meta, rows } = saveTimecardUpload(file.name, payload);
+    routeLog("src/app/api/hr/route.ts", "POST timecard complete", { fileName: file.name, rowCount: rows.length, meta });
     return NextResponse.json({
       ok: true,
       meta,
@@ -136,6 +149,7 @@ export async function POST(req: NextRequest) {
     const payload =
       name.endsWith(".csv") ? await file.text() : Buffer.from(await file.arrayBuffer());
     const { meta, entries } = saveScheduleUpload(file.name, payload);
+    routeLog("src/app/api/hr/route.ts", "POST schedule complete", { fileName: file.name, entryCount: entries.length, meta });
     return NextResponse.json({
       ok: true,
       meta,

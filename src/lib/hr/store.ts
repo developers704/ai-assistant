@@ -8,6 +8,7 @@ import {
   parseScheduleXlsx,
 } from "./parse-schedule";
 import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "./window";
+import { hrLog } from "./logger";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const INDEX_PATH = path.join(DATA_DIR, "index.json");
@@ -42,6 +43,7 @@ function wipeHrFiles() {
     if (!fs.existsSync(dir)) continue;
     for (const name of fs.readdirSync(dir)) {
       fs.unlinkSync(path.join(dir, name));
+      hrLog.info("db.delete", { file: path.join(dir, name), reason: "seed-refresh" });
     }
   }
 }
@@ -83,6 +85,13 @@ function readIndex(): HrIndex {
 function writeIndex(index: HrIndex) {
   ensureDir();
   fs.writeFileSync(INDEX_PATH, JSON.stringify(index, null, 2), "utf8");
+  hrLog.info("db.write", {
+    file: INDEX_PATH,
+    table: "hr_upload_index",
+    timecardCount: index.timecards.length,
+    scheduleCount: index.schedules.length,
+    seedKey: index.seedKey,
+  });
 }
 
 function newId(): string {
@@ -134,6 +143,14 @@ export function saveTimecardUpload(
   index.timecards.unshift(meta);
   index.timecards = index.timecards.slice(0, 60);
   writeIndex(index);
+  hrLog.info("db.insert", {
+    file: `${DATA_DIR}/timecards/${id}.json`,
+    table: "hr_timecards",
+    id,
+    fileName,
+    rowCount: rows.length,
+    dateRange: range,
+  });
 
   return { meta, rows };
 }
@@ -182,6 +199,15 @@ export function saveScheduleUpload(
   index.schedules.unshift(meta);
   index.schedules = index.schedules.slice(0, 30);
   writeIndex(index);
+  hrLog.info("db.insert", {
+    file: `${DATA_DIR}/schedules/${id}.json`,
+    table: "hr_schedules",
+    id,
+    fileName,
+    entryCount: entries.length,
+    dateFrom,
+    dateTo,
+  });
 
   return { meta, entries };
 }
