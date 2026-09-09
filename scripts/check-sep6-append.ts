@@ -59,6 +59,7 @@ async function main() {
     CASH: 12112.09,
     PROG: 4480,
     ACIMA: 3660,
+    MULBRY: 80,
   };
   for (const [name, amt] of Object.entries(expected)) {
     assert.ok(
@@ -66,7 +67,7 @@ async function main() {
       `paycode ${name}: got ${byName[name] ?? 0} vs ${amt}`
     );
   }
-  assert.ok(Math.abs(paySum - 452173.21) < 1, `paycode sum ${paySum}`);
+  assert.ok(Math.abs(paySum - 452253.21) < 1, `paycode sum ${paySum}`);
 
   console.log("check-sep6-append: ok", {
     sep6Rows: sep6.length,

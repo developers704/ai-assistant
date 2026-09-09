@@ -479,7 +479,7 @@ describe("bundled Payment-Transactions.csv", () => {
     const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
     expect(byName["WELLS"]).toBeCloseTo(355604.49, 2);
     expect(byName["CHK"]).toBeCloseTo(4232.14, 2);
-    expect(byName["CASH"]).toBeCloseTo(418558.22, 2);
+    expect(byName["CASH"]).toBeCloseTo(418610.22, 2);
     expect(byName["ACIMA"]).toBeCloseTo(54492.64, 2);
     expect(byName["AFFIRM"]).toBeCloseTo(50071.93, 2);
     expect(byName["SYNC"]).toBeCloseTo(555883.07, 2);
@@ -650,9 +650,10 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(byName["CASH"]).toBeCloseTo(12112.09, 2);
     expect(byName["PROG"]).toBeCloseTo(4480, 2);
     expect(byName["ACIMA"]).toBeCloseTo(3660, 2);
+    expect(byName["MULBRY"]).toBeCloseTo(80, 2);
     expect(byName["GE"]).toBeUndefined();
     const sum = totals.reduce((s, t) => s + t.revenue, 0);
-    expect(sum).toBeCloseTo(452173.21, 2);
+    expect(sum).toBeCloseTo(452253.21, 2);
   });
 
   it("Paycodes card Sep 7 2026 matches the appended daily payment CSV", () => {
@@ -675,5 +676,25 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(byName["GE"]).toBeUndefined();
     const sum = totals.reduce((s, t) => s + t.revenue, 0);
     expect(sum).toBeCloseTo(293445.16, 2);
+  });
+
+  it("Paycodes card Sep 8 2026 matches the appended daily payment CSV", () => {
+    const file = path.join(process.cwd(), "data/reports/Payment-Transactions.csv");
+    const totals = paycodeTotalsForPaymentWindow({
+      from: "2026-09-08",
+      to: "2026-09-08",
+      legs: parsePaycodeLegs(fs.readFileSync(file, "utf8")),
+    });
+    const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
+    expect(byName["CC"]).toBeCloseTo(67452.88, 2);
+    expect(byName["IDDEAL"]).toBeCloseTo(34455.16, 2);
+    expect(byName["SYNC"]).toBeCloseTo(14390, 2);
+    expect(byName["KAFE"]).toBeCloseTo(10324.94, 2);
+    expect(byName["CASH"]).toBeCloseTo(6004.15, 2);
+    expect(byName["FLEX"]).toBeCloseTo(3070, 2);
+    expect(byName["ACIMA"]).toBeCloseTo(829.11, 2);
+    expect(byName["GE"]).toBeUndefined();
+    const sum = totals.reduce((s, t) => s + t.revenue, 0);
+    expect(sum).toBeCloseTo(136526.24, 2);
   });
 });
