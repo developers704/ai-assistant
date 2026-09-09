@@ -213,9 +213,6 @@ export async function POST(req: NextRequest) {
     if (!caseId) {
       return NextResponse.json({ error: "caseId is required" }, { status: 400 });
     }
-    if (!comment) {
-      return NextResponse.json({ error: "A waive note is required" }, { status: 400 });
-    }
     const updated = waiveWarningNotice(caseId, actor, comment);
     if (!updated) {
       return NextResponse.json({ error: "Warning notice not found" }, { status: 404 });
