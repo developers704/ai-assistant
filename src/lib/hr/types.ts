@@ -62,6 +62,10 @@ export type HrEmployeeDay = {
   /** Minutes early vs schedule end (≥10 min threshold). */
   earlyOutMinutes: number | null;
   violations: HrViolation[];
+  /** Chat recipient from timecard UserEmail column. */
+  userEmail?: string | null;
+  /** Email recipient(s) from timecard Mail column. */
+  mail?: string | null;
   warning?: HrWarningNotice | null;
   writeUp?: HrWarningNotice | null;
   /** Absent day was waived — still shown, but it does not count for commission extras. */
@@ -108,6 +112,10 @@ export type HrWarningNotice = {
   sentAt: string;
   messageId: string | null;
   remarks: HrWarningRemark[];
+  /** Chat recipient from timecard UserEmail column. */
+  userEmail?: string | null;
+  /** Email recipient(s) from timecard Mail column. */
+  mail?: string | null;
   /** When set, this warning does not count as a schedule violation. */
   waivedAt?: string | null;
   waivedBy?: string | null;
@@ -126,6 +134,10 @@ export type HrTimecardRow = {
   store?: string | null;
   manager?: string | null;
   guardsName?: string | null;
+  /** App chat user email (matches Valliani users). */
+  userEmail?: string | null;
+  /** Outbound warning/write-up email recipient(s), comma-separated OK. */
+  mail?: string | null;
 };
 
 export type HrScheduleEntry = {

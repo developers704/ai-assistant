@@ -7,7 +7,7 @@ import {
   noticeEmployeeSlug,
   type HrNoticeEmployee,
 } from "./warning-notice";
-import { formatHrMailTo, type HrMailRouting } from "./mail-routing";
+import { formatHrMailTo, parseHrMailAddresses, type HrMailRouting } from "./mail-routing";
 
 export type WriteUpDraft = {
   caseId: string;
@@ -98,6 +98,7 @@ export function draftWriteUpNotice(
   const text = requireWriteUpDescription(description);
   const caseId = writeUpCaseId(emp.employeeCode, emp.date, emp.employeeName);
   const pdfFilename = writeUpPdfFilename(emp.employeeCode, emp.date, emp.employeeName);
+  const sheetMail = parseHrMailAddresses(emp.mail ?? "");
   return {
     caseId,
     kind: "writeup",
@@ -109,7 +110,11 @@ export function draftWriteUpNotice(
     date: emp.date,
     lateMinutes,
     from: routing?.from?.trim() || HR_WARNING_FROM,
-    to: routing?.to?.length ? formatHrMailTo(routing.to) : HR_WARNING_TO,
+    to: sheetMail.length
+      ? formatHrMailTo(sheetMail)
+      : routing?.to?.length
+        ? formatHrMailTo(routing.to)
+        : HR_WARNING_TO,
     subject: writeUpSubject(caseId, emp.employeeName),
     html: writeUpCoverHtml({
       employeeName: emp.employeeName,

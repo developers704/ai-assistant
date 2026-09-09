@@ -347,7 +347,20 @@ export async function POST(req: NextRequest) {
     const employees = analyzeDay(notice.date, rows, schedule);
     const emp = employees.find((e) => namesMatch(e.employeeName, notice.employeeName));
     const draft = emp && isEligibleForHrNotice(emp)
-      ? draftWarningNotice({ ...emp, employeeCode: notice.employeeCode ?? emp.employeeCode }, readHrMailRouting())
+      ? draftWarningNotice(
+          {
+            ...emp,
+            employeeCode: notice.employeeCode ?? emp.employeeCode,
+            mail:
+              String(notice.mail ?? "").trim() ||
+              String(notice.to ?? "").trim() ||
+              emp.mail ||
+              null,
+            userEmail:
+              String(notice.userEmail ?? "").trim() || emp.userEmail || null,
+          },
+          readHrMailRouting()
+        )
       : null;
     const saved = upsertWarningNotice({
       ...(draft ? noticeFromDraft(draft, { messageId: `chat:${draft.caseId}` }) : notice),
@@ -361,7 +374,13 @@ export async function POST(req: NextRequest) {
       ok: true,
       success: true,
       notice: saved,
-      message: draft ? warningChatMessageFromDraft(draft) : String(body.message || notice.description || notice.subject),
+      message: draft
+        ? warningChatMessageFromDraft(draft)
+        : String(body.message || notice.description || notice.subject),
+      subject: draft?.subject ?? notice.subject ?? null,
+      html: draft?.html ?? null,
+      text: draft?.text ?? null,
+      to: draft?.to ?? notice.to ?? null,
     };
 
     if (sendPdf) {

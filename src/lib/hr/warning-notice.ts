@@ -3,6 +3,7 @@ import {
   DEFAULT_HR_MAIL_FROM,
   DEFAULT_HR_MAIL_TO,
   formatHrMailTo,
+  parseHrMailAddresses,
   type HrMailRouting,
 } from "./mail-routing";
 import { resolveHrEmployeeDisplayName } from "./security-guard-names";
@@ -53,6 +54,8 @@ export type HrNoticeEmployee = Pick<
   store?: string | null;
   schedule?: HrEmployeeDay["schedule"];
   segments?: HrEmployeeDay["segments"];
+  userEmail?: string | null;
+  mail?: string | null;
 };
 
 export type WarningMailDetails = {
@@ -239,11 +242,43 @@ export function matchesEmployeeSearch(
 ): boolean {
   const needle = query.trim().toLowerCase();
   if (!needle) return true;
-  const hay = [emp.displayName, emp.employeeName, emp.employeeCode, emp.guardsName]
-    .filter((s): s is string => Boolean(s?.trim()))
-    .join(" ")
-    .toLowerCase();
-  return hay.includes(needle);
+  const names: string[] = [];
+  const pushName = (value: string | null | undefined) => {
+    const raw = value?.trim().toLowerCase() ?? "";
+    if (!raw) return;
+    names.push(raw);
+    if (raw.includes(",")) {
+      names.push(raw.replace(/,/g, " "));
+      names.push(
+        raw
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .reverse()
+          .join(" ")
+      );
+    }
+  };
+  // Payroll Name (employeeName) + resolved employee name (displayName / guards).
+  pushName(emp.employeeName);
+  pushName(emp.displayName);
+  pushName(emp.guardsName);
+  const code = emp.employeeCode?.trim().toLowerCase() ?? "";
+  if (code) names.push(code);
+  return names.some((value) => value.includes(needle));
+}
+
+export function employeeFilterLabel(
+  emp: Pick<HrEmployeeDay, "displayName" | "employeeName" | "employeeCode">
+): string {
+  const display =
+    emp.displayName?.trim() || emp.employeeName?.trim() || "Employee";
+  const payroll = emp.employeeName?.trim() || "";
+  const code = emp.employeeCode?.trim() || "";
+  const parts = [display];
+  if (payroll && payroll.toLowerCase() !== display.toLowerCase()) parts.push(payroll);
+  if (code) parts.push(code);
+  return parts.join(" · ");
 }
 
 export function attendanceKpisFromDays(
@@ -493,6 +528,7 @@ export function draftWarningNotice(
   const description = noticeDescriptionForEmployee(emp);
   const details = warningMailDetailsFromEmployee(emp);
   const caseId = warningCaseId(emp.employeeCode, emp.date, emp.employeeName, warningReason(emp));
+  const sheetMail = parseHrMailAddresses(emp.mail ?? "");
   return {
     caseId,
     employeeName: emp.employeeName,
@@ -502,7 +538,11 @@ export function draftWarningNotice(
     manager: emp.manager,
     lateMinutes,
     from: routing?.from?.trim() || HR_WARNING_FROM,
-    to: routing?.to?.length ? formatHrMailTo(routing.to) : HR_WARNING_TO,
+    to: sheetMail.length
+      ? formatHrMailTo(sheetMail)
+      : routing?.to?.length
+        ? formatHrMailTo(routing.to)
+        : HR_WARNING_TO,
     subject: warningSubject(caseId, display),
     html: warningMailHtml(display, emp.date, events, details),
     text: warningMailPlainText(display, emp.date, events, details),

@@ -15,6 +15,7 @@ import {
 import { formatHrDateLabel } from "@/lib/hr/time-utils";
 import {
   attendanceKpisFromDays,
+  employeeFilterLabel,
   matchesAttendanceCard,
   matchesEmployeeSearch,
   type HrAttendanceCardFilter,
@@ -68,6 +69,7 @@ export default function HrPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [storeFilter, setStoreFilter] = useState("");
   const [designationFilter, setDesignationFilter] = useState("");
+  const [employeeFilter, setEmployeeFilter] = useState("");
   const [cardFilter, setCardFilter] = useState<HrAttendanceCardFilter>("all");
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -153,6 +155,14 @@ export default function HrPage() {
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [data?.employees]);
 
+  const employeeOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of data?.employees ?? []) {
+      set.add(employeeFilterLabel(e));
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [data?.employees]);
+
   useEffect(() => {
     if (storeFilter && !storeOptions.includes(storeFilter)) setStoreFilter("");
   }, [storeFilter, storeOptions]);
@@ -163,13 +173,20 @@ export default function HrPage() {
     }
   }, [designationFilter, designationOptions]);
 
+  useEffect(() => {
+    if (employeeFilter && !employeeOptions.includes(employeeFilter)) {
+      setEmployeeFilter("");
+    }
+  }, [employeeFilter, employeeOptions]);
+
   const scopedEmployees = useMemo(() => {
     return (data?.employees ?? []).filter((e) => {
       if (storeFilter && (e.store ?? "").trim() !== storeFilter) return false;
       if (designationFilter && (e.jobTitle ?? "").trim() !== designationFilter) return false;
+      if (employeeFilter && employeeFilterLabel(e) !== employeeFilter) return false;
       return true;
     });
-  }, [data?.employees, storeFilter, designationFilter]);
+  }, [data?.employees, storeFilter, designationFilter, employeeFilter]);
 
   const searchScopedEmployees = useMemo(() => {
     return scopedEmployees.filter((e) => matchesEmployeeSearch(e, employeeSearch));
@@ -447,6 +464,22 @@ export default function HrPage() {
                     ))}
                   </select>
                 </label>
+                <label className="hr-field" style={{ minWidth: "14rem" }}>
+                  <span className="sr-only">Employee</span>
+                  <select
+                    value={employeeFilter}
+                    onChange={(e) => setEmployeeFilter(e.target.value)}
+                    className="hr-select"
+                    aria-label="Filter by employee"
+                  >
+                    <option value="">All employees</option>
+                    {employeeOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
             </div>
             <label className="hr-field" style={{ gridColumn: "1 / -1" }}>
@@ -459,8 +492,8 @@ export default function HrPage() {
                   value={employeeSearch}
                   onChange={(e) => setEmployeeSearch(e.target.value)}
                   className="hr-input"
-                  placeholder="Code or name"
-                  aria-label="Search employees by code or name"
+                  placeholder="Payroll name or employee name"
+                  aria-label="Search by payroll name or employee name"
                 />
               </span>
             </label>

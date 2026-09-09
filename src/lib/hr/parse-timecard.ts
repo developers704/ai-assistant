@@ -28,6 +28,12 @@ function rowsFromKeyed(records: Record<string, unknown>[]): HrTimecardRow[] {
     const storeKey = findKey(keys, /^store$/i);
     const managerKey = findKey(keys, /^manager$/i);
     const guardsKey = findKey(keys, /guards?\s*name/i);
+    const userEmailKey =
+      findKey(keys, /^user\s*e?-?mail$/i) ?? findKey(keys, /^useremail$/i);
+    const mailKey =
+      findKey(keys, /^mail$/i) ??
+      findKey(keys, /^e?-?mail$/i) ??
+      findKey(keys, /recipient\s*e?-?mail/i);
 
     const name = nameKey ? cellStr(row[nameKey]) : null;
     const date = dateKey ? isoDateFromCell(row[dateKey]) : null;
@@ -45,6 +51,8 @@ function rowsFromKeyed(records: Record<string, unknown>[]): HrTimecardRow[] {
       store: storeKey ? cellStr(row[storeKey]) : null,
       manager: managerKey ? cellStr(row[managerKey]) : null,
       guardsName: guardsKey ? cellStr(row[guardsKey]) : null,
+      userEmail: userEmailKey ? cellStr(row[userEmailKey]) : null,
+      mail: mailKey ? cellStr(row[mailKey]) : null,
     });
   }
   return out;
@@ -80,6 +88,17 @@ function rowsFromMatrix(matrix: unknown[][]): HrTimecardRow[] {
   const storeI = colIndex(header, /^store$/i);
   const managerI = colIndex(header, /^manager$/i);
   const guardsI = colIndex(header, /guards?\s*name/i);
+  const userEmailI =
+    colIndex(header, /^user\s*e?-?mail$/i) >= 0
+      ? colIndex(header, /^user\s*e?-?mail$/i)
+      : colIndex(header, /^useremail$/i);
+  const mailI = (() => {
+    const exact = colIndex(header, /^mail$/i);
+    if (exact >= 0) return exact;
+    const email = colIndex(header, /^e?-?mail$/i);
+    if (email >= 0) return email;
+    return colIndex(header, /recipient\s*e?-?mail/i);
+  })();
   const legacy = dateI < 0;
   const out: HrTimecardRow[] = [];
   for (let i = headerIdx + 1; i < matrix.length; i++) {
@@ -100,6 +119,8 @@ function rowsFromMatrix(matrix: unknown[][]): HrTimecardRow[] {
       store: at(r, storeI),
       manager: at(r, managerI),
       guardsName: at(r, guardsI),
+      userEmail: at(r, userEmailI),
+      mail: at(r, mailI),
     });
   }
   return out;

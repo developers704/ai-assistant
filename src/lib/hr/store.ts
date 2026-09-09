@@ -14,6 +14,8 @@ const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const INDEX_PATH = path.join(DATA_DIR, "index.json");
 const SEED_TIMECARD = path.join(process.cwd(), "data", "hr", "Timecard-August-2026.csv");
 const SEED_SCHEDULE = path.join(process.cwd(), "data", "hr", "Schedule-August-2026.csv");
+/** Marks that the operator replaced seed data — never auto-restore August files. */
+const USER_DATA_KEY = "user";
 
 type HrIndex = {
   timecards: HrUploadMeta[];
@@ -48,18 +50,46 @@ function wipeHrFiles() {
   }
 }
 
+function removeUploadFiles(
+  kind: "timecards" | "schedules",
+  metas: HrUploadMeta[]
+) {
+  const dir = path.join(DATA_DIR, kind);
+  if (!fs.existsSync(dir)) return;
+  for (const meta of metas) {
+    for (const name of fs.readdirSync(dir)) {
+      if (!name.startsWith(`${meta.id}.`) && name !== meta.id) continue;
+      fs.unlinkSync(path.join(dir, name));
+      hrLog.info("db.delete", {
+        file: path.join(dir, name),
+        reason: "replace-active-upload",
+      });
+    }
+  }
+}
+
+/**
+ * Seed August demo files once on a virgin install.
+ * Never wipe / restore seed after the operator uploads or clears data —
+ * that was re-injecting thousands of old employees on every request.
+ */
 function ensureSeedHr() {
   const key = seedFingerprint();
   if (!key) return;
   ensureDir();
   const index = readIndexRaw();
-  if (index.seedKey === key && index.timecards.length > 0 && index.schedules.length > 0) {
-    return;
-  }
+  if (index.seedKey === USER_DATA_KEY) return;
+  if (index.timecards.length > 0 || index.schedules.length > 0) return;
+  if (index.seedKey === key) return;
+
   wipeHrFiles();
   writeIndex({ timecards: [], schedules: [], seedKey: key });
-  saveTimecardUpload("Timecard-August-2026.csv", fs.readFileSync(SEED_TIMECARD, "utf8"));
-  saveScheduleUpload("Schedule-August-2026.csv", fs.readFileSync(SEED_SCHEDULE, "utf8"));
+  saveTimecardUpload("Timecard-August-2026.csv", fs.readFileSync(SEED_TIMECARD, "utf8"), {
+    asSeed: true,
+  });
+  saveScheduleUpload("Schedule-August-2026.csv", fs.readFileSync(SEED_SCHEDULE, "utf8"), {
+    asSeed: true,
+  });
   const after = readIndexRaw();
   after.seedKey = key;
   writeIndex(after);
@@ -109,7 +139,8 @@ export function listHrUploads(): HrIndex {
 
 export function saveTimecardUpload(
   fileName: string,
-  data: Buffer | string
+  data: Buffer | string,
+  opts?: { asSeed?: boolean }
 ): {
   meta: HrUploadMeta;
   rows: HrTimecardRow[];
@@ -140,8 +171,9 @@ export function saveTimecardUpload(
   );
 
   const index = readIndexRaw();
-  index.timecards.unshift(meta);
-  index.timecards = index.timecards.slice(0, 60);
+  removeUploadFiles("timecards", index.timecards);
+  index.timecards = [meta];
+  if (!opts?.asSeed) index.seedKey = USER_DATA_KEY;
   writeIndex(index);
   hrLog.info("db.insert", {
     file: `${DATA_DIR}/timecards/${id}.json`,
@@ -157,7 +189,8 @@ export function saveTimecardUpload(
 
 export function saveScheduleUpload(
   fileName: string,
-  data: Buffer | string
+  data: Buffer | string,
+  opts?: { asSeed?: boolean }
 ): {
   meta: HrUploadMeta;
   entries: HrScheduleEntry[];
@@ -196,8 +229,9 @@ export function saveScheduleUpload(
   );
 
   const index = readIndexRaw();
-  index.schedules.unshift(meta);
-  index.schedules = index.schedules.slice(0, 30);
+  removeUploadFiles("schedules", index.schedules);
+  index.schedules = [meta];
+  if (!opts?.asSeed) index.seedKey = USER_DATA_KEY;
   writeIndex(index);
   hrLog.info("db.insert", {
     file: `${DATA_DIR}/schedules/${id}.json`,

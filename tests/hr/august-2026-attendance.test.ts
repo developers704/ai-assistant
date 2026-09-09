@@ -148,7 +148,7 @@ describe("August 2026 seed files", () => {
     );
   });
 
-  it("shows missing punches for a scheduled employee with no clock-ins", () => {
+  it("marks a scheduled employee with no clock-ins as a single absent issue", () => {
     const { entries } = parseScheduleCsv(schedule);
     const scheduled = entries.find((e) => e.date === "2026-08-01");
     expect(scheduled).toBeTruthy();
@@ -156,8 +156,9 @@ describe("August 2026 seed files", () => {
     expect(day.segments).toHaveLength(1);
     expect(day.segments[0]!.timeIn).toBeNull();
     expect(day.segments[0]!.timeOut).toBeNull();
-    expect(day.violations.filter((v) => v.type === "missing_punch")).toHaveLength(2);
-    expect(day.violations.some((v) => v.type === "absent")).toBe(true);
+    expect(day.violations.filter((v) => v.type === "missing_punch")).toHaveLength(0);
+    expect(day.violations.filter((v) => v.type === "absent")).toHaveLength(1);
+    expect(day.violations).toHaveLength(1);
   });
 
   it("flags both missing Time In and Time Out on a punch row", () => {

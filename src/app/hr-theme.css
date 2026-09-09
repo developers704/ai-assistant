@@ -834,8 +834,8 @@ button.hr-pill:hover:not(:disabled) {
 }
 
 .hr-emp-open .hr-emp-body {
-  background: var(--hr-primary-soft);
-  border-top-color: var(--hr-primary-line);
+  background: #f5f3ff;
+  border-top-color: #c4b5fd;
 }
 
 .hr-emp-open.hr-emp-no-schedule .hr-emp-body {

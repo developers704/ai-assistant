@@ -27,7 +27,14 @@ import { workMinutesFromRow } from "./parse-timecard";
 
 function firstFilled(
   punches: HrTimecardRow[],
-  key: "employeeCode" | "jobTitle" | "store" | "manager" | "guardsName"
+  key:
+    | "employeeCode"
+    | "jobTitle"
+    | "store"
+    | "manager"
+    | "guardsName"
+    | "userEmail"
+    | "mail"
 ): string | null {
   for (const row of punches) {
     const value = row[key];
@@ -82,24 +89,13 @@ export function analyzeEmployeeDay(
 
   if (sorted.length === 0) {
     if (scheduleRange) {
+      // Absent is the single day-level issue — do not also stack Missing In/Out.
       violations.push({
         type: "absent",
         message: "Absent — scheduled, no punch",
         severity: "error",
       });
     }
-    const missing: HrViolation[] = [
-      {
-        type: "missing_punch",
-        message: "Missing Time In",
-        severity: "error",
-      },
-      {
-        type: "missing_punch",
-        message: "Missing Time Out",
-        severity: "error",
-      },
-    ];
     segments.push({
       timeIn: null,
       timeOut: null,
@@ -108,7 +104,7 @@ export function analyzeEmployeeDay(
       gapKind: "none",
       workMinutes: 0,
       workLabel: "0:00",
-      violations: missing,
+      violations: [],
     });
   }
 
@@ -213,6 +209,8 @@ export function analyzeEmployeeDay(
     lateMinutes,
     earlyInMinutes,
     earlyOutMinutes,
+    userEmail: firstFilled(sorted.length ? sorted : punches, "userEmail"),
+    mail: firstFilled(sorted.length ? sorted : punches, "mail"),
     violations: [...violations, ...segments.flatMap((s) => s.violations)],
   };
 }

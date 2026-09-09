@@ -191,8 +191,9 @@ export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarni
   const ready = await isWarningMailSessionReady();
   if (!ready.ok) throw new Error(ready.reason);
   const draft = draftWarningNotice(emp, ready.routing);
+  const sheetTo = parseHrMailAddresses(emp.mail ?? "");
   await sendMail({
-    to: ready.routing.to,
+    to: sheetTo.length ? sheetTo : ready.routing.to,
     subject: draft.subject,
     body: draft.text,
     html: draft.html,
@@ -220,7 +221,10 @@ export async function sendWriteUpNotice(
     otherViolation: !isLateForWarning(emp.lateMinutes),
   });
   await sendMail({
-    to: ready.routing.to,
+    to: (() => {
+      const sheetTo = parseHrMailAddresses(emp.mail ?? "");
+      return sheetTo.length ? sheetTo : ready.routing.to;
+    })(),
     subject: draft.subject,
     body: draft.text,
     html: draft.html,
