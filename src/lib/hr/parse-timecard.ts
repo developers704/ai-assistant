@@ -12,6 +12,13 @@ function findKey(keys: string[], pattern: RegExp): string | undefined {
   return keys.find((k) => pattern.test(k.trim()));
 }
 
+// Spreadsheet exports commonly add spaces, non-breaking spaces, or punctuation
+// to contact headers. Match those variants without changing the stored values.
+function headerKey(keys: string[], ...names: string[]): string | undefined {
+  const wanted = new Set(names.map((name) => name.replace(/[^a-z0-9]/gi, "").toLowerCase()));
+  return keys.find((key) => wanted.has(key.replace(/[^a-z0-9]/gi, "").toLowerCase()));
+}
+
 function rowsFromKeyed(records: Record<string, unknown>[]): HrTimecardRow[] {
   const out: HrTimecardRow[] = [];
   for (const row of records) {
@@ -28,12 +35,15 @@ function rowsFromKeyed(records: Record<string, unknown>[]): HrTimecardRow[] {
     const storeKey = findKey(keys, /^store$/i);
     const managerKey = findKey(keys, /^manager$/i);
     const guardsKey = findKey(keys, /guards?\s*name/i);
-    const userEmailKey =
-      findKey(keys, /^user\s*e?-?mail$/i) ?? findKey(keys, /^useremail$/i);
-    const mailKey =
-      findKey(keys, /^mail$/i) ??
-      findKey(keys, /^e?-?mail$/i) ??
-      findKey(keys, /recipient\s*e?-?mail/i);
+    const userEmailKey = headerKey(keys, "useremail", "user email", "chat email");
+    const mailKey = headerKey(
+      keys,
+      "mail",
+      "email",
+      "employee mail",
+      "employee email",
+      "recipient email"
+    );
 
     const name = nameKey ? cellStr(row[nameKey]) : null;
     const date = dateKey ? isoDateFromCell(row[dateKey]) : null;
@@ -88,16 +98,16 @@ function rowsFromMatrix(matrix: unknown[][]): HrTimecardRow[] {
   const storeI = colIndex(header, /^store$/i);
   const managerI = colIndex(header, /^manager$/i);
   const guardsI = colIndex(header, /guards?\s*name/i);
-  const userEmailI =
-    colIndex(header, /^user\s*e?-?mail$/i) >= 0
-      ? colIndex(header, /^user\s*e?-?mail$/i)
-      : colIndex(header, /^useremail$/i);
+  const normalizedHeader = header.map((value) =>
+    String(value ?? "").replace(/[^a-z0-9]/gi, "").toLowerCase()
+  );
+  const normalizedIndex = (...names: string[]) => {
+    const wanted = new Set(names.map((name) => name.replace(/[^a-z0-9]/gi, "").toLowerCase()));
+    return normalizedHeader.findIndex((name) => wanted.has(name));
+  };
+  const userEmailI = normalizedIndex("useremail", "chat email");
   const mailI = (() => {
-    const exact = colIndex(header, /^mail$/i);
-    if (exact >= 0) return exact;
-    const email = colIndex(header, /^e?-?mail$/i);
-    if (email >= 0) return email;
-    return colIndex(header, /recipient\s*e?-?mail/i);
+    return normalizedIndex("mail", "email", "employee mail", "employee email", "recipient email");
   })();
   const legacy = dateI < 0;
   const out: HrTimecardRow[] = [];
