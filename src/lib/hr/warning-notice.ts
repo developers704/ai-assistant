@@ -12,11 +12,11 @@ export const HR_WARNING_FROM = DEFAULT_HR_MAIL_FROM;
 export const HR_WARNING_TO = DEFAULT_HR_MAIL_TO[0]!;
 export const LATE_WARNING_THRESHOLD_MINUTES = 12;
 export const EARLY_WARNING_THRESHOLD_MINUTES = 10;
-export const HR_WARNING_CASE_RE = /HR-LATE-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
-/** Warning (`HR-LATE-` / `HR-EARLY-` / `HR-LEAVE-` / legacy `HR-MEAL-`) or write-up (`HR-WRITEUP-`). */
-export const HR_NOTICE_CASE_RE = /HR-(?:LATE|EARLY|LEAVE|MEAL|WRITEUP)-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
+export const HR_WARNING_CASE_RE = /HR-(?:LATE|EARLY|LEAVE|ABSENT|MEAL)-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
+/** Warning (`HR-LATE-` / `HR-EARLY-` / `HR-LEAVE-` / `HR-ABSENT-` / legacy `HR-MEAL-`) or write-up (`HR-WRITEUP-`). */
+export const HR_NOTICE_CASE_RE = /HR-(?:LATE|EARLY|LEAVE|ABSENT|MEAL|WRITEUP)-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
 
-export type HrWarningReason = "late" | "early" | "leave";
+export type HrWarningReason = "late" | "early" | "leave" | "absent";
 export type HrAttendanceCardFilter = "all" | "flagged" | "late" | "early" | "no_schedule" | "absent";
 export type HrViolationKind = "late" | "early" | "no_schedule" | "absent";
 export type HrViolationFilter = "all" | HrViolationKind;
@@ -108,7 +108,14 @@ export function warningCaseId(
   name: string,
   reason: HrWarningReason = "late"
 ): string {
-  const token = reason === "early" ? "EARLY" : reason === "leave" ? "LEAVE" : "LATE";
+  const token =
+    reason === "early"
+      ? "EARLY"
+      : reason === "leave"
+        ? "LEAVE"
+        : reason === "absent"
+          ? "ABSENT"
+          : "LATE";
   return `HR-${token}-${noticeEmployeeSlug(code, name)}-${date}`;
 }
 
@@ -197,12 +204,13 @@ export function isEarlyOutForWarning(earlyOutMinutes: number | null | undefined)
   return earlyOutMinutes != null && earlyOutMinutes >= EARLY_WARNING_THRESHOLD_MINUTES;
 }
 
+/** Any attendance violation can receive a warning (absent, late, meal, etc.). */
 export function isEligibleForHrNotice(emp: HrNoticeEmployee): boolean {
   return (
+    (emp.violations?.length ?? 0) > 0 ||
     isLateForWarning(emp.lateMinutes) ||
     isEarlyForWarning(emp.earlyInMinutes) ||
-    isEarlyOutForWarning(emp.earlyOutMinutes) ||
-    (emp.violations?.some((v) => v.type === "early_out") ?? false)
+    isEarlyOutForWarning(emp.earlyOutMinutes)
   );
 }
 
@@ -280,6 +288,7 @@ export function normalizeViolationFilters(
 }
 
 export function warningReason(emp: HrNoticeEmployee): HrWarningReason {
+  if (emp.violations?.some((v) => v.type === "absent")) return "absent";
   if (isLateForWarning(emp.lateMinutes)) return "late";
   if (isEarlyForWarning(emp.earlyInMinutes)) return "early";
   return "leave";
@@ -299,11 +308,23 @@ export function noticeDescriptionForEmployee(emp: HrNoticeEmployee): string {
     const msg = emp.violations.find((v) => v.type === "early_out");
     parts.push(msg?.message ?? "Left Early.");
   }
-  return parts.join(" ");
+  if (parts.length === 0 && emp.violations?.length) {
+    for (const v of emp.violations) {
+      const message = v.message?.trim();
+      if (message) {
+        parts.push(message.endsWith(".") ? message : `${message}.`);
+        continue;
+      }
+      if (v.type === "absent") parts.push("Absent.");
+      else if (v.type) parts.push(`${String(v.type).replace(/_/g, " ")}.`);
+    }
+  }
+  return parts.join(" ").trim() || "Attendance violation.";
 }
 
 function scheduleEventPhrases(emp: HrNoticeEmployee): string[] {
   const parts: string[] = [];
+  if (emp.violations?.some((v) => v.type === "absent")) parts.push("were absent");
   if (isLateForWarning(emp.lateMinutes)) parts.push("arrived store late");
   if (isEarlyForWarning(emp.earlyInMinutes)) parts.push("arrived store early");
   if (
@@ -312,7 +333,15 @@ function scheduleEventPhrases(emp: HrNoticeEmployee): string[] {
   ) {
     parts.push("left store early");
   }
-  if (parts.length === 0) parts.push("arrived/left store early/late");
+  if (parts.length === 0 && emp.violations?.length) {
+    for (const v of emp.violations) {
+      if (v.type === "no_schedule") parts.push("had no schedule on file");
+      else if (v.type?.includes("meal")) parts.push("had a meal-break violation");
+      else if (v.type === "missing_punch") parts.push("had a missing punch");
+      else if (v.message?.trim()) parts.push(v.message.trim().toLowerCase());
+    }
+  }
+  if (parts.length === 0) parts.push("had an attendance violation");
   return parts;
 }
 
@@ -359,6 +388,9 @@ function violationSentences(
     );
   }
   if (out.length) return out;
+  if (events.includes("were absent") && events.length === 1) {
+    return [`You were absent on ${when}.`];
+  }
   if (events.length) {
     return [`You ${joinEventPhrases(events)} relative to your scheduled time on ${when}.`];
   }

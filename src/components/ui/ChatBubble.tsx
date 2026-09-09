@@ -25,6 +25,7 @@ function escapeHtml(text: string): string {
 
 const LINK_CLASS =
   "text-violet-300 underline underline-offset-2 hover:text-violet-200 break-all";
+const CHAT_PREVIEW_LENGTH = 1200;
 
 function renderMarkdown(text: string) {
   const lines = text.split("\n");
@@ -218,6 +219,11 @@ export function PendingActionCard({
 export function ChatBubble({ message, onConfirm, onReject, onEdit }: ChatBubbleProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const isLongMessage = !isUser && message.content.length > CHAT_PREVIEW_LENGTH;
+  const visibleContent = isLongMessage && !expanded
+    ? `${message.content.slice(0, CHAT_PREVIEW_LENGTH).trimEnd()}…`
+    : message.content;
 
   const copyText = async () => {
     try {
@@ -254,7 +260,16 @@ export function ChatBubble({ message, onConfirm, onReject, onEdit }: ChatBubbleP
       </div>
       <div className="max-w-[min(88%,38rem)] min-w-0 flex flex-col items-start gap-1">
         <div className="chat-bubble-ai px-4 py-3 sm:px-5 sm:py-3.5 rounded-3xl rounded-tl-lg text-sm leading-relaxed text-ink space-y-0.5">
-          {renderMarkdown(message.content)}
+          {renderMarkdown(visibleContent)}
+          {isLongMessage && (
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              className="mt-2 text-xs font-semibold text-violet-300 hover:text-violet-200 underline underline-offset-2"
+            >
+              {expanded ? "Show less" : "Read more"}
+            </button>
+          )}
           {message.imageUrl && (
             <div className="mt-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}

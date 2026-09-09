@@ -59,7 +59,7 @@ export default function HrPage() {
   const [tab, setTab] = useState<"attendance" | "sales">(salesOnly ? "sales" : "attendance");
   const [data, setData] = useState<HrApiResponse | null>(null);
   const [dateRange, setDateRange] = useState<SalesDateRangeValue>({
-    from: HR_ATTENDANCE_TO,
+    from: HR_ATTENDANCE_FROM,
     to: HR_ATTENDANCE_TO,
   });
   const [loading, setLoading] = useState(!salesOnly);

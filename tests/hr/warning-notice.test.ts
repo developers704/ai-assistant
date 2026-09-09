@@ -142,7 +142,56 @@ describe("late warning notice", () => {
           },
         ],
       })
+    ).toBe(true);
+
+    expect(
+      isEligibleForHrNotice({
+        employeeName: "Absent, Employee",
+        date: "2026-06-07",
+        employeeCode: "AE1",
+        jobTitle: "Sales Associate",
+        manager: "Fahad",
+        lateMinutes: null,
+        violations: [
+          {
+            type: "absent",
+            message: "Absent — no punches with an active schedule",
+            severity: "error",
+          },
+        ],
+      })
+    ).toBe(true);
+
+    expect(
+      isEligibleForHrNotice({
+        employeeName: "Clean, Employee",
+        date: "2026-06-07",
+        employeeCode: "CE1",
+        jobTitle: "Sales Associate",
+        manager: "Fahad",
+        lateMinutes: null,
+        violations: [],
+      })
     ).toBe(false);
+  });
+
+  it("drafts absent warnings with HR-ABSENT case ids", () => {
+    const draft = draftWarningNotice({
+      ...shazia,
+      lateMinutes: null,
+      earlyInMinutes: null,
+      earlyOutMinutes: null,
+      violations: [
+        {
+          type: "absent",
+          message: "Absent — no punches with an active schedule",
+          severity: "error",
+        },
+      ],
+    });
+    expect(draft.caseId).toBe("HR-ABSENT-SA2-2026-06-07");
+    expect(draft.description).toContain("Absent");
+    expect(draft.text.toLowerCase()).toContain("absent");
   });
 
   it("filters late, early, no-schedule, and absent from cards — not meal", () => {

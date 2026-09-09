@@ -18,7 +18,6 @@ import {
   waiveWarningCase,
   restoreWarningCase,
   waiveAbsenceDay,
-  restoreAbsenceDay,
 } from "@/lib/hr/send-warning-mail";
 import { stripQuotedReply } from "@/lib/hr/remark-text";
 import {
@@ -406,23 +405,6 @@ export function HrAttendanceEmployeeRow({
     }
   };
 
-  const restoreAbsence = async (event?: MouseEvent) => {
-    event?.stopPropagation();
-    setWaiving(true);
-    setError(null);
-    try {
-      await restoreAbsenceDay(emp);
-      setAbsenceWaiver(null);
-      setNoteOpen(false);
-      onChanged();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not restore absence");
-      setOpen(true);
-    } finally {
-      setWaiving(false);
-    }
-  };
-
   const roleLine = [emp.employeeCode, emp.jobTitle, emp.store].filter((s) => s?.trim()).join(" · ");
 
   return (
@@ -562,19 +544,6 @@ export function HrAttendanceEmployeeRow({
               data-action="restore-warning"
               title="Restore warning"
               onClick={(e) => void restoreWarning(e)}
-              disabled={sending || sendingWriteUp || waiving}
-            >
-              {waiving ? <Loader2 size={14} className="animate-spin" /> : <Undo2 size={14} />}
-              Restore
-            </button>
-          )}
-          {absenceWaived && (
-            <button
-              type="button"
-              className="hr-btn hr-btn-ghost hr-btn-sm"
-              data-action="restore-absence"
-              title="Restore absence"
-              onClick={(e) => void restoreAbsence(e)}
               disabled={sending || sendingWriteUp || waiving}
             >
               {waiving ? <Loader2 size={14} className="animate-spin" /> : <Undo2 size={14} />}
