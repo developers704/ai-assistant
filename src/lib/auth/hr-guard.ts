@@ -27,3 +27,15 @@ export async function requireHrSalesAccess() {
   if (map.hr_management || map.hr_sales) return null;
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }
+
+/** Sender addresses, SMTP credential, and warning template settings. */
+export async function requireHrNoticeSettings() {
+  const session = await readSessionFromCookies();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.role === "admin") return null;
+  const map = getPermissionMapForUser(session.username, session.role);
+  if (!map.hr_notice_settings) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return null;
+}

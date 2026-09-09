@@ -8,6 +8,7 @@ import {
 } from "./mail-routing";
 import { resolveHrEmployeeDisplayName } from "./security-guard-names";
 import { parseClockToMinutes } from "./time-utils";
+import type { HrWarningTemplateKey, HrWarningTemplates } from "./notice-settings-shared";
 
 export const HR_WARNING_FROM = DEFAULT_HR_MAIL_FROM;
 export const HR_WARNING_TO = DEFAULT_HR_MAIL_TO[0]!;
@@ -517,7 +518,8 @@ export function buildWarningNoticeText(input: {
 
 export function draftWarningNotice(
   emp: HrNoticeEmployee,
-  routing?: HrMailRouting | null
+  routing?: HrMailRouting | null,
+  templates?: HrWarningTemplates | null
 ): WarningNoticeDraft {
   if (!isEligibleForHrNotice(emp)) {
     throw new Error("No attendance violation for a warning notice");
@@ -529,6 +531,14 @@ export function draftWarningNotice(
   const details = warningMailDetailsFromEmployee(emp);
   const caseId = warningCaseId(emp.employeeCode, emp.date, emp.employeeName, warningReason(emp));
   const sheetMail = parseHrMailAddresses(emp.mail ?? "");
+  const templatedText = warningTextFromTemplate(
+    templateKeyForEmployee(emp),
+    display,
+    emp.date,
+    details,
+    templates,
+  );
+  const text = templatedText ?? warningMailPlainText(display, emp.date, events, details);
   return {
     caseId,
     employeeName: emp.employeeName,
@@ -544,10 +554,44 @@ export function draftWarningNotice(
         ? formatHrMailTo(routing.to)
         : HR_WARNING_TO,
     subject: warningSubject(caseId, display),
-    html: warningMailHtml(display, emp.date, events, details),
-    text: warningMailPlainText(display, emp.date, events, details),
+    html: templatedText ? warningTemplateHtml(templatedText) : warningMailHtml(display, emp.date, events, details),
+    text,
     description,
   };
+}
+
+function templateKeyForEmployee(emp: HrNoticeEmployee): HrWarningTemplateKey {
+  if (emp.violations?.some((v) => v.type === "absent")) return "absent";
+  if (emp.violations?.some((v) => v.type === "no_schedule")) return "missingSchedule";
+  if (emp.violations?.some((v) => v.type === "missing_punch")) return "missingPunch";
+  if (emp.violations?.some((v) => v.type?.includes("meal"))) return "meal";
+  if (isLateForWarning(emp.lateMinutes)) return "late";
+  if (isEarlyOutForWarning(emp.earlyOutMinutes) || emp.violations?.some((v) => v.type === "early_out")) return "earlyOut";
+  return "other";
+}
+
+function warningTextFromTemplate(
+  key: HrWarningTemplateKey,
+  employeeName: string,
+  date: string,
+  details: WarningMailDetails,
+  templates?: HrWarningTemplates | null,
+): string | null {
+  const template = templates?.[key]?.trim();
+  if (!template) return null;
+  const values: Record<string, string> = {
+    employeeName,
+    date: formatWarningMailDate(date),
+    lateMinutes: String(details.lateMinutes ?? 0),
+    earlyOutMinutes: String(details.earlyOutMinutes ?? 0),
+    scheduledStart: details.scheduledStart ?? "",
+    scheduledEnd: details.scheduledEnd ?? "",
+  };
+  return template.replace(/\{\{\s*(employeeName|date|lateMinutes|earlyOutMinutes|scheduledStart|scheduledEnd)\s*\}\}/g, (_, name: string) => values[name] ?? "");
+}
+
+function warningTemplateHtml(text: string): string {
+  return `<div style="text-align:left;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;"><p>${escapeHtml(text).replace(/\n/g, "<br>")}</p></div>`;
 }
 
 export function noticeFromDraft(

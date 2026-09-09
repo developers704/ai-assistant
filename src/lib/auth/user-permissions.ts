@@ -16,6 +16,7 @@ export type UserPermissionKey =
   | "vendor_info"
   | "hr_management"
   | "hr_sales"
+  | "hr_notice_settings"
   | "sku_lookup"
   | "user_admin"
   | "role_admin";
@@ -77,8 +78,9 @@ export const USER_PERMISSION_SECTIONS: Array<{
   description: string;
 }> = [
   { key: "sales_dashboard", label: "Sales Dashboard", description: "Net sales, stores, and revenue dashboard" },
-  { key: "hr_sales", label: "HR Sales", description: "Employee sales rankings (no schedule)" },
   { key: "hr_management", label: "HR Management", description: "Attendance, schedule, warnings, and HR sales" },
+  { key: "hr_sales", label: "HR Sales", description: "Employee sales rankings (no schedule)" },
+  { key: "hr_notice_settings", label: "HR Notice Settings", description: "Configure HR sender mailboxes and warning templates" },
   { key: "sku_lookup", label: "SKU Lookup", description: "Product info and wholesale cost — no customer offer" },
   { key: "stores_map", label: "Stores Map & Info", description: "Store locations and details" },
   { key: "price_calculator", label: "Price Calculator", description: "Pricing, customer offer, and wholesale cost" },

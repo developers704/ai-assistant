@@ -8,15 +8,9 @@ import { getSavedEmail, hasMailSession } from "@/lib/valliani-mail/session";
 import { ALL_MAIL_FOLDER, type MailMessage } from "@/lib/valliani-mail/types";
 import type { HrAbsenceWaiver, HrEmployeeDay, HrWarningNotice, HrWarningRemark } from "./types";
 import {
-  draftWarningNotice,
   extractWarningCaseId,
   HR_WARNING_TO,
-  isLateForWarning,
-  noticeFromDraft,
 } from "./warning-notice";
-import { draftWriteUpNotice, writeUpFromDraft } from "./write-up-notice";
-import { buildWriteUpPdf } from "./write-up-pdf";
-import { pdfBytesToBase64 } from "./warning-notice-pdf";
 import { replySubjectForThread, stripQuotedReply } from "./remark-text";
 import {
   defaultHrMailRouting,
@@ -206,56 +200,18 @@ export async function sendWriteUpNotice(
   emp: HrEmployeeDay,
   description: string
 ): Promise<HrWarningNotice> {
-  const ready = await isWarningMailSessionReady();
-  if (!ready.ok) throw new Error(ready.reason);
-  const draft = draftWriteUpNotice(emp, description, ready.routing);
-  const pdfBytes = await buildWriteUpPdf({
-    employeeName: draft.employeeName,
-    date: draft.date,
-    employeeCode: draft.employeeCode,
-    jobTitle: draft.jobTitle,
-    manager: draft.manager,
-    store: draft.store,
-    description: draft.description,
-    tardiness: isLateForWarning(emp.lateMinutes),
-    otherViolation: !isLateForWarning(emp.lateMinutes),
-  });
-  await sendMail({
-    to: (() => {
-      const sheetTo = parseHrMailAddresses(emp.mail ?? "");
-      return sheetTo.length ? sheetTo : ready.routing.to;
-    })(),
-    subject: draft.subject,
-    body: draft.text,
-    html: draft.html,
-    attachments: [
-      {
-        filename: draft.pdfFilename,
-        contentType: "application/pdf",
-        contentBase64: pdfBytesToBase64(pdfBytes),
-        size: pdfBytes.byteLength,
-      },
-    ],
-  });
-  const saved = await persistNotice(writeUpFromDraft(draft));
-  if (emp.warning?.caseId && emp.warning.waivedAt) {
-    await persistNotice({ ...emp.warning, waivedAt: null, waivedBy: null, waivedComment: null });
-  }
-  return saved;
-}
-
-async function persistNotice(notice: HrWarningNotice): Promise<HrWarningNotice> {
   const res = await fetch("/api/hr/warnings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "record", notice }),
+    body: JSON.stringify({ action: "smtpWriteUp", notice: emp, description }),
   });
   const json = (await res.json().catch(() => ({}))) as {
     error?: string;
     warning?: HrWarningNotice;
   };
-  if (!res.ok) throw new Error(json.error || "Notice mailed, but saving the record failed");
-  return json.warning ?? notice;
+  if (!res.ok) throw new Error(json.error || "Could not send write-up email");
+  if (!json.warning) throw new Error("Write-up email sent but no notice was returned");
+  return json.warning;
 }
 
 export async function syncWarningRemarks(caseId: string): Promise<HrWarningNotice | null> {

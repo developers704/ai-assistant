@@ -5,6 +5,10 @@ type SmtpMail = {
   subject: string;
   text: string;
   html?: string | null;
+  from?: string;
+  user?: string;
+  pass?: string;
+  attachments?: Array<{ filename: string; content: Buffer }>;
 };
 
 function required(name: string): string {
@@ -15,9 +19,9 @@ function required(name: string): string {
 
 export async function sendHrSmtpMail(mail: SmtpMail): Promise<void> {
   const host = required("HR_SMTP_HOST");
-  const user = required("HR_SMTP_USER");
-  const pass = required("HR_SMTP_PASS");
-  const from = process.env.HR_SMTP_FROM?.trim() || user;
+  const user = mail.user?.trim() || required("HR_SMTP_USER");
+  const pass = mail.pass?.trim() || required("HR_SMTP_PASS");
+  const from = mail.from?.trim() || process.env.HR_SMTP_FROM?.trim() || user;
   const port = Number(process.env.HR_SMTP_PORT || 587);
   if (!Number.isInteger(port) || port <= 0) throw new Error("HR_SMTP_PORT is invalid");
 
@@ -41,5 +45,6 @@ export async function sendHrSmtpMail(mail: SmtpMail): Promise<void> {
     text: mail.text,
     ...(mail.html ? { html: mail.html } : {}),
     from,
+    ...(mail.attachments?.length ? { attachments: mail.attachments } : {}),
   });
 }

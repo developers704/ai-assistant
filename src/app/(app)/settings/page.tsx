@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 
 import { Save, Brain, Link2, Unlink, Loader2, User, Plug, KeyRound, Eye, EyeOff } from "lucide-react";
+import { HrNoticeSettings } from "@/components/hr/HrNoticeSettings";
 
 
 
@@ -147,6 +148,8 @@ function SettingsContent() {
   });
 
   const isAdmin = state?.user?.authRole === "admin";
+  const canManageHrNoticeSettings =
+    isAdmin || Boolean(state?.user?.permissions?.hr_notice_settings);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -648,6 +651,8 @@ function SettingsContent() {
 
               </SectionCard>
 
+              {canManageHrNoticeSettings && <HrNoticeSettings />}
+
               <SectionCard title="Change password" icon={KeyRound}>
                 <div className="space-y-4">
                   <p className="text-xs text-ink-muted">
@@ -925,5 +930,4 @@ function SettingsContent() {
   );
 
 }
-
 

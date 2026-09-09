@@ -35,6 +35,7 @@ import {
 import type { HrWarningNotice, HrWarningRemark } from "@/lib/hr/types";
 import { routeLog } from "@/lib/hr/logger";
 import { sendHrSmtpMail } from "@/lib/hr/smtp-mail";
+import { hrSmtpPassword, readHrNoticeSettings } from "@/lib/hr/notice-settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,7 +127,14 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const draft = isEligibleForHrNotice(emp) ? draftWarningNotice(emp, readHrMailRouting()) : null;
+  const noticeSettings = readHrNoticeSettings();
+  const draft = isEligibleForHrNotice(emp)
+    ? draftWarningNotice(
+        emp,
+        { ...readHrMailRouting(), from: noticeSettings.warningFrom },
+        noticeSettings.templates,
+      )
+    : null;
   return NextResponse.json({
     employee: emp,
     draft,
@@ -172,18 +180,23 @@ export async function POST(req: NextRequest) {
     if (!emp || !isEligibleForHrNotice(emp)) {
       return NextResponse.json({ error: "No attendance violation for a warning notice" }, { status: 400 });
     }
+    const noticeSettings = readHrNoticeSettings();
     const draft = draftWarningNotice(
       { ...emp, employeeCode: notice.employeeCode ?? emp.employeeCode },
       {
         ...readHrMailRouting(),
-        from: process.env.HR_SMTP_FROM?.trim() || process.env.HR_SMTP_USER?.trim() || "",
-      }
+        from: noticeSettings.warningFrom,
+      },
+      noticeSettings.templates,
     );
     await sendHrSmtpMail({
       to: draft.to,
       subject: draft.subject,
       text: draft.text,
       html: draft.html,
+      from: noticeSettings.warningFrom,
+      user: noticeSettings.writeUpFrom,
+      pass: hrSmtpPassword(noticeSettings),
     });
     const saved = upsertWarningNotice(
       noticeFromDraft(draft, { messageId: notice.messageId ?? `smtp:${draft.caseId}` })
@@ -249,6 +262,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Absence waiver not found" }, { status: 404 });
     }
     return NextResponse.json({ ok: true, absenceWaiver: waiver });
+  }
+
+  if (action === "smtpWriteUp") {
+    const source = (body.notice && typeof body.notice === "object"
+      ? body.notice
+      : body) as Record<string, unknown>;
+    const employeeName = String(source.employeeName ?? "").trim();
+    const date = String(source.date ?? "").trim();
+    const description = String(body.description ?? source.description ?? "").trim();
+    if (!employeeName || !date) return NextResponse.json({ error: "employeeName and date are required" }, { status: 400 });
+    if (!description) return NextResponse.json({ error: "Write a description before sending the write-up" }, { status: 400 });
+    const emp = analyzeDay(date, loadActiveTimecardRows(), loadActiveScheduleEntries()).find((e) => namesMatch(e.employeeName, employeeName));
+    if (!emp || !isEligibleForHrNotice(emp)) return NextResponse.json({ error: "No attendance violation for a write-up" }, { status: 400 });
+    const settings = readHrNoticeSettings();
+    const draft = draftWriteUpNotice({
+      ...emp,
+      employeeCode: source.employeeCode == null ? emp.employeeCode : String(source.employeeCode),
+      store: source.store == null ? emp.store : String(source.store),
+    }, description, { ...readHrMailRouting(), from: settings.writeUpFrom });
+    const pdfBytes = await buildWriteUpPdf({
+      employeeName: draft.employeeName,
+      date: draft.date,
+      employeeCode: draft.employeeCode,
+      jobTitle: draft.jobTitle,
+      manager: draft.manager,
+      store: draft.store,
+      description: draft.description,
+      tardiness: isLateForWarning(emp.lateMinutes),
+      otherViolation: !isLateForWarning(emp.lateMinutes),
+    });
+    await sendHrSmtpMail({
+      to: draft.to,
+      subject: draft.subject,
+      text: draft.text,
+      html: draft.html,
+      from: settings.writeUpFrom,
+      user: settings.writeUpFrom,
+      pass: hrSmtpPassword(settings),
+      attachments: [{ filename: draft.pdfFilename, content: Buffer.from(pdfBytes) }],
+    });
+    const saved = upsertWarningNotice(writeUpFromDraft(draft, { messageId: `smtp:${draft.caseId}` }));
+    return NextResponse.json({ ok: true, success: true, warning: saved, writeUp: saved });
   }
 
   // Additive for Valliani app chat/mail write-ups. Website still builds PDF client-side.
@@ -377,6 +432,7 @@ export async function POST(req: NextRequest) {
     const schedule = loadActiveScheduleEntries();
     const employees = analyzeDay(notice.date, rows, schedule);
     const emp = employees.find((e) => namesMatch(e.employeeName, notice.employeeName));
+    const noticeSettings = readHrNoticeSettings();
     const draft = emp && isEligibleForHrNotice(emp)
       ? draftWarningNotice(
           {
@@ -390,7 +446,8 @@ export async function POST(req: NextRequest) {
             userEmail:
               String(notice.userEmail ?? "").trim() || emp.userEmail || null,
           },
-          readHrMailRouting()
+          { ...readHrMailRouting(), from: noticeSettings.warningFrom },
+          noticeSettings.templates
         )
       : null;
     const saved = upsertWarningNotice({
