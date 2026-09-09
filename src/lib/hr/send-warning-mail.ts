@@ -188,18 +188,18 @@ async function persistRemarks(
 }
 
 export async function sendLateWarningNotice(emp: HrEmployeeDay): Promise<HrWarningNotice> {
-  const ready = await isWarningMailSessionReady();
-  if (!ready.ok) throw new Error(ready.reason);
-  const draft = draftWarningNotice(emp, ready.routing);
-  const sheetTo = parseHrMailAddresses(emp.mail ?? "");
-  await sendMail({
-    to: sheetTo.length ? sheetTo : ready.routing.to,
-    subject: draft.subject,
-    body: draft.text,
-    html: draft.html,
+  const res = await fetch("/api/hr/warnings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "smtpWarning", notice: emp }),
   });
-  const notice = noticeFromDraft(draft);
-  return persistNotice(notice);
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    warning?: HrWarningNotice;
+  };
+  if (!res.ok) throw new Error(json.error || "Could not send warning email");
+  if (!json.warning) throw new Error("Warning email sent but no notice was returned");
+  return json.warning;
 }
 
 export async function sendWriteUpNotice(

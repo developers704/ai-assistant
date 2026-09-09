@@ -34,6 +34,7 @@ import {
 } from "@/lib/hr/warning-store";
 import type { HrWarningNotice, HrWarningRemark } from "@/lib/hr/types";
 import { routeLog } from "@/lib/hr/logger";
+import { sendHrSmtpMail } from "@/lib/hr/smtp-mail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -158,6 +159,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Warning notice not found" }, { status: 404 });
     }
     return NextResponse.json({ ok: true, warning: updated });
+  }
+
+  if (action === "smtpWarning") {
+    const notice = asNotice(body.notice ?? body);
+    if (!notice) return NextResponse.json({ error: "Invalid warning notice" }, { status: 400 });
+    const rows = loadActiveTimecardRows();
+    const schedule = loadActiveScheduleEntries();
+    const emp = analyzeDay(notice.date, rows, schedule).find((e) =>
+      namesMatch(e.employeeName, notice.employeeName)
+    );
+    if (!emp || !isEligibleForHrNotice(emp)) {
+      return NextResponse.json({ error: "No attendance violation for a warning notice" }, { status: 400 });
+    }
+    const draft = draftWarningNotice(
+      { ...emp, employeeCode: notice.employeeCode ?? emp.employeeCode },
+      {
+        ...readHrMailRouting(),
+        from: process.env.HR_SMTP_FROM?.trim() || process.env.HR_SMTP_USER?.trim() || "",
+      }
+    );
+    await sendHrSmtpMail({
+      to: draft.to,
+      subject: draft.subject,
+      text: draft.text,
+      html: draft.html,
+    });
+    const saved = upsertWarningNotice(
+      noticeFromDraft(draft, { messageId: notice.messageId ?? `smtp:${draft.caseId}` })
+    );
+    return NextResponse.json({ ok: true, success: true, warning: saved });
   }
 
   const session = await readSessionFromCookies();

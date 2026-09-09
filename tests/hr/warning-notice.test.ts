@@ -31,7 +31,7 @@ describe("late warning notice", () => {
     expect(draft.subject).toBe(
       "[HR-LATE-SA2-2026-06-07] Employee Warning Notice — Ahmed, Shazia"
     );
-    expect(draft.from).toBe("umairj@valliani.app");
+    expect(draft.from).toBe("raza@valliani.app");
     expect(draft.to).toBe("umairjam.arrakconsulting@gmail.com");
     expect(draft.text).toContain("Dear Shazia,");
     expect(draft.text).not.toContain("Dear Ahmed, Shazia");

@@ -10,7 +10,6 @@ import {
   noticeDescriptionForEmployee,
 } from "@/lib/hr/warning-notice";
 import {
-  isWarningMailSessionReady,
   replyOnWarningThread,
   sendLateWarningNotice,
   sendWriteUpNotice,
@@ -306,8 +305,6 @@ export function HrAttendanceEmployeeRow({
     setSending(true);
     setError(null);
     try {
-      const ready = await isWarningMailSessionReady();
-      if (!ready.ok) throw new Error(ready.reason);
       const next = await sendLateWarningNotice(emp);
       setWarning(next);
       setRemarksOpen(true);

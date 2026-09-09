@@ -1,6 +1,6 @@
 /** Defaults and parsers for HR warning / write-up test mail routing. */
 
-export const DEFAULT_HR_MAIL_FROM = "umairj@valliani.app";
+export const DEFAULT_HR_MAIL_FROM = "raza@valliani.app";
 export const DEFAULT_HR_MAIL_TO = ["umairjam.arrakconsulting@gmail.com"];
 
 export type HrMailRouting = {
