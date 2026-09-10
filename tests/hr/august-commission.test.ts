@@ -218,7 +218,7 @@ describe("August dummy attendance absences", () => {
     expect(sultan.absences).toBe(1);
   });
 
-  it("counts Lynette dummy unworked schedule days as 4 absences", () => {
+  it("counts Lynette scheduled days with punches (no dummy unworked Tuesdays)", () => {
     const lynette = commissionAttendanceForAssociate(
       "LY",
       HR_ATTENDANCE_FROM,
@@ -226,9 +226,24 @@ describe("August dummy attendance absences", () => {
       punches,
       entries
     );
-    expect(lynette.absences).toBe(4);
-    expect(lynette.scheduledDays).toBe(31);
+    expect(lynette.absences).toBe(0);
+    expect(lynette.scheduledDays).toBe(27);
     expect(lynette.presentDays).toBe(27);
+    expect(attendancePasses(lynette.absences)).toBe(true);
+  });
+
+  it("still counts scheduled days with no punch as absences", () => {
+    const fixturePunches = punches.filter((r) => r.employeeCode !== "LY");
+    const lynette = commissionAttendanceForAssociate(
+      "LY",
+      HR_ATTENDANCE_FROM,
+      HR_ATTENDANCE_TO,
+      fixturePunches,
+      entries
+    );
+    expect(lynette.absences).toBe(27);
+    expect(lynette.scheduledDays).toBe(27);
+    expect(lynette.presentDays).toBe(0);
     expect(attendancePasses(lynette.absences)).toBe(false);
   });
 

@@ -4,6 +4,7 @@ import type { HrAbsenceWaiver, HrNoticeKind, HrWarningNotice, HrWarningRemark } 
 import { namesMatch } from "./name-match";
 import { stripQuotedReply } from "./remark-text";
 import { hrLog } from "./logger";
+import { clearHrRuntimeCache } from "./hr-runtime-cache";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const STORE_PATH = path.join(DATA_DIR, "warnings.json");
@@ -38,11 +39,22 @@ function readStore(): WarningStoreFile {
 function writeStore(store: WarningStoreFile) {
   ensureDir();
   fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
+  clearHrRuntimeCache();
 }
 
 export function noticeKind(notice: Pick<HrWarningNotice, "kind" | "caseId">): HrNoticeKind {
   if (notice.kind === "writeup" || notice.kind === "warning") return notice.kind;
   return /^HR-WRITEUP-/i.test(notice.caseId) ? "writeup" : "warning";
+}
+
+/** Wipe test/sent notices and absence waivers. Commission then has no warning side effects. */
+export function resetHrNoticeStore(): void {
+  writeStore({ notices: [], absenceWaivers: [] });
+  hrLog.info("db.write", {
+    file: STORE_PATH,
+    table: "hr_warning_notices",
+    action: "reset-empty",
+  });
 }
 
 export function listWarningNotices(): HrWarningNotice[] {

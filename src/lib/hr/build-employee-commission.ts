@@ -32,6 +32,7 @@ import {
 } from "@/lib/sales/salesperson-credit";
 import { filterRows } from "@/lib/sales/sales-aggregate";
 import { resolveSalespersonLabelWithCode } from "@/lib/sales/salesperson-directory";
+import { registerHrRuntimeCacheClear } from "@/lib/hr/hr-runtime-cache";
 
 function designTotalsFromMappedRows(rows: VendorPosRow[]): { design: string; netSales: number }[] {
   const totals = new Map<string, number>();
@@ -170,6 +171,7 @@ type WindowPrep = {
 
 const WINDOW_PREP_TTL_MS = 120_000;
 const windowPrepByKey = new Map<string, { at: number; prep: WindowPrep }>();
+registerHrRuntimeCacheClear(() => windowPrepByKey.clear());
 
 function getWindowPrep(from: string, to: string, rows?: VendorPosRow[]): WindowPrep {
   const key = rows ? "" : `${from}|${to}`;

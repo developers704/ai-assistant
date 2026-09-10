@@ -9,6 +9,8 @@ import {
 } from "./parse-schedule";
 import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "./window";
 import { hrLog } from "./logger";
+import { clearHrRuntimeCache } from "./hr-runtime-cache";
+import { resetHrNoticeStore } from "./warning-store";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const INDEX_PATH = path.join(DATA_DIR, "index.json");
@@ -17,10 +19,14 @@ const SEED_SCHEDULE = path.join(process.cwd(), "data", "hr", "Schedule-August-20
 /** Marks that the operator replaced seed data — never auto-restore August files. */
 const USER_DATA_KEY = "user";
 
+/** One-shot: drop stacked August uploads + test warnings on deploy. */
+const HR_RUNTIME_RESET_KEY = "fresh-august-2026-09-10-irtaza";
+
 type HrIndex = {
   timecards: HrUploadMeta[];
   schedules: HrUploadMeta[];
   seedKey?: string;
+  runtimeResetKey?: string;
 };
 
 function ensureDir() {
@@ -41,49 +47,82 @@ function seedFingerprint(): string | null {
 
 function wipeHrFiles() {
   for (const sub of ["timecards", "schedules"] as const) {
-    const dir = path.join(DATA_DIR, sub);
-    if (!fs.existsSync(dir)) continue;
-    for (const name of fs.readdirSync(dir)) {
-      fs.unlinkSync(path.join(dir, name));
-      hrLog.info("db.delete", { file: path.join(dir, name), reason: "seed-refresh" });
-    }
+    retainOnlyUpload(sub, null);
   }
 }
 
-function removeUploadFiles(
-  kind: "timecards" | "schedules",
-  metas: HrUploadMeta[]
-) {
+/** Keep only the active upload id (or wipe the folder). Drops orphan month/week files. */
+function retainOnlyUpload(kind: "timecards" | "schedules", keepId: string | null) {
   const dir = path.join(DATA_DIR, kind);
   if (!fs.existsSync(dir)) return;
-  for (const meta of metas) {
-    for (const name of fs.readdirSync(dir)) {
-      if (!name.startsWith(`${meta.id}.`) && name !== meta.id) continue;
-      fs.unlinkSync(path.join(dir, name));
-      hrLog.info("db.delete", {
-        file: path.join(dir, name),
-        reason: "replace-active-upload",
-      });
-    }
+  for (const name of fs.readdirSync(dir)) {
+    if (keepId && (name.startsWith(`${keepId}.`) || name === keepId)) continue;
+    fs.unlinkSync(path.join(dir, name));
+    hrLog.info("db.delete", {
+      file: path.join(dir, name),
+      reason: keepId ? "replace-active-upload" : "seed-refresh",
+    });
   }
+}
+
+function purgeOrphanUploads(index: HrIndex) {
+  retainOnlyUpload("timecards", index.timecards[0]?.id ?? null);
+  retainOnlyUpload("schedules", index.schedules[0]?.id ?? null);
+}
+
+function isTestEnv() {
+  return process.env.VITEST === "true" || process.env.NODE_ENV === "test";
 }
 
 /**
  * Seed August demo files once on a virgin install.
  * Never wipe / restore seed after the operator uploads or clears data —
  * that was re-injecting thousands of old employees on every request.
+ *
+ * One-shot runtime reset: stacked month+week August files and test
+ * warnings/write-ups are dropped, then the latest seed CSVs are loaded.
  */
 function ensureSeedHr() {
   const key = seedFingerprint();
   if (!key) return;
   ensureDir();
   const index = readIndexRaw();
+
+  if (!isTestEnv() && index.runtimeResetKey !== HR_RUNTIME_RESET_KEY) {
+    wipeHrFiles();
+    resetHrNoticeStore();
+    clearHrRuntimeCache();
+    writeIndex({
+      timecards: [],
+      schedules: [],
+      seedKey: key,
+      runtimeResetKey: HR_RUNTIME_RESET_KEY,
+    });
+    saveTimecardUpload("Timecard-August-2026.csv", fs.readFileSync(SEED_TIMECARD, "utf8"), {
+      asSeed: true,
+    });
+    saveScheduleUpload("Schedule-August-2026.csv", fs.readFileSync(SEED_SCHEDULE, "utf8"), {
+      asSeed: true,
+    });
+    const after = readIndexRaw();
+    after.seedKey = key;
+    after.runtimeResetKey = HR_RUNTIME_RESET_KEY;
+    writeIndex(after);
+    return;
+  }
+
+  purgeOrphanUploads(index);
   if (index.seedKey === USER_DATA_KEY) return;
   if (index.timecards.length > 0 || index.schedules.length > 0) return;
   if (index.seedKey === key) return;
 
   wipeHrFiles();
-  writeIndex({ timecards: [], schedules: [], seedKey: key });
+  writeIndex({
+    timecards: [],
+    schedules: [],
+    seedKey: key,
+    runtimeResetKey: index.runtimeResetKey ?? HR_RUNTIME_RESET_KEY,
+  });
   saveTimecardUpload("Timecard-August-2026.csv", fs.readFileSync(SEED_TIMECARD, "utf8"), {
     asSeed: true,
   });
@@ -92,6 +131,7 @@ function ensureSeedHr() {
   });
   const after = readIndexRaw();
   after.seedKey = key;
+  after.runtimeResetKey = index.runtimeResetKey ?? HR_RUNTIME_RESET_KEY;
   writeIndex(after);
 }
 
@@ -121,6 +161,7 @@ function writeIndex(index: HrIndex) {
     timecardCount: index.timecards.length,
     scheduleCount: index.schedules.length,
     seedKey: index.seedKey,
+    runtimeResetKey: index.runtimeResetKey,
   });
 }
 
@@ -171,10 +212,11 @@ export function saveTimecardUpload(
   );
 
   const index = readIndexRaw();
-  removeUploadFiles("timecards", index.timecards);
   index.timecards = [meta];
   if (!opts?.asSeed) index.seedKey = USER_DATA_KEY;
   writeIndex(index);
+  retainOnlyUpload("timecards", id);
+  clearHrRuntimeCache();
   hrLog.info("db.insert", {
     file: `${DATA_DIR}/timecards/${id}.json`,
     table: "hr_timecards",
@@ -229,10 +271,11 @@ export function saveScheduleUpload(
   );
 
   const index = readIndexRaw();
-  removeUploadFiles("schedules", index.schedules);
   index.schedules = [meta];
   if (!opts?.asSeed) index.seedKey = USER_DATA_KEY;
   writeIndex(index);
+  retainOnlyUpload("schedules", id);
+  clearHrRuntimeCache();
   hrLog.info("db.insert", {
     file: `${DATA_DIR}/schedules/${id}.json`,
     table: "hr_schedules",

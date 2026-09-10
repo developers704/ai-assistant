@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import fs from "fs";
+import path from "path";
 import { parseTimecardCsv } from "@/lib/hr/parse-timecard";
 
 describe("timecard contact columns", () => {
@@ -24,5 +26,19 @@ describe("timecard contact columns", () => {
       userEmail: "chat@example.com",
       mail: "mail@example.com",
     });
+  });
+
+  it("keeps Irtaza UserEmail and Mail distinct on the August seed", () => {
+    const text = fs.readFileSync(
+      path.join(process.cwd(), "data/hr/Timecard-August-2026.csv"),
+      "utf8"
+    );
+    expect(text).not.toMatch(/irtiza@/i);
+    const rows = parseTimecardCsv(text).filter(
+      (r) => (r.mail ?? "").toLowerCase() === "irtaza@valliani.app"
+    );
+    expect(rows.length).toBeGreaterThan(100);
+    expect(rows.every((r) => r.userEmail === "irtaza@arrakconsulting.com")).toBe(true);
+    expect(rows.every((r) => r.mail === "irtaza@valliani.app")).toBe(true);
   });
 });
