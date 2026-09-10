@@ -228,7 +228,8 @@ export function matchesAttendanceCard(
   if (card === "early") {
     return (
       isEarlyForWarning(emp.earlyInMinutes) ||
-      (emp.violations?.some((v) => v.type === "early_in") ?? false)
+      isEarlyOutForWarning(emp.earlyOutMinutes) ||
+      (emp.violations?.some((v) => v.type === "early_in" || v.type === "early_out") ?? false)
     );
   }
   if (card === "no_schedule") {
@@ -284,14 +285,17 @@ export function employeeFilterLabel(
 
 export function attendanceKpisFromDays(
   list: Array<
-    Pick<HrEmployeeDay, "violations" | "lateMinutes" | "earlyInMinutes">
+    Pick<HrEmployeeDay, "violations" | "lateMinutes" | "earlyInMinutes"> &
+      Partial<Pick<HrEmployeeDay, "earlyOutMinutes">>
   >
 ) {
   return {
     employees: list.length,
     flagged: list.filter((e) => e.violations.length > 0).length,
     late: list.filter((e) => isLateForWarning(e.lateMinutes)).length,
-    early: list.filter((e) => isEarlyForWarning(e.earlyInMinutes)).length,
+    early: list.filter(
+      (e) => isEarlyForWarning(e.earlyInMinutes) || isEarlyOutForWarning(e.earlyOutMinutes)
+    ).length,
     noSchedule: list.filter((e) => e.violations.some((v) => v.type === "no_schedule")).length,
     absent: list.filter((e) => e.violations.some((v) => v.type === "absent")).length,
   };
