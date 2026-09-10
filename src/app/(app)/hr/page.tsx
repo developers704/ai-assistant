@@ -14,7 +14,7 @@ import {
 } from "@/lib/hr/window";
 import { formatHrDateLabel } from "@/lib/hr/time-utils";
 import {
-  attendanceKpisFromDays,
+  attendanceStatusKpisFromDays,
   employeeFilterLabel,
   matchesAttendanceCard,
   matchesEmployeeSearch,
@@ -217,7 +217,11 @@ export default function HrPage() {
   const multiDay = dateRange.from !== dateRange.to;
 
   const kpis = useMemo(
-    () => attendanceKpisFromDays(searchScopedEmployees),
+    () => attendanceStatusKpisFromDays(searchScopedEmployees),
+    [searchScopedEmployees]
+  );
+  const flaggedEmployees = useMemo(
+    () => searchScopedEmployees.filter((employee) => employee.violations.length > 0).length,
     [searchScopedEmployees]
   );
 
@@ -344,73 +348,59 @@ export default function HrPage() {
           <div className="hr-kpi-grid hr-kpi-grid-6">
             <button
               type="button"
-              className={`hr-kpi hr-kpi-btn${cardFilter === "all" ? " hr-kpi-active" : ""}`}
-              aria-pressed={cardFilter === "all"}
-              onClick={() => selectCard("all")}
+              className={`hr-kpi hr-kpi-btn${cardFilter === "late_in" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "late_in"}
+              onClick={() => selectCard("late_in")}
             >
               <div className="hr-kpi-top">
-                <span className="hr-kpi-label">Employees</span>
-                <span className="hr-kpi-icon hr-kpi-icon-violet">
-                  <Users size={14} />
-                </span>
-              </div>
-              <div className="hr-kpi-value">{kpis.employees}</div>
-            </button>
-            <button
-              type="button"
-              className={`hr-kpi hr-kpi-btn${cardFilter === "flagged" ? " hr-kpi-active" : ""}`}
-              aria-pressed={cardFilter === "flagged"}
-              onClick={() => selectCard("flagged")}
-            >
-              <div className="hr-kpi-top">
-                <span className="hr-kpi-label">Flagged</span>
+                <span className="hr-kpi-label">Late In</span>
                 <span className="hr-kpi-icon hr-kpi-icon-amber">
-                  <AlertTriangle size={14} />
+                  <Clock size={14} />
                 </span>
               </div>
-              <div className="hr-kpi-value">{kpis.flagged}</div>
+              <div className="hr-kpi-value">{kpis.lateIn}</div>
             </button>
             <button
               type="button"
-              className={`hr-kpi hr-kpi-btn${cardFilter === "late" ? " hr-kpi-active" : ""}`}
-              aria-pressed={cardFilter === "late"}
-              onClick={() => selectCard("late")}
+              className={`hr-kpi hr-kpi-btn${cardFilter === "late_out" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "late_out"}
+              onClick={() => selectCard("late_out")}
             >
               <div className="hr-kpi-top">
-                <span className="hr-kpi-label">Late</span>
+                <span className="hr-kpi-label">Late Out</span>
                 <span className="hr-kpi-icon hr-kpi-icon-rose">
                   <Clock size={14} />
                 </span>
               </div>
-              <div className="hr-kpi-value">{kpis.late}</div>
+              <div className="hr-kpi-value">{kpis.lateOut}</div>
             </button>
             <button
               type="button"
-              className={`hr-kpi hr-kpi-btn${cardFilter === "early" ? " hr-kpi-active" : ""}`}
-              aria-pressed={cardFilter === "early"}
-              onClick={() => selectCard("early")}
+              className={`hr-kpi hr-kpi-btn${cardFilter === "early_in" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "early_in"}
+              onClick={() => selectCard("early_in")}
             >
               <div className="hr-kpi-top">
-                <span className="hr-kpi-label">Early</span>
+                <span className="hr-kpi-label">Early In</span>
                 <span className="hr-kpi-icon hr-kpi-icon-sky">
                   <Timer size={14} />
                 </span>
               </div>
-              <div className="hr-kpi-value">{kpis.early}</div>
+              <div className="hr-kpi-value">{kpis.earlyIn}</div>
             </button>
             <button
               type="button"
-              className={`hr-kpi hr-kpi-btn${cardFilter === "no_schedule" ? " hr-kpi-active" : ""}`}
-              aria-pressed={cardFilter === "no_schedule"}
-              onClick={() => selectCard("no_schedule")}
+              className={`hr-kpi hr-kpi-btn${cardFilter === "early_out" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "early_out"}
+              onClick={() => selectCard("early_out")}
             >
               <div className="hr-kpi-top">
-                <span className="hr-kpi-label">No schedule</span>
-                <span className="hr-kpi-icon hr-kpi-icon-amber">
-                  <CalendarOff size={14} />
+                <span className="hr-kpi-label">Early Out</span>
+                <span className="hr-kpi-icon hr-kpi-icon-sky">
+                  <Timer size={14} />
                 </span>
               </div>
-              <div className="hr-kpi-value">{kpis.noSchedule}</div>
+              <div className="hr-kpi-value">{kpis.earlyOut}</div>
             </button>
             <button
               type="button"
@@ -425,6 +415,20 @@ export default function HrPage() {
                 </span>
               </div>
               <div className="hr-kpi-value">{kpis.absent}</div>
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "no_schedule" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "no_schedule"}
+              onClick={() => selectCard("no_schedule")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Missing Schedule</span>
+                <span className="hr-kpi-icon hr-kpi-icon-amber">
+                  <CalendarOff size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.missingSchedule}</div>
             </button>
           </div>
 
@@ -507,10 +511,10 @@ export default function HrPage() {
             </label>
             <div className="hr-filter-meta">
               <span>{formatHrAttendanceWindowCaption()}</span>
-              {kpis.flagged > 0 && (
+              {flaggedEmployees > 0 && (
                 <span className="hr-flag-count">
                   <AlertTriangle size={13} />
-                  {kpis.flagged} employee(s) with flags
+                  {flaggedEmployees} employee(s) with flags
                 </span>
               )}
             </div>

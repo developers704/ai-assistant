@@ -143,6 +143,32 @@ export function earlyOutDeltaMinutes(
   return diff >= 10 ? diff : 0;
 }
 
+export function lateOutDeltaMinutes(
+  scheduledEnd: string,
+  lastClockOut: string | null
+): number {
+  const sched = parseClockToMinutes(scheduledEnd);
+  const actual = parseClockToMinutes(lastClockOut);
+  if (sched == null || actual == null) return 0;
+  const diff = actual - sched;
+  return diff >= 12 ? diff : 0;
+}
+
+export function checkLateOut(
+  scheduledEnd: string,
+  lastClockOut: string | null
+): HrViolation[] {
+  const mins = lateOutDeltaMinutes(scheduledEnd, lastClockOut);
+  if (mins <= 0) return [];
+  return [
+    violation(
+      "late_out",
+      `Clock-out ${formatMinutes(mins)} late (scheduled ${scheduledEnd})`,
+      "warning"
+    ),
+  ];
+}
+
 export function checkEarlyOut(
   scheduledEnd: string,
   lastClockOut: string | null

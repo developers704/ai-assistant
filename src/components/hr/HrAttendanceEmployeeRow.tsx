@@ -294,6 +294,7 @@ export function HrAttendanceEmployeeRow({
   const displayName = emp.displayName?.trim() || emp.employeeName;
   const tone = avatarTone(displayName);
   const late = emp.lateMinutes != null && emp.lateMinutes >= 12;
+  const lateOut = emp.lateOutMinutes != null && emp.lateOutMinutes >= 12;
   const early = emp.earlyInMinutes != null && emp.earlyInMinutes >= 10;
   const leftEarly = emp.earlyOutMinutes != null && emp.earlyOutMinutes >= 10;
   const warningActive = Boolean(warning && !warning.waivedAt);
@@ -460,10 +461,11 @@ export function HrAttendanceEmployeeRow({
             <span className="hr-pills">
               {missingSchedule && <span className="hr-pill hr-pill-miss">Schedule missing</span>}
               {isAbsent && <span className="hr-pill hr-pill-warn">Absent</span>}
-              {late && <span className="hr-pill hr-pill-warn">Late {emp.lateMinutes} min</span>}
-              {early && <span className="hr-pill hr-pill-info">Early {emp.earlyInMinutes} min</span>}
+              {late && <span className="hr-pill hr-pill-warn">Late In {emp.lateMinutes} min</span>}
+              {lateOut && <span className="hr-pill hr-pill-warn">Late Out {emp.lateOutMinutes} min</span>}
+              {early && <span className="hr-pill hr-pill-info">Early In {emp.earlyInMinutes} min</span>}
               {leftEarly && (
-                <span className="hr-pill hr-pill-info">Left early {emp.earlyOutMinutes} min</span>
+                <span className="hr-pill hr-pill-info">Early Out {emp.earlyOutMinutes} min</span>
               )}
               {warningActive && <span className="hr-pill hr-pill-sent">Warning sent</span>}
               {anyWaived && (

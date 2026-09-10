@@ -19,14 +19,36 @@ export const HR_WARNING_CASE_RE = /HR-(?:LATE|EARLY|LEAVE|ABSENT|MEAL)-[A-Z0-9]+
 export const HR_NOTICE_CASE_RE = /HR-(?:LATE|EARLY|LEAVE|ABSENT|MEAL|WRITEUP)-[A-Z0-9]+-\d{4}-\d{2}-\d{2}/i;
 
 export type HrWarningReason = "late" | "early" | "leave" | "absent";
-export type HrAttendanceCardFilter = "all" | "flagged" | "late" | "early" | "no_schedule" | "absent";
-export type HrViolationKind = "late" | "early" | "no_schedule" | "absent";
+export type HrAttendanceCardFilter =
+  | "all"
+  | "flagged"
+  | "late"
+  | "early"
+  | "no_schedule"
+  | "absent"
+  | "late_in"
+  | "late_out"
+  | "early_in"
+  | "early_out";
+export type HrViolationKind =
+  | "late"
+  | "early"
+  | "late_in"
+  | "late_out"
+  | "early_in"
+  | "early_out"
+  | "no_schedule"
+  | "absent";
 export type HrViolationFilter = "all" | HrViolationKind;
 
 export const HR_VIOLATION_FILTER_OPTIONS: HrViolationFilter[] = [
   "all",
   "late",
   "early",
+  "late_in",
+  "late_out",
+  "early_in",
+  "early_out",
   "no_schedule",
   "absent",
 ];
@@ -35,7 +57,11 @@ export const HR_VIOLATION_FILTER_LABELS: Record<HrViolationFilter, string> = {
   all: "All",
   late: "Late arrival",
   early: "Early",
-  no_schedule: "Schedule missing",
+  late_in: "Late In",
+  late_out: "Late Out",
+  early_in: "Early In",
+  early_out: "Early Out",
+  no_schedule: "Missing Schedule",
   absent: "Absent",
 };
 
@@ -46,6 +72,7 @@ export type HrNoticeEmployee = Pick<
   displayName?: string | null;
   guardsName?: string | null;
   lateMinutes?: number | null;
+  lateOutMinutes?: number | null;
   earlyInMinutes?: number | null;
   earlyOutMinutes?: number | null;
   mealBreaks?: HrEmployeeDay["mealBreaks"];
@@ -65,6 +92,7 @@ export type WarningMailDetails = {
   clockIn?: string | null;
   clockOut?: string | null;
   lateMinutes?: number | null;
+  lateOutMinutes?: number | null;
   earlyInMinutes?: number | null;
   earlyOutMinutes?: number | null;
 };
@@ -176,6 +204,7 @@ export function warningMailDetailsFromEmployee(emp: HrNoticeEmployee): WarningMa
     clockIn: segs.find((s) => s.timeIn)?.timeIn ?? null,
     clockOut: [...segs].reverse().find((s) => s.timeOut)?.timeOut ?? null,
     lateMinutes: emp.lateMinutes ?? null,
+    lateOutMinutes: emp.lateOutMinutes ?? null,
     earlyInMinutes: emp.earlyInMinutes ?? null,
     earlyOutMinutes: emp.earlyOutMinutes ?? null,
   };
@@ -200,6 +229,10 @@ export function isLateForWarning(lateMinutes: number | null | undefined): boolea
   return lateMinutes != null && lateMinutes >= LATE_WARNING_THRESHOLD_MINUTES;
 }
 
+export function isLateOutForWarning(lateOutMinutes: number | null | undefined): boolean {
+  return lateOutMinutes != null && lateOutMinutes >= LATE_WARNING_THRESHOLD_MINUTES;
+}
+
 export function isEarlyForWarning(earlyMinutes: number | null | undefined): boolean {
   return earlyMinutes != null && earlyMinutes >= EARLY_WARNING_THRESHOLD_MINUTES;
 }
@@ -213,6 +246,7 @@ export function isEligibleForHrNotice(emp: HrNoticeEmployee): boolean {
   return (
     (emp.violations?.length ?? 0) > 0 ||
     isLateForWarning(emp.lateMinutes) ||
+    isLateOutForWarning(emp.lateOutMinutes) ||
     isEarlyForWarning(emp.earlyInMinutes) ||
     isEarlyOutForWarning(emp.earlyOutMinutes)
   );
@@ -225,6 +259,10 @@ export function matchesAttendanceCard(
   if (card === "all") return true;
   if (card === "flagged") return (emp.violations?.length ?? 0) > 0;
   if (card === "late") return isLateForWarning(emp.lateMinutes);
+  if (card === "late_in") return isLateForWarning(emp.lateMinutes) || (emp.violations?.some((v) => v.type === "late") ?? false);
+  if (card === "late_out") return isLateOutForWarning(emp.lateOutMinutes) || (emp.violations?.some((v) => v.type === "late_out") ?? false);
+  if (card === "early_in") return isEarlyForWarning(emp.earlyInMinutes) || (emp.violations?.some((v) => v.type === "early_in") ?? false);
+  if (card === "early_out") return isEarlyOutForWarning(emp.earlyOutMinutes) || (emp.violations?.some((v) => v.type === "early_out") ?? false);
   if (card === "early") {
     return (
       isEarlyForWarning(emp.earlyInMinutes) ||
@@ -286,7 +324,7 @@ export function employeeFilterLabel(
 export function attendanceKpisFromDays(
   list: Array<
     Pick<HrEmployeeDay, "violations" | "lateMinutes" | "earlyInMinutes"> &
-      Partial<Pick<HrEmployeeDay, "earlyOutMinutes">>
+      Partial<Pick<HrEmployeeDay, "earlyOutMinutes" | "lateOutMinutes">>
   >
 ) {
   return {
@@ -298,6 +336,19 @@ export function attendanceKpisFromDays(
     ).length,
     noSchedule: list.filter((e) => e.violations.some((v) => v.type === "no_schedule")).length,
     absent: list.filter((e) => e.violations.some((v) => v.type === "absent")).length,
+  };
+}
+
+export function attendanceStatusKpisFromDays(list: HrEmployeeDay[]) {
+  const count = (type: HrViolation["type"]) =>
+    list.filter((e) => e.violations.some((v) => v.type === type)).length;
+  return {
+    lateIn: count("late"),
+    lateOut: count("late_out"),
+    earlyIn: count("early_in"),
+    earlyOut: count("early_out"),
+    absent: count("absent"),
+    missingSchedule: count("no_schedule"),
   };
 }
 
@@ -336,6 +387,9 @@ export function warningReason(emp: HrNoticeEmployee): HrWarningReason {
 
 export function noticeDescriptionForEmployee(emp: HrNoticeEmployee): string {
   const parts: string[] = [];
+  if (isLateOutForWarning(emp.lateOutMinutes)) {
+    parts.push(`Late Departure by ${emp.lateOutMinutes} minutes.`);
+  }
   if (isLateForWarning(emp.lateMinutes)) {
     parts.push(warningDescription(emp.lateMinutes!));
   }

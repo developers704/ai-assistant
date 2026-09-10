@@ -1,6 +1,7 @@
 export type HrViolationType =
   | "missing_punch"
   | "late"
+  | "late_out"
   | "early_in"
   | "early_out"
   | "no_schedule"
@@ -61,6 +62,8 @@ export type HrEmployeeDay = {
   earlyInMinutes: number | null;
   /** Minutes early vs schedule end (≥10 min threshold). */
   earlyOutMinutes: number | null;
+  /** Minutes late vs schedule end (≥12 min threshold). */
+  lateOutMinutes: number | null;
   violations: HrViolation[];
   /** Chat recipient from timecard UserEmail column. */
   userEmail?: string | null;

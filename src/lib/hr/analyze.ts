@@ -9,9 +9,11 @@ import { namesMatch } from "./name-match";
 import {
   checkLateEarly,
   checkEarlyOut,
+  checkLateOut,
   classifyGapMinutes,
   lateEarlyDeltaMinutes,
   earlyOutDeltaMinutes,
+  lateOutDeltaMinutes,
   shiftTierFromScheduledMinutes,
   expectedMealPolicy,
 } from "./meal-break-rules";
@@ -158,6 +160,7 @@ export function analyzeEmployeeDay(
   let lateMinutes: number | null = null;
   let earlyInMinutes: number | null = null;
   let earlyOutMinutes: number | null = null;
+  let lateOutMinutes: number | null = null;
   if (scheduleRaw && firstIn) {
     const delta = lateEarlyDeltaMinutes(scheduleRaw.start, firstIn);
     if (delta.lateMinutes > 0) lateMinutes = delta.lateMinutes;
@@ -168,6 +171,9 @@ export function analyzeEmployeeDay(
     const leftEarly = earlyOutDeltaMinutes(scheduleRaw.end, lastOut);
     if (leftEarly > 0) earlyOutMinutes = leftEarly;
     violations.push(...checkEarlyOut(scheduleRaw.end, lastOut));
+    const stayedLate = lateOutDeltaMinutes(scheduleRaw.end, lastOut);
+    if (stayedLate > 0) lateOutMinutes = stayedLate;
+    violations.push(...checkLateOut(scheduleRaw.end, lastOut));
   }
 
   const shiftTier = scheduleRange
@@ -215,6 +221,7 @@ export function analyzeEmployeeDay(
     lateMinutes,
     earlyInMinutes,
     earlyOutMinutes,
+    lateOutMinutes,
     userEmail:
       firstFilled(metaSource, "userEmail") ?? firstFilled(profileRows, "userEmail"),
     mail: firstFilled(metaSource, "mail") ?? firstFilled(profileRows, "mail"),
