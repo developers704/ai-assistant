@@ -342,7 +342,11 @@ export function attendanceKpisFromDays(
 export function attendanceStatusKpisFromDays(list: HrEmployeeDay[]) {
   const count = (type: HrViolation["type"]) =>
     list.filter((e) => e.violations.some((v) => v.type === type)).length;
+  const employees = new Set(
+    list.map((e) => e.employeeCode?.trim() || e.displayName?.trim() || e.employeeName.trim())
+  );
   return {
+    employees: employees.size,
     lateIn: count("late"),
     lateOut: count("late_out"),
     earlyIn: count("early_in"),

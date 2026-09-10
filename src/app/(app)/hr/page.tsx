@@ -348,6 +348,20 @@ export default function HrPage() {
           <div className="hr-kpi-grid hr-kpi-grid-6">
             <button
               type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "all" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "all"}
+              onClick={() => selectCard("all")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Total Employees</span>
+                <span className="hr-kpi-icon hr-kpi-icon-violet">
+                  <Users size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.employees}</div>
+            </button>
+            <button
+              type="button"
               className={`hr-kpi hr-kpi-btn${cardFilter === "late_in" ? " hr-kpi-active" : ""}`}
               aria-pressed={cardFilter === "late_in"}
               onClick={() => selectCard("late_in")}
