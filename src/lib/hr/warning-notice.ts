@@ -619,13 +619,12 @@ export function draftWarningNotice(
 }
 
 function templateKeyForEmployee(emp: HrNoticeEmployee): HrWarningTemplateKey {
-  if (emp.violations?.some((v) => v.type === "absent")) return "absent";
-  if (emp.violations?.some((v) => v.type === "no_schedule")) return "missingSchedule";
-  if (emp.violations?.some((v) => v.type === "missing_punch")) return "missingPunch";
-  if (emp.violations?.some((v) => v.type?.includes("meal"))) return "meal";
-  if (isLateForWarning(emp.lateMinutes)) return "late";
+  if (isLateForWarning(emp.lateMinutes)) return "lateIn";
+  if (isLateOutForWarning(emp.lateOutMinutes) || emp.violations?.some((v) => v.type === "late_out")) return "lateOut";
+  if (isEarlyForWarning(emp.earlyInMinutes) || emp.violations?.some((v) => v.type === "early_in")) return "earlyIn";
   if (isEarlyOutForWarning(emp.earlyOutMinutes) || emp.violations?.some((v) => v.type === "early_out")) return "earlyOut";
-  return "other";
+  if (emp.violations?.some((v) => v.type === "absent")) return "absent";
+  return "missingSchedule";
 }
 
 function warningTextFromTemplate(
@@ -641,11 +640,13 @@ function warningTextFromTemplate(
     employeeName,
     date: formatWarningMailDate(date),
     lateMinutes: String(details.lateMinutes ?? 0),
+    lateOutMinutes: String(details.lateOutMinutes ?? 0),
+    earlyInMinutes: String(details.earlyInMinutes ?? 0),
     earlyOutMinutes: String(details.earlyOutMinutes ?? 0),
     scheduledStart: details.scheduledStart ?? "",
     scheduledEnd: details.scheduledEnd ?? "",
   };
-  return template.replace(/\{\{\s*(employeeName|date|lateMinutes|earlyOutMinutes|scheduledStart|scheduledEnd)\s*\}\}/g, (_, name: string) => values[name] ?? "");
+  return template.replace(/\{\{\s*(employeeName|date|lateMinutes|lateOutMinutes|earlyInMinutes|earlyOutMinutes|scheduledStart|scheduledEnd)\s*\}\}/g, (_, name: string) => values[name] ?? "");
 }
 
 function warningTemplateHtml(text: string): string {

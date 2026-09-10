@@ -11,13 +11,12 @@ import {
 import type { HrNoticeSettings } from "@/lib/hr/notice-settings";
 
 const labels: Record<HrWarningTemplateKey, string> = {
-  late: "Late arrival",
-  earlyOut: "Late out / left early",
-  missingSchedule: "Missing schedule",
+  lateIn: "Late In",
+  lateOut: "Late Out",
+  earlyIn: "Early In",
+  earlyOut: "Early Out",
   absent: "Absent",
-  missingPunch: "Missing punch",
-  meal: "Meal break",
-  other: "Other attendance issue",
+  missingSchedule: "Missing Schedule",
 };
 
 export function HrNoticeSettings() {
@@ -80,7 +79,7 @@ export function HrNoticeSettings() {
         <p className="text-xs text-ink-muted">SMTP host, port, TLS, and security remain in the server environment. The password is never returned to the browser.</p>
         <div className="space-y-3">
           <p className="text-sm font-medium text-ink">Warning text templates</p>
-          <p className="text-xs text-ink-muted">Available placeholders: <code>{"{{employeeName}}"}</code>, <code>{"{{date}}"}</code>, <code>{"{{lateMinutes}}"}</code>, <code>{"{{earlyOutMinutes}}"}</code>, <code>{"{{scheduledStart}}"}</code>, <code>{"{{scheduledEnd}}"}</code>.</p>
+          <p className="text-xs text-ink-muted">Available placeholders: <code>{"{{employeeName}}"}</code>, <code>{"{{date}}"}</code>, <code>{"{{lateMinutes}}"}</code>, <code>{"{{lateOutMinutes}}"}</code>, <code>{"{{earlyInMinutes}}"}</code>, <code>{"{{earlyOutMinutes}}"}</code>, <code>{"{{scheduledStart}}"}</code>, <code>{"{{scheduledEnd}}"}</code>.</p>
           {HR_WARNING_TEMPLATE_KEYS.map((key) => (
             <label key={key} className="block text-sm font-medium text-ink-secondary">{labels[key]}<textarea className={fieldClass} rows={2} value={settings.templates[key] || DEFAULT_HR_WARNING_TEMPLATES[key]} onChange={(e) => setSettings({ ...settings, templates: { ...settings.templates, [key]: e.target.value } })} /></label>
           ))}
