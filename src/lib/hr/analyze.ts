@@ -222,28 +222,36 @@ export function analyzeEmployeeDay(
   };
 }
 
-export function analyzeDay(
-  date: string,
-  timecardRows: HrTimecardRow[],
-  scheduleEntries: HrScheduleEntry[]
-): HrEmployeeDay[] {
-  const dayRows = timecardRows.filter((r) => r.date === date);
+function groupByDate<T extends { date: string }>(rows: T[]): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const row of rows) {
+    const list = map.get(row.date);
+    if (list) list.push(row);
+    else map.set(row.date, [row]);
+  }
+  return map;
+}
+
+function uniqueEmployeeNames(
+  dayRows: Array<{ employeeName: string }>,
+  daySchedule: Array<{ employeeName: string }>
+): string[] {
   const names: string[] = [];
   const addName = (name: string) => {
     if (names.some((existing) => namesMatch(existing, name))) return;
     names.push(name);
   };
   for (const r of dayRows) addName(r.employeeName);
-  for (const e of scheduleEntries) {
-    if (e.date === date) addName(e.employeeName);
-  }
-  return names
-    .sort((a, b) => a.localeCompare(b))
-    .map((name) => {
-      const punches = dayRows.filter((r) => namesMatch(r.employeeName, name));
-      const profileRows = timecardRows.filter((r) => namesMatch(r.employeeName, name));
-      return analyzeEmployeeDay(name, date, punches, scheduleEntries, profileRows);
-    });
+  for (const e of daySchedule) addName(e.employeeName);
+  return names.sort((a, b) => a.localeCompare(b));
+}
+
+export function analyzeDay(
+  date: string,
+  timecardRows: HrTimecardRow[],
+  scheduleEntries: HrScheduleEntry[]
+): HrEmployeeDay[] {
+  return analyzeDays([date], timecardRows, scheduleEntries);
 }
 
 export function distinctTimecardDates(rows: HrTimecardRow[]): string[] {
@@ -255,9 +263,25 @@ export function analyzeDays(
   timecardRows: HrTimecardRow[],
   scheduleEntries: HrScheduleEntry[]
 ): HrEmployeeDay[] {
+  const punchesByDate = groupByDate(timecardRows);
+  const scheduleByDate = groupByDate(scheduleEntries);
+  const profileCache = new Map<string, HrTimecardRow[]>();
+  const profileFor = (name: string) => {
+    const hit = profileCache.get(name);
+    if (hit) return hit;
+    const rows = timecardRows.filter((r) => namesMatch(r.employeeName, name));
+    profileCache.set(name, rows);
+    return rows;
+  };
+
   const out: HrEmployeeDay[] = [];
   for (const date of dates) {
-    out.push(...analyzeDay(date, timecardRows, scheduleEntries));
+    const dayRows = punchesByDate.get(date) ?? [];
+    const daySchedule = scheduleByDate.get(date) ?? [];
+    for (const name of uniqueEmployeeNames(dayRows, daySchedule)) {
+      const punches = dayRows.filter((r) => namesMatch(r.employeeName, name));
+      out.push(analyzeEmployeeDay(name, date, punches, daySchedule, profileFor(name)));
+    }
   }
   return out;
 }
