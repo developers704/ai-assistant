@@ -25,7 +25,7 @@ function row(partial: Partial<VendorPosRow> & { netRevenue: number }): VendorPos
     itemNumber: "TEST-SKU-1",
     vendorModel: "VM-1",
     style: "",
-    quantity: 3,
+    quantity: 1,
     grossSales: partial.grossSales ?? partial.netRevenue,
     discountAmount: 0,
     netRevenue: partial.netRevenue,
@@ -267,6 +267,27 @@ assert(
   "cross-day return cancels prior sale in Top Models",
   crossDay.length === 1 && crossDay[0].date === "2026-08-09",
   `len=${crossDay.length} date=${crossDay[0]?.date}`
+);
+
+console.log("split qty");
+const splitHoops = wholesaleProfitForModelRows([
+  row({
+    sku: "231622S",
+    quantity: 0.5,
+    grossSales: 149.5,
+    netRevenue: 149.5,
+  }),
+  row({
+    sku: "231622S",
+    quantity: 0.5,
+    grossSales: 149.5,
+    netRevenue: 149.5,
+  }),
+]);
+assert(
+  "0.5+0.5 split does not double CP (231622 → $215 once)",
+  splitHoops.profit != null && Math.abs(splitHoops.profit - 84) < 0.02,
+  `profit=${splitHoops.profit}`
 );
 
 if (failed) {

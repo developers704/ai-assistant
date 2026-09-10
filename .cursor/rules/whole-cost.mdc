@@ -22,7 +22,7 @@ Single engine: `src/lib/inventory/whole-cost-rules.ts` (wired into price calcula
 | **Price calculator / onhand / DM cost** | **Tag Price** |
 | **Sales dashboard / Top Vendor Models / daily sales report / parse margins** | **Sales Amount** (gross, not Total/net) |
 
-Daily uploads and the sales dashboard (including Jul 1 → Aug 11 seed window and forward) must use Sales Amount × rules, then profit = Net − signed unit cost. Keep return / cancel-leg rules in `top-models-wholesale-margin.ts` (`signedWholesaleUnitCost`, `collapseCancelledSkuLegs`).
+Daily uploads and the sales dashboard (including Jul 1 → Aug 11 seed window and forward) must use Sales Amount × rules, then profit = Net − signed (unit cost × |qty|). Split salesperson rows (qty 0.5) must not double-count CP. Keep return / cancel-leg rules in `top-models-wholesale-margin.ts` (`signedWholesaleUnitCost`, `collapseCancelledSkuLegs`).
 
 Do not invent other gold÷1.3 triggers (e.g. gold department alone without Design GOLD JEWL). Plain GOLD JEWL without UV → ÷ 4 (sheet).
 

@@ -71,25 +71,28 @@ export function calculatorWholesaleUnitCost(
 }
 
 /**
- * Unit cost with sign: sales subtract cost, returns add it back
- * (sale R−C then return −R+C → net 0). Qty ignored for magnitude.
+ * Signed wholesale for this CSV row: sales subtract cost, returns add it back
+ * (sale R−C then return −R+C → net 0).
+ * Magnitude = unit cost × |qty| so split 0.5/0.5 rows count as one piece, not two.
  */
 export function signedWholesaleUnitCost(
   unitCost: number,
   row: Pick<VendorPosRow, "quantity" | "netRevenue" | "grossSales">
 ): number {
   const qty = Number(row.quantity ?? 0);
-  if (qty < 0) return -unitCost;
-  if (qty > 0) return unitCost;
+  const pieces = Number.isFinite(qty) && qty !== 0 ? Math.abs(qty) : 1;
+  const amount = unitCost * pieces;
+  if (qty < 0) return -amount;
+  if (qty > 0) return amount;
   const net = Number(row.netRevenue ?? 0);
-  if (net < 0) return -unitCost;
+  if (net < 0) return -amount;
   const gross = Number(row.grossSales ?? 0);
-  if (gross < 0) return -unitCost;
-  return unitCost;
+  if (gross < 0) return -amount;
+  return amount;
 }
 
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
-export const TOP_MODELS_MARGIN_RULES_VERSION = 5;
+export const TOP_MODELS_MARGIN_RULES_VERSION = 6;
 
 function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
   const net = Number(row.netRevenue ?? 0);
@@ -226,7 +229,7 @@ export function isPhantomZeroNetModel(units: number, revenue: number): boolean {
 /**
  * Top Vendor Models margin from calculator wholesale rules.
  * Collapses cancelled SKU sale+return legs first, then:
- * profit = revenue − signed unit cost (qty ignored — owner rule).
+ * profit = revenue − signed (unit cost × |qty|).
  * Unit cost from Sales Amount × CP rules when sale context is present.
  * If any SKU lacks cost → hide margin (null).
  */
