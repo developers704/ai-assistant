@@ -2,7 +2,7 @@ import type { VendorPosRow } from "@/lib/reports/types";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import {
-  collapseCancelledSkuLegs,
+  collapseTopModelSaleRows,
   vendorModelGroupKey,
   wholesaleProfitForModelRows,
 } from "@/lib/sales/top-models-wholesale-margin";
@@ -271,7 +271,7 @@ export function buildVendorModelDetail(
   }
 
   const periodDays = inclusivePeriodDays(dateFrom, dateTo);
-  const activeRows = collapseCancelledSkuLegs(rows);
+  const activeRows = collapseTopModelSaleRows(rows);
   const skuLines = skuLinesForModel(activeRows);
 
   const skus: VendorModelSkuDetail[] = [];

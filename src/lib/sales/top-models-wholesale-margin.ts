@@ -92,7 +92,7 @@ export function signedWholesaleUnitCost(
 }
 
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
-export const TOP_MODELS_MARGIN_RULES_VERSION = 6;
+export const TOP_MODELS_MARGIN_RULES_VERSION = 7;
 
 function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
   const net = Number(row.netRevenue ?? 0);
@@ -200,6 +200,87 @@ function pairReturnsWithSales<T extends VendorPosRow>(
   }
 }
 
+function splitTxnSkuKey(row: VendorPosRow): string | null {
+  const txn = (row.transactionId ?? "").trim().toUpperCase();
+  const sku = (row.sku || row.itemNumber || "").trim().toUpperCase();
+  if (!txn || !sku) return null;
+  if (isItemPlaceholderSku(sku) || isRepairServiceMemoSku(sku)) return null;
+  const side = isReturnish(row) ? "R" : "S";
+  return `${txn}|${sku}|${side}`;
+}
+
+function mergeSplitTxnSkuGroup<T extends VendorPosRow>(group: T[]): T {
+  const first = group[0]!;
+  let quantity = 0;
+  let netRevenue = 0;
+  let grossSales = 0;
+  let discountAmount = 0;
+  let inventoryCost = 0;
+  let margin = 0;
+  for (const r of group) {
+    quantity += Number(r.quantity ?? 0);
+    netRevenue += Number(r.netRevenue ?? 0);
+    grossSales += Number(r.grossSales ?? 0);
+    discountAmount += Number(r.discountAmount ?? 0);
+    inventoryCost += Number(r.inventoryCost ?? 0);
+    margin += Number(r.margin ?? 0);
+  }
+  return {
+    ...first,
+    quantity,
+    netRevenue,
+    grossSales,
+    discountAmount,
+    inventoryCost,
+    margin,
+  };
+}
+
+/**
+ * Same Transaction # + SKU salesperson splits (qty 0.4/0.4/0.2) → one line:
+ * summed qty, Sales Amount (tag), and Total (net). ITEM / JVV memos stay as CSV lines.
+ */
+export function collapseSplitTxnSkuRows<T extends VendorPosRow>(rows: T[]): T[] {
+  if (rows.length < 2) return rows;
+
+  const groups = new Map<string, number[]>();
+  for (let i = 0; i < rows.length; i++) {
+    const key = splitTxnSkuKey(rows[i]!);
+    if (!key) continue;
+    const list = groups.get(key);
+    if (list) list.push(i);
+    else groups.set(key, [i]);
+  }
+
+  const mergeIdx = new Map<number, number[]>();
+  const skip = new Set<number>();
+  for (const idxs of groups.values()) {
+    if (idxs.length < 2) continue;
+    const first = idxs[0]!;
+    mergeIdx.set(first, idxs);
+    for (let k = 1; k < idxs.length; k++) skip.add(idxs[k]!);
+  }
+  if (!mergeIdx.size) return rows;
+
+  const out: T[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    if (skip.has(i)) continue;
+    const idxs = mergeIdx.get(i);
+    out.push(idxs ? mergeSplitTxnSkuGroup(idxs.map((j) => rows[j]!)) : rows[i]!);
+  }
+  return out;
+}
+
+/** Split-qty merge, then optional sale↔return cancel (Top Models only). */
+export function collapseTopModelSaleRows<T extends VendorPosRow>(
+  rows: T[],
+  opts?: { includeHiddenTopModels?: boolean }
+): T[] {
+  const merged = collapseSplitTxnSkuRows(rows);
+  if (opts?.includeHiddenTopModels) return merged;
+  return collapseCancelledSkuLegs(merged);
+}
+
 /**
  * Within one vendor-model / product group: drop matching sale↔return legs.
  * Passes (any day in the filter window; prefers nearest prior sale):
@@ -230,6 +311,8 @@ export function isPhantomZeroNetModel(units: number, revenue: number): boolean {
  * Top Vendor Models margin from calculator wholesale rules.
  * Collapses cancelled SKU sale+return legs first, then:
  * profit = revenue − signed (unit cost × |qty|).
+ * Split salesperson rows of the same Transaction # + SKU are merged first
+ * (full qty / Sales Amount / Total), then cancelled sale↔return legs drop.
  * Unit cost from Sales Amount × CP rules when sale context is present.
  * If any SKU lacks cost → hide margin (null).
  */
@@ -237,7 +320,7 @@ export function wholesaleProfitForModelRows(rows: VendorPosRow[]): {
   profit: number | null;
   marginRate: number | null;
 } {
-  const active = collapseCancelledSkuLegs(rows);
+  const active = collapseTopModelSaleRows(rows);
   if (!active.length) return { profit: 0, marginRate: null };
 
   let profit = 0;

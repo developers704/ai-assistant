@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { VendorPosRow } from "@/lib/reports/types";
+import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import {
+  collapseSplitTxnSkuRows,
   signedWholesaleUnitCost,
   wholesaleProfitForModelRows,
 } from "@/lib/sales/top-models-wholesale-margin";
@@ -114,5 +116,75 @@ describe("Top Models 231622 UV hoops", () => {
     expect(marginRate).toBeCloseTo(168 / 598, 4);
     expect(marginRate).toBeGreaterThan(0.27);
     expect(marginRate).toBeLessThan(0.29);
+  });
+});
+
+describe("collapseSplitTxnSkuRows", () => {
+  it("merges 40/40/20 split into one qty, full tag, full net", () => {
+    const split = [
+      row({
+        sku: "225740",
+        department: "ROLEX",
+        design: "WATCH",
+        productClass: "WOMEN",
+        subClass: "26",
+        description: "PRE-OWNED ROLEX TT 26MM WHITE MOP LAB GROWN DIAMOND BEZEL",
+        vendorModel: "DATEJUST-TT-26MM-OLD-DB",
+        transactionId: "PB-10291709",
+        quantity: 0.4,
+        grossSales: 8398,
+        netRevenue: 4950.58,
+      }),
+      row({
+        sku: "225740",
+        department: "ROLEX",
+        design: "WATCH",
+        productClass: "WOMEN",
+        subClass: "26",
+        description: "PRE-OWNED ROLEX TT 26MM WHITE MOP LAB GROWN DIAMOND BEZEL",
+        vendorModel: "DATEJUST-TT-26MM-OLD-DB",
+        transactionId: "PB-10291709",
+        quantity: 0.4,
+        grossSales: 8398,
+        netRevenue: 4950.58,
+      }),
+      row({
+        sku: "225740",
+        department: "ROLEX",
+        design: "WATCH",
+        productClass: "WOMEN",
+        subClass: "26",
+        description: "PRE-OWNED ROLEX TT 26MM WHITE MOP LAB GROWN DIAMOND BEZEL",
+        vendorModel: "DATEJUST-TT-26MM-OLD-DB",
+        transactionId: "PB-10291709",
+        quantity: 0.2,
+        grossSales: 4199,
+        netRevenue: 2475.29,
+      }),
+    ];
+    const merged = collapseSplitTxnSkuRows(split);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]!.quantity).toBeCloseTo(1, 6);
+    expect(merged[0]!.grossSales).toBeCloseTo(20995, 2);
+    expect(merged[0]!.netRevenue).toBeCloseTo(12376.45, 2);
+
+    const { profit, marginRate } = wholesaleProfitForModelRows(split);
+    const cost = 20995 / 4;
+    expect(profit).toBeCloseTo(12376.45 - cost, 2);
+    expect(marginRate).toBeCloseTo((12376.45 - cost) / 12376.45, 4);
+
+    const skuLines = skuLinesForModel(split);
+    expect(skuLines).toHaveLength(1);
+    expect(skuLines[0]!.units).toBeCloseTo(1, 6);
+    expect(skuLines[0]!.revenue).toBeCloseTo(12376.45, 2);
+    expect(skuLines[0]!.tagPrice).toBeCloseTo(20995, 2);
+  });
+
+  it("does not merge two SKUs on the same ticket", () => {
+    const rows = [
+      row({ sku: "225740", transactionId: "PB-1", quantity: 1, netRevenue: 100, grossSales: 100 }),
+      row({ sku: "240489", transactionId: "PB-1", quantity: 1, netRevenue: 200, grossSales: 200 }),
+    ];
+    expect(collapseSplitTxnSkuRows(rows)).toHaveLength(2);
   });
 });

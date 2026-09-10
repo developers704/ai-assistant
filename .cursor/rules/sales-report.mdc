@@ -35,7 +35,7 @@ Cross-txn / exchange returns stay in **Net Sales**. For **Top Vendor Models / mo
 
 - **Net Sales path:** raw parsed rows (`query-sales` / `loadRankRows` / refresh snapshot) — no `filterExcludedSalesRows()`
 - **Top Models soft-hide:** `isHiddenFromTopVendorModelsRow()` / `filterTopProductSkus()` / `groupRows` in `src/lib/utils.ts` + `sales-aggregate.ts`
-- **Top Models cancel:** `collapseCancelledSkuLegs()` + `signedWholesaleUnitCost()` in `src/lib/sales/top-models-wholesale-margin.ts` (`TOP_MODELS_MARGIN_RULES_VERSION`)
+- **Top Models cancel:** `collapseTopModelSaleRows()` (split Transaction #+SKU merge, then `collapseCancelledSkuLegs()`) + `signedWholesaleUnitCost()` in `src/lib/sales/top-models-wholesale-margin.ts` (`TOP_MODELS_MARGIN_RULES_VERSION`)
 - Legacy helpers `isExcludedSalesRow` / `filterExcludedSalesRows` remain for optional tooling but must **not** gate dashboard Net Sales
 - Cached sales versions rebuild when `SALES_EXCLUSION_RULES_VERSION` or `TOP_MODELS_MARGIN_RULES_VERSION` bumps
 

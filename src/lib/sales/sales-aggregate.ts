@@ -10,7 +10,7 @@ import { hasOnhandData, listOnhandStoresForSku, lookupOnhandQty } from "@/lib/in
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import {
   calculatorWholesaleUnitCost,
-  collapseCancelledSkuLegs,
+  collapseTopModelSaleRows,
   isPhantomZeroNetModel,
   signedWholesaleUnitCost,
   vendorModelGroupKey,
@@ -110,7 +110,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       lastSaleDate?: string;
     }
   >();
-  for (const r of collapseCancelledSkuLegs(rows)) {
+  for (const r of collapseTopModelSaleRows(rows)) {
     const sku = (r.sku || r.itemNumber || "").trim();
     if (!sku || isExcludedSalesSku(sku)) continue;
     const key = sku.toUpperCase();
@@ -335,9 +335,10 @@ export function groupRows(
     // Top models / product / sku: cancel sale+return legs before metrics.
     // Rozina (includeHiddenTopModels): keep every CSV leg — no cancel collapse.
     const metricRows =
-      (by === "vendor_model" || by === "product" || by === "sku") &&
-      !opts?.includeHiddenTopModels
-        ? collapseCancelledSkuLegs(v.rows)
+      by === "vendor_model" || by === "product" || by === "sku"
+        ? collapseTopModelSaleRows(v.rows, {
+            includeHiddenTopModels: opts?.includeHiddenTopModels,
+          })
         : v.rows;
     const s = summarizeRows(metricRows);
     const unitsSold = s.unitsSold ?? 0;
