@@ -20,7 +20,7 @@ const SEED_SCHEDULE = path.join(process.cwd(), "data", "hr", "Schedule-August-20
 const USER_DATA_KEY = "user";
 
 /** One-shot: drop stacked August uploads + test warnings on deploy. */
-const HR_RUNTIME_RESET_KEY = "fresh-august-2026-09-10";
+const HR_RUNTIME_RESET_KEY = "fresh-august-2026-09-10-irtaza";
 
 type HrIndex = {
   timecards: HrUploadMeta[];
