@@ -96,6 +96,7 @@ export function ReportInsightsCards({
             icon={CreditCard}
             iconColor="text-indigo-300"
             items={summary.paymentMethods}
+            maxItems={20}
             onItemClick={onRankClick ? (name) => onRankClick("paycode", name) : undefined}
           />
         )}
@@ -274,12 +275,14 @@ function ListCard({
   iconColor,
   items,
   onItemClick,
+  maxItems = 6,
 }: {
   title: string;
   icon: typeof Store;
   iconColor: string;
   items: { name: string; revenue: number; share?: number; id?: string }[];
   onItemClick?: (name: string) => void;
+  maxItems?: number;
 }) {
   return (
     <div className="rounded-3xl p-4 glass-panel">
@@ -292,8 +295,8 @@ function ListCard({
           </span>
         )}
       </div>
-      <div className="space-y-1">
-        {items.slice(0, 6).map((item) => {
+      <div className={maxItems > 6 ? "space-y-1 max-h-[28rem] overflow-y-auto" : "space-y-1"}>
+        {items.slice(0, maxItems).map((item) => {
           const clickKey = item.id ?? item.name;
           const content = (
             <>

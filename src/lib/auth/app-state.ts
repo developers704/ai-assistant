@@ -1,7 +1,7 @@
 import type { AppState, UserProfile } from "@/types";
 import { defaultUser } from "@/lib/mock-data";
 import type { SessionPayload } from "@/lib/auth/session-token";
-import { findAuthUser } from "@/lib/auth/users";
+import { findAuthUser, getAllowedStoreCodes } from "@/lib/auth/users";
 import { getPermissionMapForUser } from "@/lib/auth/user-permissions-store";
 
 export function appStateForSession(
@@ -23,18 +23,13 @@ export function appStateForSession(
     id: session.sub,
     name: live?.name ?? session.name,
     username: session.username,
-    email: isAdmin ? defaultUser.email : `${session.username}@valliani.local`,
+    email: live?.email || (isAdmin ? defaultUser.email : `${session.username}@valliani.local`),
     role:
       session.username === "rozina"
         ? (live?.title ?? "")
         : (live?.title ?? session.title),
     authRole,
-    storeCodes:
-      live != null
-        ? live.role === "admin"
-          ? null
-          : live.storeCodes
-        : session.storeCodes,
+    storeCodes: live != null ? getAllowedStoreCodes(live) : session.storeCodes,
     permissions: getPermissionMapForUser(session.username, authRole),
     preferences: {
       ...(baseUser.preferences ?? defaultUser.preferences),

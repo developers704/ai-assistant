@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 import { buildVendorModelDetail } from "@/lib/sales/vendor-model-detail";
+import { applySalespersonFilter } from "@/lib/sales/paycode-overlay";
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { scopeStoresForUser } from "@/lib/auth/scope-stores";
 import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
@@ -21,6 +22,7 @@ export async function GET(req: Request) {
   const dateTo = searchParams.get("dateTo")?.trim().slice(0, 10) || null;
   const requested = parseMultiParam(searchParams, "store", "stores");
   const { stores } = scopeStoresForUser(session, requested);
+  const salespeople = parseMultiParam(searchParams, "salesperson", "salespeople");
 
   if (!vendorModel) {
     return NextResponse.json({ error: "vendorModel is required" }, { status: 400 });
@@ -55,6 +57,10 @@ export async function GET(req: Request) {
           .replace(/\s+/g, " ")
       )
     );
+  }
+
+  if (salespeople.length) {
+    rows = applySalespersonFilter(rows, salespeople);
   }
 
   const detail = buildVendorModelDetail(rows, vendorModel, {

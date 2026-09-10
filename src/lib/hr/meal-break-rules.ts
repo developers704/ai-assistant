@@ -130,3 +130,56 @@ export function checkLateEarly(
   }
   return out;
 }
+
+/** Minutes left before scheduled end; 0 unless ≥10 min early. */
+export function earlyOutDeltaMinutes(
+  scheduledEnd: string,
+  lastClockOut: string | null
+): number {
+  const sched = parseClockToMinutes(scheduledEnd);
+  const actual = parseClockToMinutes(lastClockOut);
+  if (sched == null || actual == null) return 0;
+  const diff = sched - actual;
+  return diff >= 10 ? diff : 0;
+}
+
+export function lateOutDeltaMinutes(
+  scheduledEnd: string,
+  lastClockOut: string | null
+): number {
+  const sched = parseClockToMinutes(scheduledEnd);
+  const actual = parseClockToMinutes(lastClockOut);
+  if (sched == null || actual == null) return 0;
+  const diff = actual - sched;
+  return diff >= 12 ? diff : 0;
+}
+
+export function checkLateOut(
+  scheduledEnd: string,
+  lastClockOut: string | null
+): HrViolation[] {
+  const mins = lateOutDeltaMinutes(scheduledEnd, lastClockOut);
+  if (mins <= 0) return [];
+  return [
+    violation(
+      "late_out",
+      `Clock-out ${formatMinutes(mins)} late (scheduled ${scheduledEnd})`,
+      "warning"
+    ),
+  ];
+}
+
+export function checkEarlyOut(
+  scheduledEnd: string,
+  lastClockOut: string | null
+): HrViolation[] {
+  const mins = earlyOutDeltaMinutes(scheduledEnd, lastClockOut);
+  if (mins <= 0) return [];
+  return [
+    violation(
+      "early_out",
+      `Clock-out ${formatMinutes(mins)} early (scheduled ${scheduledEnd})`,
+      "warning"
+    ),
+  ];
+}

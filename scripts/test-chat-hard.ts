@@ -74,6 +74,9 @@ interface ChatTestCase {
 const VERBOSE = process.env.CHAT_TEST_VERBOSE === "1";
 const SKIP_LLM = process.env.CHAT_TEST_SKIP_LLM === "1" || !isLLMChatConfigured();
 
+/** Daily sales appends can change the #1 store; assert answer shape, not a pinned code. */
+const TOP_STORE_ANSWER = /Top store is \*\*[A-Z0-9-]+\*\*/;
+
 async function resolveChatMessage(
   message: string,
   state: AppState
@@ -237,7 +240,7 @@ const REGRESSION_CASES: ChatTestCase[] = [
     category: "regression",
     messages: ["Which store is best?"],
     assert: {
-      mustInclude: ["VJ-FRE"],
+      mustInclude: [TOP_STORE_ANSWER],
       mustNotInclude: ["Open Sales Dashboard", "Confirmation required"],
       noPending: true,
     },
@@ -319,13 +322,13 @@ const CASES: ChatTestCase[] = [
   { id: "cal-08", category: "calendar", messages: ["what meetings do i have"], assert: { noPending: true } },
 
   // Sales — data in chat
-  { id: "sales-01", category: "sales", messages: ["Which store is best?"], assert: { mustInclude: ["VJ-FRE", "Want full store breakdown"], noPending: true } },
-  { id: "sales-02", category: "sales", messages: ["show me best store with sales"], assert: { mustInclude: ["VJ-FRE"], noPending: true } },
+  { id: "sales-01", category: "sales", messages: ["Which store is best?"], assert: { mustInclude: [TOP_STORE_ANSWER, "Want full store breakdown"], noPending: true } },
+  { id: "sales-02", category: "sales", messages: ["show me best store with sales"], assert: { mustInclude: [TOP_STORE_ANSWER], noPending: true } },
   { id: "sales-03", category: "sales", messages: ["top store sales"], assert: { mustInclude: [/store|VJ-|DBC/i], noPending: true } },
   { id: "sales-04", category: "sales", messages: ["today's sales"], assert: { mustInclude: [/sales|revenue|\$/i], noPending: true } },
   { id: "sales-05", category: "sales", messages: ["full sales report"], assert: { mustInclude: [/Sales|revenue|store/i], noPending: true } },
-  { id: "sales-06", category: "sales", messages: ["i want to see one store with top sales"], assert: { mustInclude: ["VJ-FRE"], noPending: true } },
-  { id: "sales-07", category: "sales", messages: ["which store has the highest revenue"], assert: { mustInclude: [/VJ-FRE|store/i], noPending: true } },
+  { id: "sales-06", category: "sales", messages: ["i want to see one store with top sales"], assert: { mustInclude: [TOP_STORE_ANSWER], noPending: true } },
+  { id: "sales-07", category: "sales", messages: ["which store has the highest revenue"], assert: { mustInclude: [/VJ-[A-Z0-9-]+|store/i], noPending: true } },
   {
     id: "sales-08",
     category: "sales-followup",

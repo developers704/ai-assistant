@@ -29,9 +29,14 @@ export default function LoginForm() {
         setError(body.error || "Invalid credentials");
         return;
       }
+      const body = await res.json().catch(() => ({}));
       const next = search.get("next");
       const dest =
-        next && next.startsWith("/") && !next.startsWith("//") ? next : "/sales";
+        next && next.startsWith("/") && !next.startsWith("//")
+          ? next
+          : typeof body.homePath === "string"
+            ? body.homePath
+            : "/sales";
       // Full navigation so AppProvider reloads with the new session cookie
       // (client router.replace left isAuthenticated=false → "Sign in required" flash).
       window.location.assign(dest);

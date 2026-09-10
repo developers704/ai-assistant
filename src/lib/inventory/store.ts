@@ -3,6 +3,8 @@ import path from "path";
 import { parseInventoryCsv } from "./parse-csv";
 import { calculatePricing } from "./pricing";
 import { normalizeAndFillOnhandCsv } from "./normalize-onhand-csv";
+import { resolveInventorySkuKey, isBareItemNumber } from "./sku-lookup-resolve";
+import { skuCostKey } from "./whole-cost-rules";
 import type { InventoryItem } from "./types";
 
 const INVENTORY_DIR = path.join(process.cwd(), ".data", "inventory");
@@ -15,6 +17,8 @@ const DATA_INVENTORY_WHOLE_COST = path.join(DATA_INVENTORY_DIR, "ON_HAND_REPORT_
 interface InventoryIndex {
   byStoreSku: Map<string, InventoryItem>;
   bySku: Map<string, InventoryItem[]>;
+  /** Leading Item # digits → full SKUs (231611 → 231611Y). */
+  byCostKey: Map<string, string[]>;
   loadedAt: number;
   rowCount: number;
   fileMtime: number;
@@ -64,6 +68,7 @@ function storeSkuKey(store: string, sku: string): string {
 function buildIndex(items: InventoryItem[], fileMtime: number): InventoryIndex {
   const byStoreSku = new Map<string, InventoryItem>();
   const bySku = new Map<string, InventoryItem[]>();
+  const byCostKey = new Map<string, string[]>();
 
   for (const item of items) {
     byStoreSku.set(storeSkuKey(item.store, item.sku), item);
@@ -72,11 +77,18 @@ function buildIndex(items: InventoryItem[], fileMtime: number): InventoryIndex {
     const list = bySku.get(skuKey) ?? [];
     list.push(item);
     bySku.set(skuKey, list);
+
+    const costKey = skuCostKey(skuKey);
+    if (!costKey) continue;
+    const variants = byCostKey.get(costKey) ?? [];
+    if (!variants.includes(skuKey)) variants.push(skuKey);
+    byCostKey.set(costKey, variants);
   }
 
   return {
     byStoreSku,
     bySku,
+    byCostKey,
     loadedAt: Date.now(),
     rowCount: items.length,
     fileMtime,
@@ -165,6 +177,16 @@ export function saveInventoryCsv(csvText: string, fileName?: string): {
   return { rowCount: index?.rowCount ?? items.length, wholeCostStats };
 }
 
+function skuVariantScore(items: InventoryItem[]): { onHand: number; tagPrice: number } {
+  let onHand = 0;
+  let tagPrice = 0;
+  for (const row of items) {
+    onHand += Number(row.onHand) || 0;
+    if ((row.tagPrice || 0) > tagPrice) tagPrice = row.tagPrice || 0;
+  }
+  return { onHand, tagPrice };
+}
+
 export function lookupInventory(
   sku: string,
   store?: string | null
@@ -173,20 +195,31 @@ export function lookupInventory(
   pricing: ReturnType<typeof calculatePricing>;
   stores: { name: string; onhand: number }[];
   onHandTotal: number;
+  queriedSku: string;
+  resolvedSku: string;
 } | null {
   const index = loadIndex();
   if (!index) return null;
 
-  const normalizedSku = sku.trim().toUpperCase();
-  if (!normalizedSku) return null;
+  const queriedSku = sku.trim().toUpperCase();
+  if (!queriedSku) return null;
 
-  const candidates = index.bySku.get(normalizedSku);
+  let resolvedSku = index.bySku.has(queriedSku) ? queriedSku : null;
+  if (!resolvedSku && isBareItemNumber(queriedSku)) {
+    const candidates = index.byCostKey.get(queriedSku) ?? [];
+    resolvedSku = resolveInventorySkuKey(queriedSku, candidates, (key) =>
+      skuVariantScore(index.bySku.get(key) ?? [])
+    );
+  }
+  if (!resolvedSku) return null;
+
+  const candidates = index.bySku.get(resolvedSku);
   if (!candidates?.length) return null;
 
   let item = candidates.find((c) => c.tagPrice > 0) ?? candidates[0];
   if (store?.trim()) {
     const atStore = index.byStoreSku.get(
-      storeSkuKey(store.trim().toUpperCase(), normalizedSku)
+      storeSkuKey(store.trim().toUpperCase(), resolvedSku)
     );
     if (atStore) {
       item = {
@@ -215,6 +248,8 @@ export function lookupInventory(
     pricing: calculatePricing(item),
     stores,
     onHandTotal,
+    queriedSku,
+    resolvedSku,
   };
 }
 

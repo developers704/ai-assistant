@@ -1,26 +1,41 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { PageHeader } from "@/components/layout/Sidebar";
-import { PageShell, PageShellHeader, PageShellBody } from "@/components/layout/PageShell";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
-import type { HrEmployeeDay, HrUploadMeta, HrViolation } from "@/lib/hr/types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useApp } from "@/lib/store/app-context";
+import { HrWorkspace } from "@/components/hr/HrWorkspace";
+import type { HrEmployeeDay, HrUploadMeta } from "@/lib/hr/types";
 import { HrSalesTab } from "@/components/hr/HrSalesTab";
+import { HrAttendanceEmployeeRow } from "@/components/hr/HrAttendanceEmployeeRow";
+import { HrMailRoutingSettings } from "@/components/hr/HrMailRoutingSettings";
 import {
   formatHrAttendanceWindowCaption,
-  MISSING_PUNCH_LABEL,
+  HR_ATTENDANCE_FROM,
+  HR_ATTENDANCE_TO,
 } from "@/lib/hr/window";
 import { formatHrDateLabel } from "@/lib/hr/time-utils";
 import {
+  attendanceStatusKpisFromDays,
+  employeeFilterLabel,
+  matchesAttendanceCard,
+  matchesEmployeeSearch,
+  type HrAttendanceCardFilter,
+} from "@/lib/hr/warning-notice";
+import {
+  SalesDateRangePicker,
+  type SalesDateRangeValue,
+} from "@/components/sales/SalesDateRangePicker";
+import {
   AlertTriangle,
-  Briefcase,
+  CalendarOff,
   ChevronDown,
-  ChevronRight,
   Clock,
   Loader2,
+  Lock,
+  Search,
+  Timer,
   Upload,
+  UserX,
+  Users,
 } from "lucide-react";
 
 type HrApiResponse = {
@@ -30,212 +45,55 @@ type HrApiResponse = {
   employees: HrEmployeeDay[];
   hasTimecard: boolean;
   hasSchedule: boolean;
+  hasContactEmails?: boolean;
   scheduleDateFrom: string | null;
   scheduleDateTo: string | null;
   error?: string;
 };
 
-function violationBadge(v: HrViolation) {
-  const colors: Record<string, string> = {
-    missing_punch: "bg-rose-500/20 text-rose-200 ring-rose-400/30",
-    late: "bg-orange-500/20 text-orange-100 ring-orange-400/30",
-    early_in: "bg-sky-500/20 text-sky-100 ring-sky-400/30",
-    no_schedule: "bg-amber-500/20 text-amber-100 ring-amber-400/30",
-    long_meal: "bg-fuchsia-500/20 text-fuchsia-100 ring-fuchsia-400/30",
-    short_meal_total: "bg-fuchsia-500/20 text-fuchsia-100 ring-fuchsia-400/30",
-    excessive_meal_total: "bg-fuchsia-500/20 text-fuchsia-100 ring-fuchsia-400/30",
-    meal_count: "bg-violet-500/20 text-violet-100 ring-violet-400/30",
-  };
-  return (
-    <span
-      key={`${v.type}-${v.message}`}
-      className={cn(
-        "inline-flex items-center rounded-lg px-2 py-0.5 text-xs ring-1",
-        colors[v.type] ?? "bg-white/10 text-white/70 ring-white/20"
-      )}
-    >
-      {v.message}
-    </span>
-  );
-}
-
-function EmployeeRow({ emp }: { emp: HrEmployeeDay }) {
-  const [open, setOpen] = useState(false);
-  const hasError = emp.violations.some((v) => v.severity === "error");
-
-  return (
-    <div
-      className={cn(
-        "rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden",
-        hasError && "ring-1 ring-rose-400/40"
-      )}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.04]"
-      >
-        {open ? (
-          <ChevronDown size={16} className="text-white/40 shrink-0" />
-        ) : (
-          <ChevronRight size={16} className="text-white/40 shrink-0" />
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-white truncate">{emp.employeeName}</div>
-          <div className="text-xs text-white/45 mt-0.5">
-            {emp.schedule
-              ? `Scheduled ${emp.schedule.start} – ${emp.schedule.end} (${emp.schedule.scheduledLabel})`
-              : "No schedule on file"}
-          </div>
-          <div className="flex flex-wrap gap-2 mt-1.5">
-            <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-100 ring-1 ring-emerald-400/25">
-              Worked Hrs {emp.totalWorkLabel}
-            </span>
-            <span className="inline-flex items-center rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-100 ring-1 ring-amber-400/25">
-              Meal {emp.totalMealMinutes} min
-              {emp.expectedMealMinutes > 0 && (
-                <span className="text-amber-200/60 font-normal"> / {emp.expectedMealMinutes}</span>
-              )}
-            </span>
-            {emp.schedule && (
-              <span className="inline-flex items-center rounded-md bg-sky-500/15 px-2 py-0.5 text-xs font-medium text-sky-100 ring-1 ring-sky-400/25">
-                Schedule hrs {emp.schedule.scheduledLabel}
-              </span>
-            )}
-            {emp.lateMinutes != null && emp.lateMinutes >= 12 && (
-              <span className="inline-flex items-center rounded-md bg-orange-500/15 px-2 py-0.5 text-xs font-medium text-orange-100 ring-1 ring-orange-400/25">
-                Late {emp.lateMinutes} min
-              </span>
-            )}
-            {emp.earlyInMinutes != null && emp.earlyInMinutes >= 10 && (
-              <span className="inline-flex items-center rounded-md bg-violet-500/15 px-2 py-0.5 text-xs font-medium text-violet-100 ring-1 ring-violet-400/30">
-                Early {emp.earlyInMinutes} min
-              </span>
-            )}
-          </div>
-        </div>
-        {emp.violations.length > 0 && (
-          <AlertTriangle size={16} className={hasError ? "text-rose-400" : "text-amber-400"} />
-        )}
-      </button>
-
-      {open && (
-        <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
-          {emp.violations.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {emp.violations.map((v) => violationBadge(v))}
-            </div>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-white/40 text-xs">
-                  <th className="pb-2 pr-3">Time In</th>
-                  <th className="pb-2 pr-3">Time Out</th>
-                  <th className="pb-2 pr-3">Gap</th>
-                  <th className="pb-2 pr-3">Work</th>
-                  <th className="pb-2">Flags</th>
-                </tr>
-              </thead>
-              <tbody>
-                {emp.segments.map((seg, i) => (
-                  <tr
-                    key={i}
-                    className={cn(
-                      "border-t border-white/5",
-                      seg.violations.length > 0 && "bg-rose-500/5"
-                    )}
-                  >
-                    <td className={cn("py-2 pr-3 tabular-nums", !seg.timeIn?.trim() && "text-rose-300")}>
-                      {seg.timeIn?.trim() ? seg.timeIn : MISSING_PUNCH_LABEL}
-                    </td>
-                    <td className={cn("py-2 pr-3 tabular-nums", !seg.timeOut?.trim() && "text-rose-300")}>
-                      {seg.timeOut?.trim() ? seg.timeOut : MISSING_PUNCH_LABEL}
-                    </td>
-                    <td className="py-2 pr-3 tabular-nums text-white/60">
-                      {seg.gapMinutes != null ? (
-                        <span
-                          className={cn(
-                            seg.gapKind === "meal_break" && "text-amber-200",
-                            seg.gapKind === "short_break" && "text-white/40"
-                          )}
-                        >
-                          {seg.gapFromPrevious ?? `${Math.floor(seg.gapMinutes / 60)}:${String(seg.gapMinutes % 60).padStart(2, "0")}`}
-                          {seg.gapKind === "meal_break" && " · meal"}
-                          {seg.gapKind === "short_break" && " · rest"}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="py-2 pr-3 tabular-nums">{seg.workLabel}</td>
-                    <td className="py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {seg.violations.map((v) => violationBadge(v))}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {emp.shiftTier && (
-            <p className="text-xs text-white/40">
-              Shift tier: {emp.shiftTier === "ten" ? "≤10h" : emp.shiftTier === "eleven" ? "11h" : "≥12h"}
-              {" · "}Expected {emp.expectedMealCount} meal(s), {emp.expectedMealMinutes} min total
-              {" · "}Short/rest breaks: {emp.shortBreaks.length}
-            </p>
-          )}
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-            <div className="rounded-lg bg-emerald-500/10 px-3 py-2 ring-1 ring-emerald-400/20">
-              <div className="text-[10px] uppercase tracking-wide text-emerald-200/60">Worked Hrs</div>
-              <div className="text-lg font-semibold text-emerald-50 tabular-nums">{emp.totalWorkLabel}</div>
-            </div>
-            <div className="rounded-lg bg-amber-500/10 px-3 py-2 ring-1 ring-amber-400/20">
-              <div className="text-[10px] uppercase tracking-wide text-amber-200/60">Total meal break</div>
-              <div className="text-lg font-semibold text-amber-50 tabular-nums">
-                {emp.totalMealMinutes} min
-              </div>
-            </div>
-            {emp.schedule && (
-              <div className="rounded-lg bg-white/5 px-3 py-2 ring-1 ring-white/10 col-span-2 sm:col-span-1">
-                <div className="text-[10px] uppercase tracking-wide text-white/40">Scheduled</div>
-                <div className="text-sm font-medium text-white/90">
-                  {emp.schedule.start} – {emp.schedule.end}{" "}
-                  <span className="text-white/50">({emp.schedule.scheduledLabel})</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function HrPage() {
-  const [tab, setTab] = useState<"attendance" | "sales">("attendance");
+  const { state } = useApp();
+  const canManageHr =
+    state?.user?.authRole === "admin" ||
+    state?.user?.authRole === "hr" ||
+    Boolean(state?.user?.permissions?.hr_management);
+  const salesOnly = !canManageHr;
+  const [tab, setTab] = useState<"attendance" | "sales">(salesOnly ? "sales" : "attendance");
   const [data, setData] = useState<HrApiResponse | null>(null);
-  const [date, setDate] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<SalesDateRangeValue>({
+    from: HR_ATTENDANCE_FROM,
+    to: HR_ATTENDANCE_TO,
+  });
+  const [loading, setLoading] = useState(!salesOnly);
   const [uploading, setUploading] = useState<"timecard" | "schedule" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [storeFilter, setStoreFilter] = useState("");
+  const [designationFilter, setDesignationFilter] = useState("");
+  const [employeeFilter, setEmployeeFilter] = useState("");
+  const [cardFilter, setCardFilter] = useState<HrAttendanceCardFilter>("all");
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const uploadMenuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const timecardInputRef = useRef<HTMLInputElement>(null);
+  const scheduleInputRef = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async (opts?: { date?: string }) => {
-    setLoading(true);
+  useEffect(() => {
+    if (salesOnly) setTab("sales");
+  }, [salesOnly]);
+
+  const load = useCallback(async (opts?: { from?: string; to?: string; quiet?: boolean }) => {
+    if (!opts?.quiet) setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (opts?.date) params.set("date", opts.date);
+      params.set("from", opts?.from ?? HR_ATTENDANCE_TO);
+      params.set("to", opts?.to ?? HR_ATTENDANCE_TO);
       const res = await fetch(`/api/hr?${params}`, { cache: "no-store" });
       const json = (await res.json()) as HrApiResponse;
       if (!res.ok) throw new Error(json.error || "Failed to load");
       setData(json);
-      if (json.activeDate) setDate(json.activeDate);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
       setData(null);
@@ -245,8 +103,18 @@ export default function HrPage() {
   }, []);
 
   useEffect(() => {
-    void load(date ? { date } : undefined);
-  }, [load, date]);
+    if (salesOnly) return;
+    void load({ from: dateRange.from, to: dateRange.to });
+  }, [load, dateRange.from, dateRange.to, salesOnly]);
+
+  useEffect(() => {
+    if (!uploadOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!uploadMenuRef.current?.contains(e.target as Node)) setUploadOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [uploadOpen]);
 
   const upload = async (kind: "timecard" | "schedule", file: File) => {
     setUploading(kind);
@@ -261,10 +129,17 @@ export default function HrPage() {
       if (!res.ok) throw new Error(json.error || "Upload failed");
       setStatus(
         kind === "timecard"
-          ? `Timecard uploaded (${json.rowCount} rows)`
+          ? json.hasContactEmails === false
+            ? `Timecard uploaded (${json.rowCount} rows) — missing UserEmail / Mail columns`
+            : `Timecard uploaded (${json.rowCount} rows)`
           : `Schedule uploaded (${json.entryCount} entries)`
       );
-      await load({ date });
+      if (kind === "timecard" && json.hasContactEmails === false) {
+        setError(
+          "Timecard has no UserEmail / Mail values. Warning chat and email need those columns on the sheet."
+        );
+      }
+      await load({ from: dateRange.from, to: dateRange.to });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -272,197 +147,471 @@ export default function HrPage() {
     }
   };
 
-  const violationCount = useMemo(
-    () => data?.employees.filter((e) => e.violations.length > 0).length ?? 0,
-    [data?.employees]
+  const storeOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of data?.employees ?? []) {
+      if (e.store?.trim()) set.add(e.store.trim());
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [data?.employees]);
+
+  const designationOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of data?.employees ?? []) {
+      if (e.jobTitle?.trim()) set.add(e.jobTitle.trim());
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [data?.employees]);
+
+  const employeeOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of data?.employees ?? []) {
+      set.add(employeeFilterLabel(e));
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [data?.employees]);
+
+  useEffect(() => {
+    if (storeFilter && !storeOptions.includes(storeFilter)) setStoreFilter("");
+  }, [storeFilter, storeOptions]);
+
+  useEffect(() => {
+    if (designationFilter && !designationOptions.includes(designationFilter)) {
+      setDesignationFilter("");
+    }
+  }, [designationFilter, designationOptions]);
+
+  useEffect(() => {
+    if (employeeFilter && !employeeOptions.includes(employeeFilter)) {
+      setEmployeeFilter("");
+    }
+  }, [employeeFilter, employeeOptions]);
+
+  const scopedEmployees = useMemo(() => {
+    return (data?.employees ?? []).filter((e) => {
+      if (storeFilter && (e.store ?? "").trim() !== storeFilter) return false;
+      if (designationFilter && (e.jobTitle ?? "").trim() !== designationFilter) return false;
+      if (employeeFilter && employeeFilterLabel(e) !== employeeFilter) return false;
+      return true;
+    });
+  }, [data?.employees, storeFilter, designationFilter, employeeFilter]);
+
+  const searchScopedEmployees = useMemo(() => {
+    return scopedEmployees.filter((e) => matchesEmployeeSearch(e, employeeSearch));
+  }, [scopedEmployees, employeeSearch]);
+
+  const filteredEmployees = useMemo(() => {
+    return searchScopedEmployees.filter((e) => matchesAttendanceCard(e, cardFilter));
+  }, [searchScopedEmployees, cardFilter]);
+
+  const groupedEmployees = useMemo(() => {
+    const map = new Map<string, HrEmployeeDay[]>();
+    for (const emp of filteredEmployees) {
+      const list = map.get(emp.date) ?? [];
+      list.push(emp);
+      map.set(emp.date, list);
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [filteredEmployees]);
+
+  const multiDay = dateRange.from !== dateRange.to;
+
+  const kpis = useMemo(
+    () => attendanceStatusKpisFromDays(searchScopedEmployees),
+    [searchScopedEmployees]
+  );
+  const flaggedEmployees = useMemo(
+    () => searchScopedEmployees.filter((employee) => employee.violations.length > 0).length,
+    [searchScopedEmployees]
   );
 
+  function selectCard(kind: HrAttendanceCardFilter) {
+    if (kind === "all") {
+      setCardFilter("all");
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+      return;
+    }
+    setCardFilter((prev) => (prev === kind ? "all" : kind));
+  }
+
   return (
-    <PageShell accent="indigo">
-      <PageShellHeader>
-        <PageHeader
-          gradient
-          eyebrow="Admin"
-          title="HR Management"
-          subtitle={
-            tab === "sales"
-              ? "Employee sales · Name (CODE) · products like Sales Dashboard"
-              : `${formatHrAttendanceWindowCaption()} · ADP timecards · schedules · meal break & attendance rules`
-          }
-          action={
-            <Badge variant="info" className="gap-1.5">
-              <Briefcase size={14} />
-              Admin only
-            </Badge>
-          }
-        />
-
-        <div className="mt-4 flex gap-1 rounded-xl bg-white/[0.04] p-1 ring-1 ring-white/10 w-fit">
-          <button
-            type="button"
-            onClick={() => setTab("attendance")}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-              tab === "attendance"
-                ? "bg-indigo-500/30 text-white ring-1 ring-indigo-400/40"
-                : "text-white/55 hover:text-white"
-            )}
-          >
-            Attendance
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("sales")}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-              tab === "sales"
-                ? "bg-indigo-500/30 text-white ring-1 ring-indigo-400/40"
-                : "text-white/55 hover:text-white"
-            )}
-          >
-            Sales
-          </button>
+    <HrWorkspace>
+      <header className="hr-header">
+        <div>
+          <p className="hr-kicker">{salesOnly ? "Sales" : "People ops"}</p>
+          <h1 className="hr-title">
+            {salesOnly || tab === "sales" ? "Employee Sales Report" : "HR Management"}
+          </h1>
+          <p className="hr-subtitle">
+            {salesOnly || tab === "sales"
+              ? "Employee sales, commission and payout details."
+              : `${formatHrAttendanceWindowCaption()} · ADP timecards · schedules · attendance rules`}
+          </p>
         </div>
-
-        {tab === "attendance" && (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-4 cursor-pointer hover:bg-white/[0.05]">
-            <span className="text-sm font-medium text-white flex items-center gap-2">
-              <Upload size={16} /> Daily Timecard (.xlsx or .csv)
-            </span>
-            <input
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="text-xs text-white/50"
-              disabled={uploading !== null}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void upload("timecard", f);
-                e.target.value = "";
-              }}
-            />
-            {data?.uploads.timecards[0] && (
-              <span className="text-xs text-white/35 truncate">
-                Latest: {data.uploads.timecards[0].fileName}
-              </span>
-            )}
-          </label>
-
-          <label className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-4 cursor-pointer hover:bg-white/[0.05]">
-            <span className="text-sm font-medium text-white flex items-center gap-2">
-              <Upload size={16} /> Schedule (.csv or .xlsx)
-            </span>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              className="text-xs text-white/50"
-              disabled={uploading !== null}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void upload("schedule", f);
-                e.target.value = "";
-              }}
-            />
-            {data?.uploads.schedules[0] && (
-              <span className="text-xs text-white/35 truncate">
-                Latest: {data.uploads.schedules[0].fileName}
-                {data.uploads.schedules[0].dateFrom && data.uploads.schedules[0].dateTo
-                  ? ` (${data.uploads.schedules[0].dateFrom} → ${data.uploads.schedules[0].dateTo})`
-                  : ""}
-              </span>
-            )}
-          </label>
-        </div>
-        )}
-
-        {tab === "attendance" && (data?.dates.length ?? 0) > 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Clock size={16} className="text-white/40" />
-            <select
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="select-dark rounded-xl px-3 py-2 text-sm"
-              aria-label={`Attendance date, ${formatHrAttendanceWindowCaption()}`}
-            >
-              {data!.dates.map((d) => (
-                <option key={d} value={d}>
-                  {formatHrDateLabel(d)}
-                </option>
-              ))}
-            </select>
-            <span className="text-xs text-white/45">{formatHrAttendanceWindowCaption()}</span>
-            {violationCount > 0 && (
-              <span className="text-sm text-amber-200/90">
-                {violationCount} employee(s) with flags
-              </span>
-            )}
+        {canManageHr && (
+        <div className="hr-header-actions">
+          {tab === "attendance" && (
+            <div className="relative" ref={uploadMenuRef}>
+              <button
+                type="button"
+                className="hr-btn hr-btn-outline"
+                onClick={() => setUploadOpen((o) => !o)}
+                disabled={uploading !== null}
+              >
+                {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                Upload
+                <ChevronDown size={14} style={{ opacity: 0.7 }} />
+              </button>
+              {uploadOpen && (
+                <div className="hr-menu">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadOpen(false);
+                      timecardInputRef.current?.click();
+                    }}
+                  >
+                    Daily Timecard (.xlsx or .csv)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadOpen(false);
+                      scheduleInputRef.current?.click();
+                    }}
+                  >
+                    Schedule (.csv or .xlsx)
+                  </button>
+                </div>
+              )}
+              <input
+                ref={timecardInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void upload("timecard", f);
+                  e.target.value = "";
+                }}
+              />
+              <input
+                ref={scheduleInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void upload("schedule", f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          )}
+          <div className="hr-lock-chip">
+            <Lock size={12} />
+            Admin / HR
+            <HrMailRoutingSettings />
           </div>
+        </div>
         )}
-      </PageShellHeader>
+      </header>
 
-      <PageShellBody>
-        {tab === "sales" ? (
+      {!salesOnly && (
+      <div className="hr-tabs" role="tablist" aria-label="HR sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "attendance"}
+          className="hr-tab"
+          onClick={() => setTab("attendance")}
+        >
+          Attendance
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "sales"}
+          className="hr-tab"
+          onClick={() => {
+            setTab("sales");
+            setUploadOpen(false);
+          }}
+        >
+          Sales
+        </button>
+      </div>
+      )}
+
+      {!salesOnly && tab === "attendance" && (data?.dates.length ?? 0) > 0 && (
+        <>
+          <div className="hr-kpi-grid hr-kpi-grid-6">
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "all" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "all"}
+              onClick={() => selectCard("all")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Total Employees</span>
+                <span className="hr-kpi-icon hr-kpi-icon-violet">
+                  <Users size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.employees}</div>
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "late_in" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "late_in"}
+              onClick={() => selectCard("late_in")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Late In</span>
+                <span className="hr-kpi-icon hr-kpi-icon-amber">
+                  <Clock size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.lateIn}</div>
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "late_out" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "late_out"}
+              onClick={() => selectCard("late_out")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Late Out</span>
+                <span className="hr-kpi-icon hr-kpi-icon-rose">
+                  <Clock size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.lateOut}</div>
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "early_in" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "early_in"}
+              onClick={() => selectCard("early_in")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Early In</span>
+                <span className="hr-kpi-icon hr-kpi-icon-sky">
+                  <Timer size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.earlyIn}</div>
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "early_out" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "early_out"}
+              onClick={() => selectCard("early_out")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Early Out</span>
+                <span className="hr-kpi-icon hr-kpi-icon-sky">
+                  <Timer size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.earlyOut}</div>
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "absent" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "absent"}
+              onClick={() => selectCard("absent")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Absent</span>
+                <span className="hr-kpi-icon hr-kpi-icon-rose">
+                  <UserX size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.absent}</div>
+            </button>
+            <button
+              type="button"
+              className={`hr-kpi hr-kpi-btn${cardFilter === "no_schedule" ? " hr-kpi-active" : ""}`}
+              aria-pressed={cardFilter === "no_schedule"}
+              onClick={() => selectCard("no_schedule")}
+            >
+              <div className="hr-kpi-top">
+                <span className="hr-kpi-label">Missing Schedule</span>
+                <span className="hr-kpi-icon hr-kpi-icon-amber">
+                  <CalendarOff size={14} />
+                </span>
+              </div>
+              <div className="hr-kpi-value">{kpis.missingSchedule}</div>
+            </button>
+          </div>
+
+          <div className="hr-filters">
+            <div className="hr-field" style={{ gridColumn: "1 / -1" }}>
+              <span className="hr-field-label">Filters</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <SalesDateRangePicker
+                  availableDates={data!.dates}
+                  reportRange={{ from: HR_ATTENDANCE_FROM, to: HR_ATTENDANCE_TO }}
+                  value={dateRange}
+                  onChange={(next) =>
+                    setDateRange(next ?? { from: HR_ATTENDANCE_FROM, to: HR_ATTENDANCE_TO })
+                  }
+                />
+                <label className="hr-field" style={{ minWidth: "10rem" }}>
+                  <span className="sr-only">Store</span>
+                  <select
+                    value={storeFilter}
+                    onChange={(e) => setStoreFilter(e.target.value)}
+                    className="hr-select"
+                    aria-label="Filter by store"
+                  >
+                    <option value="">All stores</option>
+                    {storeOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="hr-field" style={{ minWidth: "10rem" }}>
+                  <span className="sr-only">Designation</span>
+                  <select
+                    value={designationFilter}
+                    onChange={(e) => setDesignationFilter(e.target.value)}
+                    className="hr-select"
+                    aria-label="Filter by designation"
+                  >
+                    <option value="">All designations</option>
+                    {designationOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="hr-field" style={{ minWidth: "14rem" }}>
+                  <span className="sr-only">Employee</span>
+                  <select
+                    value={employeeFilter}
+                    onChange={(e) => setEmployeeFilter(e.target.value)}
+                    className="hr-select"
+                    aria-label="Filter by employee"
+                  >
+                    <option value="">All employees</option>
+                    {employeeOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+            <label className="hr-field" style={{ gridColumn: "1 / -1" }}>
+              <span className="hr-field-label">Search employees</span>
+              <span className="hr-search">
+                <Search size={14} />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                  className="hr-input"
+                  placeholder="Payroll name or employee name"
+                  aria-label="Search by payroll name or employee name"
+                />
+              </span>
+            </label>
+            <div className="hr-filter-meta">
+              <span>{formatHrAttendanceWindowCaption()}</span>
+              {flaggedEmployees > 0 && (
+                <span className="hr-flag-count">
+                  <AlertTriangle size={13} />
+                  {flaggedEmployees} employee(s) with flags
+                </span>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div style={{ marginTop: "1.1rem" }}>
+        {salesOnly || tab === "sales" ? (
           <HrSalesTab />
         ) : (
           <>
-        {uploading && (
-          <div className="mb-3 flex items-center gap-2 text-sm text-white/60">
-            <Loader2 size={16} className="animate-spin" /> Uploading {uploading}…
-          </div>
-        )}
-        {status && (
-          <div className="mb-3 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-400/25 px-3 py-2 text-sm text-emerald-100">
-            {status}
-          </div>
-        )}
-        {error && (
-          <div className="mb-3 rounded-xl bg-rose-500/10 ring-1 ring-rose-400/25 px-3 py-2 text-sm text-rose-100">
-            {error}
-          </div>
-        )}
+            {uploading && (
+              <div className="hr-upload-row">
+                <Loader2 size={16} className="animate-spin" /> Uploading {uploading}…
+              </div>
+            )}
+            {status && <div className="hr-alert hr-alert-ok">{status}</div>}
+            {error && <div className="hr-alert hr-alert-err">{error}</div>}
 
-        {loading && !data ? (
-          <div className="flex justify-center py-16 text-white/40">
-            <Loader2 className="animate-spin" />
-          </div>
-        ) : !data?.hasTimecard ? (
-          <div className="rounded-xl border border-dashed border-white/15 p-10 text-center text-white/45">
-            Upload a Daily Timecard xlsx and ADP schedule csv to begin.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {!data.hasSchedule && (
-              <div className="rounded-xl bg-amber-500/10 ring-1 ring-amber-400/25 px-3 py-2 text-sm text-amber-100 mb-3">
-                No schedule loaded — upload the weekly ADP schedule csv (re-upload if you saw
-                &quot;0 entries&quot;).
+            {loading && data && (
+              <div className="hr-upload-row">
+                <Loader2 size={16} className="animate-spin" /> Loading attendance…
               </div>
             )}
-            {data.hasSchedule &&
-              data.scheduleDateFrom &&
-              data.scheduleDateTo &&
-              data.activeDate &&
-              (data.activeDate < data.scheduleDateFrom ||
-                data.activeDate > data.scheduleDateTo) && (
-                <div className="rounded-xl bg-amber-500/10 ring-1 ring-amber-400/25 px-3 py-2 text-sm text-amber-100 mb-3">
-                  Timecard day <strong>{data.activeDate}</strong> is outside the uploaded
-                  schedule ({data.scheduleDateFrom} → {data.scheduleDateTo}). Pick a matching
-                  date or upload a schedule that covers this day.
-                </div>
-              )}
-            {data.hasSchedule && !data.scheduleDateFrom && (
-              <div className="rounded-xl bg-amber-500/10 ring-1 ring-amber-400/25 px-3 py-2 text-sm text-amber-100 mb-3">
-                Schedule file uploaded — late/early checks need a schedule row for the selected
-                day.
+            {loading && !data ? (
+              <div className="flex justify-center py-16" style={{ color: "#8b95a5" }}>
+                <Loader2 className="animate-spin" />
+              </div>
+            ) : !data?.hasTimecard ? (
+              <div className="hr-empty">Upload a Daily Timecard xlsx and ADP schedule csv to begin.</div>
+            ) : (
+              <div className="hr-list">
+                {!data.hasSchedule && (
+                  <div className="hr-alert hr-alert-warn">
+                    No schedule loaded — upload the schedule csv (Date / Employee Name / Time In /
+                    Time Out, or weekly ADP grid). Re-upload if you saw &quot;0 entries&quot;.
+                  </div>
+                )}
+                {data.hasTimecard && data.hasContactEmails === false && (
+                  <div className="hr-alert hr-alert-warn">
+                    Timecard has no UserEmail / Mail columns. Re-upload a sheet that includes those
+                    columns so warning chat and email can send.
+                  </div>
+                )}
+                {data.hasSchedule &&
+                  data.scheduleDateFrom &&
+                  data.scheduleDateTo &&
+                  (dateRange.to < data.scheduleDateFrom || dateRange.from > data.scheduleDateTo) && (
+                    <div className="hr-alert hr-alert-warn">
+                      Selected dates are outside the uploaded schedule (
+                      {data.scheduleDateFrom} → {data.scheduleDateTo}). Pick a matching range or
+                      upload a schedule that covers these days.
+                    </div>
+                  )}
+                {data.hasSchedule && !data.scheduleDateFrom && (
+                  <div className="hr-alert hr-alert-warn">
+                    Schedule file uploaded — late/early checks need a schedule row for the selected day.
+                  </div>
+                )}
+                {filteredEmployees.length === 0 ? (
+                  <div className="hr-empty">No employees match these filters.</div>
+                ) : (
+                  groupedEmployees.map(([day, rows]) => (
+                    <div key={day} className="hr-day-group">
+                      {multiDay && <div className="hr-day-label">{formatHrDateLabel(day)}</div>}
+                      {rows.map((emp) => (
+                        <HrAttendanceEmployeeRow
+                          key={`${emp.date}:${emp.employeeName}`}
+                          emp={emp}
+                          onChanged={() =>
+                            void load({ from: dateRange.from, to: dateRange.to, quiet: true })
+                          }
+                        />
+                      ))}
+                    </div>
+                  ))
+                )}
               </div>
             )}
-            {data.employees.map((emp) => (
-              <EmployeeRow key={emp.employeeName} emp={emp} />
-            ))}
-          </div>
-        )}
           </>
         )}
-      </PageShellBody>
-    </PageShell>
+      </div>
+    </HrWorkspace>
   );
 }

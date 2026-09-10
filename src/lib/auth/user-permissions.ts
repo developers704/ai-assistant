@@ -13,22 +13,63 @@ export type UserPermissionKey =
   | "data_analyst"
   | "image_generation"
   | "social"
-  | "vendor_info";
+  | "vendor_info"
+  | "hr_management"
+  | "hr_sales"
+  | "hr_notice_settings"
+  | "sku_lookup"
+  | "user_admin"
+  | "role_admin";
 
 export type UserPermissionMap = Record<UserPermissionKey, boolean>;
 export type PermissionOverrides = Record<string, Partial<UserPermissionMap>>;
+export type RolePermissionOverrides = Partial<
+  Record<"admin" | "employee" | "hr" | "dm", Partial<UserPermissionMap>>
+>;
 
 export const PERMISSION_COOKIE_NAME = "alexa-user-permissions-v1";
 
-/** Only Kash edits the DM permission matrix (Ross is admin but excluded). */
+/** Admin or HR may be granted Users and/or Roles & Permissions. */
+export function canManageUsersByRole(role?: string | null): boolean {
+  return role === "admin" || role === "hr";
+}
+
+/** Add / edit / remove employee records (Users page). Admins always have it. */
+export function hasUsersPermission(
+  role?: string | null,
+  map?: Partial<UserPermissionMap> | null
+): boolean {
+  if (role === "admin") return true;
+  return Boolean(map?.user_admin);
+}
+
+/** Grant section access on Roles & Permissions. Admins always have it. */
+export function hasRolesPermission(
+  role?: string | null,
+  map?: Partial<UserPermissionMap> | null
+): boolean {
+  if (role === "admin") return true;
+  return Boolean(map?.role_admin);
+}
+
+/** @deprecated Settings matrix; use canManageUsersByRole. */
 export function canManageDmPermissions(username?: string | null): boolean {
   return normalizeUsername(username) === "kash";
 }
 
-/** Kash + Ross see real Individual Cost Value; everyone else sees Whole Cost. */
-export function canSeeRealInventoryCost(username?: string | null): boolean {
+/** Admins see real Individual Cost; everyone else sees Whole Cost. */
+export function canSeeRealInventoryCost(
+  username?: string | null,
+  role?: string | null
+): boolean {
+  if (role === "admin") return true;
   const u = normalizeUsername(username);
-  return u === "kash" || u === "ross";
+  return u === "kash" || u === "ross" || u === "admin" || u === "marina";
+}
+
+/** Employees never see wholesale / cost price (calculator, SKU lookup, inventory API). */
+export function hidesWholesaleCost(role?: string | null): boolean {
+  return role === "employee";
 }
 
 export const USER_PERMISSION_SECTIONS: Array<{
@@ -37,8 +78,12 @@ export const USER_PERMISSION_SECTIONS: Array<{
   description: string;
 }> = [
   { key: "sales_dashboard", label: "Sales Dashboard", description: "Net sales, stores, and revenue dashboard" },
+  { key: "hr_management", label: "HR Management", description: "Attendance, schedule, warnings, and HR sales" },
+  { key: "hr_sales", label: "HR Sales", description: "Employee sales rankings (no schedule)" },
+  { key: "hr_notice_settings", label: "HR Notice Settings", description: "Configure HR sender mailboxes and warning templates" },
+  { key: "sku_lookup", label: "SKU Lookup", description: "Product info and wholesale cost — no customer offer" },
   { key: "stores_map", label: "Stores Map & Info", description: "Store locations and details" },
-  { key: "price_calculator", label: "Price Calculator", description: "Pricing and wholesale cost tools" },
+  { key: "price_calculator", label: "Price Calculator", description: "Pricing, customer offer, and wholesale cost" },
   { key: "discounting", label: "Discounting", description: "High discounts vs manager calculator limits" },
   { key: "news_markets", label: "News & Markets", description: "Business news dashboard" },
   { key: "email", label: "Email", description: "Inbox and email workflows" },
@@ -49,6 +94,12 @@ export const USER_PERMISSION_SECTIONS: Array<{
   { key: "image_generation", label: "Image Generation", description: "Image creation tools" },
   { key: "social", label: "Social", description: "Instagram and social workflows" },
   { key: "vendor_info", label: "Vendor Info", description: "Vendor names and vendor-level detail" },
+  { key: "user_admin", label: "Users", description: "Add, edit, and remove employee records" },
+  {
+    key: "role_admin",
+    label: "Roles & Permissions",
+    description: "Grant section access for each role",
+  },
 ];
 
 export const DM_USERNAMES = ["aj", "shaun", "adeel", "rozina"] as const;
@@ -60,48 +111,57 @@ export function normalizeUsername(value?: string | null): string {
   return n;
 }
 
+export function emptyPermissionMap(value = false): UserPermissionMap {
+  return Object.fromEntries(
+    USER_PERMISSION_SECTIONS.map((s) => [s.key, value])
+  ) as UserPermissionMap;
+}
+
+function normalizeRole(role?: string | null): "admin" | "employee" | "hr" | "dm" | null {
+  if (role === "admin" || role === "employee" || role === "hr" || role === "dm") return role;
+  if (role === "hr_access") return "employee";
+  return null;
+}
+
 export function getDefaultPermissionMapForRole(
   role?: string | null
 ): UserPermissionMap {
-  if (role === "admin") {
-    return Object.fromEntries(
-      USER_PERMISSION_SECTIONS.map((s) => [s.key, true])
-    ) as UserPermissionMap;
+  const r = normalizeRole(role);
+  if (r === "admin") {
+    return emptyPermissionMap(true);
   }
 
-  if (role === "dm") {
+  if (r === "dm") {
     return {
+      ...emptyPermissionMap(false),
       sales_dashboard: true,
       stores_map: true,
       price_calculator: true,
-      discounting: false,
-      news_markets: false,
-      email: false,
-      calendar: false,
-      contacts: false,
-      ai_chat: false,
-      data_analyst: false,
-      image_generation: false,
-      social: false,
       vendor_info: true,
     };
   }
 
-  return {
-    sales_dashboard: false,
-    stores_map: false,
-    price_calculator: false,
-    discounting: false,
-    news_markets: false,
-    email: false,
-    calendar: false,
-    contacts: false,
-    ai_chat: false,
-    data_analyst: false,
-    image_generation: false,
-    social: false,
-    vendor_info: true,
-  };
+  if (r === "hr") {
+    return {
+      ...emptyPermissionMap(false),
+      hr_management: true,
+      hr_sales: true,
+      user_admin: true,
+      role_admin: false,
+      vendor_info: true,
+    };
+  }
+
+  if (r === "employee") {
+    return {
+      ...emptyPermissionMap(false),
+      hr_sales: true,
+      sku_lookup: true,
+      vendor_info: true,
+    };
+  }
+
+  return { ...emptyPermissionMap(false), vendor_info: true };
 }
 
 /**
@@ -115,12 +175,10 @@ export function showsAllSoldInTopVendorModels(username?: string | null): boolean
 /** Built-in overrides applied after user/file overrides (Rozina: never vendor). */
 function applyBuiltInFixes(
   username: string | null | undefined,
-  map: UserPermissionMap,
-  _vendorInfoExplicitlySet: boolean
+  map: UserPermissionMap
 ): UserPermissionMap {
   const key = normalizeUsername(username);
   const next = { ...map };
-  // Rozina must never see vendor codes/names — ignore any override that turns it on.
   if (key === "rozina") {
     next.vendor_info = false;
   }
@@ -130,31 +188,40 @@ function applyBuiltInFixes(
 export function mergePermissionMap(
   username?: string | null,
   role?: string | null,
-  overrides?: PermissionOverrides | null
+  overrides?: PermissionOverrides | null,
+  roleOverrides?: RolePermissionOverrides | null
 ): UserPermissionMap {
+  const typedRole = normalizeRole(role);
   const base = getDefaultPermissionMapForRole(role);
+  const fromRole =
+    typedRole && roleOverrides?.[typedRole]
+      ? { ...base, ...roleOverrides[typedRole] }
+      : base;
   const key = normalizeUsername(username);
-  if (!key) return base;
+  if (!key) return fromRole;
 
   const override = overrides?.[key] ?? {};
-  const merged = { ...base, ...override };
-  const vendorExplicit = Object.prototype.hasOwnProperty.call(
-    override,
-    "vendor_info"
-  );
-  return applyBuiltInFixes(username, merged, vendorExplicit);
+  const merged = { ...fromRole, ...override };
+  return applyBuiltInFixes(username, merged);
 }
 
 export function readPermissionOverridesFromCookieValue(
   value?: string | null
-): PermissionOverrides {
-  if (!value) return {};
+): { users: PermissionOverrides; roles: RolePermissionOverrides } {
+  if (!value) return { users: {}, roles: {} };
   try {
     const raw = decodeURIComponent(value);
-    const parsed = JSON.parse(raw) as PermissionOverrides;
-    return parsed && typeof parsed === "object" ? parsed : {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") return { users: {}, roles: {} };
+    const roles = (parsed.__roles as RolePermissionOverrides | undefined) ?? {};
+    const users: PermissionOverrides = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (k === "__roles") continue;
+      if (v && typeof v === "object") users[k] = v as Partial<UserPermissionMap>;
+    }
+    return { users, roles };
   } catch {
-    return {};
+    return { users: {}, roles: {} };
   }
 }
 
@@ -164,26 +231,30 @@ export function getPermissionMapForUserFromCookie(
   rawCookieValue?: string | null
 ): UserPermissionMap {
   const stored = readPermissionOverridesFromCookieValue(rawCookieValue);
-  return mergePermissionMap(username, role, stored);
+  return mergePermissionMap(username, role, stored.users, stored.roles);
 }
 
 /** Encode overrides for the sync cookie middleware reads. */
-export function encodePermissionOverridesCookie(data: PermissionOverrides): string {
-  return encodeURIComponent(JSON.stringify(data));
+export function encodePermissionOverridesCookie(
+  users: PermissionOverrides,
+  roles: RolePermissionOverrides = {}
+): string {
+  return encodeURIComponent(JSON.stringify({ ...users, __roles: roles }));
 }
 
 export function applyPermissionsCookie(
   res: NextResponse,
-  overrides: PermissionOverrides
+  overrides: PermissionOverrides,
+  roles: RolePermissionOverrides = {}
 ): void {
   res.cookies.set({
     name: PERMISSION_COOKIE_NAME,
-    value: encodePermissionOverridesCookie(overrides),
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
     sameSite: "lax",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+    value: encodePermissionOverridesCookie(overrides, roles),
   });
 }
 
@@ -201,11 +272,21 @@ export function userHidesVendorInfo(user: {
   permissions?: Record<string, boolean> | null;
 } | null | undefined): boolean {
   if (!user) return false;
-  // Rozina: always hide (hard rule — not overridable in UI)
   if (normalizeUsername(user.username) === "rozina") return true;
   if (user.authRole === "admin") return false;
   if (user.permissions && typeof user.permissions.vendor_info === "boolean") {
     return !user.permissions.vendor_info;
   }
   return false;
+}
+
+export function homePathForRole(
+  role?: string | null,
+  permissions?: Partial<UserPermissionMap> | null
+): string {
+  const r = normalizeRole(role);
+  if (r === "employee") return "/hr";
+  if (r === "hr") return "/hr";
+  if (permissions?.sales_dashboard === false && permissions?.hr_sales) return "/hr";
+  return "/sales";
 }

@@ -7,8 +7,11 @@ import {
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { calculatePricing, getVisibleDmCostPrice } from "@/lib/inventory/pricing";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { canSeeRealInventoryCost } from "@/lib/auth/user-permissions";
-import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
+import { canSeeRealInventoryCost, hidesWholesaleCost } from "@/lib/auth/user-permissions";
+import {
+  getPermissionMapForUser,
+  hidesVendorInfoFromPermissions,
+} from "@/lib/auth/user-permissions-store";
 import { invalidateOnhandCache } from "@/lib/inventory/onhand";
 
 export const runtime = "nodejs";
@@ -96,11 +99,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Kash / Ross → real Individual Cost Value.
-  // Everyone else → Whole Cost (fixed SKUs, GOLD JEWL+UV÷1.3, Diamond+UV÷8.8, sheet rules).
+  // Admins → real Individual Cost. Everyone else → Whole Cost.
   let item = { ...result.item };
   let pricing = result.pricing;
-  if (!canSeeRealInventoryCost(session.username)) {
+  if (!canSeeRealInventoryCost(session.username, session.role)) {
     const visibleCost = getVisibleDmCostPrice(item);
     if (visibleCost > 0) {
       item = { ...item, costPrice: visibleCost };
@@ -109,13 +111,24 @@ export async function GET(req: NextRequest) {
   }
 
   const hideVendor = hidesVendorInfoFromPermissions(session.username);
+  const hideCost = hidesWholesaleCost(session.role);
+  const perms = getPermissionMapForUser(session.username, session.role);
+  const includeOfferPricing =
+    session.role === "admin" || Boolean(perms.price_calculator);
+
+  let publicItem = hideVendor ? { ...item, vendor: "" } : item;
+  if (hideCost) {
+    publicItem = { ...publicItem, costPrice: 0, wholesaleCost: 0 };
+  }
 
   return NextResponse.json({
-    item: hideVendor ? { ...item, vendor: "" } : item,
-    wholeCost: getVisibleDmCostPrice(result.item),
-    pricing,
+    item: publicItem,
+    ...(hideCost ? {} : { wholeCost: getVisibleDmCostPrice(result.item) }),
+    ...(includeOfferPricing ? { pricing } : {}),
     stores: result.stores,
     onHandTotal: result.onHandTotal,
+    queriedSku: result.queriedSku,
+    resolvedSku: result.resolvedSku,
     imageUrl: resolveProductImageUrl(item.imageDir),
     hideVendor,
     status,

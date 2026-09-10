@@ -18,13 +18,8 @@ import { Input } from "@/components/ui/Input";
 
 import { Badge } from "@/components/ui/Badge";
 
-import { Save, Brain, Shield, Link2, Unlink, Loader2, User, Plug, Check, X, KeyRound, RefreshCw, Copy, Eye, EyeOff } from "lucide-react";
-import {
-  USER_PERMISSION_SECTIONS,
-  canManageDmPermissions,
-  getDefaultPermissionMapForRole,
-  type UserPermissionMap,
-} from "@/lib/auth/user-permissions";
+import { Save, Brain, Link2, Unlink, Loader2, User, Plug, KeyRound, Eye, EyeOff } from "lucide-react";
+import { HrNoticeSettings } from "@/components/hr/HrNoticeSettings";
 
 
 
@@ -152,13 +147,9 @@ function SettingsContent() {
 
   });
 
-  const [permissionUser, setPermissionUser] = useState<string>("aj");
-  const [permissionDraft, setPermissionDraft] = useState<UserPermissionMap>(
-    getDefaultPermissionMapForRole("dm")
-  );
-  const [permissionSaving, setPermissionSaving] = useState(false);
-  const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
-  const canEditPermissions = canManageDmPermissions(state?.user?.username);
+  const isAdmin = state?.user?.authRole === "admin";
+  const canManageHrNoticeSettings =
+    isAdmin || Boolean(state?.user?.permissions?.hr_notice_settings);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -166,23 +157,9 @@ function SettingsContent() {
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [issuedPassword, setIssuedPassword] = useState<string | null>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [adminTarget, setAdminTarget] = useState("aj");
-  const [adminReveals, setAdminReveals] = useState<
-    Array<{
-      username: string;
-      name: string;
-      role: string;
-      title: string;
-      password: string | null;
-      updatedAt: string | null;
-      updatedBy: string | null;
-      source: string | null;
-    }>
-  >([]);
 
 
 
@@ -218,36 +195,9 @@ function SettingsContent() {
 
       });
 
-      if (canManageDmPermissions(state.user.username)) {
-        setPermissionUser((prev) => prev || "aj");
-      }
-
     }
 
   }, [state?.user]);
-
-  useEffect(() => {
-    if (!canManageDmPermissions(state?.user?.username)) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/permissions");
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          users?: Array<{ username: string; permissions: UserPermissionMap }>;
-        };
-        const row = data.users?.find((u) => u.username === permissionUser);
-        if (!cancelled && row?.permissions) {
-          setPermissionDraft(row.permissions);
-        }
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [permissionUser, state?.user?.username]);
 
 
 
@@ -320,24 +270,6 @@ function SettingsContent() {
     };
 
   }, []);
-
-  useEffect(() => {
-    if (!canManageDmPermissions(state?.user?.username)) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/auth/password");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled) setAdminReveals(data.users ?? []);
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [state?.user?.username]);
 
   if (!state?.user) return null;
 
@@ -537,47 +469,6 @@ function SettingsContent() {
 
   };
 
-  const handlePermissionSave = async () => {
-    if (!canManageDmPermissions(state?.user?.username)) return;
-    setPermissionSaving(true);
-    setPermissionNotice(null);
-    try {
-      const res = await fetch("/api/permissions", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: permissionUser,
-          permissions: permissionDraft,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setPermissionNotice(data.error || "Could not save permissions");
-        return;
-      }
-      if (data.permissions) setPermissionDraft(data.permissions);
-      setPermissionNotice(`Saved permissions for ${permissionUser}`);
-      await refresh();
-    } catch {
-      setPermissionNotice("Could not save permissions");
-    } finally {
-      setPermissionSaving(false);
-      setTimeout(() => setPermissionNotice(null), 2500);
-    }
-  };
-
-  const refreshAdminReveals = async () => {
-    if (!canManageDmPermissions(state?.user?.username)) return;
-    try {
-      const res = await fetch("/api/auth/password");
-      if (!res.ok) return;
-      const data = await res.json();
-      setAdminReveals(data.users ?? []);
-    } catch {
-      // ignore
-    }
-  };
-
   const runPasswordAction = async (payload: Record<string, string>) => {
     setPasswordBusy(true);
     setPasswordError(null);
@@ -593,14 +484,10 @@ function SettingsContent() {
         setPasswordError(data.error || "Password update failed");
         return;
       }
-      setIssuedPassword(data.password ?? null);
       setPasswordNotice(data.message || "Password updated");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      if (canManageDmPermissions(state?.user?.username)) {
-        void refreshAdminReveals();
-      }
     } catch {
       setPasswordError("Password update failed");
     } finally {
@@ -618,38 +505,6 @@ function SettingsContent() {
       currentPassword,
       newPassword,
     });
-  };
-
-  const handleRegenerateOwnPassword = () => {
-    if (
-      !window.confirm(
-        "Generate a new password? Your current password will stop working immediately."
-      )
-    ) {
-      return;
-    }
-    void runPasswordAction({ action: "regenerate" });
-  };
-
-  const handleKashRegenerate = () => {
-    if (
-      !window.confirm(
-        `Generate a new password for ${adminTarget}? They will need the new password to sign in.`
-      )
-    ) {
-      return;
-    }
-    void runPasswordAction({ action: "regenerate", username: adminTarget });
-  };
-
-  const copyIssued = async () => {
-    if (!issuedPassword) return;
-    try {
-      await navigator.clipboard.writeText(issuedPassword);
-      setPasswordNotice("Copied to clipboard");
-    } catch {
-      setPasswordError("Could not copy — select the password manually");
-    }
   };
 
 
@@ -796,16 +651,18 @@ function SettingsContent() {
 
               </SectionCard>
 
-              <SectionCard title="Password Portal" icon={KeyRound}>
+              {canManageHrNoticeSettings && <HrNoticeSettings />}
+
+              <SectionCard title="Change password" icon={KeyRound}>
                 <div className="space-y-4">
                   <p className="text-xs text-ink-muted">
-                    Change your password, or regenerate a new one if you forgot it. Copy any generated password now — login uses the latest value.
+                    Update the password for this account. User and role management lives under Admin.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-ink-secondary mb-1.5">
-                        Current password (for change)
+                        Current password
                       </label>
                       <div className="relative">
                         <input
@@ -876,27 +733,7 @@ function SettingsContent() {
                       {passwordBusy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
                       Change password
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleRegenerateOwnPassword}
-                      disabled={passwordBusy}
-                    >
-                      <RefreshCw size={14} /> Forget / regenerate
-                    </Button>
                   </div>
-
-                  {issuedPassword && (
-                    <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5">
-                      <p className="text-xs text-emerald-100/90 mb-1">Issued password (copy now)</p>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-sm text-white break-all">{issuedPassword}</code>
-                        <Button size="sm" variant="outline" onClick={() => void copyIssued()}>
-                          <Copy size={14} /> Copy
-                        </Button>
-                      </div>
-                    </div>
-                  )}
 
                   {passwordError && (
                     <p className="text-sm text-rose-200">{passwordError}</p>
@@ -904,189 +741,10 @@ function SettingsContent() {
                   {passwordNotice && !passwordError && (
                     <p className="text-sm text-emerald-200/90">{passwordNotice}</p>
                   )}
-
-                  {canEditPermissions && (
-                    <div className="pt-4 mt-2 border-t border-white/10 space-y-3">
-                      <p className="text-sm font-medium text-ink">Kash — all users</p>
-                      <p className="text-xs text-ink-muted">
-                        You can regenerate any account and see the last password issued from this portal (not recoverable from old bcrypt hashes).
-                      </p>
-                      <div className="flex flex-wrap items-end gap-2">
-                        <div className="min-w-[160px] flex-1">
-                          <label className="block text-sm font-medium text-ink-secondary mb-1.5">
-                            User
-                          </label>
-                          <select
-                            value={adminTarget}
-                            onChange={(e) => setAdminTarget(e.target.value)}
-                            className={`${fieldClass} bg-[#0f172a] text-white border-slate-600/80`}
-                          >
-                            {["kash", "ross", "aj", "shaun", "adeel", "rozina"].map((u) => (
-                              <option key={u} value={u} className="bg-slate-900 text-white">
-                                {u}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <Button size="sm" onClick={handleKashRegenerate} disabled={passwordBusy}>
-                          <RefreshCw size={14} /> Regenerate for user
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void refreshAdminReveals()}
-                          disabled={passwordBusy}
-                        >
-                          Refresh list
-                        </Button>
-                      </div>
-
-                      <div className="rounded-xl border border-white/10 overflow-hidden divide-y divide-white/10">
-                        {adminReveals.map((row) => (
-                          <div
-                            key={row.username}
-                            className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 px-3 py-2.5 bg-white/[0.02]"
-                          >
-                            <div className="min-w-[120px]">
-                              <div className="text-sm text-ink-secondary">{row.name}</div>
-                              <div className="text-[10px] text-ink-muted">
-                                {row.username} · {row.title}
-                              </div>
-                            </div>
-                            <code className="flex-1 text-xs text-white/90 break-all">
-                              {row.password ?? "(no portal password yet — still using built-in)"}
-                            </code>
-                            <div className="text-[10px] text-ink-muted sm:text-right">
-                              {row.updatedAt
-                                ? `${row.source} · ${new Date(row.updatedAt).toLocaleString()}`
-                                : ""}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </SectionCard>
 
-              {canEditPermissions && (
-                <SectionCard title="Permissions Dashboard" icon={Shield}>
-                  <div className="space-y-4">
-                    <p className="text-xs text-ink-muted">
-                      Grant or remove section access for DMs. Ross cannot edit this matrix. Defaults: Sales, Stores, Calculator (wholesale cost). Rozina has Vendor Info off unless you enable it.
-                    </p>
-                    <div>
-                      <label className="block text-sm font-medium text-ink-secondary mb-1.5">User / DM</label>
-                      <select
-                        value={permissionUser}
-                        onChange={(e) => setPermissionUser(e.target.value)}
-                        className={`${fieldClass} bg-[#0f172a] text-white border-slate-600/80`}
-                      >
-                        <option value="aj" className="bg-slate-900 text-white">AJ</option>
-                        <option value="shaun" className="bg-slate-900 text-white">Shaun</option>
-                        <option value="adeel" className="bg-slate-900 text-white">Adeel</option>
-                        <option value="rozina" className="bg-slate-900 text-white">Rozina</option>
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {USER_PERMISSION_SECTIONS.map((section) => (
-                        <label
-                          key={section.key}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
-                        >
-                          <div className="min-w-0">
-                            <div className="text-sm text-ink-secondary">{section.label}</div>
-                            <div className="text-[10px] text-ink-muted">{section.description}</div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPermissionDraft((prev) => ({
-                                ...prev,
-                                [section.key]: !prev[section.key],
-                              }))
-                            }
-                            className={
-                              "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors " +
-                              (permissionDraft[section.key]
-                                ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
-                                : "border-white/10 bg-white/5 text-ink-muted")
-                            }
-                            aria-label={`${section.label} ${permissionDraft[section.key] ? "enabled" : "disabled"}`}
-                          >
-                            {permissionDraft[section.key] ? <Check size={15} /> : <X size={15} />}
-                          </button>
-                        </label>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3">
-                      {permissionNotice ? (
-                        <p className="text-xs text-emerald-200/90">{permissionNotice}</p>
-                      ) : (
-                        <span />
-                      )}
-                      <Button size="sm" onClick={() => void handlePermissionSave()} disabled={permissionSaving}>
-                        {permissionSaving ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
-                        {permissionSaving ? "Saving…" : "Save permissions"}
-                      </Button>
-                    </div>
-                  </div>
-                </SectionCard>
-              )}
-
-
-
-              <SectionCard title="Safety & Confirmations" icon={Shield}>
-
-                <div className="space-y-3">
-
-                  {[
-
-                    { key: "confirmBeforeSend" as const, label: "Confirm before sending emails & WhatsApp" },
-
-                    { key: "confirmBeforeCall" as const, label: "Confirm before placing calls" },
-
-                    { key: "confirmBeforeMeeting" as const, label: "Confirm before scheduling meetings" },
-
-                    { key: "voiceEnabled" as const, label: "Enable voice responses" },
-
-                  ].map((pref) => (
-
-                    <label
-
-                      key={pref.key}
-
-                      className="flex items-center gap-3 cursor-pointer rounded-xl px-3 py-2 hover:bg-white/[0.04] transition-colors"
-
-                    >
-
-                      <input
-
-                        type="checkbox"
-
-                        checked={profile[pref.key]}
-
-                        onChange={(e) => setProfile({ ...profile, [pref.key]: e.target.checked })}
-
-                        className="w-4 h-4 rounded border-white/30 bg-white/10 text-slate-400 focus:ring-slate-400/40"
-
-                      />
-
-                      <span className="text-sm text-ink-secondary">{pref.label}</span>
-
-                    </label>
-
-                  ))}
-
-                </div>
-
-              </SectionCard>
-
-
-
-              {canEditPermissions && (
+              {isAdmin && (
               <SectionCard title="Integration Status" icon={Plug}>
 
                 {googleNotice && (
@@ -1272,5 +930,4 @@ function SettingsContent() {
   );
 
 }
-
 

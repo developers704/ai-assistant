@@ -33,8 +33,36 @@ import {
 } from "@/lib/auth/scope-stores";
 import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
 import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
-import { listPaycodes, uniqueSubClasses } from "@/lib/sales/paycode-overlay";
+import {
+  applySalespersonFilter,
+  listPaycodes,
+  uniqueSubClasses,
+} from "@/lib/sales/paycode-overlay";
 import { listSalespeopleFromRows } from "@/lib/sales/salesperson-credit";
+import { filterRows } from "@/lib/sales/sales-aggregate";
+import { applyHrSalesDesigns, remapHrAvailableDesigns } from "@/lib/hr/hr-sales-design";
+import { lockHrSalesQuery, type HrSalesScopePayload } from "@/lib/hr/hr-self-sales";
+import { resolveProductImageUrl } from "@/lib/reports/product-image";
+
+function attachHrSalesScope<T extends Record<string, unknown>>(
+  payload: T,
+  lock: {
+    hrSalesScope?: HrSalesScopePayload;
+    selfLocked: boolean;
+  }
+): T {
+  if (!lock.hrSalesScope) return payload;
+  const extras: Record<string, unknown> = { hrSalesScope: lock.hrSalesScope };
+  if (lock.selfLocked) {
+    extras.availableStores = [];
+    extras.availableDepartments = [];
+    extras.availableSalespeople =
+      lock.hrSalesScope.mode === "self" && lock.hrSalesScope.self
+        ? [lock.hrSalesScope.self.label]
+        : [];
+  }
+  return { ...payload, ...extras };
+}
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -49,6 +77,98 @@ function filterValues(
   options: { value: string }[] | undefined
 ): string[] {
   return (options ?? []).map((o) => o.value).filter(Boolean).sort((a, b) => a.localeCompare(b));
+}
+
+function normalizeEmployeeCode(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function employeeCodeFromLabel(value: unknown): string {
+  const text = String(value ?? "").trim();
+  const match = text.match(/\(([^()]+)\)\s*$/);
+  return (match?.[1] ?? "").trim();
+}
+
+function salespersonCreditCodes(value: unknown): string[] {
+  const text = String(value ?? "").trim();
+  if (!text) return [];
+  const codes = new Set<string>();
+  for (const rawPart of text.split(/[,;|]/)) {
+    let part = rawPart.trim();
+    if (!part) continue;
+    part = part.replace(/\/\s*\d+(?:\.\d+)?%.*$/i, "");
+    part = part.replace(/\s+-\s*.*$/, "").trim();
+    if (part) codes.add(normalizeEmployeeCode(part));
+  }
+  return [...codes];
+}
+
+/**
+ * Adds store metadata to the already-filtered top-salesperson aggregate.
+ * This keeps the Flutter table fast: it can render Store immediately instead
+ * of issuing a commission request just to discover the employee's store.
+ */
+type SalesSummaryPeopleFields = {
+  topSalesPeople?: unknown;
+  topSalespersons?: unknown;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function enrichTopSalesPeopleWithStore(
+  summary: SalesSummaryPeopleFields,
+  rows: NonNullable<ReturnType<typeof readNormalizedRows>>
+): void {
+  const rawRanking = Array.isArray(summary.topSalesPeople)
+    ? summary.topSalesPeople
+    : Array.isArray(summary.topSalespersons)
+      ? summary.topSalespersons
+      : null;
+  if (!rawRanking?.length || !rows.length) return;
+
+  const ranking = rawRanking.filter(isRecord);
+  if (!ranking.length) return;
+
+  const storesByCode = new Map<string, Set<string>>();
+  for (const row of rows) {
+    const store = String(row.storeName ?? "").trim();
+    if (!store) continue;
+    const codes = salespersonCreditCodes(row.salespersons ?? "");
+    for (const code of codes) {
+      if (!code) continue;
+      const stores = storesByCode.get(code) ?? new Set<string>();
+      stores.add(store);
+      storesByCode.set(code, stores);
+    }
+  }
+
+  for (const item of ranking) {
+    if (!item || typeof item !== "object") continue;
+    const existingStore = String(
+      item.storeName ?? item.store ?? item.storeCode ?? ""
+    ).trim();
+    if (existingStore) continue;
+
+    const directCode = String(
+      item.employeeCode ?? item.salespersonCode ?? item.code ?? ""
+    ).trim();
+    const label =
+      item.label ??
+      item.employeeName ??
+      item.employee ??
+      item.salesperson ??
+      item.name ??
+      "";
+    const code = normalizeEmployeeCode(directCode || employeeCodeFromLabel(label));
+    if (!code) continue;
+
+    const stores = storesByCode.get(code);
+    if (!stores?.size) continue;
+    const sortedStores = [...stores].sort((a, b) => a.localeCompare(b));
+    item.storeName = sortedStores.join(", ");
+  }
 }
 
 /** Shell for dashboard UI — version snapshot + report index meta (no CSV summarize). */
@@ -89,6 +209,68 @@ function loadUnifiedSalesShell(version: string): {
   };
 }
 
+function salesTableRows(
+  rows: NonNullable<ReturnType<typeof readNormalizedRows>>,
+  opts: {
+    dateFrom?: string;
+    dateTo?: string;
+    stores: string[];
+    departments: string[];
+    designs: string[];
+    vendors: string[];
+    classes: string[];
+    subclasses: string[];
+    salespeople: string[];
+    hrSalesDesigns?: boolean;
+  }
+) {
+  const sourceRows = opts.hrSalesDesigns ? applyHrSalesDesigns(rows) : rows;
+  const scoped = filterRows(sourceRows, {
+    dateFrom: opts.dateFrom,
+    dateTo: opts.dateTo,
+    stores: opts.stores,
+    departments: opts.departments,
+    designs: opts.designs,
+    vendors: opts.vendors,
+    classes: opts.classes,
+    subclasses: opts.subclasses,
+  });
+  const credited = applySalespersonFilter(scoped, opts.salespeople);
+  return credited.slice(0, 500).map((row) => ({
+    date: row.date,
+    transactionId: row.transactionId,
+    storeName: row.storeName,
+    store: row.storeName,
+    // Keep the normalized source field and also expose canonical aliases.
+    // The HR employee report aggregates transaction rows by salesperson when
+    // store/department/design filters are active. Older clients only read the
+    // singular key, which previously collapsed every filtered row to Unassigned.
+    salespersons: row.salespersons ?? "",
+    salesperson: row.salespersons ?? "",
+    employeeName: row.salespersons ?? "",
+    department: row.department,
+    design: row.design,
+    vendor: row.vendor,
+    vendorModel: row.vendorModel,
+    sku: row.sku || row.itemNumber,
+    itemNumber: row.itemNumber,
+    description: row.description,
+    imageDir: row.imageDir ?? null,
+    imageUrl: resolveProductImageUrl(row.imageDir),
+    productClass: row.productClass,
+    class: row.productClass,
+    subClass: row.subClass,
+    quantity: row.quantity,
+    grossSales: row.grossSales,
+    discountAmount: row.discountAmount,
+    netRevenue: row.netRevenue,
+    netSales: row.netRevenue,
+    margin: row.margin,
+    discountRate: row.discountRate,
+    payCode: row.payCode ?? "",
+  }));
+}
+
 async function queryDashboardSlice(opts: {
   date?: string;
   dateFrom?: string;
@@ -105,6 +287,8 @@ async function queryDashboardSlice(opts: {
   mode?: "dashboard" | "comparison";
   /** Rozina: include ITEM / soft-hidden lines in Top Vendor Models. */
   includeHiddenTopModels?: boolean;
+  /** HR Management Sales: Love→Lovespell, BELLA OVAN→BELLA OVANI, UV bucket. */
+  hrSalesDesigns?: boolean;
 }): Promise<SalesQueryResult> {
   const isCompare = opts.mode === "comparison";
   const from = opts.dateFrom ?? opts.date;
@@ -122,6 +306,7 @@ async function queryDashboardSlice(opts: {
     subclasses: opts.subclasses?.length ? opts.subclasses : undefined,
     paycodes: opts.paycodes?.length ? opts.paycodes : undefined,
     salespeople: opts.salespeople?.length ? opts.salespeople : undefined,
+    hrSalesDesigns: opts.hrSalesDesigns === true,
     resetContext: true,
     exactFilters: true,
     /** Dashboard top models; Rozina gets a higher cap for full CSV breakdown. */
@@ -186,8 +371,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const scoped = scopeStoresForUser(session, filterStoresRaw);
-  const filterStores = scoped.stores ?? [];
-  const filterDepartments = parseMultiParam(sp, "department", "departments");
   const filterDesigns = parseMultiParam(sp, "design", "designs");
   const hideVendors = hidesVendorInfoFromPermissions(session.username);
   const filterVendors = hideVendors
@@ -196,7 +379,20 @@ export async function GET(req: NextRequest) {
   const filterClasses = parseMultiParam(sp, "class", "classes");
   const filterSubclasses = parseMultiParam(sp, "subclass", "subclasses");
   const filterPaycodes = parseMultiParam(sp, "paycode", "paycodes");
-  const filterSalespeople = parseMultiParam(sp, "salesperson", "salespeople");
+  const hrSalesDesigns =
+    sp.get("hrSales") === "1" ||
+    sp.get("hrSales") === "true" ||
+    sp.get("hrDesigns") === "1";
+  const hrLock = lockHrSalesQuery({
+    hrSales: hrSalesDesigns,
+    session,
+    salespeople: parseMultiParam(sp, "salesperson", "salespeople"),
+    stores: scoped.stores ?? [],
+    departments: parseMultiParam(sp, "department", "departments"),
+  });
+  const filterStores = hrLock.stores;
+  const filterDepartments = hrLock.departments;
+  const filterSalespeople = hrLock.salespeople;
 
   if (dateParam && (!singleDate || !isValidIsoDate(singleDate))) {
     return NextResponse.json({ error: "Invalid date. Use MM/DD/YY or YYYY-MM-DD." }, { status: 400 });
@@ -251,6 +447,7 @@ export async function GET(req: NextRequest) {
         subclasses: filterSubclasses,
         paycodes: filterPaycodes,
         salespeople: filterSalespeople,
+        hrSalesDesigns,
         // Net Sales = full CSV for everyone; only Rozina sees ITEM/JVV in Top Models
         includeHiddenTopModels: showsAllSoldInTopVendorModels(session.username),
       };
@@ -310,57 +507,76 @@ export async function GET(req: NextRequest) {
         previousDay,
         previousWeek,
       });
+      const versionRows = version ? readNormalizedRows(version) ?? [] : [];
+      enrichTopSalesPeopleWithStore(summary as unknown as SalesSummaryPeopleFields, versionRows);
       if (hideVendors) {
         summary.topVendors = [];
         summary.recommendations = summary.recommendations.filter(
           (r) => !/top vendor/i.test(r)
         );
       }
-      const versionRows = version ? readNormalizedRows(version) ?? [] : [];
       const salespeople = listSalespeopleFromRows(versionRows);
+      const tableRows = salesTableRows(versionRows, {
+        dateFrom: filterDateFrom,
+        dateTo: filterDateTo,
+        stores: filterStores,
+        departments: filterDepartments,
+        designs: filterDesigns,
+        vendors: filterVendors,
+        classes: filterClasses,
+        subclasses: filterSubclasses,
+        salespeople: filterSalespeople,
+        hrSalesDesigns,
+      });
       return NextResponse.json(
-        {
-          summary,
-          report: shell.report,
-          data: [],
-          source: "report",
-          reportLabel: summary.reportLabel,
-          reportDate: summary.reportDate,
-          vendorCode: hideVendors ? null : summary.vendorCode,
-          reportPeriod: summary.reportPeriod,
-          availableDates: shell.availableDates,
-          availableStores: filterAvailableStores(session, shell.availableStores),
-          availableDepartments: shell.availableDepartments,
-          availableDesigns: shell.availableDesigns,
-          availableClasses: shell.availableClasses,
-          availableSubClasses: uniqueSubClasses(versionRows),
-          availableVendors: hideVendors ? [] : shell.availableVendors,
-          availablePaycodes: listPaycodes(),
-          availableSalespeople: salespeople.map((s) => s.label),
-          filterDate: filterDate ?? null,
-          filterDateFrom: filterDateFrom ?? null,
-          filterDateTo: filterDateTo ?? null,
-          filterStores,
-          filterDepartments,
-          filterDesigns,
-          filterVendors,
-          filterClasses,
-          filterSubclasses,
-          filterPaycodes,
-          filterSalespeople,
-          filterStore: filterStores[0] ?? null,
-          filterDepartment: filterDepartments[0] ?? null,
-          filterDesign: filterDesigns[0] ?? null,
-          filterVendor: filterVendors[0] ?? null,
-          filterClass: filterClasses[0] ?? null,
-          dataVersion: result.freshness?.dataVersion ?? null,
-          dataThrough: result.freshness?.dataThrough ?? null,
-          dateUnavailable: Boolean(
-            !result.ok && result.availability?.requestedRangeAvailable === false
-          ),
-          dateWarning: result.coverage?.warning ?? null,
-          engine: "sales_unified",
-        },
+        attachHrSalesScope(
+          {
+            summary,
+            report: shell.report,
+            data: [],
+            tableRows,
+            source: "report",
+            reportLabel: summary.reportLabel,
+            reportDate: summary.reportDate,
+            vendorCode: hideVendors ? null : summary.vendorCode,
+            reportPeriod: summary.reportPeriod,
+            availableDates: shell.availableDates,
+            availableStores: filterAvailableStores(session, shell.availableStores),
+            availableDepartments: shell.availableDepartments,
+            availableDesigns: hrSalesDesigns
+              ? remapHrAvailableDesigns(shell.availableDesigns)
+              : shell.availableDesigns,
+            availableClasses: shell.availableClasses,
+            availableSubClasses: uniqueSubClasses(versionRows),
+            availableVendors: hideVendors ? [] : shell.availableVendors,
+            availablePaycodes: listPaycodes(),
+            availableSalespeople: salespeople.map((s) => s.label),
+            filterDate: filterDate ?? null,
+            filterDateFrom: filterDateFrom ?? null,
+            filterDateTo: filterDateTo ?? null,
+            filterStores,
+            filterDepartments,
+            filterDesigns,
+            filterVendors,
+            filterClasses,
+            filterSubclasses,
+            filterPaycodes,
+            filterSalespeople,
+            filterStore: filterStores[0] ?? null,
+            filterDepartment: filterDepartments[0] ?? null,
+            filterDesign: filterDesigns[0] ?? null,
+            filterVendor: filterVendors[0] ?? null,
+            filterClass: filterClasses[0] ?? null,
+            dataVersion: result.freshness?.dataVersion ?? null,
+            dataThrough: result.freshness?.dataThrough ?? null,
+            dateUnavailable: Boolean(
+              !result.ok && result.availability?.requestedRangeAvailable === false
+            ),
+            dateWarning: result.coverage?.warning ?? null,
+            engine: "sales_unified",
+          },
+          hrLock
+        ),
         {
           headers: {
             "Cache-Control": "no-store, max-age=0",
@@ -388,60 +604,76 @@ export async function GET(req: NextRequest) {
         (r) => !/top vendor/i.test(r)
       );
     }
-    return NextResponse.json({
-      summary,
-      report: latest.meta,
-      data: [],
-      source: "report",
-      reportLabel: summary.reportLabel,
-      reportDate: summary.reportDate,
-      vendorCode: hideVendors ? null : summary.vendorCode,
-      reportPeriod: summary.reportPeriod,
-      availableDates: latest.availableDates,
-      availableStores: filterAvailableStores(session, latest.availableStores),
-      availableDepartments: latest.availableDepartments,
-      availableDesigns: latest.availableDesigns,
-      availableClasses: latest.availableClasses,
-      availableVendors: hideVendors ? [] : latest.availableVendors,
-      filterDate: filterDate ?? null,
-      filterDateFrom: filterDateFrom ?? null,
-      filterDateTo: filterDateTo ?? null,
-      filterStores,
-      filterDepartments,
-      filterDesigns,
-      filterVendors,
-      filterClasses,
-      filterStore: filterStores[0] ?? null,
-      filterDepartment: filterDepartments[0] ?? null,
-      filterDesign: filterDesigns[0] ?? null,
-      filterVendor: filterVendors[0] ?? null,
-      filterClass: filterClasses[0] ?? null,
-    });
+    return NextResponse.json(
+      attachHrSalesScope(
+        {
+          summary,
+          report: latest.meta,
+          data: [],
+          source: "report",
+          reportLabel: summary.reportLabel,
+          reportDate: summary.reportDate,
+          vendorCode: hideVendors ? null : summary.vendorCode,
+          reportPeriod: summary.reportPeriod,
+          availableDates: latest.availableDates,
+          availableStores: filterAvailableStores(session, latest.availableStores),
+          availableDepartments: latest.availableDepartments,
+          availableDesigns: hrSalesDesigns
+            ? remapHrAvailableDesigns(latest.availableDesigns)
+            : latest.availableDesigns,
+          availableClasses: latest.availableClasses,
+          availableVendors: hideVendors ? [] : latest.availableVendors,
+          availableSalespeople: [],
+          filterDate: filterDate ?? null,
+          filterDateFrom: filterDateFrom ?? null,
+          filterDateTo: filterDateTo ?? null,
+          filterStores,
+          filterDepartments,
+          filterDesigns,
+          filterVendors,
+          filterClasses,
+          filterStore: filterStores[0] ?? null,
+          filterDepartment: filterDepartments[0] ?? null,
+          filterDesign: filterDesigns[0] ?? null,
+          filterVendor: filterVendors[0] ?? null,
+          filterClass: filterClasses[0] ?? null,
+        },
+        hrLock
+      )
+    );
   }
 
   const summary = computeSalesSummary(mockSalesData);
-  return NextResponse.json({
-    summary: { ...summary, source: "mock" },
-    data: mockSalesData,
-    source: "mock",
-    availableDates: [],
-    availableStores: [],
-    availableDepartments: [],
-    availableDesigns: [],
-    availableClasses: [],
-    availableVendors: [],
-    filterDate: null,
-    filterDateFrom: null,
-    filterDateTo: null,
-    filterStores: [],
-    filterDepartments: [],
-    filterDesigns: [],
-    filterVendors: [],
-    filterClasses: [],
-    filterStore: null,
-    filterDepartment: null,
-    filterDesign: null,
-    filterVendor: null,
-    filterClass: null,
-  });
+  return NextResponse.json(
+    attachHrSalesScope(
+      {
+        summary: { ...summary, source: "mock" },
+        data: mockSalesData,
+        source: "mock",
+        availableDates: [],
+        availableStores: [],
+        availableDepartments: [],
+        availableDesigns: [],
+        availableClasses: [],
+        availableVendors: [],
+        availableSalespeople: [],
+        filterDate: null,
+        filterDateFrom: null,
+        filterDateTo: null,
+        filterStores: [],
+        filterDepartments: [],
+        filterDesigns: [],
+        filterVendors: [],
+        filterClasses: [],
+        filterStore: null,
+        filterDepartment: null,
+        filterDesign: null,
+        filterVendor: null,
+        filterClass: null,
+      },
+      hrLock
+    )
+  );
 }
+
+	

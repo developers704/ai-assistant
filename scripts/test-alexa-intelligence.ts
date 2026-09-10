@@ -60,7 +60,7 @@ async function main() {
     console.error("FAIL: sales query should not require confirmation");
     process.exitCode = 1;
   }
-  if (!salesRes?.message?.includes("VJ-FRE")) {
+  if (!salesRes?.message || !/Top store is \*\*[A-Z0-9-]+\*\*/.test(salesRes.message)) {
     console.error("FAIL: sales query should return top store data in chat");
     process.exitCode = 1;
   }

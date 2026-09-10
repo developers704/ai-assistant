@@ -154,6 +154,12 @@ export interface SalesQueryInput {
    * UI values (no chat/voice fuzzy matching). Used by the Sales Dashboard.
    */
   exactFilters?: boolean;
+  /**
+   * HR Management → Sales only: remap design grouping (Love→Lovespell,
+   * BELLA OVAN→BELLA OVANI, and UV vendor+description bucket).
+   * Must not be set for the Sales Dashboard.
+   */
+  hrSalesDesigns?: boolean;
 }
 
 export interface SalesMetricSummary {

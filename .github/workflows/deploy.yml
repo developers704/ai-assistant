@@ -14,7 +14,7 @@ jobs:
   deploy:
     name: Deploy to Hetzner VPS
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       # Prefer base64 key (avoids Windows CRLF / paste corruption in VPS_SSH_KEY).
@@ -87,13 +87,21 @@ jobs:
           VPS_PORT: ${{ secrets.VPS_PORT }}
         run: |
           PORT="${VPS_PORT:-2203}"
-          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 -o ConnectTimeout=60 -p "$PORT" \
+          # Keepalives: npm ci / next build can be silent for minutes; GitHub↔Hetzner
+          # NAT otherwise drops the session (client_loop: send disconnect: Broken pipe).
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 \
+            -o ConnectTimeout=60 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=20 \
+            -o TCPKeepAlive=yes \
+            -p "$PORT" \
             "${VPS_USER}@${VPS_HOST}" \
             'cd /var/www/lindy_ai && if [ -f scripts/deploy.sh ]; then bash scripts/deploy.sh; else bash deploy.sh; fi'
 
       - name: Retry deploy if first attempt failed
         id: deploy2
         if: steps.deploy1.outcome == 'failure'
+        continue-on-error: true
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -101,12 +109,17 @@ jobs:
         run: |
           sleep 10
           PORT="${VPS_PORT:-2203}"
-          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 -o ConnectTimeout=60 -p "$PORT" \
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 \
+            -o ConnectTimeout=60 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=20 \
+            -o TCPKeepAlive=yes \
+            -p "$PORT" \
             "${VPS_USER}@${VPS_HOST}" \
             'cd /var/www/lindy_ai && if [ -f scripts/deploy.sh ]; then bash scripts/deploy.sh; else bash deploy.sh; fi'
 
       - name: Mark job failed if both attempts failed
-        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome != 'success'
+        if: always() && steps.deploy1.outcome == 'failure' && steps.deploy2.outcome != 'success'
         env:
           VPS_PORT: ${{ secrets.VPS_PORT }}
         run: |
