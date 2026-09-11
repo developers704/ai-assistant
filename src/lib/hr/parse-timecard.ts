@@ -36,14 +36,11 @@ function rowsFromKeyed(records: Record<string, unknown>[]): HrTimecardRow[] {
     const managerKey = findKey(keys, /^manager$/i);
     const guardsKey = findKey(keys, /guards?\s*name/i);
     const userEmailKey = headerKey(keys, "useremail", "user email", "chat email");
-    const mailKey = headerKey(
-      keys,
-      "mail",
-      "email",
-      "employee mail",
-      "employee email",
-      "recipient email"
-    );
+    // Prefer Mail over Email when both exist (Email is often a synonym, not chat).
+    const mailKey =
+      headerKey(keys, "mail") ??
+      headerKey(keys, "employee mail", "employee email", "recipient email") ??
+      headerKey(keys, "email");
 
     const name = nameKey ? cellStr(row[nameKey]) : null;
     const date = dateKey ? isoDateFromCell(row[dateKey]) : null;
@@ -107,7 +104,11 @@ function rowsFromMatrix(matrix: unknown[][]): HrTimecardRow[] {
   };
   const userEmailI = normalizedIndex("useremail", "chat email");
   const mailI = (() => {
-    return normalizedIndex("mail", "email", "employee mail", "employee email", "recipient email");
+    const preferred = normalizedIndex("mail");
+    if (preferred >= 0) return preferred;
+    const named = normalizedIndex("employee mail", "employee email", "recipient email");
+    if (named >= 0) return named;
+    return normalizedIndex("email");
   })();
   const legacy = dateI < 0;
   const out: HrTimecardRow[] = [];

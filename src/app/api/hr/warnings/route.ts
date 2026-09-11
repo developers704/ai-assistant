@@ -5,6 +5,7 @@ import { analyzeDay } from "@/lib/hr/analyze";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
 import { namesMatch } from "@/lib/hr/name-match";
 import { readHrMailRouting } from "@/lib/hr/mail-routing-store";
+import { parseHrMailAddresses } from "@/lib/hr/mail-routing";
 import {
   draftWarningNotice,
   isEligibleForHrNotice,
@@ -70,6 +71,18 @@ function asNotice(value: unknown): HrWarningNotice | null {
     sentAt: String(o.sentAt ?? new Date().toISOString()),
     messageId: o.messageId == null ? null : String(o.messageId),
     remarks,
+    userEmail:
+      o.userEmail == null || o.userEmail === ""
+        ? o.chatEmail == null || o.chatEmail === ""
+          ? null
+          : String(o.chatEmail)
+        : String(o.userEmail),
+    mail:
+      o.mail == null || o.mail === ""
+        ? o.Mail == null || o.Mail === ""
+          ? null
+          : String(o.Mail)
+        : String(o.mail),
     waivedAt: o.waivedAt == null || o.waivedAt === "" ? null : String(o.waivedAt),
     waivedBy: o.waivedBy == null || o.waivedBy === "" ? null : String(o.waivedBy),
     waivedComment: o.waivedComment == null || o.waivedComment === "" ? null : String(o.waivedComment),
@@ -283,11 +296,29 @@ export async function POST(req: NextRequest) {
     const emp = analyzeDay(date, loadActiveTimecardRows(), loadActiveScheduleEntries()).find((e) => namesMatch(e.employeeName, employeeName));
     if (!emp || !isEligibleForHrNotice(emp)) return NextResponse.json({ error: "No attendance violation for a write-up" }, { status: 400 });
     const settings = readHrNoticeSettings();
-    const draft = draftWriteUpNotice({
-      ...emp,
-      employeeCode: source.employeeCode == null ? emp.employeeCode : String(source.employeeCode),
-      store: source.store == null ? emp.store : String(source.store),
-    }, description, { ...readHrMailRouting(), from: settings.writeUpFrom });
+    const mailFromNotice = String(
+      source.mail ?? source.Mail ?? source.email ?? source.Email ?? ""
+    ).trim();
+    const draft = draftWriteUpNotice(
+      {
+        ...emp,
+        employeeCode:
+          source.employeeCode == null ? emp.employeeCode : String(source.employeeCode),
+        store: source.store == null ? emp.store : String(source.store),
+        mail: mailFromNotice || emp.mail || null,
+      },
+      description,
+      { ...readHrMailRouting(), from: settings.writeUpFrom }
+    );
+    if (!parseHrMailAddresses(draft.to).length) {
+      return NextResponse.json(
+        {
+          error:
+            "Employee Mail/Email is missing on the timecard. Write-ups go to personal email, not UserEmail (chat).",
+        },
+        { status: 400 }
+      );
+    }
     const pdfBytes = await buildWriteUpPdf({
       employeeName: draft.employeeName,
       date: draft.date,
@@ -317,6 +348,7 @@ export async function POST(req: NextRequest) {
       writeUp: saved,
       writeUpFrom: settings.writeUpFrom,
       from: settings.writeUpFrom,
+      to: draft.to,
     });
   }
 
@@ -447,38 +479,53 @@ export async function POST(req: NextRequest) {
     const employees = analyzeDay(notice.date, rows, schedule);
     const emp = employees.find((e) => namesMatch(e.employeeName, notice.employeeName));
     const noticeSettings = readHrNoticeSettings();
-    const recipientEmails = [
+    const noticeIn = (body.notice as Record<string, unknown> | undefined) ?? {};
+    // Warning chat recipient = UserEmail (chat login) only — never personal Mail.
+    const chatRecipient = [
       notice.userEmail,
+      noticeIn.userEmail,
+      noticeIn.chatEmail,
+      noticeIn.UserEmail,
       notice.to,
-      String((body.notice as Record<string, unknown> | undefined)?.userEmail ?? ""),
-      String((body.notice as Record<string, unknown> | undefined)?.chatEmail ?? ""),
-      String((body.notice as Record<string, unknown> | undefined)?.employeeEmail ?? ""),
       emp?.userEmail,
-    ];
+    ]
+      .map((value) => String(value ?? "").trim())
+      .find((value) => value.includes("@")) ?? "";
+    if (!chatRecipient) {
+      return NextResponse.json(
+        {
+          error:
+            "Employee UserEmail is required for warning chat. UserEmail must be their Valliani chat login.",
+        },
+        { status: 400 }
+      );
+    }
     const warningChatFrom = resolveWarningChatFrom(
       noticeSettings.warningFrom,
-      recipientEmails
+      [chatRecipient]
     );
     const draft = emp && isEligibleForHrNotice(emp)
       ? draftWarningNotice(
           {
             ...emp,
             employeeCode: notice.employeeCode ?? emp.employeeCode,
-            mail:
-              String(notice.mail ?? "").trim() ||
-              String(notice.to ?? "").trim() ||
-              emp.mail ||
-              null,
-            userEmail:
-              String(notice.userEmail ?? "").trim() || emp.userEmail || null,
+            // draftWarningNotice fills `to` from mail; for chat put UserEmail there.
+            mail: chatRecipient,
+            userEmail: chatRecipient,
           },
-          { ...readHrMailRouting(), from: warningChatFrom },
+          {
+            ...readHrMailRouting(),
+            from: warningChatFrom,
+            to: [chatRecipient],
+          },
           noticeSettings.templates
         )
       : null;
     const saved = upsertWarningNotice({
       ...(draft ? noticeFromDraft(draft, { messageId: `chat:${draft.caseId}` }) : notice),
-      to: notice.to || draft?.to || "",
+      to: chatRecipient,
+      userEmail: chatRecipient,
+      mail: null,
       sentAt: new Date().toISOString(),
       messageId: notice.messageId ?? (draft ? `chat:${draft.caseId}` : `chat:${notice.caseId}`),
       remarks: findWarningNotice(notice.caseId)?.remarks ?? notice.remarks ?? [],
@@ -494,7 +541,7 @@ export async function POST(req: NextRequest) {
       subject: draft?.subject ?? notice.subject ?? null,
       html: draft?.html ?? null,
       text: draft?.text ?? null,
-      to: draft?.to ?? notice.to ?? null,
+      to: chatRecipient,
       warningFrom: warningChatFrom,
       writeUpFrom: noticeSettings.writeUpFrom,
     };

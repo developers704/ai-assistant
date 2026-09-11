@@ -18,6 +18,7 @@ const shazia = {
   manager: "AJ",
   store: "Admin",
   lateMinutes: 29,
+  mail: "shazia@example.com",
 };
 
 function pdfHaystack(bytes: Uint8Array): string {

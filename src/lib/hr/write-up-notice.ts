@@ -99,6 +99,16 @@ export function draftWriteUpNotice(
   const caseId = writeUpCaseId(emp.employeeCode, emp.date, emp.employeeName);
   const pdfFilename = writeUpPdfFilename(emp.employeeCode, emp.date, emp.employeeName);
   const sheetMail = parseHrMailAddresses(emp.mail ?? "");
+  const toList = sheetMail.length
+    ? sheetMail
+    : routing?.to?.length
+      ? routing.to
+      : [];
+  if (!toList.length) {
+    throw new Error(
+      "Employee Mail/Email is missing. Write-ups require the personal email column (not UserEmail)."
+    );
+  }
   return {
     caseId,
     kind: "writeup",
@@ -110,11 +120,7 @@ export function draftWriteUpNotice(
     date: emp.date,
     lateMinutes,
     from: routing?.from?.trim() || HR_WARNING_FROM,
-    to: sheetMail.length
-      ? formatHrMailTo(sheetMail)
-      : routing?.to?.length
-        ? formatHrMailTo(routing.to)
-        : HR_WARNING_TO,
+    to: formatHrMailTo(toList),
     subject: writeUpSubject(caseId, emp.employeeName),
     html: writeUpCoverHtml({
       employeeName: emp.employeeName,

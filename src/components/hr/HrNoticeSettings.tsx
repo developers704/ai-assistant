@@ -72,11 +72,18 @@ export function HrNoticeSettings() {
     <Section title="HR Notice Settings" description="Only users granted HR Notice Settings in Roles & Permissions can see or change these values.">
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label className="block text-sm font-medium text-ink-secondary">Write-up sender email<input className={fieldClass} type="email" value={settings.writeUpFrom} onChange={(e) => setSettings({ ...settings, writeUpFrom: e.target.value })} placeholder="raza@valliani.app" /></label>
-          <label className="block text-sm font-medium text-ink-secondary">SMTP password<input className={fieldClass} type="password" placeholder={settings.writeUpPasswordConfigured ? "Saved — enter to replace" : "Enter SMTP password"} value={password} onChange={(e) => setPassword(e.target.value)} /></label>
-          <label className="block text-sm font-medium text-ink-secondary">Warning chat sender email<input className={fieldClass} type="email" value={settings.warningFrom} onChange={(e) => setSettings({ ...settings, warningFrom: e.target.value })} placeholder="raza@valliani.app" /></label>
+          <label className="block text-sm font-medium text-ink-secondary">Write-up SMTP From (Mail)<input className={fieldClass} type="email" value={settings.writeUpFrom} onChange={(e) => setSettings({ ...settings, writeUpFrom: e.target.value })} placeholder="raza@valliani.app" /></label>
+          <label className="block text-sm font-medium text-ink-secondary">Write-up SMTP password<input className={fieldClass} type="password" placeholder={settings.writeUpPasswordConfigured ? "Saved — enter to replace" : "Enter SMTP password"} value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+          <label className="block text-sm font-medium text-ink-secondary">Warning chat sender (Valliani chat email)<input className={fieldClass} type="email" value={settings.warningFrom} onChange={(e) => setSettings({ ...settings, warningFrom: e.target.value })} placeholder="raza@valliani.app" /></label>
         </div>
-        <p className="text-xs text-ink-muted">Write-up emails and warning chats both use these Athena addresses — never the person signed into Valliani App. Sync mail replies while signed into Mail as the write-up sender. SMTP host/port/TLS stay in server env; the password is never returned to the browser.</p>
+        <p className="text-xs text-ink-muted">
+          <strong>Write-up</strong> emails send from SMTP From → employee <code>Mail</code> column.
+          {" "}
+          <strong>Warning</strong> chats send from Warning chat sender (must be a Valliani chat login) → employee <code>UserEmail</code>.
+          {" "}
+          Never the person signed into the app. Sync email replies while signed into Mail as the write-up SMTP From.
+          SMTP host/port/TLS stay in server env; password is never returned to the browser.
+        </p>
         <div className="space-y-3">
           <p className="text-sm font-medium text-ink">Warning text templates</p>
           <p className="text-xs text-ink-muted">Available placeholders: <code>{"{{employeeName}}"}</code>, <code>{"{{date}}"}</code>, <code>{"{{lateMinutes}}"}</code>, <code>{"{{lateOutMinutes}}"}</code>, <code>{"{{earlyInMinutes}}"}</code>, <code>{"{{earlyOutMinutes}}"}</code>, <code>{"{{scheduledStart}}"}</code>, <code>{"{{scheduledEnd}}"}</code>.</p>
