@@ -48,6 +48,20 @@ export function isExcludedOnhandStore(_store: string): boolean {
   return false;
 }
 
+export function isMainOnhandStore(store: string): boolean {
+  return store.trim().toUpperCase() === "MAIN";
+}
+
+function compareOnhandStores(
+  a: { store: string; onhand: number },
+  b: { store: string; onhand: number }
+): number {
+  const aMain = isMainOnhandStore(a.store);
+  const bMain = isMainOnhandStore(b.store);
+  if (aMain !== bMain) return aMain ? -1 : 1;
+  return b.onhand - a.onhand || a.store.localeCompare(b.store);
+}
+
 /** Minimal CSV line split that respects quotes. */
 function splitCsvLine(line: string): string[] {
   const fields: string[] = [];
@@ -263,7 +277,59 @@ export function listOnhandStoresForSku(
   if (!storeMap?.size) return [];
   return [...storeMap.entries()]
     .map(([store, onhand]) => ({ store, onhand }))
-    .sort((a, b) => a.store.localeCompare(b.store));
+    .sort(compareOnhandStores);
+}
+
+export type VendorModelOnhandRollup = {
+  stores: { store: string; onhand: number }[];
+  total: number;
+  skuCount: number;
+  /** Stores with qty > 0 (MAIN counted when it has stock). */
+  storeCount: number;
+};
+
+/**
+ * On-hand for every SKU under a vendor model, rolled up by store.
+ * Includes MAIN. extraSkus covers sold SKUs whose model label might not match the onhand file.
+ * null = onhand file not loaded.
+ */
+export function listOnhandByStoreForVendorModel(
+  vendorModel: string,
+  extraSkus?: string[]
+): VendorModelOnhandRollup | null {
+  const index = loadIndex();
+  if (!index) return null;
+
+  const skuKeys = new Set<string>();
+  const model = vendorModel.trim();
+  if (model) {
+    const set = index.byVendorModel.get(model.toUpperCase());
+    if (set) for (const sku of set) skuKeys.add(sku);
+  }
+  for (const sku of extraSkus ?? []) {
+    const key = sku.trim().toUpperCase();
+    if (key) skuKeys.add(key);
+  }
+
+  const byStore = new Map<string, number>();
+  for (const skuKey of skuKeys) {
+    const storeMap = index.bySku.get(skuKey);
+    if (!storeMap) continue;
+    for (const [store, qty] of storeMap) {
+      byStore.set(store, (byStore.get(store) ?? 0) + qty);
+    }
+  }
+
+  const stores = [...byStore.entries()]
+    .map(([store, onhand]) => ({ store, onhand }))
+    .sort(compareOnhandStores);
+  const total = stores.reduce((sum, s) => sum + s.onhand, 0);
+  return {
+    stores,
+    total,
+    skuCount: skuKeys.size,
+    storeCount: stores.filter((s) => s.onhand > 0).length,
+  };
 }
 
 export function hasOnhandData(): boolean {

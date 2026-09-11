@@ -6,7 +6,12 @@ import {
   isRepairServiceMemoSku,
   salesUnitsSold,
 } from "@/lib/utils";
-import { hasOnhandData, listOnhandStoresForSku, lookupOnhandQty } from "@/lib/inventory/onhand";
+import {
+  isMainOnhandStore,
+  listOnhandByStoreForVendorModel,
+  listOnhandStoresForSku,
+  lookupOnhandQty,
+} from "@/lib/inventory/onhand";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import {
   calculatorWholesaleUnitCost,
@@ -20,6 +25,7 @@ import type {
   SalesGroupBy,
   SalesMetricSummary,
   VendorModelSkuLine,
+  VendorModelSkuStoreLine,
 } from "./sales-types";
 
 type StoreSaleStats = { units: number; returned: number; revenue: number };
@@ -70,40 +76,57 @@ export function buildSkuStoreLines(
       revenue: v.revenue,
       ...(hasOnhand ? { onhand: v.onhand ?? 0 } : {}),
     }))
-    .sort(
-      (a, b) =>
+    .sort((a, b) => {
+      const aMain = isMainOnhandStore(a.name);
+      const bMain = isMainOnhandStore(b.name);
+      if (aMain !== bMain) return aMain ? -1 : 1;
+      return (
+        (b.onhand ?? 0) - (a.onhand ?? 0) ||
         b.units - a.units ||
         b.revenue - a.revenue ||
-        (b.onhand ?? 0) - (a.onhand ?? 0) ||
         a.name.localeCompare(b.name)
-    );
+      );
+    });
 }
 
-function rollupModelInventory(modelRows: VendorPosRow[]): {
+function rollupModelInventory(
+  modelRows: VendorPosRow[],
+  vendorModel: string | undefined
+): {
   onHandTotal: number | null;
+  onHandStores?: { name: string; onhand: number }[];
 } {
-  const skus = new Set<string>();
+  const soldSkus: string[] = [];
   for (const r of modelRows) {
     const sku = (r.sku || r.itemNumber || "").trim();
-    if (sku && !isExcludedSalesSku(sku)) skus.add(sku);
+    if (sku && !isExcludedSalesSku(sku)) soldSkus.push(sku);
   }
 
-  let onHandTotal: number | null = null;
-  for (const sku of skus) {
-    const stores = listOnhandStoresForSku(sku);
-    if (!stores) continue;
-    if (onHandTotal === null) onHandTotal = 0;
-    for (const { onhand } of stores) onHandTotal += onhand;
-  }
+  const modelKey = (vendorModel ?? "").trim();
+  const isItem =
+    !modelKey ||
+    modelKey.toUpperCase() === "ITEM" ||
+    /^ITEM\s*[·\-]/i.test(modelKey);
 
-  return { onHandTotal };
+  const rollup = listOnhandByStoreForVendorModel(
+    isItem ? "" : modelKey,
+    soldSkus
+  );
+  if (!rollup) return { onHandTotal: null };
+
+  return {
+    onHandTotal: rollup.total,
+    onHandStores: rollup.stores
+      .filter((s) => s.onhand > 0)
+      .map((s) => ({ name: s.store, onhand: s.onhand })),
+  };
 }
 
 export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
   const map = new Map<
     string,
     VendorModelSkuLine & {
-      storeSales: Map<string, StoreSaleStats>;
+      sales: VendorModelSkuStoreLine[];
       missingWholesale?: boolean;
       /** Latest sale's Sales Amount (gross) — shown as "tag" on Top Models. */
       salesAmount?: number;
@@ -119,7 +142,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       units: 0,
       revenue: 0,
       margin: 0,
-      storeSales: new Map<string, StoreSaleStats>(),
+      sales: [],
     };
     const units = salesUnitsSold(r.quantity);
     cur.units += units;
@@ -131,19 +154,13 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     } else {
       cur.margin = (cur.margin ?? 0) + (r.netRevenue - signedWholesaleUnitCost(cost, r));
     }
-    const store = r.storeName?.trim();
-    if (store) {
-      const prev = cur.storeSales.get(store) ?? {
-        units: 0,
-        returned: 0,
-        revenue: 0,
-      };
-      prev.units += units;
-      const q = Number(r.quantity ?? 0);
-      if (q < 0) prev.returned += Math.abs(q);
-      prev.revenue += r.netRevenue;
-      cur.storeSales.set(store, prev);
-    }
+    cur.sales.push({
+      name: r.storeName?.trim() || "—",
+      units,
+      revenue: r.netRevenue,
+      transactionId: r.transactionId?.trim() || undefined,
+      date: (r.date ?? "").trim() || undefined,
+    });
     // Prefer latest sale's Sales Amount for the "tag $" label (not inventory Tag)
     const salesAmt = Math.abs(Number(r.grossSales) || 0);
     if (salesAmt > 0) {
@@ -156,12 +173,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     map.set(key, cur);
   }
   return [...map.values()]
-    .map(({ storeSales, missingWholesale, salesAmount, lastSaleDate: _, ...line }) => {
-      const stores = buildSkuStoreLines(line.sku, storeSales);
-      const hasOnhand = hasOnhandData();
-      const onHandTotal = hasOnhand
-        ? stores.reduce((sum, s) => sum + (s.onhand ?? 0), 0)
-        : null;
+    .map(({ sales, missingWholesale, salesAmount, lastSaleDate: _, ...line }) => {
       const hideMargin = isRepairServiceMemoSku(line.sku);
       const margin = hideMargin || missingWholesale ? undefined : line.margin;
       const marginRate =
@@ -171,6 +183,12 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
         margin != null
           ? margin / line.revenue
           : undefined;
+      const stores = [...sales].sort(
+        (a, b) =>
+          (b.date ?? "").localeCompare(a.date ?? "") ||
+          a.name.localeCompare(b.name) ||
+          (a.transactionId ?? "").localeCompare(b.transactionId ?? "")
+      );
       return {
         ...line,
         margin,
@@ -178,7 +196,6 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
         // UI label stays "tag $" — value is Sales Amount (gross), not inventory Tag
         tagPrice: salesAmount != null && salesAmount > 0 ? salesAmount : undefined,
         stores: stores.length ? stores : undefined,
-        onHandTotal: onHandTotal ?? undefined,
       };
     })
     .sort((a, b) => b.units - a.units || b.revenue - a.revenue);
@@ -343,7 +360,9 @@ export function groupRows(
     const s = summarizeRows(metricRows);
     const unitsSold = s.unitsSold ?? 0;
     const inventory =
-      by === "vendor_model" ? rollupModelInventory(v.rows) : null;
+      by === "vendor_model"
+        ? rollupModelInventory(v.rows, v.vendorModel || name)
+        : null;
 
     let department: string | undefined;
     let lastSaleDate: string | undefined;
@@ -399,6 +418,7 @@ export function groupRows(
       ...(inventory
         ? {
             onHandTotal: inventory.onHandTotal ?? undefined,
+            onHandStores: inventory.onHandStores,
           }
         : {}),
       // Defer SKU/store/onhand breakdown until after sort — only top models need it.

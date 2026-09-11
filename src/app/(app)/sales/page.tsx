@@ -21,10 +21,6 @@ import {
   RankDetailDrawer,
   type RankDetailSelection,
 } from "@/components/reports/RankDetailDrawer";
-import {
-  VendorModelDetailDrawer,
-  type VendorModelDetailSelection,
-} from "@/components/reports/VendorModelDetailDrawer";
 import { syncUiSelection } from "@/components/layout/UiContextSync";
 import { isValidIsoDate, yoyCompareLabelForRange } from "@/lib/reports/date-utils";
 import {
@@ -130,8 +126,6 @@ export default function SalesPage() {
   const [dateWarning, setDateWarning] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | undefined>();
   const [rankDetail, setRankDetail] = useState<RankDetailSelection | null>(null);
-  const [vendorModelDetail, setVendorModelDetail] =
-    useState<VendorModelDetailSelection | null>(null);
   const knownReportIdRef = useRef<string | null>(null);
   const skipUrlSyncRef = useRef(false);
   const lastUrlKeyRef = useRef<string | null>(null);
@@ -845,7 +839,7 @@ export default function SalesPage() {
                 <span className="text-xs text-ink-muted">
                   {isFinancingReport
                     ? "By net sales amount"
-                    : `Top ${topProducts.length} · sort Qty / Revenue / Margin · filter${multiDayRange ? " dates /" : ""} departments · expand SKU for tag price & stores`}
+                    : `Top ${topProducts.length} · sort Qty / Revenue / Margin · on-hand includes MAIN · expand SKU for sold stores`}
                 </span>
               </CardHeader>
               <div className="p-3 sm:p-4">
@@ -853,37 +847,11 @@ export default function SalesPage() {
                   products={topProducts}
                   showDateFilter={multiDayRange}
                   includeHiddenTopModels={includeHiddenTopModels}
-                  onVendorModelDetail={(p) =>
-                    setVendorModelDetail({
-                      // ITEM memos: detail lookup key is still "ITEM · {description}"
-                      vendorModel:
-                        p.vendorModel === "ITEM" && p.name
-                          ? `ITEM · ${p.name}`
-                          : p.vendorModel || p.itemNumber || p.name,
-                      description: p.name,
-                      imageUrl: p.imageUrl,
-                      imageDir: p.imageDir,
-                    })
-                  }
                 />
               </div>
             </Card>
           </div>
         </PageShellBody>
-
-      <VendorModelDetailDrawer
-        selection={vendorModelDetail}
-        filterStore={filterStores.length ? filterStores.join(",") : undefined}
-        filterSalesperson={filterSalespeople.length ? filterSalespeople.join(",") : undefined}
-        dateFrom={dateRange?.from}
-        dateTo={dateRange?.to}
-        reportId={
-          reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
-            ? reportId
-            : undefined
-        }
-        onClose={() => setVendorModelDetail(null)}
-      />
 
       <RankDetailDrawer
         selection={rankDetail}

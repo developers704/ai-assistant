@@ -103,6 +103,7 @@ export function reportSummaryFromQueryResult(
         lastSaleDate: r.lastSaleDate,
         saleDates: r.saleDates,
         onHandTotal: r.onHandTotal,
+        onHandStores: r.onHandStores,
         skus: r.skus,
       };
     }

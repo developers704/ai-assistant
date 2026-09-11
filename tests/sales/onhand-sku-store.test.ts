@@ -4,6 +4,8 @@ import path from "path";
 import {
   getOnhandStatus,
   invalidateOnhandCache,
+  isMainOnhandStore,
+  listOnhandByStoreForVendorModel,
   lookupOnhandQty,
 } from "@/lib/inventory/onhand";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
@@ -20,11 +22,11 @@ describe("onhand SKU×store lookup", () => {
     expect(status.rowCount).toBeGreaterThan(1000);
 
     expect(lookupOnhandQty("194397", "VJ-ARDN")).toBe(1);
-    expect(lookupOnhandQty("224493-22", "VJ-VICTOR")).toBe(1);
+    expect(lookupOnhandQty("197742", "VJ-NORTH")).toBe(1);
     expect(lookupOnhandQty("194397", "NO-SUCH-STORE")).toBe(0);
   });
 
-  it("attaches onhand onto vendor-model SKU store lines", () => {
+  it("attaches store, transaction, net sale, and date on SKU expand lines", () => {
     const seed = path.join(process.cwd(), "data", "inventory", "Inventory-Onhand.csv");
     if (!fs.existsSync(seed)) return;
 
@@ -55,60 +57,41 @@ describe("onhand SKU×store lookup", () => {
       }) as VendorPosRow;
 
     const lines = skuLinesForModel([
-      row({ storeName: "VJ-ARDN", quantity: 1, transactionId: "T1" }),
-      row({ storeName: "NO-SUCH-STORE", quantity: 2, transactionId: "T2" }),
+      row({ storeName: "VJ-ARDN", quantity: 1, transactionId: "T1", date: "2026-07-10", netRevenue: 100 }),
+      row({ storeName: "NO-SUCH-STORE", quantity: 2, transactionId: "T2", date: "2026-07-11", netRevenue: 200 }),
     ]);
 
     const stores = lines[0].stores ?? [];
-    // Sold stores always present
-    expect(stores.find((s) => s.name === "NO-SUCH-STORE")).toEqual({
+    expect(stores).toHaveLength(2);
+    expect(stores.find((s) => s.transactionId === "T2")).toMatchObject({
       name: "NO-SUCH-STORE",
       units: 2,
-      onhand: 0,
+      revenue: 200,
+      date: "2026-07-11",
     });
-    expect(stores.find((s) => s.name === "VJ-ARDN")).toMatchObject({
+    expect(stores.find((s) => s.transactionId === "T1")).toMatchObject({
       name: "VJ-ARDN",
       units: 1,
-      onhand: 1,
+      revenue: 100,
+      date: "2026-07-10",
     });
+    expect(stores.every((s) => s.onhand == null)).toBe(true);
   });
 
-  it("lists onhand-only stores (0 sold) for a SKU", () => {
+  it("rolls vendor-model onhand across all SKUs including MAIN", () => {
     const seed = path.join(process.cwd(), "data", "inventory", "Inventory-Onhand.csv");
     if (!fs.existsSync(seed)) return;
 
     invalidateOnhandCache();
     expect(getOnhandStatus().loaded).toBe(true);
 
-    const row = (partial: Partial<VendorPosRow>): VendorPosRow =>
-      ({
-        date: "2026-07-10",
-        storeName: "VJ-ROSE",
-        department: "B",
-        design: "X",
-        vendor: "Y",
-        productClass: "RING",
-        sku: "236292Y",
-        itemNumber: "236292Y",
-        vendorModel: "D67",
-        description: "Test",
-        quantity: 1,
-        netRevenue: 100,
-        grossSales: 100,
-        discountAmount: 0,
-        discountRate: 0,
-        inventoryCost: 0,
-        margin: 50,
-        transactionId: "T1",
-        ...partial,
-      }) as VendorPosRow;
-
-    const lines = skuLinesForModel([
-      row({ storeName: "VJ-ROSE", quantity: 1, transactionId: "T1" }),
-    ]);
-    const stores = lines[0].stores ?? [];
-    expect(stores.find((s) => s.name === "VJ-ROSE")?.units).toBe(1);
-    expect(stores.some((s) => s.units === 0 && (s.onhand ?? 0) >= 0)).toBe(true);
-    expect(stores.length).toBeGreaterThan(1);
+    const rollup = listOnhandByStoreForVendorModel("SUBMARINER-SS");
+    expect(rollup).toBeTruthy();
+    expect(rollup!.skuCount).toBeGreaterThan(2);
+    expect(rollup!.total).toBeGreaterThan(2);
+    expect(rollup!.stores[0]?.store.toUpperCase()).toBe("MAIN");
+    expect(rollup!.stores.find((s) => isMainOnhandStore(s.store))?.onhand).toBeGreaterThan(0);
+    expect(lookupOnhandQty("197742", "VJ-NORTH")).toBe(1);
+    expect(lookupOnhandQty("240659", "VJ-ONT")).toBe(1);
   });
 });

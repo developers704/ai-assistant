@@ -10,7 +10,7 @@ import {
 } from "@/lib/utils";
 import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 import { VendorModelTextFilter } from "@/components/reports/VendorModelTextFilter";
-import { SkuStoreBreakdownList } from "@/components/reports/SkuStoreBreakdownList";
+import { SkuStoreBreakdownList, VendorModelOnhandPanel } from "@/components/reports/SkuStoreBreakdownList";
 import { SalesMultiSelectFilter } from "@/components/sales/SalesMultiSelectFilter";
 import {
   applyVendorModelTextFilter,
@@ -33,6 +33,8 @@ export interface TopProductSkuLine {
     returned?: number;
     revenue?: number;
     onhand?: number | null;
+    transactionId?: string;
+    date?: string;
   }[];
 }
 
@@ -55,6 +57,8 @@ export interface TopProductRow {
   /** Distinct sale dates (ISO) for this model in the window */
   saleDates?: string[];
   onHandTotal?: number;
+  /** Stores with on-hand qty > 0 (MAIN first). */
+  onHandStores?: { name: string; onhand: number }[];
   /** Distinct SKUs sold under this vendor model */
   skus?: TopProductSkuLine[];
 }
@@ -62,7 +66,6 @@ export interface TopProductRow {
 interface TopProductsTableProps {
   products: TopProductRow[];
   emptyLabel?: string;
-  onVendorModelDetail?: (product: TopProductRow) => void;
   /** When true (multi-day range), show date multi-select like departments. */
   showDateFilter?: boolean;
   /** Rozina: keep ITEM / soft-hidden sold lines in the table. */
@@ -115,7 +118,11 @@ function metricsGridStyle(visible: MetricColumn[]): CSSProperties {
 }
 
 const DESKTOP_ROW_GRID =
-  "sm:grid-cols-[2rem_3.5rem_5.5rem_minmax(0,1fr)_auto]";
+  "lg:grid-cols-[1.75rem_3.25rem_minmax(4.75rem,5.75rem)_minmax(0,1fr)_minmax(0,auto)]";
+
+/** One size for headers + cells in Vendor Models (no mixed 10/11/12/14). */
+const TYPE = "text-[13px]";
+const TYPE_HEADER = "text-[13px] font-medium uppercase tracking-wide";
 
 function formatMarginPct(rate: number | undefined | null): string {
   // Repair / memo lines pass null → red hyphen (see MetricsBlock marginClass)
@@ -162,7 +169,7 @@ function MetricsBlock({
     {
       key: "dept",
       node: (
-        <span className="text-[11px] text-white/70 truncate text-right" title={dept}>
+        <span className={cn(TYPE, "text-white/75 truncate text-right")} title={dept}>
           {dept}
         </span>
       ),
@@ -170,7 +177,7 @@ function MetricsBlock({
     {
       key: "date",
       node: (
-        <span className="text-[11px] text-white/70 tabular-nums text-right" title={date}>
+        <span className={cn(TYPE, "text-white/75 tabular-nums text-right")} title={date}>
           {date}
         </span>
       ),
@@ -178,7 +185,7 @@ function MetricsBlock({
     {
       key: "qty",
       node: (
-        <span className="text-sm font-semibold text-emerald-300/90 tabular-nums text-right">
+        <span className={cn(TYPE, "font-semibold text-emerald-300/90 tabular-nums text-right")}>
           {formatPieceCount(units)}
         </span>
       ),
@@ -186,7 +193,7 @@ function MetricsBlock({
     {
       key: "revenue",
       node: (
-        <span className="font-medium text-ink text-sm tabular-nums text-right">
+        <span className={cn(TYPE, "font-medium text-ink tabular-nums text-right")}>
           {formatCurrency(revenue)}
         </span>
       ),
@@ -195,7 +202,7 @@ function MetricsBlock({
       key: "margin",
       node: (
         <span
-          className={cn("text-sm font-semibold tabular-nums text-right", marginClass)}
+          className={cn(TYPE, "font-semibold tabular-nums text-right", marginClass)}
           title={
             profit != null
               ? `Profit ${formatCurrency(profit)} on ${formatCurrency(revenue)} net`
@@ -213,20 +220,20 @@ function MetricsBlock({
       [
         show("dept") ? (
           <div key="dept" className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-2.5 py-2">
-            <span className="block text-[10px] font-medium uppercase tracking-wide text-white/40">
+            <span className={cn("block", TYPE_HEADER, "text-white/45")}>
               Dept
             </span>
-            <span className="mt-0.5 block truncate text-white/80" title={dept}>
+            <span className={cn("mt-0.5 block truncate", TYPE, "text-white/80")} title={dept}>
               {dept}
             </span>
           </div>
         ) : null,
         show("date") ? (
           <div key="date" className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-2.5 py-2">
-            <span className="block text-[10px] font-medium uppercase tracking-wide text-white/40">
+            <span className={cn("block", TYPE_HEADER, "text-white/45")}>
               Date
             </span>
-            <span className="mt-0.5 block tabular-nums text-white/80">{date}</span>
+            <span className={cn("mt-0.5 block tabular-nums", TYPE, "text-white/80")}>{date}</span>
           </div>
         ) : null,
       ] as const
@@ -235,31 +242,31 @@ function MetricsBlock({
       [
         show("qty") ? (
           <div key="qty" className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
-            <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+            <span className={cn(TYPE_HEADER, "text-white/45")}>
               Qty
             </span>
-            <span className="mt-0.5 text-sm font-semibold text-emerald-300 tabular-nums">
+            <span className={cn("mt-0.5 font-semibold text-emerald-300 tabular-nums", TYPE)}>
               {formatPieceCount(units)}
             </span>
           </div>
         ) : null,
         show("revenue") ? (
           <div key="revenue" className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
-            <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+            <span className={cn(TYPE_HEADER, "text-white/45")}>
               Revenue
             </span>
-            <span className="mt-0.5 text-sm font-semibold text-ink tabular-nums">
+            <span className={cn("mt-0.5 font-semibold text-ink tabular-nums", TYPE)}>
               {formatCurrency(revenue)}
             </span>
           </div>
         ) : null,
         show("margin") ? (
           <div key="margin" className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
-            <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+            <span className={cn(TYPE_HEADER, "text-white/45")}>
               Margin
             </span>
             <span
-              className={cn("mt-0.5 text-sm font-semibold tabular-nums", marginClass)}
+              className={cn("mt-0.5 font-semibold tabular-nums", TYPE, marginClass)}
               title={
                 profit != null
                   ? `Profit ${formatCurrency(profit)} on ${formatCurrency(revenue)} net`
@@ -276,7 +283,7 @@ function MetricsBlock({
     return (
       <div className="space-y-2">
         {meta.length > 0 && (
-          <div className={cn("grid gap-2 text-[11px]", meta.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+          <div className={cn("grid gap-2", TYPE, meta.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
             {meta}
           </div>
         )}
@@ -329,7 +336,7 @@ function SortHeader({
       )}
     >
       {label}
-      <Icon size={11} className="opacity-80" />
+      <Icon size={13} className="opacity-80" />
     </button>
   );
 }
@@ -356,7 +363,6 @@ function sortDateKey(p: TopProductRow): string {
 export function TopProductsTable({
   products,
   emptyLabel = "No product data in this report.",
-  onVendorModelDetail,
   showDateFilter = false,
   includeHiddenTopModels = false,
 }: TopProductsTableProps) {
@@ -524,7 +530,7 @@ export function TopProductsTable({
             <button
               type="button"
               onClick={() => setColumnsOpen((o) => !o)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-white/[0.04] px-2.5 py-1.5 text-[12px] font-medium text-white/70 ring-1 ring-white/10 hover:bg-white/[0.07] hover:text-white"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white/[0.04] px-2.5 py-1.5 text-[13px] font-medium text-white/70 ring-1 ring-white/10 hover:bg-white/[0.07] hover:text-white"
               aria-expanded={columnsOpen}
             >
               <Columns3 size={13} />
@@ -539,7 +545,7 @@ export function TopProductsTable({
                   onClick={() => setColumnsOpen(false)}
                 />
                 <div className="absolute right-0 z-30 mt-1 w-44 rounded-xl bg-[#141c2b] p-2 ring-1 ring-white/15 shadow-xl">
-                  <p className="px-1.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                  <p className="px-1.5 pb-1.5 text-[13px] font-semibold uppercase tracking-wide text-white/40">
                     Show / hide
                   </p>
                   {ALL_METRIC_COLUMNS.map((col) => {
@@ -577,10 +583,12 @@ export function TopProductsTable({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl ring-1 ring-white/10">
+      <div className="overflow-hidden rounded-xl ring-1 ring-white/10 min-w-0">
         <div
           className={cn(
-            "hidden sm:grid gap-x-3 px-3 py-2 text-[11px] font-medium uppercase tracking-wide bg-white/5 border-b border-white/10 items-center",
+            "hidden lg:grid gap-x-3 px-3 py-2",
+            TYPE_HEADER,
+            "bg-white/5 border-b border-white/10 items-center min-w-0",
             DESKTOP_ROW_GRID
           )}
         >
@@ -600,7 +608,7 @@ export function TopProductsTable({
               />
             ) : null}
           </div>
-          <div style={metricsGridStyle(columns)}>
+          <div className="min-w-0 overflow-hidden" style={metricsGridStyle(columns)}>
             {columns.includes("dept") && (
               <span className="text-ink-muted text-right">Dept</span>
             )}
@@ -645,7 +653,7 @@ export function TopProductsTable({
         </div>
 
         {/* Mobile: dept filter + sort chips */}
-        <div className="sm:hidden flex flex-col gap-2 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
+        <div className="lg:hidden flex flex-col gap-2 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
           {departmentOptions.length > 0 ? (
             <SalesMultiSelectFilter
               label="departments"
@@ -673,7 +681,7 @@ export function TopProductsTable({
                 type="button"
                 onClick={() => toggleSort(key)}
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-medium ring-1",
+                  "rounded-full px-2.5 py-1 text-[13px] font-medium ring-1",
                   sortKey === key
                     ? "bg-sky-500/20 text-sky-200 ring-sky-400/40"
                     : "text-white/50 ring-white/10"
@@ -691,7 +699,7 @@ export function TopProductsTable({
             No vendor models match this filter.
           </p>
         ) : (
-          <ul className="max-h-[min(48rem,75vh)] overflow-y-auto divide-y divide-white/5">
+          <ul className="max-h-[min(48rem,75dvh)] overflow-y-auto overflow-x-hidden overscroll-contain divide-y divide-white/5 [-webkit-overflow-scrolling:touch]">
             {rows.map((product, i) => {
               // Rozina ITEM/SPO rows: never show "ITEM · description" in the model column
               const rawModel = product.vendorModel?.trim() || "";
@@ -734,23 +742,13 @@ export function TopProductsTable({
                   key={rowKey}
                   className={cn(
                     i % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent",
-                    "px-3 py-3 space-y-2.5 sm:space-y-0 sm:py-2.5 sm:grid sm:gap-x-3 sm:items-start",
-                    DESKTOP_ROW_GRID,
-                    onVendorModelDetail &&
-                      "sm:cursor-pointer sm:hover:bg-white/[0.04] transition-colors"
+                    "px-3 py-3 space-y-2.5 lg:space-y-0 lg:py-2.5 lg:grid lg:gap-x-3 lg:items-start min-w-0",
+                    DESKTOP_ROW_GRID
                   )}
-                  onClick={() => {
-                    if (
-                      typeof window !== "undefined" &&
-                      window.matchMedia("(min-width: 640px)").matches
-                    ) {
-                      onVendorModelDetail?.(product);
-                    }
-                  }}
                 >
-                  <div className="flex gap-3 min-w-0 sm:contents">
-                    <div className="flex flex-col items-center gap-1.5 shrink-0 sm:contents">
-                      <span className="text-xs font-medium text-ink-muted tabular-nums sm:pt-1">
+                  <div className="flex gap-3 min-w-0 lg:contents">
+                    <div className="flex flex-col items-center gap-1.5 shrink-0 lg:contents">
+                      <span className={cn(TYPE, "font-medium text-ink-muted tabular-nums lg:pt-1")}>
                         {i + 1}
                       </span>
                       <ProductThumb
@@ -762,31 +760,38 @@ export function TopProductsTable({
                       />
                     </div>
 
-                    <div
-                      className="min-w-0 flex-1 sm:contents"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span className="font-mono text-[11px] text-cyan-300/90 tabular-nums break-all sm:pt-1 block sm:inline">
+                    <div className="min-w-0 flex-1 lg:contents">
+                      <span className={cn(TYPE, "font-mono text-cyan-300/90 tabular-nums truncate lg:pt-1 block lg:inline")}>
                         {model}
                       </span>
-                      <div className="mt-0.5 sm:mt-0 sm:col-span-1 min-w-0">
+                      <div className="mt-0.5 lg:mt-0 lg:col-span-1 min-w-0 overflow-hidden">
                         {firstSkuExpandable ? (
                           <button
                             type="button"
                             data-sku-detail
                             onClick={toggleFirstSku}
-                            className="text-left text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words line-clamp-2 sm:line-clamp-3 hover:text-sky-100 hover:underline underline-offset-2 decoration-sky-400/40"
+                            className={cn(
+                              "text-left font-medium leading-snug tracking-normal break-words line-clamp-2 lg:line-clamp-3 hover:text-sky-100 hover:underline underline-offset-2 decoration-sky-400/40 touch-manipulation",
+                              TYPE,
+                              "text-ink/95"
+                            )}
                             title={`Open first SKU #${firstSku} store details`}
                             aria-expanded={openSku === firstSku}
                           >
                             {displayName}
                           </button>
                         ) : (
-                          <p className="text-[13px] sm:text-sm text-ink/95 font-medium leading-snug tracking-[0.01em] break-words line-clamp-2 sm:line-clamp-3">
+                          <p className={cn(TYPE, "text-ink/95 font-medium leading-snug tracking-normal break-words line-clamp-2 lg:line-clamp-3")}>
                             {displayName}
                           </p>
                         )}
-                        <div className="hidden sm:block">
+                        {typeof product.onHandTotal === "number" && (
+                          <VendorModelOnhandPanel
+                            total={product.onHandTotal}
+                            stores={product.onHandStores}
+                          />
+                        )}
+                        <div className="hidden lg:block min-w-0">
                           {skuLines.length > 0 && (
                             <SkuStoreBreakdownList
                               lines={skuLines}
@@ -796,22 +801,13 @@ export function TopProductsTable({
                               }
                             />
                           )}
-                          {onVendorModelDetail && (
-                            <button
-                              type="button"
-                              onClick={() => onVendorModelDetail(product)}
-                              className="mt-1 text-[12px] font-medium text-sky-300/80 hover:underline underline-offset-2"
-                            >
-                              View trend
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="sm:pt-1" onClick={(e) => e.stopPropagation()}>
-                    <div className="sm:hidden">
+                  <div className="lg:pt-1 min-w-0">
+                    <div className="lg:hidden">
                       <MetricsBlock
                         mobile
                         units={product.units}
@@ -822,15 +818,6 @@ export function TopProductsTable({
                         dateLabel={formatModelDate(product)}
                         visible={columns}
                       />
-                      {onVendorModelDetail && (
-                        <button
-                          type="button"
-                          onClick={() => onVendorModelDetail(product)}
-                          className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-sky-500/15 px-3 py-2.5 text-[13px] font-semibold text-sky-200 ring-1 ring-sky-400/25 active:bg-sky-500/25"
-                        >
-                          View trend
-                        </button>
-                      )}
                       {skuLines.length > 0 && (
                         <SkuStoreBreakdownList
                           lines={skuLines}
@@ -842,7 +829,7 @@ export function TopProductsTable({
                         />
                       )}
                     </div>
-                    <div className="hidden sm:block">
+                    <div className="hidden lg:block min-w-0 overflow-hidden">
                       <MetricsBlock
                         units={product.units}
                         revenue={product.revenue}

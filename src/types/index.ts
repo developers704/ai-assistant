@@ -222,8 +222,10 @@ export interface SalesSummary {
     lastSaleDate?: string;
     /** Distinct sale dates (ISO) under this vendor model */
     saleDates?: string[];
-    /** Chain on-hand total for SKUs under this vendor model. */
+    /** On-hand total for every SKU under this vendor model (MAIN included). */
     onHandTotal?: number;
+    /** Stores with on-hand qty > 0 for this vendor model (MAIN first). */
+    onHandStores?: { name: string; onhand: number }[];
     /** Distinct SKUs sold under this vendor model */
     skus?: {
       sku: string;
@@ -232,7 +234,14 @@ export interface SalesSummary {
       margin?: number;
       marginRate?: number;
       onHandTotal?: number;
-      stores?: { name: string; units: number; onhand?: number | null }[];
+      stores?: {
+        name: string;
+        units: number;
+        onhand?: number | null;
+        transactionId?: string;
+        date?: string;
+        revenue?: number;
+      }[];
     }[];
   }[];
   underperformingStores: { name: string; revenue: number; change: number }[];

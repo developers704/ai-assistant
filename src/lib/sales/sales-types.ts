@@ -175,17 +175,19 @@ export interface SalesMetricSummary {
   averageUnitPrice: number | null;
 }
 
-/** Per-store units for a SKU under a vendor model. */
+/** Per-sale line under a vendor-model SKU (Top Models expand). */
 export interface VendorModelSkuStoreLine {
   name: string;
   /** Positive qty sold (returns not subtracted). */
   units: number;
   /** Absolute return qty in the filter window (for Sold column clarity). */
   returned?: number;
-  /** Net sales (Total) at this store for this SKU in the filter window. */
+  /** Net sales (Total) for this sale / store slice. */
   revenue?: number;
   /** Current on-hand qty at this store (omit when onhand file not loaded). */
   onhand?: number | null;
+  transactionId?: string;
+  date?: string;
 }
 
 /** SKUs that contributed to a vendor-model ranking row. */
@@ -231,8 +233,10 @@ export interface SalesBreakdownRow {
   saleDates?: string[];
   /** Distinct SKUs sold under this vendor model (Top Vendor Models). */
   skus?: VendorModelSkuLine[];
-  /** Chain on-hand total for SKUs under this vendor model. */
+  /** On-hand total for every SKU under this vendor model (MAIN included). */
   onHandTotal?: number;
+  /** Stores with on-hand qty > 0 for this vendor model (MAIN first). */
+  onHandStores?: { name: string; onhand: number }[];
 }
 
 export interface SalesClarification {
