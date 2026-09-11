@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { defaultHrNoticeSettings } from "@/lib/hr/notice-settings";
+import {
+  defaultHrNoticeSettings,
+  resolveWarningChatFrom,
+} from "@/lib/hr/notice-settings";
 
 describe("hr notice settings defaults", () => {
   it("defaults warning chat sender to raza, not SMTP mailbox", () => {
@@ -10,5 +13,17 @@ describe("hr notice settings defaults", () => {
         defaults.writeUpFrom.toLowerCase()
       );
     }
+  });
+
+  it("never uses the employee UserEmail as warning chat sender", () => {
+    expect(
+      resolveWarningChatFrom("naveed@valliani.app", [
+        "naveed@valliani.app",
+        "muqeet@example.com",
+      ])
+    ).toBe("raza@valliani.app");
+    expect(
+      resolveWarningChatFrom("raza@valliani.app", ["naveed@valliani.app"])
+    ).toBe("raza@valliani.app");
   });
 });

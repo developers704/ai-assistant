@@ -28,12 +28,28 @@ function fallbackSmtpFrom(): string {
 
 /** Chat sender must be a Valliani chat user — never default to the SMTP mailbox
  *  (that is often the operator who logged into the app / set up mail). */
-function fallbackWarningChatFrom(): string {
+export function fallbackWarningChatFrom(): string {
   return (
     process.env.HR_WARNING_CHAT_SENDER_EMAIL?.trim() ||
     process.env.HR_WARNING_FROM_EMAIL?.trim() ||
     "raza@valliani.app"
   );
+}
+
+/** Prefer configured warningFrom unless it collides with an employee recipient. */
+export function resolveWarningChatFrom(
+  configured: string,
+  recipientEmails: Iterable<string> = []
+): string {
+  const dedicated = fallbackWarningChatFrom();
+  const from = String(configured || "").trim().toLowerCase() || dedicated.toLowerCase();
+  const blocked = new Set(
+    [...recipientEmails]
+      .map((value) => String(value || "").trim().toLowerCase())
+      .filter((value) => value.includes("@"))
+  );
+  if (!from.includes("@") || blocked.has(from)) return dedicated;
+  return String(configured || dedicated).trim() || dedicated;
 }
 
 export function defaultHrNoticeSettings(): StoredHrNoticeSettings {

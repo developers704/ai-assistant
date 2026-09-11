@@ -35,7 +35,7 @@ import {
 import type { HrWarningNotice, HrWarningRemark } from "@/lib/hr/types";
 import { routeLog } from "@/lib/hr/logger";
 import { sendHrSmtpMail } from "@/lib/hr/smtp-mail";
-import { hrSmtpPassword, readHrNoticeSettings } from "@/lib/hr/notice-settings";
+import { hrSmtpPassword, readHrNoticeSettings, resolveWarningChatFrom } from "@/lib/hr/notice-settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -447,6 +447,18 @@ export async function POST(req: NextRequest) {
     const employees = analyzeDay(notice.date, rows, schedule);
     const emp = employees.find((e) => namesMatch(e.employeeName, notice.employeeName));
     const noticeSettings = readHrNoticeSettings();
+    const recipientEmails = [
+      notice.userEmail,
+      notice.to,
+      String((body.notice as Record<string, unknown> | undefined)?.userEmail ?? ""),
+      String((body.notice as Record<string, unknown> | undefined)?.chatEmail ?? ""),
+      String((body.notice as Record<string, unknown> | undefined)?.employeeEmail ?? ""),
+      emp?.userEmail,
+    ];
+    const warningChatFrom = resolveWarningChatFrom(
+      noticeSettings.warningFrom,
+      recipientEmails
+    );
     const draft = emp && isEligibleForHrNotice(emp)
       ? draftWarningNotice(
           {
@@ -460,7 +472,7 @@ export async function POST(req: NextRequest) {
             userEmail:
               String(notice.userEmail ?? "").trim() || emp.userEmail || null,
           },
-          { ...readHrMailRouting(), from: noticeSettings.warningFrom },
+          { ...readHrMailRouting(), from: warningChatFrom },
           noticeSettings.templates
         )
       : null;
@@ -483,7 +495,7 @@ export async function POST(req: NextRequest) {
       html: draft?.html ?? null,
       text: draft?.text ?? null,
       to: draft?.to ?? notice.to ?? null,
-      warningFrom: noticeSettings.warningFrom,
+      warningFrom: warningChatFrom,
       writeUpFrom: noticeSettings.writeUpFrom,
     };
 
