@@ -22,15 +22,25 @@ export type StoredHrNoticeSettings = HrNoticeSettings & { writeUpPassword?: stri
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const STORE_PATH = path.join(DATA_DIR, "notice-settings.json");
 
-function fallbackFrom(): string {
+function fallbackSmtpFrom(): string {
   return process.env.HR_SMTP_FROM?.trim() || process.env.HR_SMTP_USER?.trim() || "";
+}
+
+/** Chat sender must be a Valliani chat user — never default to the SMTP mailbox
+ *  (that is often the operator who logged into the app / set up mail). */
+function fallbackWarningChatFrom(): string {
+  return (
+    process.env.HR_WARNING_CHAT_SENDER_EMAIL?.trim() ||
+    process.env.HR_WARNING_FROM_EMAIL?.trim() ||
+    "raza@valliani.app"
+  );
 }
 
 export function defaultHrNoticeSettings(): StoredHrNoticeSettings {
   return {
-    writeUpFrom: fallbackFrom(),
+    writeUpFrom: fallbackSmtpFrom(),
     writeUpPasswordConfigured: Boolean(process.env.HR_SMTP_PASS?.trim()),
-    warningFrom: fallbackFrom(),
+    warningFrom: fallbackWarningChatFrom(),
     templates: { ...DEFAULT_HR_WARNING_TEMPLATES },
     writeUpPassword: "",
   };
@@ -46,11 +56,26 @@ export function readHrNoticeSettings(): StoredHrNoticeSettings {
   if (!fs.existsSync(STORE_PATH)) return defaults;
   try {
     const raw = JSON.parse(fs.readFileSync(STORE_PATH, "utf8")) as Partial<StoredHrNoticeSettings>;
+    const writeUpFrom = String(raw.writeUpFrom ?? defaults.writeUpFrom).trim();
+    let warningFrom = String(raw.warningFrom ?? defaults.warningFrom).trim() || defaults.warningFrom;
+    // Older defaults copied SMTP into warningFrom. If both still match, prefer the
+    // dedicated chat sender (raza@ / HR_WARNING_CHAT_SENDER_EMAIL) so app operators
+    // are not used as the Valliani chat sender.
+    if (
+      warningFrom &&
+      writeUpFrom &&
+      warningFrom.toLowerCase() === writeUpFrom.toLowerCase()
+    ) {
+      const dedicated = fallbackWarningChatFrom();
+      if (dedicated && dedicated.toLowerCase() !== warningFrom.toLowerCase()) {
+        warningFrom = dedicated;
+      }
+    }
     return {
       ...defaults,
       ...raw,
-      writeUpFrom: String(raw.writeUpFrom ?? defaults.writeUpFrom).trim(),
-      warningFrom: String(raw.warningFrom ?? defaults.warningFrom).trim(),
+      writeUpFrom,
+      warningFrom,
       writeUpPassword: String(raw.writeUpPassword ?? ""),
       writeUpPasswordConfigured: Boolean(raw.writeUpPassword || defaults.writeUpPasswordConfigured),
       templates: { ...defaults.templates, ...(raw.templates ?? {}) },

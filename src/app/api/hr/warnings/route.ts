@@ -169,6 +169,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, warning: updated });
   }
 
+  // Readable by anyone with HR management (unlike notice-settings GET).
+  if (action === "senderConfig") {
+    const noticeSettings = readHrNoticeSettings();
+    return NextResponse.json({
+      ok: true,
+      warningFrom: noticeSettings.warningFrom,
+      writeUpFrom: noticeSettings.writeUpFrom,
+    });
+  }
+
   if (action === "smtpWarning") {
     const notice = asNotice(body.notice ?? body);
     if (!notice) return NextResponse.json({ error: "Invalid warning notice" }, { status: 400 });
@@ -300,7 +310,14 @@ export async function POST(req: NextRequest) {
       attachments: [{ filename: draft.pdfFilename, content: Buffer.from(pdfBytes) }],
     });
     const saved = upsertWarningNotice(writeUpFromDraft(draft, { messageId: `smtp:${draft.caseId}` }));
-    return NextResponse.json({ ok: true, success: true, warning: saved, writeUp: saved });
+    return NextResponse.json({
+      ok: true,
+      success: true,
+      warning: saved,
+      writeUp: saved,
+      writeUpFrom: settings.writeUpFrom,
+      from: settings.writeUpFrom,
+    });
   }
 
   // Additive for Valliani app chat/mail write-ups. Website still builds PDF client-side.
