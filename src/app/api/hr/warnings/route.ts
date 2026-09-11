@@ -466,6 +466,8 @@ export async function POST(req: NextRequest) {
       html: draft?.html ?? null,
       text: draft?.text ?? null,
       to: draft?.to ?? notice.to ?? null,
+      warningFrom: noticeSettings.warningFrom,
+      writeUpFrom: noticeSettings.writeUpFrom,
     };
 
     if (sendPdf) {
