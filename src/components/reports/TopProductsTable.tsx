@@ -122,7 +122,7 @@ function metricsGridStyle(visible: MetricColumn[]): CSSProperties {
 }
 
 const DESKTOP_ROW_GRID =
-  "lg:grid-cols-[1.75rem_3.25rem_minmax(4.75rem,5.75rem)_minmax(0,1fr)_minmax(0,auto)]";
+  "lg:grid-cols-[1.75rem_3.25rem_minmax(9rem,14rem)_minmax(0,1fr)_minmax(0,auto)]";
 
 /** One size for headers + cells in Vendor Models (no mixed 10/11/12/14). */
 const TYPE = "text-[13px]";
@@ -765,7 +765,13 @@ export function TopProductsTable({
                     </div>
 
                     <div className="min-w-0 flex-1 lg:contents">
-                      <span className={cn(TYPE, "font-mono text-cyan-300/90 tabular-nums truncate lg:pt-1 block lg:inline")}>
+                      <span
+                        className={cn(
+                          TYPE,
+                          "font-mono text-cyan-300/90 tabular-nums break-all whitespace-normal leading-snug lg:pt-1 block"
+                        )}
+                        title={model}
+                      >
                         {model}
                       </span>
                       <div className="mt-0.5 lg:mt-0 lg:col-span-1 min-w-0 overflow-hidden">
