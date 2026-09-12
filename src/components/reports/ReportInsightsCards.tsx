@@ -43,11 +43,6 @@ export function ReportInsightsCards({
 
   return (
     <div className="space-y-4">
-      {isStoreSales && (
-        <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25">
-          Store sales report
-        </span>
-      )}
       {isFinancing && (
         <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/25">
           Financing report
@@ -68,17 +63,6 @@ export function ReportInsightsCards({
             <SmallMetric icon={Wallet} label="Financing" value={`${(summary.financingRate ?? 0).toFixed(1)}%`} />
           </div>
         </>
-      )}
-
-          {isStoreSales && (
-        <div className={`grid gap-3 ${compact ? "grid-cols-2" : "grid-cols-2"}`}>
-          <MetricCard label="Net sales" value={formatCurrency(summary.totalRevenue)} accent="emerald" />
-          <MetricCard
-            label="Discounts"
-            value={formatCurrency(summary.discountTotal ?? 0)}
-            accent="amber"
-          />
-        </div>
       )}
 
       {isVendor && (
@@ -188,19 +172,6 @@ export function ReportInsightsCards({
         </p>
       )}
 
-      {(isFinancing || isStoreSales) && summary.recommendations.length > 0 && (
-        <div className="rounded-3xl p-5 glass-panel ring-1 ring-indigo-400/15">
-          <p className="text-xs font-medium text-indigo-200 mb-2">Insights</p>
-          <ul className="space-y-1.5 text-sm text-ink-secondary">
-            {summary.recommendations
-              .filter((rec) => !(hideVendors && /top vendor/i.test(rec)))
-              .slice(0, 4)
-              .map((rec) => (
-              <li key={rec}>• {rec}</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

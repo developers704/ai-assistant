@@ -93,5 +93,11 @@ describe("onhand SKU×store lookup", () => {
     expect(rollup!.stores.find((s) => isMainOnhandStore(s.store))?.onhand).toBeGreaterThan(0);
     expect(lookupOnhandQty("197742", "VJ-NORTH")).toBe(1);
     expect(lookupOnhandQty("240659", "VJ-ONT")).toBe(1);
+
+    const north = rollup!.stores.find((s) => s.store.toUpperCase() === "VJ-NORTH");
+    expect(north?.skus.some((sku) => sku.sku === "197742" && sku.onhand === 1)).toBe(true);
+    expect(north?.onhand).toBe(
+      north!.skus.reduce((sum, sku) => sum + sku.onhand, 0)
+    );
   });
 });

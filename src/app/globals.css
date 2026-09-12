@@ -1148,3 +1148,25 @@ select optgroup {
   }
 }
 
+/* Sales dashboard — richer vault tone + sharper system type (no webfont fetch) */
+.sales-surface {
+  font-family: "Segoe UI Variable Display", "Segoe UI Variable Text", "SF Pro Display",
+    "SF Pro Text", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.015em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.sales-surface h1 {
+  font-family: "Palatino Linotype", Palatino, "Iowan Old Style", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+}
+
+.sales-surface .font-metric-num {
+  font-family: "Segoe UI Variable Display", "SF Pro Display", "Segoe UI", ui-sans-serif, sans-serif;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.028em;
+}
+

@@ -451,7 +451,7 @@ export default function SalesPage() {
   }
 
   const topProducts = sortTopProductsByUnits(
-    filterTopProductSkus(summary.topProducts, { includeHiddenTopModels })
+    filterTopProductSkus(summary.topProducts ?? [], { includeHiddenTopModels })
   );
   const multiDayRange = Boolean(
     dateRange && dateRange.from && dateRange.to && dateRange.from !== dateRange.to
@@ -463,7 +463,7 @@ export default function SalesPage() {
   const isStoreSalesReport =
     reportSummary?.schema === "store_sales" || reportSummary?.reportCategory === "sales";
 
-  const storePerformance = [...summary.topStores].sort(
+  const storePerformance = [...(summary.topStores ?? [])].sort(
     (a, b) => b.revenue - a.revenue || a.name.localeCompare(b.name)
   );
   const maxStoreRevenue = Math.max(...storePerformance.map((s) => s.revenue), 1);
@@ -474,7 +474,7 @@ export default function SalesPage() {
   };
 
   return (
-    <PageShell accent="emerald">
+    <PageShell accent="emerald" className="sales-surface">
       <PageShellHeader>
         <PageHeader
           gradient
@@ -555,7 +555,7 @@ export default function SalesPage() {
           availablePaycodes.length > 0 ||
           availableSalespeople.length > 0 ||
           reportSummary?.dateRange) && (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-4 space-y-2.5">
             <SalesDateRangePicker
               availableDates={availableDates}
               reportRange={
@@ -570,79 +570,81 @@ export default function SalesPage() {
               value={dateRange}
               onChange={setDateRange}
             />
-            {availableStores.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Stores"
-                allLabel="All stores"
-                options={availableStores}
-                value={filterStores}
-                onChange={setFilterStores}
-              />
-            )}
-            {availableSalespeople.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Employees"
-                allLabel="All employees"
-                options={availableSalespeople}
-                value={filterSalespeople}
-                onChange={setFilterSalespeople}
-              />
-            )}
-            {availableDepartments.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Departments"
-                allLabel="All departments"
-                options={availableDepartments}
-                value={filterDepartments}
-                onChange={setFilterDepartments}
-              />
-            )}
-            {availableDesigns.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Designs"
-                allLabel="All designs"
-                options={availableDesigns}
-                value={filterDesigns}
-                onChange={setFilterDesigns}
-              />
-            )}
-            {!hideVendors && availableVendors.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Vendors"
-                allLabel="All vendors"
-                options={availableVendors}
-                value={filterVendors}
-                onChange={setFilterVendors}
-              />
-            )}
-            {availableClasses.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Classes"
-                allLabel="All classes"
-                options={availableClasses}
-                value={filterClasses}
-                onChange={setFilterClasses}
-              />
-            )}
-            {availableSubClasses.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Subclasses"
-                allLabel="All subclasses"
-                options={availableSubClasses}
-                value={filterSubclasses}
-                onChange={setFilterSubclasses}
-              />
-            )}
-            {availablePaycodes.length > 0 && (
-              <SalesMultiSelectFilter
-                label="Paycodes"
-                allLabel="All paycodes"
-                options={availablePaycodes}
-                value={filterPaycodes}
-                onChange={setFilterPaycodes}
-                optionMatches={paycodeMatchesFilterQuery}
-              />
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {availableStores.length > 0 && (
+                <SalesMultiSelectFilter
+                  label="Stores"
+                  allLabel="All stores"
+                  options={availableStores}
+                  value={filterStores}
+                  onChange={setFilterStores}
+                />
+              )}
+              {availableSalespeople.length > 0 && (
+                <SalesMultiSelectFilter
+                  label="Employees"
+                  allLabel="All employees"
+                  options={availableSalespeople}
+                  value={filterSalespeople}
+                  onChange={setFilterSalespeople}
+                />
+              )}
+              {availableDepartments.length > 0 && (
+                <SalesMultiSelectFilter
+                  label="Departments"
+                  allLabel="All departments"
+                  options={availableDepartments}
+                  value={filterDepartments}
+                  onChange={setFilterDepartments}
+                />
+              )}
+              {availableDesigns.length > 0 && (
+                <SalesMultiSelectFilter
+                  label="Designs"
+                  allLabel="All designs"
+                  options={availableDesigns}
+                  value={filterDesigns}
+                  onChange={setFilterDesigns}
+                />
+              )}
+              {!hideVendors && availableVendors.length > 0 && (
+                <SalesMultiSelectFilter
+                  label="Vendors"
+                  allLabel="All vendors"
+                  options={availableVendors}
+                  value={filterVendors}
+                  onChange={setFilterVendors}
+                />
+              )}
+              {availableClasses.length > 0 && (
+                <SalesMultiSelectFilter
+                  label="Classes"
+                  allLabel="All classes"
+                  options={availableClasses}
+                  value={filterClasses}
+                  onChange={setFilterClasses}
+                />
+              )}
+              {availableSubClasses.length > 0 && (
+                <SalesMultiSelectFilter
+                  label="Subclasses"
+                  allLabel="All subclasses"
+                  options={availableSubClasses}
+                  value={filterSubclasses}
+                  onChange={setFilterSubclasses}
+                />
+              )}
+              {availablePaycodes.length > 0 && (
+                <SalesMultiSelectFilter
+                  label="Paycodes"
+                  allLabel="All paycodes"
+                  options={availablePaycodes}
+                  value={filterPaycodes}
+                  onChange={setFilterPaycodes}
+                  optionMatches={paycodeMatchesFilterQuery}
+                />
+              )}
+            </div>
           </div>
         )}
       </PageShellHeader>
@@ -690,40 +692,41 @@ export default function SalesPage() {
               still uses CSV Total.
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             <LushMetric
               label={isFinancingReport || isStoreSalesReport ? "Net Sales" : "Total Revenue"}
               value={formatCurrency(summary.totalRevenue)}
               accent="emerald"
               footer={
-                <div className="flex items-center gap-1.5 text-white/50">
-                  {summary.comparisonPreviousDay >= 0 ? (
-                    <TrendingUp size={14} className="text-emerald-400" />
-                  ) : (
-                    <TrendingDown size={14} className="text-accent-rose" />
-                  )}
-                  <span
-                    className={cn(
-                      "text-sm",
-                      summary.comparisonPreviousDay >= 0 ? "text-emerald-400" : "text-accent-rose"
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-white/50">
+                    {(summary.comparisonPreviousDay ?? 0) >= 0 ? (
+                      <TrendingUp size={14} className="text-emerald-400" />
+                    ) : (
+                      <TrendingDown size={14} className="text-accent-rose" />
                     )}
-                  >
-                    {summary.comparisonPreviousDay >= 0 ? "+" : ""}
-                    {summary.comparisonPreviousDay.toFixed(1)}% {yoyCompareLabel}
-                  </span>
+                    <span
+                      className={cn(
+                        "text-sm",
+                        (summary.comparisonPreviousDay ?? 0) >= 0 ? "text-emerald-400" : "text-accent-rose"
+                      )}
+                    >
+                      {(summary.comparisonPreviousDay ?? 0) >= 0 ? "+" : ""}
+                      {(summary.comparisonPreviousDay ?? 0).toFixed(1)}% {yoyCompareLabel}
+                    </span>
+                  </div>
+                  {reportSummary?.discountTotal != null && reportSummary.discountTotal > 0 && (
+                    <p className="text-sm text-white/35">
+                      Discounts {formatCurrency(reportSummary.discountTotal)}
+                    </p>
+                  )}
                 </div>
               }
             />
             <LushMetric
-              label={
-                isFinancingReport
-                  ? "Transactions"
-                  : isStoreSalesReport
-                    ? "Unique Transactions"
-                    : "Pieces Sold"
-              }
+              label={isFinancingReport ? "Transactions" : "Unique Transactions"}
               value={
-                isStoreSalesReport && reportSummary?.uniqueTransactions != null
+                reportSummary?.uniqueTransactions != null
                   ? reportSummary.uniqueTransactions.toLocaleString()
                   : summary.totalTransactions.toLocaleString()
               }
@@ -731,12 +734,18 @@ export default function SalesPage() {
                 <p className="text-sm text-white/35">
                   {isFinancingReport
                     ? "Sales rows in report period"
-                    : isStoreSalesReport
-                      ? "Distinct transaction numbers"
-                      : "Across reporting stores today"}
+                    : "Distinct transaction numbers"}
                 </p>
               }
             />
+            {!isFinancingReport && (
+              <LushMetric
+                label="Qty Sold"
+                value={summary.totalTransactions.toLocaleString()}
+                accent="sky"
+                footer={<p className="text-sm text-white/35">Pieces sold</p>}
+              />
+            )}
             <LushMetric
               label={
                 isFinancingReport
@@ -753,7 +762,9 @@ export default function SalesPage() {
                 <p className="text-sm text-white/35">
                   {isFinancingReport
                     ? `Avg sale ${formatCurrency(summary.averageOrderValue)}`
-                    : `+${summary.comparisonPreviousWeek.toFixed(1)}% vs last week`}
+                    : Math.abs(summary.comparisonPreviousWeek ?? 0) >= 0.05
+                      ? `${(summary.comparisonPreviousWeek ?? 0) >= 0 ? "+" : ""}${(summary.comparisonPreviousWeek ?? 0).toFixed(1)}% vs last week`
+                      : "Net sales ÷ pieces sold"}
                 </p>
               }
             />
@@ -779,49 +790,50 @@ export default function SalesPage() {
                     {storePerformance.length} stores · highest to lowest · % {yoyCompareLabel}
                   </span>
                 </CardHeader>
-                <div className="max-h-[min(36rem,70vh)] overflow-y-auto p-4 space-y-3">
+                <div className="max-h-[min(36rem,70vh)] overflow-y-auto divide-y divide-white/[0.05]">
                   {storePerformance.map((store, i) => {
-                    const barPct = (i / Math.max(storePerformance.length - 1, 1)) * 100;
-                    const barClass =
-                      barPct < 40
-                        ? "bg-emerald-400/80"
-                        : barPct < 70
-                          ? "bg-amber-300/70"
-                          : "bg-accent-rose/80";
+                    const barWidth = Math.max(
+                      2,
+                      (store.revenue / maxStoreRevenue) * 100
+                    );
+                    const hasChange = Number.isFinite(store.change) && Math.abs(store.change) >= 0.05;
                     return (
                       <button
                         key={store.name}
                         type="button"
                         onClick={() => openRank("store", store.name)}
-                        className="w-full grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3rem] gap-x-2 sm:gap-x-3 items-center rounded-lg hover:bg-white/[0.04] px-1 -mx-1 py-1 transition-colors text-left"
+                        className="w-full grid grid-cols-[2rem_minmax(0,1fr)_5.75rem_3.25rem] sm:grid-cols-[2.25rem_minmax(0,1fr)_6.5rem_3.5rem] gap-x-2.5 sm:gap-x-3 items-center px-4 py-2.5 hover:bg-white/[0.04] transition-colors text-left"
                       >
-                        <span className="text-xs font-medium text-ink-muted tabular-nums">
+                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.06] text-[12px] font-semibold text-white/50 tabular-nums">
                           {i + 1}
                         </span>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-ink truncate mb-1.5">
+                          <p className="text-[13px] font-medium text-ink truncate">
                             {store.name}
                           </p>
-                          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div className="mt-1.5 h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
                             <div
-                              className={cn("h-full rounded-full transition-all", barClass)}
-                              style={{
-                                width: `${(store.revenue / maxStoreRevenue) * 100}%`,
-                              }}
+                              className="h-full rounded-full bg-emerald-400/80"
+                              style={{ width: `${barWidth}%` }}
                             />
                           </div>
                         </div>
-                        <span className="text-sm font-semibold text-ink tabular-nums text-right">
+                        <span className="text-[13px] font-semibold text-ink tabular-nums text-right">
                           {formatCurrency(store.revenue)}
                         </span>
                         <span
                           className={cn(
-                            "text-xs font-medium tabular-nums text-right",
-                            store.change >= 0 ? "text-emerald-400" : "text-accent-rose"
+                            "text-[13px] font-medium tabular-nums text-right",
+                            !hasChange
+                              ? "text-white/35"
+                              : store.change >= 0
+                                ? "text-emerald-400"
+                                : "text-accent-rose"
                           )}
                         >
-                          {store.change >= 0 ? "+" : ""}
-                          {store.change.toFixed(1)}%
+                          {hasChange
+                            ? `${store.change >= 0 ? "+" : ""}${store.change.toFixed(1)}%`
+                            : "—"}
                         </span>
                       </button>
                     );

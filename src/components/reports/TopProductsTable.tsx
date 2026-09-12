@@ -58,7 +58,11 @@ export interface TopProductRow {
   saleDates?: string[];
   onHandTotal?: number;
   /** Stores with on-hand qty > 0 (MAIN first). */
-  onHandStores?: { name: string; onhand: number }[];
+  onHandStores?: {
+    name: string;
+    onhand: number;
+    skus?: { sku: string; onhand: number; description?: string }[];
+  }[];
   /** Distinct SKUs sold under this vendor model */
   skus?: TopProductSkuLine[];
 }

@@ -427,6 +427,7 @@ export function filterTopProductSkus<
   opts?: { includeHiddenTopModels?: boolean }
 ): T[] {
   // Rozina: show every sold line the API returned (full CSV breakdown)
+  if (!products?.length) return products ?? [];
   if (opts?.includeHiddenTopModels) return products;
   return products.filter((p) => {
     const sku = p.itemNumber || p.sku || p.vendorModel;

@@ -94,7 +94,11 @@ function rollupModelInventory(
   vendorModel: string | undefined
 ): {
   onHandTotal: number | null;
-  onHandStores?: { name: string; onhand: number }[];
+  onHandStores?: {
+    name: string;
+    onhand: number;
+    skus?: { sku: string; onhand: number; description?: string }[];
+  }[];
 } {
   const soldSkus: string[] = [];
   for (const r of modelRows) {
@@ -118,7 +122,7 @@ function rollupModelInventory(
     onHandTotal: rollup.total,
     onHandStores: rollup.stores
       .filter((s) => s.onhand > 0)
-      .map((s) => ({ name: s.store, onhand: s.onhand })),
+      .map((s) => ({ name: s.store, onhand: s.onhand, skus: s.skus })),
   };
 }
 

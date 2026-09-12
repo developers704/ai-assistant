@@ -144,22 +144,38 @@ function SaleTxnTable({ sales }: { sales: SkuStoreBreakdownLine[] }) {
   );
 }
 
-/** Vendor-model on-hand total; click to open per-store pcs (MAIN included). */
+export type OnhandStoreSkuLine = {
+  sku: string;
+  onhand: number;
+  description?: string;
+};
+
+export type OnhandStoreLine = {
+  name: string;
+  onhand: number;
+  skus?: OnhandStoreSkuLine[];
+};
+
+/** Vendor-model on-hand total; click store to see which SKUs sit there. */
 export function VendorModelOnhandPanel({
   total,
   stores,
   className,
 }: {
   total: number;
-  stores?: { name: string; onhand: number }[];
+  stores?: OnhandStoreLine[];
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [openStore, setOpenStore] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const stocked = (stores ?? []).filter((s) => s.onhand > 0);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setOpenStore(null);
+      return;
+    }
     const onPointerDown = (e: PointerEvent) => {
       const el = panelRef.current;
       if (el && !el.contains(e.target as Node)) setOpen(false);
@@ -220,8 +236,7 @@ export function VendorModelOnhandPanel({
       {open && canOpen && (
         <div
           role="listbox"
-          onClick={() => setOpen(false)}
-          className="mt-1 w-full min-w-0 cursor-pointer overflow-y-auto overscroll-contain rounded-lg ring-1 ring-amber-300/20 bg-black/30 max-h-[min(16rem,50vh)] [overflow-x:hidden] [-webkit-overflow-scrolling:touch]"
+          className="mt-1 w-full min-w-0 overflow-y-auto overscroll-contain rounded-lg ring-1 ring-amber-300/20 bg-black/30 max-h-[min(22rem,60vh)] [overflow-x:hidden] [-webkit-overflow-scrolling:touch]"
         >
           <div className="sticky top-0 z-[1] grid grid-cols-[minmax(0,1fr)_3.25rem] gap-x-2 px-2.5 py-2 text-[13px] font-semibold uppercase tracking-wide text-white/70 border-b border-white/10 bg-black/60 backdrop-blur-sm">
             <span className="min-w-0">Store</span>
@@ -230,33 +245,93 @@ export function VendorModelOnhandPanel({
           <ul className="divide-y divide-white/[0.05]">
             {stocked.map((s) => {
               const main = isMainStore(s.name);
+              const skus = (s.skus ?? []).filter((sku) => sku.onhand > 0);
+              const expanded = openStore === s.name;
+              const canExpandStore = skus.length > 0;
               return (
                 <li
                   key={s.name}
-                  className={cn(
-                    "grid grid-cols-[minmax(0,1fr)_3.25rem] gap-x-2 items-center px-2.5 py-2 min-h-[40px] text-[13px]",
-                    main && "bg-amber-500/[0.10]"
-                  )}
+                  className={cn(main && "bg-amber-500/[0.08]")}
                 >
-                  <span
+                  <button
+                    type="button"
+                    disabled={!canExpandStore}
+                    aria-expanded={expanded}
+                    onClick={() =>
+                      setOpenStore((cur) => (cur === s.name ? null : s.name))
+                    }
                     className={cn(
-                      "min-w-0 truncate",
-                      main
-                        ? "font-semibold text-amber-50"
-                        : "font-medium text-white/75"
-                    )}
-                    title={s.name}
-                  >
-                    {main ? "MAIN" : s.name}
-                  </span>
-                  <span
-                    className={cn(
-                      "tabular-nums text-right font-semibold",
-                      main ? "text-amber-200" : "text-amber-200/85"
+                      "grid w-full grid-cols-[minmax(0,1fr)_3.25rem] gap-x-2 items-center px-2.5 py-2 min-h-[40px] text-left text-[13px] touch-manipulation",
+                      canExpandStore
+                        ? "hover:bg-white/[0.05] cursor-pointer"
+                        : "cursor-default"
                     )}
                   >
-                    {formatOnhand(s.onhand)}
-                  </span>
+                    <span className="min-w-0 flex items-center gap-1.5">
+                      {canExpandStore && (
+                        <ChevronRight
+                          size={13}
+                          className={cn(
+                            "shrink-0 text-white/35 transition-transform",
+                            expanded && "rotate-90"
+                          )}
+                        />
+                      )}
+                      <span
+                        className={cn(
+                          "min-w-0 truncate",
+                          main
+                            ? "font-semibold text-amber-50"
+                            : "font-medium text-white/75"
+                        )}
+                        title={s.name}
+                      >
+                        {main ? "MAIN" : s.name}
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "tabular-nums text-right font-semibold",
+                        main ? "text-amber-200" : "text-amber-200/85"
+                      )}
+                    >
+                      {formatOnhand(s.onhand)}
+                    </span>
+                  </button>
+                  {expanded && canExpandStore && (
+                    <ul className="mx-2 mb-2 rounded-md bg-black/35 ring-1 ring-white/[0.06] divide-y divide-white/[0.05]">
+                      <li className="grid grid-cols-[minmax(0,1fr)_2.5rem] gap-x-2 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/40">
+                        <span>SKU / Item</span>
+                        <span className="text-right">Qty</span>
+                      </li>
+                      {skus.map((sku) => {
+                        const desc = sku.description?.trim();
+                        return (
+                          <li
+                            key={sku.sku}
+                            className="grid grid-cols-[minmax(0,1fr)_2.5rem] gap-x-2 items-start px-2.5 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-mono text-cyan-300/90">
+                                SKU #{sku.sku}
+                              </p>
+                              {desc && (
+                                <p
+                                  className="mt-0.5 text-[12px] leading-snug text-white/45 line-clamp-2"
+                                  title={desc}
+                                >
+                                  {desc}
+                                </p>
+                              )}
+                            </div>
+                            <span className="pt-0.5 tabular-nums text-right text-[13px] font-semibold text-white/80">
+                              {formatOnhand(sku.onhand)}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </li>
               );
             })}

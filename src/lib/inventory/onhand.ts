@@ -280,8 +280,20 @@ export function listOnhandStoresForSku(
     .sort(compareOnhandStores);
 }
 
+export type VendorModelOnhandSku = {
+  sku: string;
+  onhand: number;
+  description?: string;
+};
+
+export type VendorModelOnhandStore = {
+  store: string;
+  onhand: number;
+  skus: VendorModelOnhandSku[];
+};
+
 export type VendorModelOnhandRollup = {
-  stores: { store: string; onhand: number }[];
+  stores: VendorModelOnhandStore[];
   total: number;
   skuCount: number;
   /** Stores with qty > 0 (MAIN counted when it has stock). */
@@ -311,17 +323,36 @@ export function listOnhandByStoreForVendorModel(
     if (key) skuKeys.add(key);
   }
 
-  const byStore = new Map<string, number>();
+  const byStore = new Map<string, { onhand: number; skus: Map<string, number> }>();
   for (const skuKey of skuKeys) {
     const storeMap = index.bySku.get(skuKey);
     if (!storeMap) continue;
+    const displaySku = index.bySkuMeta.get(skuKey)?.sku ?? skuKey;
     for (const [store, qty] of storeMap) {
-      byStore.set(store, (byStore.get(store) ?? 0) + qty);
+      let row = byStore.get(store);
+      if (!row) {
+        row = { onhand: 0, skus: new Map() };
+        byStore.set(store, row);
+      }
+      row.onhand += qty;
+      if (qty > 0) {
+        row.skus.set(displaySku, (row.skus.get(displaySku) ?? 0) + qty);
+      }
     }
   }
 
   const stores = [...byStore.entries()]
-    .map(([store, onhand]) => ({ store, onhand }))
+    .map(([store, row]) => ({
+      store,
+      onhand: row.onhand,
+      skus: [...row.skus.entries()]
+        .map(([sku, onhand]) => ({
+          sku,
+          onhand,
+          description: index.bySkuMeta.get(sku.toUpperCase())?.description,
+        }))
+        .sort((a, b) => b.onhand - a.onhand || a.sku.localeCompare(b.sku)),
+    }))
     .sort(compareOnhandStores);
   const total = stores.reduce((sum, s) => sum + s.onhand, 0);
   return {

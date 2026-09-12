@@ -225,7 +225,11 @@ export interface SalesSummary {
     /** On-hand total for every SKU under this vendor model (MAIN included). */
     onHandTotal?: number;
     /** Stores with on-hand qty > 0 for this vendor model (MAIN first). */
-    onHandStores?: { name: string; onhand: number }[];
+    onHandStores?: {
+      name: string;
+      onhand: number;
+      skus?: { sku: string; onhand: number; description?: string }[];
+    }[];
     /** Distinct SKUs sold under this vendor model */
     skus?: {
       sku: string;
