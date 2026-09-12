@@ -92,7 +92,7 @@ export function signedWholesaleUnitCost(
 }
 
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
-export const TOP_MODELS_MARGIN_RULES_VERSION = 7;
+export const TOP_MODELS_MARGIN_RULES_VERSION = 8;
 
 function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
   const net = Number(row.netRevenue ?? 0);

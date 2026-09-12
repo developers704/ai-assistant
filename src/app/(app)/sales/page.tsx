@@ -663,7 +663,7 @@ export default function SalesPage() {
                 {summary.totalTransactions != null && (
                   <span className="text-amber-100/60">
                     {" "}
-                    · {summary.totalTransactions.toLocaleString()} units ·{" "}
+                    · {Math.round(summary.totalTransactions).toLocaleString()} units ·{" "}
                     {formatCurrency(summary.totalRevenue)}
                   </span>
                 )}
@@ -741,7 +741,7 @@ export default function SalesPage() {
             {!isFinancingReport && (
               <LushMetric
                 label="Qty Sold"
-                value={summary.totalTransactions.toLocaleString()}
+                value={Math.round(summary.totalTransactions).toLocaleString()}
                 accent="sky"
                 footer={<p className="text-sm text-white/35">Pieces sold</p>}
               />

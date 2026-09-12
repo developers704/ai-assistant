@@ -6,6 +6,7 @@
  * HARD RULES (owner — always):
  * 1) Fixed SKU list → fixed $ cost (everyone)
  * 1b) SKU divisor overrides (e.g. 240304 → base ÷ 8.8) — beats design/dept formulas
+ * 1c) Department GENTS RING → base ÷ 8.8 (beats GOLD JEWL ÷4; same as ladies ring diamond)
  * 2) Design GOLD JEWL/GOLD JEWEL + (description UV / uv / ultimate value OR Class UV)
  *    → base ÷ 1.3
  * 3) Diamond (diamond dept OR "diamond" in description) + UV / ultimate value in description
@@ -251,6 +252,11 @@ export function resolveWholeCostFromRules(
   const subClass = norm(fields.subClass);
   const deptCompact = compact(department);
   const designCompact = compact(design);
+
+  // GENTS RING — always diamond ÷8.8 (do not fall through to GOLD JEWL ÷4)
+  if (department === "GENTS RING" || deptCompact === "GENTSRING") {
+    return finish(base / 8.8, "Gents ring department");
+  }
 
   // 1. Design GOLD JEWL + UV / ultimate value (description or Class UV) → ÷ 1.3
   if (

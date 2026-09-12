@@ -73,7 +73,7 @@ describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
         4125
       )
     ).toBeCloseTo(4125 / 8.8, 5);
-    // Other nugget SKUs still GOLD JEWL ÷4
+    // Other GENTS RING SKUs also ÷8.8 (not GOLD JEWL ÷4)
     expect(
       wholeCostFromRules(
         {
@@ -85,7 +85,22 @@ describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
         },
         2888
       )
-    ).toBeCloseTo(2888 / 4, 5);
+    ).toBeCloseTo(2888 / 8.8, 5);
+  });
+
+  it("GENTS RING + GOLD JEWL → Sales/Tag ÷ 8.8 (not gold ÷4)", () => {
+    expect(
+      wholeCostFromRules(
+        {
+          sku: "222717",
+          department: "GENTS RING",
+          design: "GOLD JEWL",
+          class: "14KT",
+          description: "14KT Yellow-Gold CZ Nugget Gents Ring (No Warranty)",
+        },
+        8609
+      )
+    ).toBeCloseTo(8609 / 8.8, 5);
   });
 
   it("fixed SKU cost overrides diamond UV ÷8.8", () => {
