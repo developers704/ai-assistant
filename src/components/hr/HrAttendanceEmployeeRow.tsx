@@ -7,8 +7,9 @@ import type { HrAbsenceWaiver, HrEmployeeDay, HrViolation, HrWarningNotice } fro
 import { MISSING_PUNCH_LABEL } from "@/lib/hr/window";
 import {
   isEligibleForHrNotice,
-  noticeDescriptionForEmployee,
 } from "@/lib/hr/warning-notice";
+import { writeUpDescriptionForEmployee } from "@/lib/hr/write-up-notice";
+import { DEFAULT_HR_WRITE_UP_TEMPLATES, type HrWriteUpTemplates } from "@/lib/hr/notice-settings-shared";
 import {
   isWarningMailSessionReady,
   replyOnWarningThread,
@@ -325,8 +326,21 @@ export function HrAttendanceEmployeeRow({
     setError(null);
     setWriteUpOpen(true);
     setOpen(true);
-    if (!writeUpText.trim()) {
-      setWriteUpText(noticeDescriptionForEmployee(emp));
+    if (!writeUpText.trim()) void loadWriteUpTemplate();
+  };
+
+  const loadWriteUpTemplate = async () => {
+    try {
+      const res = await fetch("/api/hr/warnings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "senderConfig" }),
+      });
+      const body = await res.json();
+      const templates = body.writeUpTemplates as HrWriteUpTemplates | undefined;
+      setWriteUpText(writeUpDescriptionForEmployee(emp, templates ?? DEFAULT_HR_WRITE_UP_TEMPLATES));
+    } catch {
+      setWriteUpText(writeUpDescriptionForEmployee(emp));
     }
   };
 

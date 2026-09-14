@@ -4,17 +4,23 @@ import { isLikelyEmail } from "./mail-routing";
 import {
   DEFAULT_HR_WARNING_TEMPLATES,
   HR_WARNING_TEMPLATE_KEYS,
+  DEFAULT_HR_WRITE_UP_TEMPLATES,
+  HR_WRITE_UP_TEMPLATE_KEYS,
   type HrWarningTemplates,
+  type HrWriteUpTemplates,
 } from "./notice-settings-shared";
 
 export { DEFAULT_HR_WARNING_TEMPLATES, HR_WARNING_TEMPLATE_KEYS } from "./notice-settings-shared";
 export type { HrWarningTemplateKey, HrWarningTemplates } from "./notice-settings-shared";
+export { DEFAULT_HR_WRITE_UP_TEMPLATES, HR_WRITE_UP_TEMPLATE_KEYS } from "./notice-settings-shared";
+export type { HrWriteUpTemplateKey, HrWriteUpTemplates } from "./notice-settings-shared";
 
 export type HrNoticeSettings = {
   writeUpFrom: string;
   writeUpPasswordConfigured: boolean;
   warningFrom: string;
   templates: HrWarningTemplates;
+  writeUpTemplates: HrWriteUpTemplates;
 };
 
 export type StoredHrNoticeSettings = HrNoticeSettings & { writeUpPassword?: string };
@@ -58,6 +64,7 @@ export function defaultHrNoticeSettings(): StoredHrNoticeSettings {
     writeUpPasswordConfigured: Boolean(process.env.HR_SMTP_PASS?.trim()),
     warningFrom: fallbackWarningChatFrom(),
     templates: { ...DEFAULT_HR_WARNING_TEMPLATES },
+    writeUpTemplates: { ...DEFAULT_HR_WRITE_UP_TEMPLATES },
     writeUpPassword: "",
   };
 }
@@ -95,6 +102,7 @@ export function readHrNoticeSettings(): StoredHrNoticeSettings {
       writeUpPassword: String(raw.writeUpPassword ?? ""),
       writeUpPasswordConfigured: Boolean(raw.writeUpPassword || defaults.writeUpPasswordConfigured),
       templates: { ...defaults.templates, ...(raw.templates ?? {}) },
+      writeUpTemplates: { ...defaults.writeUpTemplates, ...(raw.writeUpTemplates ?? {}) },
     };
   } catch {
     return defaults;
@@ -112,6 +120,7 @@ export function validateHrNoticeSettingsInput(input: {
   writeUpPassword?: unknown;
   warningFrom?: unknown;
   templates?: unknown;
+  writeUpTemplates?: unknown;
 }): { ok: true; settings: StoredHrNoticeSettings } | { ok: false; error: string } {
   const current = readHrNoticeSettings();
   const writeUpFrom = String(input.writeUpFrom ?? current.writeUpFrom).trim();
@@ -126,6 +135,13 @@ export function validateHrNoticeSettingsInput(input: {
       if (typeof value === "string" && value.trim()) templates[key] = value.trim();
     }
   }
+  const writeUpTemplates = { ...current.writeUpTemplates };
+  if (input.writeUpTemplates && typeof input.writeUpTemplates === "object") {
+    for (const key of HR_WRITE_UP_TEMPLATE_KEYS) {
+      const value = (input.writeUpTemplates as Record<string, unknown>)[key];
+      if (typeof value === "string" && value.trim()) writeUpTemplates[key] = value.trim();
+    }
+  }
   const password = String(input.writeUpPassword ?? "");
   return {
     ok: true,
@@ -134,6 +150,7 @@ export function validateHrNoticeSettingsInput(input: {
       writeUpFrom,
       warningFrom,
       templates,
+      writeUpTemplates,
       writeUpPassword: password || current.writeUpPassword || "",
       writeUpPasswordConfigured: Boolean(password || current.writeUpPassword || process.env.HR_SMTP_PASS?.trim()),
     },

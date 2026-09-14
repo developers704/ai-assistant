@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/Button";
 import {
   DEFAULT_HR_WARNING_TEMPLATES,
   HR_WARNING_TEMPLATE_KEYS,
+  DEFAULT_HR_WRITE_UP_TEMPLATES,
+  HR_WRITE_UP_TEMPLATE_KEYS,
   type HrWarningTemplateKey,
+  type HrWriteUpTemplateKey,
 } from "@/lib/hr/notice-settings-shared";
 import type { HrNoticeSettings } from "@/lib/hr/notice-settings";
 
@@ -18,6 +21,8 @@ const labels: Record<HrWarningTemplateKey, string> = {
   absent: "Absent",
   missingSchedule: "Missing Schedule",
 };
+
+const writeUpLabels: Record<HrWriteUpTemplateKey, string> = labels;
 
 export function HrNoticeSettings() {
   const [settings, setSettings] = useState<HrNoticeSettings | null>(null);
@@ -89,6 +94,11 @@ export function HrNoticeSettings() {
           <p className="text-xs text-ink-muted">Available placeholders: <code>{"{{employeeName}}"}</code>, <code>{"{{date}}"}</code>, <code>{"{{lateMinutes}}"}</code>, <code>{"{{lateOutMinutes}}"}</code>, <code>{"{{earlyInMinutes}}"}</code>, <code>{"{{earlyOutMinutes}}"}</code>, <code>{"{{scheduledStart}}"}</code>, <code>{"{{scheduledEnd}}"}</code>.</p>
           {HR_WARNING_TEMPLATE_KEYS.map((key) => (
             <label key={key} className="block text-sm font-medium text-ink-secondary">{labels[key]}<textarea className={fieldClass} rows={2} value={settings.templates[key] || DEFAULT_HR_WARNING_TEMPLATES[key]} onChange={(e) => setSettings({ ...settings, templates: { ...settings.templates, [key]: e.target.value } })} /></label>
+          ))}
+          <p className="text-sm font-medium text-ink">Write-up messages</p>
+          <p className="text-xs text-ink-muted">These messages are prefilled when sending a write-up from Attendance. The same placeholders are supported, plus <code>[Employee Name]</code>.</p>
+          {HR_WRITE_UP_TEMPLATE_KEYS.map((key) => (
+            <label key={key} className="block text-sm font-medium text-ink-secondary">{writeUpLabels[key]}<textarea className={fieldClass} rows={3} value={settings.writeUpTemplates?.[key] || DEFAULT_HR_WRITE_UP_TEMPLATES[key]} onChange={(e) => setSettings({ ...settings, writeUpTemplates: { ...DEFAULT_HR_WRITE_UP_TEMPLATES, ...settings.writeUpTemplates, [key]: e.target.value } })} /></label>
           ))}
         </div>
         {error && <p className="text-sm text-rose-200">{error}</p>}
