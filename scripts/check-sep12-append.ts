@@ -24,7 +24,8 @@ assert.ok(sep12.length > 0, "Sep 12 rows must exist after append");
 
 const netSales = sep12.reduce((s, r) => s + r.netRevenue, 0);
 const dates = [...new Set(rows.map((r) => r.date))].sort();
-assert.equal(dates.at(-1), "2026-09-12");
+assert.ok((dates.at(-1) ?? "") >= "2026-09-12", `data must reach Sep 12, got ${dates.at(-1)}`);
+assert.ok(dates.includes("2026-09-12"), "Sep 12 must still be present");
 assert.ok(dates.includes("2026-09-11"), "Sep 11 must still be present");
 assert.ok(dates.includes("2026-09-10"), "Sep 10 must still be present");
 
