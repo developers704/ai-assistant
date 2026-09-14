@@ -6,6 +6,7 @@ import { parseTimecardCsv } from "@/lib/hr/parse-timecard";
 import { parseScheduleCsv } from "@/lib/hr/parse-schedule";
 import { analyzeDay, analyzeDays } from "@/lib/hr/analyze";
 import { namesMatch } from "@/lib/hr/name-match";
+import { keepHrAttendanceEmployee } from "@/lib/hr/attendance-roster";
 import { listAbsenceWaivers, listWarningNotices, resetHrNoticeStore } from "@/lib/hr/warning-store";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
@@ -116,6 +117,12 @@ describe("analyzeDays matches per-day analyze", () => {
     expect(
       entries
         .filter((e) => e.date === "2026-08-01")
+        .filter((entry) =>
+          keepHrAttendanceEmployee(
+            entry.employeeName,
+            rows.filter((r) => namesMatch(r.employeeName, entry.employeeName))
+          )
+        )
         .every((entry) => a.some((emp) => namesMatch(emp.employeeName, entry.employeeName)))
     ).toBe(true);
   });

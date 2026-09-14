@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import type { HrScheduleEntry, HrTimecardRow, HrUploadMeta } from "./types";
 import { parseTimecardFile, timecardDateRange } from "./parse-timecard";
+import { keepHrAttendanceTimecardRow } from "./attendance-roster";
 import {
   expandWeeklyScheduleToWindow,
   parseScheduleCsv,
@@ -20,7 +21,7 @@ const SEED_SCHEDULE = path.join(process.cwd(), "data", "hr", "Schedule-August-20
 const USER_DATA_KEY = "user";
 
 /** One-shot: drop stacked August uploads + test warnings on deploy. */
-const HR_RUNTIME_RESET_KEY = "fresh-august-2026-09-10-irtaza";
+const HR_RUNTIME_RESET_KEY = "fresh-august-2026-09-14-sales-mgr-v2";
 
 type HrIndex = {
   timecards: HrUploadMeta[];
@@ -297,7 +298,10 @@ export function loadActiveTimecardRows(): HrTimecardRow[] {
   if (!fs.existsSync(jsonPath)) return [];
   const rows = JSON.parse(fs.readFileSync(jsonPath, "utf8")) as HrTimecardRow[];
   return rows.filter(
-    (r) => r.date >= HR_ATTENDANCE_FROM && r.date <= HR_ATTENDANCE_TO
+    (r) =>
+      r.date >= HR_ATTENDANCE_FROM &&
+      r.date <= HR_ATTENDANCE_TO &&
+      keepHrAttendanceTimecardRow(r)
   );
 }
 

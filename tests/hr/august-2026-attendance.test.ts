@@ -15,6 +15,7 @@ import {
   MISSING_PUNCH_LABEL,
 } from "@/lib/hr/window";
 import type { HrTimecardRow } from "@/lib/hr/types";
+import { keepHrAttendanceEmployee } from "@/lib/hr/attendance-roster";
 
 describe("parseClockToMinutes AM/PM", () => {
   it("parses AM/PM punches against schedule times", () => {
@@ -98,22 +99,32 @@ describe("August 2026 seed files", () => {
     expect(expanded.some((e) => e.date.startsWith("2026-06-"))).toBe(false);
   });
 
-  it("matches security guard 1 on August 1 worked hours vs punches", () => {
+  it("keeps sales associates and managers only (drops guard 1 / Syed Muqeet Asim)", () => {
     const rows = parseTimecardCsv(timecard);
-    const { entries } = parseScheduleCsv(schedule);
+    expect(rows.every((r) => /sales associate|manager/i.test(r.jobTitle ?? ""))).toBe(true);
+    expect(
+      rows.some(
+        (r) =>
+          namesMatch(r.employeeName, "1, security guard") ||
+          /syed\s+muqeet\s+asim/i.test(r.employeeName) ||
+          /syed\s+muqeet\s+asim/i.test(r.guardsName ?? "")
+      )
+    ).toBe(false);
     const punches = rows.filter(
-      (r) => r.date === "2026-08-01" && namesMatch(r.employeeName, "1 security guard")
+      (r) => r.date === "2026-08-01" && namesMatch(r.employeeName, "2, security guard")
     );
-    const day = analyzeEmployeeDay("1, security guard", "2026-08-01", punches, entries);
-    expect(day.displayName).toBe("Syed Muqeet Asim");
-    expect(punches[0]!.guardsName).toBe("Syed Muqeet Asim");
+    const { entries } = parseScheduleCsv(schedule);
+    const day = analyzeEmployeeDay("2, Security Guard", "2026-08-01", punches, entries);
+    expect(punches.length).toBeGreaterThan(0);
+    expect(punches[0]!.jobTitle).toBe("Sales Associate");
+    expect(day.displayName).toBe("Muhammad Aleem");
+    expect(day.employeeCode).toBe("AM5");
     expect(day.schedule?.start).toMatch(/9:15 AM/i);
-    expect(day.schedule?.end).toMatch(/9:00 PM/i);
-    expect(day.totalWorkLabel).toBe("11:22");
-    expect(day.totalMealLabel).toBe("0:49");
+    expect(day.totalWorkLabel).toBe("11:09");
+    expect(day.totalMealLabel).toBe("1:01");
     expect(day.lateMinutes).toBeNull();
-    expect(day.segments[0]!.timeIn).toBe("9:22 AM");
-    expect(day.segments[0]!.timeOut).toBe("2:20 PM");
+    expect(day.segments[0]!.timeIn).toBe("9:09 AM");
+    expect(day.segments[0]!.timeOut).toBe("1:53 PM");
     expect(day.violations.some((v) => v.type === "no_schedule")).toBe(false);
   });
 
@@ -121,16 +132,16 @@ describe("August 2026 seed files", () => {
     const rows = parseTimecardCsv(timecard);
     const { entries } = parseScheduleCsv(schedule);
     const punches = rows.filter(
-      (r) => r.date === "2026-08-01" && /adnan,\s*sayed/i.test(r.employeeName)
+      (r) => r.date === "2026-08-01" && /altaf,\s*fahad/i.test(r.employeeName)
     );
     expect(punches.length).toBeGreaterThan(0);
-    expect(punches[0]!.employeeCode).toBe("AS4");
-    expect(punches[0]!.jobTitle).toBe("Corporate Manager");
-    expect(punches[0]!.manager).toBe("Shaun");
-    expect(punches[0]!.store).toBe("Admin");
-    const day = analyzeEmployeeDay("Adnan, Sayed M", "2026-08-01", punches, entries);
-    expect(day.lateMinutes).toBe(12);
-    expect(day.schedule?.start).toMatch(/11:00 AM/i);
+    expect(punches[0]!.employeeCode).toBe("FA");
+    expect(punches[0]!.jobTitle).toBe("Manager");
+    expect(punches[0]!.manager).toBe("AJ");
+    expect(punches[0]!.store).toBe("Oakridge");
+    const day = analyzeEmployeeDay("Altaf, Fahad", "2026-08-01", punches, entries);
+    expect(day.lateMinutes).toBe(18);
+    expect(day.schedule?.start).toMatch(/9:00 AM/i);
     expect(day.violations.some((v) => v.type === "no_schedule")).toBe(false);
   });
 
@@ -138,10 +149,10 @@ describe("August 2026 seed files", () => {
     const rows = parseTimecardCsv(timecard);
     const { entries } = parseScheduleCsv(schedule);
     const punches = rows.filter(
-      (r) => r.date === "2026-08-01" && /jivani,\s*fayaz/i.test(r.employeeName)
+      (r) => r.date === "2026-08-01" && /flores,\s*jorge\s*a/i.test(r.employeeName)
     );
     expect(punches.length).toBeGreaterThan(0);
-    const day = analyzeEmployeeDay("Jivani, Fayaz", "2026-08-01", punches, entries);
+    const day = analyzeEmployeeDay("Flores, Jorge A", "2026-08-01", punches, entries);
     expect(day.schedule).toBeNull();
     expect(day.violations.some((v) => v.type === "no_schedule" && v.message === "Schedule missing")).toBe(
       true
@@ -178,12 +189,21 @@ describe("August 2026 seed files", () => {
     expect(day.violations.some((v) => v.type === "absent")).toBe(false);
   });
 
-  it("includes every scheduled name for August 1 even without punches", () => {
-    const rows = parseTimecardCsv(timecard).filter((r) => r.date === "2026-08-01");
+  it("includes scheduled sales associates and managers for August 1 even without punches", () => {
+    const allRows = parseTimecardCsv(timecard);
     const { entries } = parseScheduleCsv(schedule);
-    const employees = analyzeDay("2026-08-01", rows, entries);
+    const employees = analyzeDay("2026-08-01", allRows, entries);
+    expect(
+      employees.some(
+        (emp) =>
+          namesMatch(emp.employeeName, "1, security guard") ||
+          /syed\s+muqeet\s+asim/i.test(emp.displayName)
+      )
+    ).toBe(false);
     const scheduled = entries.filter((e) => e.date === "2026-08-01");
     for (const entry of scheduled) {
+      const profile = allRows.filter((r) => namesMatch(r.employeeName, entry.employeeName));
+      if (!keepHrAttendanceEmployee(entry.employeeName, profile)) continue;
       expect(employees.some((emp) => namesMatch(emp.employeeName, entry.employeeName))).toBe(
         true
       );

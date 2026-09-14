@@ -6,6 +6,7 @@ import type {
   HrViolation,
 } from "./types";
 import { namesMatch } from "./name-match";
+import { keepHrAttendanceEmployee } from "./attendance-roster";
 import {
   checkLateEarly,
   checkEarlyOut,
@@ -287,7 +288,9 @@ export function analyzeDays(
     const daySchedule = scheduleByDate.get(date) ?? [];
     for (const name of uniqueEmployeeNames(dayRows, daySchedule)) {
       const punches = dayRows.filter((r) => namesMatch(r.employeeName, name));
-      out.push(analyzeEmployeeDay(name, date, punches, daySchedule, profileFor(name)));
+      const profile = profileFor(name);
+      if (!keepHrAttendanceEmployee(name, punches.length ? punches : profile)) continue;
+      out.push(analyzeEmployeeDay(name, date, punches, daySchedule, profile));
     }
   }
   return out;

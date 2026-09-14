@@ -2,6 +2,7 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import type { HrTimecardRow } from "./types";
 import { isoDateFromCell, parseDurationLabel } from "./time-utils";
+import { keepHrAttendanceTimecardRow } from "./attendance-roster";
 
 function cellStr(v: unknown): string | null {
   if (v == null || v === "") return null;
@@ -62,7 +63,7 @@ function rowsFromKeyed(records: Record<string, unknown>[]): HrTimecardRow[] {
       mail: mailKey ? cellStr(row[mailKey]) : null,
     });
   }
-  return out;
+  return out.filter(keepHrAttendanceTimecardRow);
 }
 
 function colIndex(header: unknown[], pattern: RegExp): number {
@@ -134,7 +135,7 @@ function rowsFromMatrix(matrix: unknown[][]): HrTimecardRow[] {
       mail: at(r, mailI),
     });
   }
-  return out;
+  return out.filter(keepHrAttendanceTimecardRow);
 }
 
 export function parseTimecardCsv(text: string): HrTimecardRow[] {

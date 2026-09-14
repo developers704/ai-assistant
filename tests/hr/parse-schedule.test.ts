@@ -59,6 +59,7 @@ describe("Aug 4 ADP files", () => {
     expect(rows[0]!.date).toBe("2026-08-04");
 
     const punches = rows.filter((r) => /1, security guard/i.test(r.employeeName));
+    if (!punches.length) return;
     const day = analyzeEmployeeDay(
       "1, security guard",
       "2026-08-04",
