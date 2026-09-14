@@ -35,7 +35,7 @@ invalidateInventoryCache();
 
 const status = getInventoryStatus();
 const sampleSku = "240297";
-const sampleOnhand = lookupOnhandQty("VJ-OAK", sampleSku);
+const sampleOnhand = lookupOnhandQty(sampleSku, "VJ-OAK");
 
 console.log(
   JSON.stringify(

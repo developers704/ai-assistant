@@ -23,6 +23,7 @@ import {
   Percent,
   Brain,
   Briefcase,
+  Package,
   Menu,
   X,
   Search,
@@ -51,6 +52,7 @@ const SHOW_GMAIL_EMAIL_NAV = false;
 
 const ADMIN_NAV: NavItem[] = [
   { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
+  { href: "/inventory", label: "Inventory", icon: Package, palette: "amber" },
   { href: "/intelligence", label: "Intelligence", icon: Brain, palette: "violet" },
   { href: "/chat", label: "AI Chat", icon: MessageSquare, palette: "violet" },
   { href: "/news", label: "News & Markets", icon: Newspaper, palette: "sky" },
@@ -72,6 +74,7 @@ const ADMIN_NAV: NavItem[] = [
 
 const ALL_NAV_ITEMS: Record<string, NavItem> = {
   "/sales": { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
+  "/inventory": { href: "/inventory", label: "Inventory", icon: Package, palette: "amber" },
   "/intelligence": { href: "/intelligence", label: "Intelligence", icon: Brain, palette: "violet" },
   "/stores": { href: "/stores", label: "Stores Map & Info", icon: MapPinned, palette: "violet" },
   "/calculator": { href: "/calculator", label: "Price Calculator", icon: Calculator, palette: "amber" },
@@ -95,6 +98,7 @@ const ALL_NAV_ITEMS: Record<string, NavItem> = {
 
 const DM_PAGE_TO_PERMISSION: Record<string, UserPermissionKey> = {
   "/sales": "sales_dashboard",
+  "/inventory": "sales_dashboard",
   "/intelligence": "sales_dashboard",
   "/stores": "stores_map",
   "/calculator": "price_calculator",
@@ -154,6 +158,7 @@ function fallbackNavForRole(role?: string | null): NavItem[] {
   }
   return [
     ALL_NAV_ITEMS["/sales"]!,
+    ALL_NAV_ITEMS["/inventory"]!,
     ALL_NAV_ITEMS["/intelligence"]!,
     ALL_NAV_ITEMS["/stores"]!,
     ALL_NAV_ITEMS["/calculator"]!,

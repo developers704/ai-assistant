@@ -22,7 +22,7 @@ describe("onhand SKU×store lookup", () => {
     expect(status.rowCount).toBeGreaterThan(1000);
 
     expect(lookupOnhandQty("194397", "VJ-ARDN")).toBe(1);
-    expect(lookupOnhandQty("197742", "VJ-NORTH")).toBe(1);
+    expect(lookupOnhandQty("213650", "VJ-NORTH")).toBe(1);
     expect(lookupOnhandQty("194397", "NO-SUCH-STORE")).toBe(0);
   });
 
@@ -91,13 +91,13 @@ describe("onhand SKU×store lookup", () => {
     expect(rollup!.total).toBeGreaterThan(2);
     expect(rollup!.stores[0]?.store.toUpperCase()).toBe("MAIN");
     expect(rollup!.stores.find((s) => isMainOnhandStore(s.store))?.onhand).toBeGreaterThan(0);
-    expect(lookupOnhandQty("197742", "VJ-NORTH")).toBe(1);
-    expect(lookupOnhandQty("240659", "VJ-ONT")).toBe(1);
+    expect(lookupOnhandQty("220809", "VJ-SERRA")).toBe(1);
+    expect(lookupOnhandQty("236143", "VJ-OAK")).toBe(1);
 
-    const north = rollup!.stores.find((s) => s.store.toUpperCase() === "VJ-NORTH");
-    expect(north?.skus.some((sku) => sku.sku === "197742" && sku.onhand === 1)).toBe(true);
-    expect(north?.onhand).toBe(
-      north!.skus.reduce((sum, sku) => sum + sku.onhand, 0)
+    const serra = rollup!.stores.find((s) => s.store.toUpperCase() === "VJ-SERRA");
+    expect(serra?.skus.some((sku) => sku.sku === "220809" && sku.onhand === 1)).toBe(true);
+    expect(serra?.onhand).toBe(
+      serra!.skus.reduce((sum, sku) => sum + sku.onhand, 0)
     );
   });
 });

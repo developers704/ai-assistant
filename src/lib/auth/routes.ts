@@ -9,6 +9,7 @@ import {
 
 export const DM_ALLOWED_APP_PREFIXES = [
   "/sales",
+  "/inventory",
   "/intelligence",
   "/calculator",
   "/stores",
@@ -16,6 +17,7 @@ export const DM_ALLOWED_APP_PREFIXES = [
 
 const APP_TO_PERMISSION: Record<string, UserPermissionKey | UserPermissionKey[]> = {
   "/sales": "sales_dashboard",
+  "/inventory": "sales_dashboard",
   "/intelligence": "sales_dashboard",
   "/stores": "stores_map",
   "/calculator": "price_calculator",
@@ -40,6 +42,7 @@ const API_TO_PERMISSION: Array<{
   permission: UserPermissionKey | UserPermissionKey[];
 }> = [
   { prefix: "/api/sales", permission: ["sales_dashboard", "hr_sales"] },
+  { prefix: "/api/inventory-mgmt", permission: "sales_dashboard" },
   { prefix: "/api/intelligence", permission: "sales_dashboard" },
   { prefix: "/api/stores", permission: "stores_map" },
   { prefix: "/api/reports", permission: ["sales_dashboard", "hr_sales"] },

@@ -253,6 +253,13 @@ export function lookupInventory(
   };
 }
 
+/** Cached catalog rows (SKU × store). Used by Inventory management. */
+export function listInventoryItems(): InventoryItem[] {
+  const index = loadIndex();
+  if (!index) return [];
+  return [...index.byStoreSku.values()];
+}
+
 export function invalidateInventoryCache() {
   cache = null;
 }
