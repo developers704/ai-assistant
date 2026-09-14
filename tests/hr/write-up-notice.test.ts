@@ -5,6 +5,7 @@ import { buildWarningNoticePdf } from "@/lib/hr/warning-notice-pdf";
 import {
   draftWriteUpNotice,
   requireWriteUpDescription,
+  writeUpDescriptionForEmployee,
   writeUpCaseId,
   writeUpPdfFilename,
 } from "@/lib/hr/write-up-notice";
@@ -46,6 +47,19 @@ function pdfHaystack(bytes: Uint8Array): string {
 }
 
 describe("disciplinary write-up", () => {
+  it("renders the configured violation template with employee placeholders", () => {
+    expect(
+      writeUpDescriptionForEmployee(shazia, {
+        lateIn: "{{employeeName}} was {{lateMinutes}} minutes late on {{date}}.",
+        lateOut: "late out",
+        earlyIn: "early in",
+        earlyOut: "early out",
+        absent: "absent",
+        missingSchedule: "missing schedule",
+      })
+    ).toBe("Shazia Ahmed was 29 minutes late on June 7, 2026.");
+  });
+
   it("requires a per-employee description at send time", () => {
     expect(() => requireWriteUpDescription("   ")).toThrow(/description/i);
     expect(() => draftWriteUpNotice(shazia, "")).toThrow(/description/i);

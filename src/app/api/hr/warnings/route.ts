@@ -17,6 +17,7 @@ import { buildWarningNoticePdf, pdfBytesToBase64 } from "@/lib/hr/warning-notice
 import {
   draftWriteUpNotice,
   requireWriteUpDescription,
+  writeUpDescriptionForEmployee,
   writeUpFromDraft,
 } from "@/lib/hr/write-up-notice";
 import { buildWriteUpPdf } from "@/lib/hr/write-up-pdf";
@@ -189,6 +190,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       warningFrom: noticeSettings.warningFrom,
       writeUpFrom: noticeSettings.writeUpFrom,
+      writeUpTemplates: noticeSettings.writeUpTemplates,
     });
   }
 
@@ -290,12 +292,12 @@ export async function POST(req: NextRequest) {
       : body) as Record<string, unknown>;
     const employeeName = String(source.employeeName ?? "").trim();
     const date = String(source.date ?? "").trim();
-    const description = String(body.description ?? source.description ?? "").trim();
+    let description = String(body.description ?? source.description ?? "").trim();
     if (!employeeName || !date) return NextResponse.json({ error: "employeeName and date are required" }, { status: 400 });
-    if (!description) return NextResponse.json({ error: "Write a description before sending the write-up" }, { status: 400 });
     const emp = analyzeDay(date, loadActiveTimecardRows(), loadActiveScheduleEntries()).find((e) => namesMatch(e.employeeName, employeeName));
     if (!emp || !isEligibleForHrNotice(emp)) return NextResponse.json({ error: "No attendance violation for a write-up" }, { status: 400 });
     const settings = readHrNoticeSettings();
+    if (!description) description = writeUpDescriptionForEmployee(emp, settings.writeUpTemplates);
     const mailFromNotice = String(
       source.mail ?? source.Mail ?? source.email ?? source.Email ?? ""
     ).trim();
@@ -375,7 +377,7 @@ export async function POST(req: NextRequest) {
     }
     let description: string;
     try {
-      description = requireWriteUpDescription(descriptionRaw);
+      description = descriptionRaw.trim() ? requireWriteUpDescription(descriptionRaw) : "";
     } catch (e) {
       return NextResponse.json(
         {
@@ -400,6 +402,10 @@ export async function POST(req: NextRequest) {
         { error: "No attendance violation for a write-up" },
         { status: 400 }
       );
+    }
+
+    if (!description) {
+      description = writeUpDescriptionForEmployee(emp, readHrNoticeSettings().writeUpTemplates);
     }
 
     const existingWriteUp = findWriteUpForEmployee(employeeName, date);

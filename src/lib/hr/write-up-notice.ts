@@ -2,12 +2,22 @@ import type { HrWarningNotice } from "./types";
 import {
   HR_WARNING_FROM,
   HR_WARNING_TO,
+  formatWarningMailDate,
+  isEarlyForWarning,
+  isEarlyOutForWarning,
+  isLateForWarning,
+  isLateOutForWarning,
   isEligibleForHrNotice,
   noticeDescriptionForEmployee,
   noticeEmployeeSlug,
   type HrNoticeEmployee,
 } from "./warning-notice";
 import { formatHrMailTo, parseHrMailAddresses, type HrMailRouting } from "./mail-routing";
+import {
+  DEFAULT_HR_WRITE_UP_TEMPLATES,
+  type HrWriteUpTemplateKey,
+  type HrWriteUpTemplates,
+} from "./notice-settings-shared";
 
 export type WriteUpDraft = {
   caseId: string;
@@ -27,6 +37,35 @@ export type WriteUpDraft = {
   description: string;
   pdfFilename: string;
 };
+
+function writeUpTemplateKey(emp: HrNoticeEmployee): HrWriteUpTemplateKey {
+  if (isLateForWarning(emp.lateMinutes)) return "lateIn";
+  if (isLateOutForWarning(emp.lateOutMinutes) || emp.violations?.some((v) => v.type === "late_out")) return "lateOut";
+  if (isEarlyForWarning(emp.earlyInMinutes) || emp.violations?.some((v) => v.type === "early_in")) return "earlyIn";
+  if (isEarlyOutForWarning(emp.earlyOutMinutes) || emp.violations?.some((v) => v.type === "early_out")) return "earlyOut";
+  if (emp.violations?.some((v) => v.type === "absent")) return "absent";
+  return "missingSchedule";
+}
+
+export function writeUpDescriptionForEmployee(
+  emp: HrNoticeEmployee,
+  templates: HrWriteUpTemplates = DEFAULT_HR_WRITE_UP_TEMPLATES,
+): string {
+  const schedule = emp.schedule as { start?: string; end?: string } | null | undefined;
+  const values: Record<string, string> = {
+    employeeName: emp.displayName?.trim() || emp.employeeName,
+    date: formatWarningMailDate(emp.date),
+    lateMinutes: String(emp.lateMinutes ?? 0),
+    lateOutMinutes: String(emp.lateOutMinutes ?? 0),
+    earlyInMinutes: String(emp.earlyInMinutes ?? 0),
+    earlyOutMinutes: String(emp.earlyOutMinutes ?? 0),
+    scheduledStart: schedule?.start ?? "",
+    scheduledEnd: schedule?.end ?? "",
+  };
+  return (templates[writeUpTemplateKey(emp)] || DEFAULT_HR_WRITE_UP_TEMPLATES[writeUpTemplateKey(emp)])
+    .replace(/\[Employee Name\]/g, values.employeeName)
+    .replace(/\{\{\s*(employeeName|date|lateMinutes|lateOutMinutes|earlyInMinutes|earlyOutMinutes|scheduledStart|scheduledEnd)\s*\}\}/g, (_, name: string) => values[name] ?? "");
+}
 
 function escapeHtml(value: string): string {
   return value
