@@ -49,6 +49,8 @@ type NavItem = {
  * Restore: set `SHOW_GMAIL_EMAIL_NAV` to `true`.
  */
 const SHOW_GMAIL_EMAIL_NAV = false;
+/** Sales Intelligence page — hidden from nav. Restore: set true. */
+const SHOW_INTELLIGENCE_NAV = false;
 
 const ADMIN_NAV: NavItem[] = [
   { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
@@ -167,8 +169,11 @@ function fallbackNavForRole(role?: string | null): NavItem[] {
 }
 
 function withoutHiddenNav(items: NavItem[]): NavItem[] {
-  if (SHOW_GMAIL_EMAIL_NAV) return items;
-  return items.filter((item) => item.href !== "/email");
+  return items.filter((item) => {
+    if (!SHOW_GMAIL_EMAIL_NAV && item.href === "/email") return false;
+    if (!SHOW_INTELLIGENCE_NAV && item.href === "/intelligence") return false;
+    return true;
+  });
 }
 
 function useNavItems(): NavItem[] {
