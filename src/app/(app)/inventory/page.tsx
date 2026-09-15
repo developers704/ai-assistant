@@ -97,17 +97,10 @@ const STOCK_SORTS: { id: string; label: string }[] = [
   { id: "costPrice", label: "Cost" },
   { id: "vendorModel", label: "Vendor model" },
   { id: "store", label: "Store" },
-  { id: "coverage", label: "Coverage" },
 ];
 
 function money(n: number): string {
   return formatCurrency(n);
-}
-
-function coverageLabel(v: number | null): string {
-  if (v == null) return "—";
-  if (!Number.isFinite(v)) return "∞";
-  return `${Math.round(v * 100)}%`;
 }
 
 function datesBetween(from: string, to: string): string[] {
@@ -279,7 +272,7 @@ export default function InventoryPage() {
           </Button>
         </div>
 
-        <Card className="overflow-hidden p-0">
+        <Card className="overflow-x-auto p-0">
           {loading && !data ? (
             <div className="p-8 text-center text-ink-muted">Loading inventory…</div>
           ) : error ? (
@@ -290,10 +283,10 @@ export default function InventoryPage() {
                 <tr>
                   <th className="px-3 py-2">Vendor model</th>
                   <th className="px-3 py-2">Description / department</th>
-                  <th className="px-3 py-2">Onhand</th>
-                  <th className="px-3 py-2">Sold</th>
-                  <th className="px-3 py-2">From</th>
-                  <th className="px-3 py-2">To</th>
+                  <th className="whitespace-nowrap px-3 py-2">Onhand</th>
+                  <th className="whitespace-nowrap px-3 py-2">Sold</th>
+                  <th className="whitespace-nowrap px-3 py-2">To</th>
+                  <th className="whitespace-nowrap px-3 py-2">From</th>
                   <th className="px-3 py-2">Tag price</th>
                   <th className="px-3 py-2">{data?.costLabel ?? "Cost price"}</th>
                   <th className="px-3 py-2">Sold revenue</th>
@@ -310,28 +303,28 @@ export default function InventoryPage() {
                       <div className="text-ink">{r.description || "—"}</div>
                       <div className="text-white/45">{r.department || "—"}</div>
                     </td>
-                    <td className="px-3 py-2 align-top">
-                      <span className="inline-block rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold text-amber-100">
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
+                      <span className="inline-flex whitespace-nowrap rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold tabular-nums text-amber-100">
                         {formatPieceCount(r.fromOnhand)}
                       </span>
                     </td>
-                    <td className="px-3 py-2 align-top">
-                      <span className="inline-block rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold text-amber-100">
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
+                      <span className="inline-flex whitespace-nowrap rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold tabular-nums text-amber-100">
                         {formatPieceCount(r.fromSoldQty)}
                       </span>
                     </td>
-                    <td className="px-3 py-2 align-top">
-                      <div className="flex items-center gap-1.5">
-                        <span>{r.fromStore}</span>
-                        <TierBadge tier={r.fromTier} />
-                        <span className="text-white/40">{r.fromDm}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 align-top">
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <div className="flex items-center gap-1.5">
                         <span>{r.toStore}</span>
                         <TierBadge tier={r.toTier} />
                         <span className="text-white/40">{r.toDm}</span>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
+                      <div className="flex items-center gap-1.5">
+                        <span>{r.fromStore}</span>
+                        <TierBadge tier={r.fromTier} />
+                        <span className="text-white/40">{r.fromDm}</span>
                       </div>
                     </td>
                     <td className="px-3 py-2 align-top">{money(r.tagPrice)}</td>
@@ -350,7 +343,6 @@ export default function InventoryPage() {
                   <th className="px-3 py-2">Description / department</th>
                   <th className="px-3 py-2">On hand</th>
                   <th className="px-3 py-2">Sold / Rev</th>
-                  <th className="px-3 py-2">Cover</th>
                   <th className="px-3 py-2">Tag / {data?.costLabel ?? "Cost"}</th>
                 </tr>
               </thead>
@@ -374,7 +366,6 @@ export default function InventoryPage() {
                     </td>
                     <td className="px-3 py-2 align-top">{formatPieceCount(r.onhand)}</td>
                     <td className="px-3 py-2 align-top">{formatPieceCount(r.soldQty)} · {money(r.revenue)}</td>
-                    <td className="px-3 py-2 align-top">{coverageLabel(r.coverage)}</td>
                     <td className="px-3 py-2 align-top">{money(r.tagPrice)} · {money(r.costPrice)}</td>
                   </tr>
                 ))}
