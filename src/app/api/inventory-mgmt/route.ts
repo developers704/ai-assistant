@@ -8,7 +8,7 @@ import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { getLatestReportMeta } from "@/lib/reports/store";
 import { listInventoryItems } from "@/lib/inventory/store";
 import { queryInventoryMgmt } from "@/lib/inventory/mgmt-engine";
-import { isInventoryMgmtStore, listInventoryMgmtStores } from "@/lib/inventory/mgmt-stores";
+import { isIgnoredInventoryDepartment, isInventoryMgmtStore, listInventoryMgmtStores } from "@/lib/inventory/mgmt-stores";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 
 export const runtime = "nodejs";
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   const dateTo = from <= to ? to : from;
   const view = sp.get("view") === "stock" ? "stock" : "transfers";
   const dir = sp.get("dir") === "asc" ? "asc" : "desc";
-  const sort = sp.get("sort")?.trim() || (view === "stock" ? "onhand" : "soldQty");
+  const sort = sp.get("sort")?.trim() || (view === "stock" ? "onhand" : "fromSoldQty");
   const offset = Number(sp.get("offset") ?? 0) || 0;
   const limit = Number(sp.get("limit") ?? 50) || 50;
   const q = sp.get("q")?.trim() || "";
@@ -58,7 +58,9 @@ export async function GET(req: NextRequest) {
     subclasses,
     vendors,
   });
-  const items = listInventoryItems().filter((item) => isInventoryMgmtStore(item.store));
+  const items = listInventoryItems().filter(
+    (item) => isInventoryMgmtStore(item.store) && !isIgnoredInventoryDepartment(item.department)
+  );
 
   const result = queryInventoryMgmt(sales, items, {
     dateFrom,

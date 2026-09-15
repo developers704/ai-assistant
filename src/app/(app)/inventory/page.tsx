@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Package, ArrowRight, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Package, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/Sidebar";
 import { PageShell, PageShellHeader, PageShellBody } from "@/components/layout/PageShell";
 import { Card } from "@/components/ui/Card";
@@ -18,6 +18,7 @@ type TransferRow = {
   vendorModel: string;
   sku: string;
   vendor: string;
+  description: string;
   department: string;
   design: string;
   productClass: string;
@@ -35,8 +36,7 @@ type TransferRow = {
   fromTier: string;
   fromOnhand: number;
   fromSoldQty: number;
-  qty: number;
-  reason: string;
+  fromRevenue: number;
 };
 
 type StockRow = {
@@ -47,6 +47,7 @@ type StockRow = {
   vendorModel: string;
   sku: string;
   vendor: string;
+  description: string;
   department: string;
   design: string;
   productClass: string;
@@ -77,7 +78,18 @@ type Payload = {
   };
 };
 
-const SORTS: { id: string; label: string }[] = [
+const TRANSFER_SORTS: { id: string; label: string }[] = [
+  { id: "fromSoldQty", label: "Sold qty" },
+  { id: "fromOnhand", label: "On hand" },
+  { id: "fromRevenue", label: "Sold revenue" },
+  { id: "tagPrice", label: "Tag" },
+  { id: "costPrice", label: "Cost" },
+  { id: "vendorModel", label: "Vendor model" },
+  { id: "fromStore", label: "From store" },
+  { id: "toStore", label: "To store" },
+];
+
+const STOCK_SORTS: { id: string; label: string }[] = [
   { id: "soldQty", label: "Sold qty" },
   { id: "onhand", label: "On hand" },
   { id: "revenue", label: "Revenue" },
@@ -133,7 +145,7 @@ export default function InventoryPage() {
   const [vendors, setVendors] = useState<string[]>([]);
   const [q, setQ] = useState("");
   const [qDraft, setQDraft] = useState("");
-  const [sort, setSort] = useState("soldQty");
+  const [sort, setSort] = useState("fromSoldQty");
   const [dir, setDir] = useState<Dir>("desc");
   const [offset, setOffset] = useState(0);
   const [data, setData] = useState<Payload | null>(null);
@@ -210,7 +222,7 @@ export default function InventoryPage() {
       </PageShellHeader>
       <PageShellBody className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant={view === "transfers" ? "primary" : "ghost"} onClick={() => { setView("transfers"); setOffset(0); setSort("soldQty"); }}>
+          <Button size="sm" variant={view === "transfers" ? "primary" : "ghost"} onClick={() => { setView("transfers"); setOffset(0); setSort("fromSoldQty"); }}>
             Transfers
           </Button>
           <Button size="sm" variant={view === "stock" ? "primary" : "ghost"} onClick={() => { setView("stock"); setOffset(0); setSort("onhand"); }}>
@@ -258,7 +270,7 @@ export default function InventoryPage() {
             onChange={(e) => { setSort(e.target.value); setOffset(0); }}
             className="h-9 rounded-xl bg-white/5 px-2 text-sm text-ink ring-1 ring-white/10"
           >
-            {SORTS.map((s) => (
+            {(view === "transfers" ? TRANSFER_SORTS : STOCK_SORTS).map((s) => (
               <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </select>
@@ -276,13 +288,15 @@ export default function InventoryPage() {
             <table className="w-full text-left text-[13px]">
               <thead className="bg-white/[0.03] text-[11px] uppercase tracking-wide text-white/45">
                 <tr>
-                  <th className="px-3 py-2">Vendor model / SKU</th>
-                  <th className="px-3 py-2">Dept / design / class</th>
-                  <th className="px-3 py-2">Need</th>
-                  <th className="px-3 py-2">Sold / OH / Rev</th>
+                  <th className="px-3 py-2">Vendor model</th>
+                  <th className="px-3 py-2">Description / department</th>
+                  <th className="px-3 py-2">Onhand</th>
+                  <th className="px-3 py-2">Sold</th>
                   <th className="px-3 py-2">From</th>
-                  <th className="px-3 py-2">Move</th>
-                  <th className="px-3 py-2">Tag / {data?.costLabel ?? "Cost"}</th>
+                  <th className="px-3 py-2">To</th>
+                  <th className="px-3 py-2">Tag price</th>
+                  <th className="px-3 py-2">{data?.costLabel ?? "Cost price"}</th>
+                  <th className="px-3 py-2">Sold revenue</th>
                 </tr>
               </thead>
               <tbody>
@@ -292,8 +306,26 @@ export default function InventoryPage() {
                       <div className="font-semibold text-ink">{r.vendorModel}</div>
                       <div className="text-white/45">{r.sku}{r.vendor ? ` · ${r.vendor}` : ""}</div>
                     </td>
-                    <td className="px-3 py-2 align-top text-white/70">
-                      {[r.department, r.design, r.productClass, r.subClass].filter(Boolean).join(" · ") || "—"}
+                    <td className="px-3 py-2 align-top">
+                      <div className="text-ink">{r.description || "—"}</div>
+                      <div className="text-white/45">{r.department || "—"}</div>
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      <span className="inline-block rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold text-amber-100">
+                        {formatPieceCount(r.fromOnhand)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      <span className="inline-block rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold text-amber-100">
+                        {formatPieceCount(r.fromSoldQty)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      <div className="flex items-center gap-1.5">
+                        <span>{r.fromStore}</span>
+                        <TierBadge tier={r.fromTier} />
+                        <span className="text-white/40">{r.fromDm}</span>
+                      </div>
                     </td>
                     <td className="px-3 py-2 align-top">
                       <div className="flex items-center gap-1.5">
@@ -302,25 +334,9 @@ export default function InventoryPage() {
                         <span className="text-white/40">{r.toDm}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2 align-top">
-                      {formatPieceCount(r.soldQty)} · {formatPieceCount(r.onhand)} · {money(r.revenue)}
-                    </td>
-                    <td className="px-3 py-2 align-top">
-                      <div className="flex items-center gap-1.5">
-                        <span>{r.fromStore}</span>
-                        <TierBadge tier={r.fromTier} />
-                        <span className="text-white/40">{r.fromDm}</span>
-                      </div>
-                      <div className="text-white/40">{formatPieceCount(r.fromOnhand)} on hand · sold {formatPieceCount(r.fromSoldQty)}</div>
-                    </td>
-                    <td className="px-3 py-2 align-top">
-                      <span className="inline-flex items-center gap-1 font-semibold text-amber-200">
-                        {formatPieceCount(r.qty)} <ArrowRight size={12} />
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 align-top">
-                      {money(r.tagPrice)} · {money(r.costPrice)}
-                    </td>
+                    <td className="px-3 py-2 align-top">{money(r.tagPrice)}</td>
+                    <td className="px-3 py-2 align-top">{money(r.costPrice)}</td>
+                    <td className="px-3 py-2 align-top">{money(r.fromRevenue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -331,7 +347,7 @@ export default function InventoryPage() {
                 <tr>
                   <th className="px-3 py-2">Store</th>
                   <th className="px-3 py-2">Vendor model / SKU</th>
-                  <th className="px-3 py-2">Dept / design / class</th>
+                  <th className="px-3 py-2">Description / department</th>
                   <th className="px-3 py-2">On hand</th>
                   <th className="px-3 py-2">Sold / Rev</th>
                   <th className="px-3 py-2">Cover</th>
@@ -352,8 +368,9 @@ export default function InventoryPage() {
                       <div className="font-semibold text-ink">{r.vendorModel}</div>
                       <div className="text-white/45">{r.sku}{r.vendor ? ` · ${r.vendor}` : ""}</div>
                     </td>
-                    <td className="px-3 py-2 align-top text-white/70">
-                      {[r.department, r.design, r.productClass, r.subClass].filter(Boolean).join(" · ") || "—"}
+                    <td className="px-3 py-2 align-top">
+                      <div className="text-ink">{r.description || "—"}</div>
+                      <div className="text-white/45">{[r.department, r.design, r.productClass].filter(Boolean).join(" · ") || "—"}</div>
                     </td>
                     <td className="px-3 py-2 align-top">{formatPieceCount(r.onhand)}</td>
                     <td className="px-3 py-2 align-top">{formatPieceCount(r.soldQty)} · {money(r.revenue)}</td>

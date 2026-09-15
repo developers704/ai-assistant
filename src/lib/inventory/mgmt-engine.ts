@@ -6,6 +6,7 @@ import {
   inventoryDmForStore,
   inventoryKindForStore,
   inventoryTierForStore,
+  isIgnoredInventoryDepartment,
   isInventoryMgmtStore,
   isSellingWell,
   keepReserveQty,
@@ -23,6 +24,7 @@ export type InventoryStockRow = {
   vendorModel: string;
   sku: string;
   vendor: string;
+  description: string;
   department: string;
   design: string;
   productClass: string;
@@ -40,6 +42,7 @@ export type InventoryTransfer = {
   vendorModel: string;
   sku: string;
   vendor: string;
+  description: string;
   department: string;
   design: string;
   productClass: string;
@@ -59,6 +62,7 @@ export type InventoryTransfer = {
   fromKind: InventoryStoreKind;
   fromOnhand: number;
   fromSoldQty: number;
+  fromRevenue: number;
   qty: number;
   reason: string;
 };
@@ -87,6 +91,7 @@ type ModelStoreAgg = {
 };
 
 type ModelInv = {
+  description: string;
   department: string;
   design: string;
   productClass: string;
@@ -164,6 +169,7 @@ function aggregateSales(rows: VendorPosRow[]): Map<string, Map<string, ModelStor
   const out = new Map<string, Map<string, ModelStoreAgg>>();
   for (const row of rows) {
     if (!isInventoryMgmtStore(row.storeName)) continue;
+    if (isIgnoredInventoryDepartment(row.department)) continue;
     if (isHiddenFromTopVendorModelsRow(row)) continue;
     const model = modelKeyOf(row);
     if (!model) continue;
@@ -195,11 +201,13 @@ function aggregateOnhand(items: InventoryItem[]): Map<string, ModelInv> {
   const out = new Map<string, ModelInv>();
   for (const item of items) {
     if (!isInventoryMgmtStore(item.store)) continue;
+    if (isIgnoredInventoryDepartment(item.department)) continue;
     const model = key(item.vendorModel || item.sku);
     if (!model) continue;
     let inv = out.get(model);
     if (!inv) {
       inv = {
+        description: item.description,
         department: item.department,
         design: item.design,
         productClass: item.class,
@@ -214,6 +222,7 @@ function aggregateOnhand(items: InventoryItem[]): Map<string, ModelInv> {
       };
       out.set(model, inv);
     }
+    if (!inv.description && item.description) inv.description = item.description;
     if (!inv.department && item.department) inv.department = item.department;
     if (!inv.design && item.design) inv.design = item.design;
     if (!inv.productClass && item.class) inv.productClass = item.class;
@@ -273,9 +282,8 @@ function pickDonor(
       sellingWell: isSellingWell(soldQty, onhand),
     });
   }
-  if (!candidates.length) return null;
-  const preferred = candidates.filter((c) => !c.sellingWell);
-  const pool = preferred.length ? preferred : candidates;
+  const pool = candidates.filter((c) => !c.sellingWell);
+  if (!pool.length) return null;
   pool.sort((a, b) => a.rank - b.rank || b.spare - a.spare || a.store.localeCompare(b.store));
   const hit = pool[0]!;
   return { store: hit.store, qty: hit.spare, spare: hit.spare, soldQty: hit.soldQty };
@@ -315,6 +323,7 @@ export function buildInventoryTransfers(
         vendorModel: inv?.vendorModel || model,
         sku,
         vendor: inv?.vendor || "",
+        description: inv?.description || "",
         department: inv?.department || "",
         design: inv?.design || "",
         productClass: inv?.productClass || "",
@@ -334,10 +343,11 @@ export function buildInventoryTransfers(
         fromKind: fromMeta?.kind ?? "core",
         fromOnhand: onhandStores.get(key(donor.store))?.onhand ?? 0,
         fromSoldQty: donor.soldQty,
+        fromRevenue: soldByStore.get(key(donor.store))?.revenue ?? 0,
         qty,
         reason:
           `${meta.store} sold ${Math.round(soldQty)} with ${Math.round(onh)} on hand. ` +
-          `Move ${qty} from ${donor.store} (${Math.round(donor.spare)} spare, ${fromMeta?.dm ?? ""} ${fromMeta?.tier ?? ""}).`,
+          `Take spare from ${donor.store} (${Math.round(donor.spare)} spare, sold ${Math.round(donor.soldQty)}).`,
       });
     }
   }
@@ -358,6 +368,7 @@ export function buildInventoryStockRows(
   const rows: InventoryStockRow[] = [];
   for (const item of items) {
     if (!isInventoryMgmtStore(item.store)) continue;
+    if (isIgnoredInventoryDepartment(item.department)) continue;
     const dm = inventoryDmForStore(item.store);
     if (!dm) continue;
     const model = key(item.vendorModel || item.sku);
@@ -375,6 +386,7 @@ export function buildInventoryStockRows(
       vendorModel: item.vendorModel || item.sku,
       sku: item.sku,
       vendor: item.vendor,
+      description: item.description,
       department: item.department,
       design: item.design,
       productClass: item.class,
@@ -400,7 +412,7 @@ function filterStock(rows: InventoryStockRow[], q: InventoryMgmtQuery): Inventor
       inList(r.productClass, q.classes) &&
       inList(r.subClass, q.subclasses) &&
       inList(r.vendor, q.vendors) &&
-      matchesQ(q.q, r.vendorModel, r.sku, r.vendor, r.department, r.store)
+      matchesQ(q.q, r.vendorModel, r.sku, r.vendor, r.description, r.department, r.store)
   );
 }
 
@@ -413,7 +425,7 @@ function filterTransfers(rows: InventoryTransfer[], q: InventoryMgmtQuery): Inve
       inList(r.productClass, q.classes) &&
       inList(r.subClass, q.subclasses) &&
       inList(r.vendor, q.vendors) &&
-      matchesQ(q.q, r.vendorModel, r.sku, r.vendor, r.toStore, r.fromStore)
+      matchesQ(q.q, r.vendorModel, r.sku, r.vendor, r.description, r.department, r.toStore, r.fromStore)
   );
 }
 
@@ -476,7 +488,7 @@ export function queryInventoryMgmt(
       string,
       unknown
     >[];
-    const sorted = sortRows(filtered, q.sort || "soldQty", q.dir);
+    const sorted = sortRows(filtered, q.sort || "fromSoldQty", q.dir);
     const offset = Math.max(0, q.offset);
     const limit = Math.min(200, Math.max(1, q.limit));
     return {

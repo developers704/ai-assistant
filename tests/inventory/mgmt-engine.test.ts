@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "@/lib/inventory/types";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { buildInventoryTransfers } from "@/lib/inventory/mgmt-engine";
-import { keepReserveQty, isInventoryMgmtStore } from "@/lib/inventory/mgmt-stores";
+import {
+  isIgnoredInventoryDepartment,
+  isInventoryMgmtStore,
+  isSellingWell,
+  keepReserveQty,
+} from "@/lib/inventory/mgmt-stores";
 
 function sale(partial: Partial<VendorPosRow> & Pick<VendorPosRow, "storeName" | "vendorModel" | "quantity">): VendorPosRow {
   return {
@@ -32,7 +37,7 @@ function sale(partial: Partial<VendorPosRow> & Pick<VendorPosRow, "storeName" | 
 function item(partial: Partial<InventoryItem> & Pick<InventoryItem, "store" | "onHand">): InventoryItem {
   return {
     sku: "231443",
-    description: "ring",
+    description: "14KT BIRTHSTONE RING",
     vendorModel: "RR8179WS",
     vendor: "RCN",
     tagPrice: 1719,
@@ -57,6 +62,25 @@ describe("inventory mgmt stores", () => {
     expect(isInventoryMgmtStore("DE-SOUTH")).toBe(false);
     expect(isInventoryMgmtStore("VJ-CON")).toBe(false);
     expect(keepReserveQty(2, "new")).toBe(10);
+    expect(keepReserveQty(0, "core")).toBe(2);
+  });
+
+  it("ignores battery / tray / gift box / misc / Rolex box departments", () => {
+    expect(isIgnoredInventoryDepartment("BATTERY")).toBe(true);
+    expect(isIgnoredInventoryDepartment("TRAY")).toBe(true);
+    expect(isIgnoredInventoryDepartment("GIFT BOX")).toBe(true);
+    expect(isIgnoredInventoryDepartment("BULOV GIFT")).toBe(true);
+    expect(isIgnoredInventoryDepartment("MISC")).toBe(true);
+    expect(isIgnoredInventoryDepartment("ROLEX BOX")).toBe(true);
+    expect(isIgnoredInventoryDepartment("LADYS RING")).toBe(false);
+    expect(isIgnoredInventoryDepartment("GIFT CARD")).toBe(false);
+  });
+
+  it("treats sold/onhand >= 50% as selling well", () => {
+    expect(isSellingWell(3, 5)).toBe(true);
+    expect(isSellingWell(2, 5)).toBe(false);
+    expect(isSellingWell(1, 5)).toBe(false);
+    expect(isSellingWell(15, 20)).toBe(true);
   });
 });
 
@@ -93,8 +117,63 @@ describe("inventory transfers", () => {
     );
     expect(hits.length).toBeGreaterThan(0);
     expect(hits[0]!.fromStore).toBe("VJ-OAK");
+    expect(hits[0]!.description).toBe("14KT BIRTHSTONE RING");
+    expect(hits[0]!.costPrice).toBe(761);
     expect(hits[0]!.qty).toBeGreaterThan(0);
     expect(hits[0]!.fromStore).not.toBe("VJ-DEER");
     expect(hits[0]!.fromStore).not.toBe("VJ-EAST");
+  });
+
+  it("does not donate from a store selling well (5 on hand / 3 sold)", () => {
+    const sales = Array.from({ length: 25 }, (_, i) =>
+      sale({
+        transactionId: `S${i}`,
+        storeName: "VJ-SERRA",
+        vendorModel: "RR8179WS",
+        quantity: 1,
+        netRevenue: 100,
+      })
+    ).concat(
+      sale({ storeName: "VJ-OAK", vendorModel: "RR8179WS", quantity: 1, netRevenue: 100 }),
+      sale({ transactionId: "O2", storeName: "VJ-OAK", vendorModel: "RR8179WS", quantity: 1, netRevenue: 100 }),
+      sale({ transactionId: "O3", storeName: "VJ-OAK", vendorModel: "RR8179WS", quantity: 1, netRevenue: 100 })
+    );
+    const items = [item({ store: "VJ-SERRA", onHand: 3 }), item({ store: "VJ-OAK", onHand: 5 })];
+    const hits = buildInventoryTransfers(sales, items).filter((t) => t.fromStore === "VJ-OAK");
+    expect(hits).toHaveLength(0);
+  });
+
+  it("does not donate when a B/C store only has 1–2 on hand", () => {
+    const sales = Array.from({ length: 25 }, (_, i) =>
+      sale({
+        transactionId: `S${i}`,
+        storeName: "VJ-SERRA",
+        vendorModel: "RR8179WS",
+        quantity: 1,
+        netRevenue: 100,
+      })
+    );
+    const items = [item({ store: "VJ-SERRA", onHand: 3 }), item({ store: "VJ-OAK", onHand: 2 })];
+    const hits = buildInventoryTransfers(sales, items).filter((t) => t.fromStore === "VJ-OAK");
+    expect(hits).toHaveLength(0);
+  });
+
+  it("skips tray / battery / gift-box inventory from transfers", () => {
+    const sales = Array.from({ length: 25 }, (_, i) =>
+      sale({
+        transactionId: `S${i}`,
+        storeName: "VJ-SERRA",
+        vendorModel: "TRAY1",
+        quantity: 1,
+        department: "TRAY",
+        netRevenue: 10,
+      })
+    );
+    const items = [
+      item({ store: "VJ-SERRA", onHand: 0, vendorModel: "TRAY1", department: "TRAY", sku: "T1" }),
+      item({ store: "VJ-OAK", onHand: 12, vendorModel: "TRAY1", department: "TRAY", sku: "T1" }),
+    ];
+    const hits = buildInventoryTransfers(sales, items);
+    expect(hits.filter((t) => t.vendorModel === "TRAY1")).toHaveLength(0);
   });
 });

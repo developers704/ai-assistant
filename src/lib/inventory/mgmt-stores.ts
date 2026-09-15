@@ -16,12 +16,37 @@ const B_STORES = new Set(["DBC-STOCK", "VJ-OAK", "VJ-VAL", "VJ-LIV", "VJ-ARDN", 
 const NEW_STORES = new Set(["VJ-DEER", "VJ-BAY", "VJ-HEND"]);
 const YEARLING_STORES = new Set(["VJ-PALM", "VJ-NORTH", "VJ-INLND"]);
 const CLOSED = new Set(["MAIN", "VJ-CON", "VJ-WEB", "CON", "WEB"]);
+const IGNORED_DEPARTMENTS = new Set([
+  "BATTERY",
+  "TRAY",
+  "GIFT BOX",
+  "BULOV GIFT",
+  "BULOVA GIFT",
+  "MISC",
+  "ROLEX BOX",
+]);
+
+/** B/C stores keep at least this many of a vendor model. */
+export const MIN_STORE_MODEL_ONHAND = 2;
 
 const AJ_SET = new Set<string>(AJ_STORES);
 const SHAUN_SET = new Set<string>(SHAUN_STORES);
 
 export function normalizeInventoryStore(store: string): string {
   return store.trim().toUpperCase();
+}
+
+/** Accessory / box / battery lines — hide from inventory + transfers. */
+export function isIgnoredInventoryDepartment(department?: string | null): boolean {
+  const d = String(department ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ");
+  if (!d) return false;
+  if (IGNORED_DEPARTMENTS.has(d)) return true;
+  if (d.includes("GIFT BOX") || d.includes("ROLEX BOX")) return true;
+  if (d.startsWith("BULOV") && d.includes("GIFT")) return true;
+  return false;
 }
 
 export function isClosedOrWarehouseStore(store: string): boolean {
@@ -70,13 +95,15 @@ export function listInventoryMgmtStores(): InventoryStoreMeta[] {
 
 export function keepReserveQty(soldQty: number, kind: InventoryStoreKind): number {
   const sold = Math.max(0, soldQty);
-  if (kind === "new") return sold + 8;
-  if (kind === "yearling") return sold + 3;
-  return sold;
+  if (kind === "new") return Math.max(MIN_STORE_MODEL_ONHAND, sold + 8);
+  if (kind === "yearling") return Math.max(MIN_STORE_MODEL_ONHAND, sold + 3);
+  return Math.max(MIN_STORE_MODEL_ONHAND, sold);
 }
 
+/** 5 on hand / 3 sold = healthy. 5 on hand / 1–2 sold = slow — spare can move. */
 export function isSellingWell(soldQty: number, onhand: number): boolean {
-  return soldQty >= 6 && onhand <= soldQty;
+  if (onhand <= 0) return false;
+  return soldQty * 2 >= onhand;
 }
 
 export function donorRank(meta: InventoryStoreMeta, needyDm: InventoryDm): number {
