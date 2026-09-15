@@ -114,6 +114,14 @@ function datesBetween(from: string, to: string): string[] {
   return out;
 }
 
+function QtyBadge({ n }: { n: number }) {
+  return (
+    <span className="inline-flex whitespace-nowrap rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold tabular-nums text-amber-100">
+      {formatPieceCount(n)}
+    </span>
+  );
+}
+
 function TierBadge({ tier }: { tier: string }) {
   const cls =
     tier === "A"
@@ -286,6 +294,8 @@ export default function InventoryPage() {
                   <th className="whitespace-nowrap px-3 py-2">Onhand</th>
                   <th className="whitespace-nowrap px-3 py-2">Sold</th>
                   <th className="whitespace-nowrap px-3 py-2">To</th>
+                  <th className="whitespace-nowrap px-3 py-2">Onhand</th>
+                  <th className="whitespace-nowrap px-3 py-2">Sold</th>
                   <th className="whitespace-nowrap px-3 py-2">From</th>
                   <th className="px-3 py-2">Tag price</th>
                   <th className="px-3 py-2">{data?.costLabel ?? "Cost price"}</th>
@@ -304,14 +314,10 @@ export default function InventoryPage() {
                       <div className="text-white/45">{r.department || "—"}</div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
-                      <span className="inline-flex whitespace-nowrap rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold tabular-nums text-amber-100">
-                        {formatPieceCount(r.fromOnhand)}
-                      </span>
+                      <QtyBadge n={r.onhand} />
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
-                      <span className="inline-flex whitespace-nowrap rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold tabular-nums text-amber-100">
-                        {formatPieceCount(r.fromSoldQty)}
-                      </span>
+                      <QtyBadge n={r.soldQty} />
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <div className="flex items-center gap-1.5">
@@ -319,6 +325,12 @@ export default function InventoryPage() {
                         <TierBadge tier={r.toTier} />
                         <span className="text-white/40">{r.toDm}</span>
                       </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
+                      <QtyBadge n={r.fromOnhand} />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
+                      <QtyBadge n={r.fromSoldQty} />
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <div className="flex items-center gap-1.5">
@@ -329,7 +341,7 @@ export default function InventoryPage() {
                     </td>
                     <td className="px-3 py-2 align-top">{money(r.tagPrice)}</td>
                     <td className="px-3 py-2 align-top">{money(r.costPrice)}</td>
-                    <td className="px-3 py-2 align-top">{money(r.fromRevenue)}</td>
+                    <td className="px-3 py-2 align-top">{money(r.revenue)}</td>
                   </tr>
                 ))}
               </tbody>
