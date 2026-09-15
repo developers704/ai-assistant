@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSessionFromCookies } from "@/lib/auth/session";
-import { getPermissionMapForUser } from "@/lib/auth/user-permissions-store";
-import { canSeeRealInventoryCost } from "@/lib/auth/user-permissions";
+import { canAccessInventoryMgmt, canSeeRealInventoryCost } from "@/lib/auth/user-permissions";
 import { parseMultiParam } from "@/lib/sales/filter-params";
 import { filterRows } from "@/lib/sales/sales-aggregate";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
@@ -17,11 +16,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const session = await readSessionFromCookies();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.role !== "admin") {
-    const map = getPermissionMapForUser(session.username, session.role);
-    if (!map.sales_dashboard) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  if (!canAccessInventoryMgmt(session.username, session.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const sp = req.nextUrl.searchParams;

@@ -3,6 +3,7 @@
 import {
   getPermissionMapForUserFromCookie,
   homePathForRole,
+  canAccessInventoryMgmt,
   type UserPermissionKey,
   type UserPermissionMap,
 } from "@/lib/auth/user-permissions";
@@ -113,6 +114,9 @@ export function isDmAllowedAppPath(
   if (pathname === "/settings" || pathname.startsWith("/settings/")) {
     return true;
   }
+  if (pathname === "/inventory" || pathname.startsWith("/inventory/")) {
+    return canAccessInventoryMgmt(username, role);
+  }
 
   const permissionMap =
     permissions ?? getPermissionMapForUserFromCookie(username, role);
@@ -141,6 +145,9 @@ export function isDmAllowedApiPath(
   if (pathname.startsWith("/api/ui-context")) return true;
   if (pathname.startsWith("/api/profile")) return true;
   if (pathname.startsWith("/api/permissions")) return true;
+  if (pathname === "/api/inventory-mgmt" || pathname.startsWith("/api/inventory-mgmt/")) {
+    return canAccessInventoryMgmt(username, role);
+  }
 
   const permissionMap =
     permissions ?? getPermissionMapForUserFromCookie(username, role);

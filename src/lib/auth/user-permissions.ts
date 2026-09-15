@@ -57,14 +57,22 @@ export function canManageDmPermissions(username?: string | null): boolean {
   return normalizeUsername(username) === "kash";
 }
 
-/** Admins see real Individual Cost; everyone else sees Whole Cost. */
-export function canSeeRealInventoryCost(
+/** Inventory page + /api/inventory-mgmt — Kash, admin, Ross, Marina only. */
+export function canAccessInventoryMgmt(
   username?: string | null,
   role?: string | null
 ): boolean {
   if (role === "admin") return true;
   const u = normalizeUsername(username);
   return u === "kash" || u === "ross" || u === "admin" || u === "marina";
+}
+
+/** Admins see real Individual Cost; everyone else sees Whole Cost. */
+export function canSeeRealInventoryCost(
+  username?: string | null,
+  role?: string | null
+): boolean {
+  return canAccessInventoryMgmt(username, role);
 }
 
 /** Employees never see wholesale / cost price (calculator, SKU lookup, inventory API). */

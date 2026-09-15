@@ -18,8 +18,11 @@ describe("DM permission routing", () => {
 
     expect(isDmAllowedAppPath("/email", "rozina", "dm", permissions)).toBe(true);
     expect(isDmAllowedAppPath("/contacts", "rozina", "dm", permissions)).toBe(true);
-    expect(isDmAllowedAppPath("/inventory", "aj", "dm", permissions)).toBe(true);
-    expect(isDmAllowedApiPath("/api/inventory-mgmt", "aj", "dm", permissions)).toBe(true);
+    expect(isDmAllowedAppPath("/inventory", "aj", "dm", permissions)).toBe(false);
+    expect(isDmAllowedAppPath("/inventory", "marina", "dm", permissions)).toBe(true);
+    expect(isDmAllowedAppPath("/inventory", "ross", "dm", permissions)).toBe(true);
+    expect(isDmAllowedApiPath("/api/inventory-mgmt", "aj", "dm", permissions)).toBe(false);
+    expect(isDmAllowedApiPath("/api/inventory-mgmt", "marina", "dm", permissions)).toBe(true);
   });
 
   it("blocks a DM from a section that has not been granted", () => {

@@ -32,7 +32,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useApp } from "@/lib/store/app-context";
-import type { UserPermissionKey } from "@/lib/auth/user-permissions";
+import { canAccessInventoryMgmt, type UserPermissionKey } from "@/lib/auth/user-permissions";
 import { Avatar } from "@/components/ui/Avatar";
 import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 import { GlassIconTile, type GlassPalette } from "@/components/ui/GlassIconTile";
@@ -168,10 +168,15 @@ function fallbackNavForRole(role?: string | null): NavItem[] {
   ];
 }
 
-function withoutHiddenNav(items: NavItem[]): NavItem[] {
+function withoutHiddenNav(
+  items: NavItem[],
+  username?: string | null,
+  role?: string | null
+): NavItem[] {
   return items.filter((item) => {
     if (!SHOW_GMAIL_EMAIL_NAV && item.href === "/email") return false;
     if (!SHOW_INTELLIGENCE_NAV && item.href === "/intelligence") return false;
+    if (item.href === "/inventory" && !canAccessInventoryMgmt(username, role)) return false;
     return true;
   });
 }
@@ -179,8 +184,9 @@ function withoutHiddenNav(items: NavItem[]): NavItem[] {
 function useNavItems(): NavItem[] {
   const { state } = useApp();
   const role = state?.user?.authRole;
+  const username = state?.user?.username ?? state?.user?.email;
   if (role === "admin") {
-    return withoutHiddenNav(ADMIN_NAV);
+    return withoutHiddenNav(ADMIN_NAV, username, role);
   }
 
   const permissions = state?.user?.permissions as
@@ -188,7 +194,7 @@ function useNavItems(): NavItem[] {
     | undefined;
 
   if (!permissions) {
-    return withoutHiddenNav(fallbackNavForRole(role));
+    return withoutHiddenNav(fallbackNavForRole(role), username, role);
   }
 
   const items: NavItem[] = [];
@@ -206,7 +212,7 @@ function useNavItems(): NavItem[] {
   if (permissions.user_admin) items.push(USERS_NAV);
   if (permissions.role_admin) items.push(ROLES_NAV);
   items.push(ALL_NAV_ITEMS["/settings"]!);
-  return withoutHiddenNav(items);
+  return withoutHiddenNav(items, username, role);
 }
 
 function isActivePath(pathname: string, href: string) {
