@@ -176,7 +176,6 @@ function StoreBreakdown({
                     <span className="inline-flex items-center gap-1.5">
                       {s.store}
                       <TierBadge tier={s.tier} />
-                      <span className="text-white/35">{s.dm}</span>
                     </span>
                   </td>
                   <td className="py-0.5 pr-3 tabular-nums">{formatPieceCount(s.onhand)}</td>
@@ -296,8 +295,8 @@ export default function InventoryPage() {
   const header = useMemo(
     () =>
       view === "transfers"
-        ? "AJ / Shaun transfer needs — A stores first, same-district B/C donors, then the other DM."
-        : "AJ / Shaun on-hand (MAIN, closed, Adeel, and Rozina stores excluded).",
+        ? "Transfer needs — A stores first, same-district B/C donors."
+        : "On-hand (MAIN, closed, Adeel, and Rozina stores excluded).",
     [view]
   );
 
@@ -423,7 +422,6 @@ export default function InventoryPage() {
                       <div className="flex items-center gap-1.5">
                         <span>{r.toStore}</span>
                         <TierBadge tier={r.toTier} />
-                        <span className="text-white/40">{r.toDm}</span>
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
@@ -436,7 +434,6 @@ export default function InventoryPage() {
                       <div className="flex items-center gap-1.5">
                         <span>{r.fromStore}</span>
                         <TierBadge tier={r.fromTier} />
-                        <span className="text-white/40">{r.fromDm}</span>
                       </div>
                     </td>
                     <td className="px-3 py-2 align-top">{money(r.tagPrice)}</td>
@@ -481,7 +478,6 @@ export default function InventoryPage() {
                         <ChevronDown size={14} className={cn("shrink-0 text-white/40 transition-transform", open && "rotate-180")} />
                         <span>{r.store}</span>
                         <TierBadge tier={r.tier} />
-                        <span className="text-white/40">{r.dm}</span>
                       </div>
                     </td>
                     <td className="px-3 py-2 align-top">
