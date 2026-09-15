@@ -4,6 +4,7 @@ import {
   getPermissionMapForUserFromCookie,
   homePathForRole,
   canAccessInventoryMgmt,
+  canUseAiChatAndVoice,
   type UserPermissionKey,
   type UserPermissionMap,
 } from "@/lib/auth/user-permissions";
@@ -117,6 +118,14 @@ export function isDmAllowedAppPath(
   if (pathname === "/inventory" || pathname.startsWith("/inventory/")) {
     return canAccessInventoryMgmt(username, role);
   }
+  if (
+    pathname === "/chat" ||
+    pathname.startsWith("/chat/") ||
+    pathname === "/voice" ||
+    pathname.startsWith("/voice/")
+  ) {
+    return canUseAiChatAndVoice(role);
+  }
 
   const permissionMap =
     permissions ?? getPermissionMapForUserFromCookie(username, role);
@@ -147,6 +156,13 @@ export function isDmAllowedApiPath(
   if (pathname.startsWith("/api/permissions")) return true;
   if (pathname === "/api/inventory-mgmt" || pathname.startsWith("/api/inventory-mgmt/")) {
     return canAccessInventoryMgmt(username, role);
+  }
+  if (
+    pathname.startsWith("/api/chat") ||
+    pathname.startsWith("/api/voice") ||
+    pathname.startsWith("/api/pending-action")
+  ) {
+    return canUseAiChatAndVoice(role);
   }
 
   const permissionMap =

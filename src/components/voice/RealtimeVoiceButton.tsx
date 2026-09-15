@@ -18,8 +18,9 @@ export function RealtimeVoiceButton({
   const router = useRouter();
   const { state } = useApp();
   const voiceEnabled = state?.user?.preferences?.voiceEnabled ?? true;
+  const isAdmin = state?.user?.authRole === "admin";
 
-  if (!voiceEnabled) return null;
+  if (!isAdmin || !voiceEnabled) return null;
 
   const isInline = variant === "inline" || variant === "composer";
   const isComposer = variant === "composer";

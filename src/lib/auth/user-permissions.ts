@@ -75,6 +75,11 @@ export function canSeeRealInventoryCost(
   return canAccessInventoryMgmt(username, role);
 }
 
+/** AI Chat + mic — admin only for now. */
+export function canUseAiChatAndVoice(role?: string | null): boolean {
+  return role === "admin";
+}
+
 /** Employees never see wholesale / cost price (calculator, SKU lookup, inventory API). */
 export function hidesWholesaleCost(role?: string | null): boolean {
   return role === "employee";

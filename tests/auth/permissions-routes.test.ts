@@ -42,7 +42,8 @@ describe("DM permission routing", () => {
     permissions.image_generation = false;
     permissions.news_markets = true;
 
-    expect(isDmAllowedApiPath("/api/chat", "aj", "dm", permissions)).toBe(true);
+    expect(isDmAllowedApiPath("/api/chat", "aj", "dm", permissions)).toBe(false);
+    expect(isDmAllowedAppPath("/chat", "aj", "dm", permissions)).toBe(false);
     expect(isDmAllowedApiPath("/api/generate-image", "aj", "dm", permissions)).toBe(false);
     expect(isDmAllowedApiPath("/api/markets", "aj", "dm", permissions)).toBe(true);
     expect(isDmAllowedApiPath("/api/gmail", "aj", "dm", permissions)).toBe(false);

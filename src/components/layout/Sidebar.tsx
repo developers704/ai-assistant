@@ -32,7 +32,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useApp } from "@/lib/store/app-context";
-import { canAccessInventoryMgmt, type UserPermissionKey } from "@/lib/auth/user-permissions";
+import { canAccessInventoryMgmt, canUseAiChatAndVoice, type UserPermissionKey } from "@/lib/auth/user-permissions";
 import { Avatar } from "@/components/ui/Avatar";
 import { PlasmaOrb } from "@/components/ui/PlasmaOrb";
 import { GlassIconTile, type GlassPalette } from "@/components/ui/GlassIconTile";
@@ -177,6 +177,7 @@ function withoutHiddenNav(
     if (!SHOW_GMAIL_EMAIL_NAV && item.href === "/email") return false;
     if (!SHOW_INTELLIGENCE_NAV && item.href === "/intelligence") return false;
     if (item.href === "/inventory" && !canAccessInventoryMgmt(username, role)) return false;
+    if (item.href === "/chat" && !canUseAiChatAndVoice(role)) return false;
     return true;
   });
 }
