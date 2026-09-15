@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   const sp = req.nextUrl.searchParams;
   const meta = getLatestReportMeta();
-  const defaultTo = meta?.dateRange?.to ?? "2026-09-13";
+  const defaultTo = meta?.dateRange?.to ?? "2026-09-14";
   const from = sp.get("from")?.trim() || "2025-01-01";
   const to = sp.get("to")?.trim() || defaultTo;
   if (!isValidIsoDate(from) || !isValidIsoDate(to)) {
