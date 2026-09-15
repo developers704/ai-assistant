@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "@/lib/inventory/types";
 import type { VendorPosRow } from "@/lib/reports/types";
-import { buildInventoryTransfers } from "@/lib/inventory/mgmt-engine";
+import { buildInventoryTransfers, buildModelStoreBreakdown } from "@/lib/inventory/mgmt-engine";
 import {
   isIgnoredInventoryDepartment,
   isInventoryMgmtStore,
@@ -175,5 +175,21 @@ describe("inventory transfers", () => {
     ];
     const hits = buildInventoryTransfers(sales, items);
     expect(hits.filter((t) => t.vendorModel === "TRAY1")).toHaveLength(0);
+  });
+
+  it("lists every store onhand/sold for a vendor model", () => {
+    const sales = [
+      sale({ storeName: "VJ-SERRA", vendorModel: "RR8179WS", quantity: 3, netRevenue: 300 }),
+      sale({ storeName: "VJ-OAK", vendorModel: "RR8179WS", quantity: 1, netRevenue: 100 }),
+    ];
+    const items = [
+      item({ store: "VJ-SERRA", onHand: 2 }),
+      item({ store: "VJ-OAK", onHand: 12 }),
+      item({ store: "VJ-EAST", onHand: 4 }),
+    ];
+    const rows = buildModelStoreBreakdown(sales, items, "RR8179WS");
+    expect(rows.map((r) => r.store).sort()).toEqual(["VJ-EAST", "VJ-OAK", "VJ-SERRA"]);
+    expect(rows.find((r) => r.store === "VJ-OAK")).toMatchObject({ onhand: 12, soldQty: 1 });
+    expect(rows.find((r) => r.store === "VJ-SERRA")).toMatchObject({ onhand: 2, soldQty: 3 });
   });
 });

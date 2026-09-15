@@ -38,6 +38,14 @@ export type InventoryStockRow = {
   coverage: number | null;
 };
 
+export type InventoryModelStoreRow = {
+  store: string;
+  dm: InventoryDm;
+  tier: InventoryTier;
+  onhand: number;
+  soldQty: number;
+};
+
 export type InventoryTransfer = {
   vendorModel: string;
   sku: string;
@@ -400,6 +408,33 @@ export function buildInventoryStockRows(
       coverage: coverageOf(onhand, soldQty),
     });
   }
+  return rows;
+}
+
+export function buildModelStoreBreakdown(
+  salesRows: VendorPosRow[],
+  items: InventoryItem[],
+  vendorModel: string
+): InventoryModelStoreRow[] {
+  const model = key(vendorModel);
+  if (!model) return [];
+  const soldByStore = aggregateSales(salesRows).get(model) ?? new Map();
+  const onhandStores = aggregateOnhand(items).get(model)?.stores ?? new Map();
+  const rows: InventoryModelStoreRow[] = [];
+  for (const meta of listInventoryMgmtStores()) {
+    const storeKey = key(meta.store);
+    const onhand = onhandStores.get(storeKey)?.onhand ?? 0;
+    const soldQty = soldByStore.get(storeKey)?.soldQty ?? 0;
+    if (onhand <= 0 && soldQty <= 0) continue;
+    rows.push({
+      store: meta.store,
+      dm: meta.dm,
+      tier: meta.tier,
+      onhand,
+      soldQty,
+    });
+  }
+  rows.sort((a, b) => b.onhand - a.onhand || b.soldQty - a.soldQty || a.store.localeCompare(b.store));
   return rows;
 }
 

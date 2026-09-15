@@ -7,7 +7,7 @@ import { filterRows } from "@/lib/sales/sales-aggregate";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { getLatestReportMeta } from "@/lib/reports/store";
 import { listInventoryItems } from "@/lib/inventory/store";
-import { queryInventoryMgmt } from "@/lib/inventory/mgmt-engine";
+import { buildModelStoreBreakdown, queryInventoryMgmt } from "@/lib/inventory/mgmt-engine";
 import { isIgnoredInventoryDepartment, isInventoryMgmtStore, listInventoryMgmtStores } from "@/lib/inventory/mgmt-stores";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 
@@ -34,7 +34,8 @@ export async function GET(req: NextRequest) {
   }
   const dateFrom = from <= to ? from : to;
   const dateTo = from <= to ? to : from;
-  const view = sp.get("view") === "stock" ? "stock" : "transfers";
+  const viewParam = sp.get("view")?.trim() || "transfers";
+  const view = viewParam === "stock" ? "stock" : viewParam === "model" ? "model" : "transfers";
   const dir = sp.get("dir") === "asc" ? "asc" : "desc";
   const sort = sp.get("sort")?.trim() || (view === "stock" ? "onhand" : "fromSoldQty");
   const offset = Number(sp.get("offset") ?? 0) || 0;
@@ -48,19 +49,37 @@ export async function GET(req: NextRequest) {
   const subclasses = parseMultiParam(sp, "subclass", "subclasses");
   const vendors = parseMultiParam(sp, "vendor", "vendors");
 
+  const allMgmtStores = listInventoryMgmtStores().map((s) => s.store);
+  const items = listInventoryItems().filter(
+    (item) => isInventoryMgmtStore(item.store) && !isIgnoredInventoryDepartment(item.department)
+  );
+
+  if (view === "model") {
+    const model = sp.get("model")?.trim() || "";
+    const sales = filterRows(loadRankRows() ?? [], {
+      dateFrom,
+      dateTo,
+      stores: allMgmtStores,
+    });
+    return NextResponse.json({
+      view: "model",
+      vendorModel: model,
+      stores: buildModelStoreBreakdown(sales, items, model),
+      dateFrom,
+      dateTo,
+    });
+  }
+
   const sales = filterRows(loadRankRows() ?? [], {
     dateFrom,
     dateTo,
-    stores: stores.length ? stores : listInventoryMgmtStores().map((s) => s.store),
+    stores: stores.length ? stores : allMgmtStores,
     departments,
     designs,
     classes,
     subclasses,
     vendors,
   });
-  const items = listInventoryItems().filter(
-    (item) => isInventoryMgmtStore(item.store) && !isIgnoredInventoryDepartment(item.department)
-  );
 
   const result = queryInventoryMgmt(sales, items, {
     dateFrom,
