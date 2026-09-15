@@ -28,12 +28,14 @@ type TransferRow = {
   toStore: string;
   toDm: string;
   toTier: string;
+  toKind: string;
   soldQty: number;
   revenue: number;
   onhand: number;
   fromStore: string;
   fromDm: string;
   fromTier: string;
+  fromKind: string;
   fromOnhand: number;
   fromSoldQty: number;
   fromRevenue: number;
@@ -64,6 +66,7 @@ type ModelStoreRow = {
   store: string;
   dm: string;
   tier: string;
+  kind: string;
   onhand: number;
   soldQty: number;
 };
@@ -138,6 +141,17 @@ function TierBadge({ tier }: { tier: string }) {
   return <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", cls)}>{tier}</span>;
 }
 
+function StoreBadge({ tier, kind }: { tier: string; kind?: string }) {
+  if (kind === "new") {
+    return (
+      <span className="rounded-full bg-fuchsia-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-fuchsia-200">
+        New
+      </span>
+    );
+  }
+  return <TierBadge tier={tier} />;
+}
+
 function StoreBreakdown({
   colSpan,
   rows,
@@ -175,7 +189,7 @@ function StoreBreakdown({
                   <td className="py-0.5 pr-3">
                     <span className="inline-flex items-center gap-1.5">
                       {s.store}
-                      <TierBadge tier={s.tier} />
+                      <StoreBadge tier={s.tier} kind={s.kind} />
                     </span>
                   </td>
                   <td className="py-0.5 pr-3 tabular-nums">{formatPieceCount(s.onhand)}</td>
@@ -421,7 +435,7 @@ export default function InventoryPage() {
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <div className="flex items-center gap-1.5">
                         <span>{r.toStore}</span>
-                        <TierBadge tier={r.toTier} />
+                        <StoreBadge tier={r.toTier} kind={r.toKind} />
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
@@ -433,7 +447,7 @@ export default function InventoryPage() {
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <div className="flex items-center gap-1.5">
                         <span>{r.fromStore}</span>
-                        <TierBadge tier={r.fromTier} />
+                        <StoreBadge tier={r.fromTier} kind={r.fromKind} />
                       </div>
                     </td>
                     <td className="px-3 py-2 align-top">{money(r.tagPrice)}</td>
@@ -477,7 +491,7 @@ export default function InventoryPage() {
                       <div className="flex items-center gap-1.5">
                         <ChevronDown size={14} className={cn("shrink-0 text-white/40 transition-transform", open && "rotate-180")} />
                         <span>{r.store}</span>
-                        <TierBadge tier={r.tier} />
+                        <StoreBadge tier={r.tier} kind={r.kind} />
                       </div>
                     </td>
                     <td className="px-3 py-2 align-top">

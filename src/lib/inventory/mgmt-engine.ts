@@ -42,6 +42,7 @@ export type InventoryModelStoreRow = {
   store: string;
   dm: InventoryDm;
   tier: InventoryTier;
+  kind: InventoryStoreKind;
   onhand: number;
   soldQty: number;
 };
@@ -61,6 +62,7 @@ export type InventoryTransfer = {
   toStore: string;
   toDm: InventoryDm;
   toTier: InventoryTier;
+  toKind: InventoryStoreKind;
   soldQty: number;
   revenue: number;
   onhand: number;
@@ -342,6 +344,7 @@ export function buildInventoryTransfers(
         toStore: meta.store,
         toDm: meta.dm,
         toTier: meta.tier,
+        toKind: meta.kind,
         soldQty,
         revenue: sold?.revenue ?? 0,
         onhand: onh,
@@ -430,6 +433,7 @@ export function buildModelStoreBreakdown(
       store: meta.store,
       dm: meta.dm,
       tier: meta.tier,
+      kind: meta.kind,
       onhand,
       soldQty,
     });
