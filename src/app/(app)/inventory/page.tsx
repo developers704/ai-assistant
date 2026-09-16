@@ -39,6 +39,8 @@ type TransferRow = {
   fromOnhand: number;
   fromSoldQty: number;
   fromRevenue: number;
+  priority: "rush" | "high" | "fill";
+  priorityRank: number;
 };
 
 type StockRow = {
@@ -90,6 +92,7 @@ type Payload = {
 };
 
 const TRANSFER_SORTS: { id: string; label: string }[] = [
+  { id: "priorityRank", label: "Priority" },
   { id: "fromSoldQty", label: "Sold qty" },
   { id: "fromOnhand", label: "On hand" },
   { id: "fromRevenue", label: "Sold revenue" },
@@ -127,6 +130,31 @@ function QtyBadge({ n }: { n: number }) {
   return (
     <span className="inline-flex whitespace-nowrap rounded-md bg-amber-400/20 px-2 py-0.5 font-semibold tabular-nums text-amber-100 ring-1 ring-amber-400/20">
       {formatPieceCount(n)}
+    </span>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: "rush" | "high" | "fill" }) {
+  const meta = {
+    rush: {
+      label: "Rush",
+      title: "Empty and selling — move today",
+      className: "bg-rose-500/20 text-rose-100 ring-rose-400/35",
+    },
+    high: {
+      label: "High",
+      title: "A / New store running thin — move soon",
+      className: "bg-amber-400/20 text-amber-100 ring-amber-400/30",
+    },
+    fill: {
+      label: "Fill",
+      title: "Restock when Rush and High are done",
+      className: "bg-white/10 text-white/70 ring-white/15",
+    },
+  }[priority];
+  return (
+    <span title={meta.title} className={cn("inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", meta.className)}>
+      {meta.label}
     </span>
   );
 }
@@ -250,8 +278,8 @@ export default function InventoryPage() {
   const [vendors, setVendors] = useState<string[]>([]);
   const [q, setQ] = useState("");
   const [qDraft, setQDraft] = useState("");
-  const [sort, setSort] = useState("fromSoldQty");
-  const [dir, setDir] = useState<Dir>("desc");
+  const [sort, setSort] = useState("priorityRank");
+  const [dir, setDir] = useState<Dir>("asc");
   const [offset, setOffset] = useState(0);
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -358,10 +386,10 @@ export default function InventoryPage() {
       </PageShellHeader>
       <PageShellBody className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant={view === "transfers" ? "primary" : "ghost"} onClick={() => { setView("transfers"); setOffset(0); setSort("fromSoldQty"); setStores((s) => s.filter((x) => x.toUpperCase() !== "MAIN")); }}>
+          <Button size="sm" variant={view === "transfers" ? "primary" : "ghost"} onClick={() => { setView("transfers"); setOffset(0); setSort("priorityRank"); setDir("asc"); setStores((s) => s.filter((x) => x.toUpperCase() !== "MAIN")); }}>
             Transfers
           </Button>
-          <Button size="sm" variant={view === "stock" ? "primary" : "ghost"} onClick={() => { setView("stock"); setOffset(0); setSort("onhand"); }}>
+          <Button size="sm" variant={view === "stock" ? "primary" : "ghost"} onClick={() => { setView("stock"); setOffset(0); setSort("onhand"); setDir("desc"); }}>
             All on-hand
           </Button>
           <SalesDateRangePicker
@@ -403,7 +431,12 @@ export default function InventoryPage() {
           </form>
           <select
             value={sort}
-            onChange={(e) => { setSort(e.target.value); setOffset(0); }}
+            onChange={(e) => {
+              const id = e.target.value;
+              setSort(id);
+              setDir(id === "priorityRank" || id === "vendorModel" || id === "fromStore" || id === "toStore" ? "asc" : "desc");
+              setOffset(0);
+            }}
             className="h-9 rounded-xl bg-white/5 px-2 text-sm text-ink ring-1 ring-white/10"
           >
             {(view === "transfers" ? TRANSFER_SORTS : STOCK_SORTS).map((s) => (
@@ -424,6 +457,7 @@ export default function InventoryPage() {
             <table className="w-full text-left text-[13px]">
               <thead className="bg-white/[0.03] text-[11px] uppercase tracking-wide text-white/45">
                 <tr>
+                  <th className="px-3 py-2">Priority</th>
                   <th className="px-3 py-2">Vendor model</th>
                   <th className="px-3 py-2">Description / department</th>
                   <th className="whitespace-nowrap px-3 py-2">Onhand</th>
@@ -450,6 +484,9 @@ export default function InventoryPage() {
                         )}
                         onClick={() => toggleRow(rowKey, r.vendorModel)}
                       >
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
+                      <PriorityBadge priority={r.priority ?? "fill"} />
+                    </td>
                     <td className="px-3 py-2 align-top">
                       <div className="flex items-center gap-1.5 font-semibold text-ink">
                         <ChevronDown size={14} className={cn("shrink-0 text-white/40 transition-transform", open && "rotate-180")} />
@@ -461,19 +498,19 @@ export default function InventoryPage() {
                       <div className="text-ink">{r.description || "—"}</div>
                       <div className="text-white/45">{r.department || "—"}</div>
                     </td>
-                    <td className="whitespace-nowrap bg-rose-500/[0.06] px-3 py-2 align-middle">
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <QtyBadge n={r.onhand} />
                     </td>
-                    <td className="whitespace-nowrap bg-rose-500/[0.06] px-3 py-2 align-middle">
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <QtyBadge n={r.soldQty} />
                     </td>
                     <td className="whitespace-nowrap bg-rose-500/[0.10] px-3 py-2 align-middle">
                       <StoreName store={r.toStore} tier={r.toTier} kind={r.toKind} tone="need" />
                     </td>
-                    <td className="whitespace-nowrap bg-emerald-500/[0.06] px-3 py-2 align-middle">
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <QtyBadge n={r.fromOnhand} />
                     </td>
-                    <td className="whitespace-nowrap bg-emerald-500/[0.06] px-3 py-2 align-middle">
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <QtyBadge n={r.fromSoldQty} />
                     </td>
                     <td className="whitespace-nowrap bg-emerald-500/[0.10] px-3 py-2 align-middle">
@@ -485,7 +522,7 @@ export default function InventoryPage() {
                       </tr>
                       {open ? (
                         <StoreBreakdown
-                          colSpan={11}
+                          colSpan={12}
                           rows={breakdowns[r.vendorModel]}
                           highlightTo={r.toStore}
                           highlightFrom={r.fromStore}

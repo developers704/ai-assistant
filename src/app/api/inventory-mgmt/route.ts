@@ -32,8 +32,13 @@ export async function GET(req: NextRequest) {
   const dateTo = from <= to ? to : from;
   const viewParam = sp.get("view")?.trim() || "transfers";
   const view = viewParam === "stock" ? "stock" : viewParam === "model" ? "model" : "transfers";
-  const dir = sp.get("dir") === "asc" ? "asc" : "desc";
-  const sort = sp.get("sort")?.trim() || (view === "stock" ? "onhand" : "fromSoldQty");
+  const sort = sp.get("sort")?.trim() || (view === "stock" ? "onhand" : "priorityRank");
+  const dir =
+    sp.get("dir") === "asc" || sp.get("dir") === "desc"
+      ? (sp.get("dir") as "asc" | "desc")
+      : view === "stock"
+        ? "desc"
+        : "asc";
   const offset = Number(sp.get("offset") ?? 0) || 0;
   const limit = Number(sp.get("limit") ?? 50) || 50;
   const q = sp.get("q")?.trim() || "";

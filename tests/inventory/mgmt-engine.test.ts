@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "@/lib/inventory/types";
 import type { VendorPosRow } from "@/lib/reports/types";
-import { buildInventoryTransfers, buildModelStoreBreakdown } from "@/lib/inventory/mgmt-engine";
+import { buildInventoryStockRows, buildInventoryTransfers, buildModelStoreBreakdown, transferPriority } from "@/lib/inventory/mgmt-engine";
 import {
   isIgnoredInventoryDepartment,
   isInventoryMgmtStore,
@@ -231,5 +231,44 @@ describe("inventory transfers", () => {
     expect(hits.every((t) => t.fromStore !== "MAIN")).toBe(true);
     const rows = buildModelStoreBreakdown(sales, items, "RR8179WS");
     expect(rows[0]).toMatchObject({ store: "MAIN", onhand: 40, soldQty: 0 });
+  });
+
+  it("collapses size-suffix SKUs so MAIN appears once per vendor model", () => {
+    const rows = buildInventoryStockRows([], [
+      item({ store: "MAIN", onHand: 11, sku: "121126", vendorModel: "KRI3067-10KW" }),
+      item({ store: "MAIN", onHand: 1, sku: "121126Y", vendorModel: "KRI3067-10KW" }),
+      item({ store: "VJ-HEND", onHand: 1, sku: "121126", vendorModel: "KRI3067-10KW" }),
+    ]);
+    const main = rows.filter((r) => r.store === "MAIN" && r.vendorModel === "KRI3067-10KW");
+    expect(main).toHaveLength(1);
+    expect(main[0]).toMatchObject({ onhand: 12, sku: "121126" });
+  });
+});
+
+describe("transfer priority", () => {
+  it("marks empty Need stores Rush, A-store thin High, slower restock Fill", () => {
+    expect(transferPriority({ onhand: 0, soldQty: 5, toTier: "A", toKind: "core" })).toBe("rush");
+    expect(transferPriority({ onhand: 0, soldQty: 8, toTier: "B", toKind: "core" })).toBe("rush");
+    expect(transferPriority({ onhand: 1, soldQty: 10, toTier: "A", toKind: "core" })).toBe("high");
+    expect(transferPriority({ onhand: 2, soldQty: 8, toTier: "B", toKind: "core" })).toBe("fill");
+  });
+
+  it("puts Rush transfers ahead of High", () => {
+    const serraNeed = Array.from({ length: 25 }, (_, i) =>
+      sale({
+        transactionId: `S${i}`,
+        storeName: "VJ-SERRA",
+        vendorModel: "RR8179WS",
+        quantity: 1,
+        netRevenue: 100,
+      })
+    );
+    const rows = buildInventoryTransfers(serraNeed, [
+      item({ store: "VJ-SERRA", onHand: 0 }),
+      item({ store: "VJ-OAK", onHand: 12 }),
+    ]);
+    const hit = rows.find((t) => t.toStore === "VJ-SERRA" && t.vendorModel === "RR8179WS");
+    expect(hit?.priority).toBe("rush");
+    expect(hit?.priorityRank).toBe(0);
   });
 });

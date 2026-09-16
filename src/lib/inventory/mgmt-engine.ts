@@ -49,6 +49,34 @@ export type InventoryModelStoreRow = {
   soldQty: number;
 };
 
+/** Rush = move today. High = soon. Fill = restock after those. */
+export type TransferPriority = "rush" | "high" | "fill";
+
+export const TRANSFER_PRIORITY_RANK: Record<TransferPriority, number> = {
+  rush: 0,
+  high: 1,
+  fill: 2,
+};
+
+/**
+ * Rush — Need store is empty and already selling (lost sales now).
+ * High — A / New still has a piece but sell-through is thin.
+ * Fill — slower store restock; do after Rush / High.
+ */
+export function transferPriority(input: {
+  onhand: number;
+  soldQty: number;
+  toTier: InventoryTier;
+  toKind: InventoryStoreKind;
+}): TransferPriority {
+  const oh = Math.max(0, Number(input.onhand) || 0);
+  const sold = Math.max(0, Number(input.soldQty) || 0);
+  if (oh <= 0) return "rush";
+  if ((input.toTier === "A" || input.toKind === "new") && oh <= 1 && sold >= 5) return "high";
+  if (input.toTier === "A") return "high";
+  return "fill";
+}
+
 export type InventoryTransfer = {
   vendorModel: string;
   sku: string;
@@ -77,6 +105,8 @@ export type InventoryTransfer = {
   fromRevenue: number;
   qty: number;
   reason: string;
+  priority: TransferPriority;
+  priorityRank: number;
 };
 
 export type InventoryMgmtQuery = {
@@ -331,6 +361,12 @@ export function buildInventoryTransfers(
         inv?.sku ||
         model;
       const fromMeta = listInventoryMgmtStores().find((s) => key(s.store) === key(donor.store));
+      const priority = transferPriority({
+        onhand: onh,
+        soldQty,
+        toTier: meta.tier,
+        toKind: meta.kind,
+      });
       out.push({
         vendorModel: inv?.vendorModel || model,
         sku,
@@ -361,11 +397,15 @@ export function buildInventoryTransfers(
         reason:
           `${meta.store} sold ${Math.round(soldQty)} with ${Math.round(onh)} on hand. ` +
           `Take spare from ${donor.store} (${Math.round(donor.spare)} spare, sold ${Math.round(donor.soldQty)}).`,
+        priority,
+        priorityRank: TRANSFER_PRIORITY_RANK[priority],
       });
     }
   }
 
   out.sort((a, b) => {
+    const rank = a.priorityRank - b.priorityRank;
+    if (rank) return rank;
     const tier = a.toTier.localeCompare(b.toTier);
     if (tier) return tier;
     return b.soldQty - a.soldQty || a.toStore.localeCompare(b.toStore);
@@ -378,41 +418,56 @@ export function buildInventoryStockRows(
   items: InventoryItem[]
 ): InventoryStockRow[] {
   const sales = aggregateSales(salesRows);
+  const onhand = aggregateOnhand(items);
   const rows: InventoryStockRow[] = [];
-  for (const item of items) {
-    if (!isInventoryOnhandStore(item.store)) continue;
-    if (isIgnoredInventoryDepartment(item.department)) continue;
-    const main = isMainStore(item.store);
-    const dm = inventoryDmForStore(item.store);
-    if (!dm && !main) continue;
-    const model = key(item.vendorModel || item.sku);
-    const storeKey = key(item.store);
-    const sold = main ? undefined : sales.get(model)?.get(storeKey);
-    const skuSold = sold?.skuSold?.get(item.sku);
-    const soldQty = main ? 0 : (skuSold?.qty ?? 0);
-    const revenue = main ? 0 : (skuSold?.revenue ?? 0);
-    const onhand = Number(item.onHand) || 0;
-    rows.push({
-      store: main ? "MAIN" : item.store,
-      dm: dm ?? "AJ",
-      tier: main ? "C" : inventoryTierForStore(item.store),
-      kind: main ? "main" : inventoryKindForStore(item.store),
-      vendorModel: item.vendorModel || item.sku,
-      sku: item.sku,
-      vendor: item.vendor,
-      description: item.description,
-      department: item.department,
-      design: item.design,
-      productClass: item.class,
-      subClass: item.subClass,
-      tagPrice: item.tagPrice,
-      costPrice: item.costPrice,
-      wholesaleCost: item.wholesaleCost,
-      onhand,
-      soldQty,
-      revenue,
-      coverage: coverageOf(onhand, soldQty),
-    });
+  for (const inv of onhand.values()) {
+    const model = key(inv.vendorModel);
+    const soldByStore = sales.get(model) ?? new Map();
+    for (const [storeKey, storeRow] of inv.stores) {
+      const main = isMainStore(storeKey);
+      if (!isInventoryOnhandStore(storeKey)) continue;
+      const dm = inventoryDmForStore(storeKey);
+      if (!dm && !main) continue;
+      const meta = listInventoryMgmtStores().find((s) => key(s.store) === storeKey);
+      const sold = main ? undefined : soldByStore.get(storeKey);
+      let sku = inv.sku;
+      let tag = inv.tagPrice;
+      let cost = inv.costPrice;
+      let wholesale = inv.wholesaleCost;
+      let bestOh = -1;
+      for (const [skuKey, skuRow] of storeRow.skus) {
+        if (skuRow.onhand > bestOh) {
+          bestOh = skuRow.onhand;
+          sku = skuKey;
+          tag = skuRow.tag || tag;
+          cost = skuRow.cost || cost;
+          wholesale = skuRow.wholesale || wholesale;
+        }
+      }
+      const oh = storeRow.onhand;
+      const soldQty = main ? 0 : (sold?.soldQty ?? 0);
+      rows.push({
+        store: main ? "MAIN" : (meta?.store ?? storeKey),
+        dm: dm ?? "AJ",
+        tier: main ? "C" : inventoryTierForStore(storeKey),
+        kind: main ? "main" : inventoryKindForStore(storeKey),
+        vendorModel: inv.vendorModel,
+        sku,
+        vendor: inv.vendor,
+        description: inv.description,
+        department: inv.department,
+        design: inv.design,
+        productClass: inv.productClass,
+        subClass: inv.subClass,
+        tagPrice: tag,
+        costPrice: cost,
+        wholesaleCost: wholesale,
+        onhand: oh,
+        soldQty,
+        revenue: main ? 0 : (sold?.revenue ?? 0),
+        coverage: coverageOf(oh, soldQty),
+      });
+    }
   }
   return rows;
 }
@@ -544,7 +599,7 @@ export function queryInventoryMgmt(
       string,
       unknown
     >[];
-    const sorted = sortRows(filtered, q.sort || "fromSoldQty", q.dir);
+    const sorted = sortRows(filtered, q.sort || "priorityRank", q.dir);
     const offset = Math.max(0, q.offset);
     const limit = Math.min(200, Math.max(1, q.limit));
     return {
