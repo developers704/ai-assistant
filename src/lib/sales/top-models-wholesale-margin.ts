@@ -91,11 +91,24 @@ export function signedWholesaleUnitCost(
   return amount;
 }
 
-/** POS Inventory Cost is unit cost (repeated on split salesperson rows). */
+/**
+ * POS Inventory Cost = per-piece unit cost (same 1173 on qty 0.5 split and qty 1).
+ * Unlike Sales Amount / Total, it is NOT prorated on split salesperson rows.
+ * Always collapse split txn+SKU rows first; then unit × merged |qty| (whole pieces).
+ */
 export function signedKashInventoryCost(
   row: Pick<VendorPosRow, "inventoryCost" | "quantity" | "netRevenue" | "grossSales">
 ): number {
-  return signedWholesaleUnitCost(Number(row.inventoryCost) || 0, row);
+  const unit = Number(row.inventoryCost) || 0;
+  if (!unit) return 0;
+  const qty = Number(row.quantity ?? 0);
+  const pieces = Number.isFinite(qty) && qty !== 0 ? Math.abs(qty) : 1;
+  const amount = unit * pieces;
+  if (qty < 0) return -amount;
+  if (qty > 0) return amount;
+  if (Number(row.netRevenue ?? 0) < 0) return -amount;
+  if (Number(row.grossSales ?? 0) < 0) return -amount;
+  return amount;
 }
 
 /** Summed Kash CP for Top Vendor Models after split-merge / cancel collapse. */
@@ -116,7 +129,7 @@ export function kashInventoryCostForRows(rows: VendorPosRow[]): number | null {
 }
 
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
-export const TOP_MODELS_MARGIN_RULES_VERSION = 8;
+export const TOP_MODELS_MARGIN_RULES_VERSION = 9;
 
 function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
   const net = Number(row.netRevenue ?? 0);

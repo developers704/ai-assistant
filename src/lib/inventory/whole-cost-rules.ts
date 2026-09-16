@@ -7,8 +7,8 @@
  * 1) Fixed SKU list → fixed $ cost (everyone)
  * 1b) SKU divisor overrides (e.g. 240304 → base ÷ 8.8) — beats design/dept formulas
  * 1c) Department GENTS RING → base ÷ 8.8 (beats GOLD JEWL ÷4; same as ladies ring diamond)
- * 2) Design GOLD JEWL/GOLD JEWEL + (description UV / uv / ultimate value OR Class UV)
- *    → base ÷ 1.3
+ * 2) Gold jewelry (GOLD JEWL design or gold dept incl. GOLD CHAIN) + UV signal
+ *    (description UV/ultimate value, Design UV, or Class UV) → base ÷ 1.3
  * 3) Diamond (diamond dept OR "diamond" in description) + UV / ultimate value in description
  *    → base ÷ 8.8 (fixed SKUs already handled above)
  * Then remaining sheet rules (LINKNLOCK, gold÷4, watches, …).
@@ -120,6 +120,47 @@ export function hasUvOrUltimateValueText(
   if (norm(productClass) === "UV") return true;
   const desc = String(description ?? "");
   return /\buv\b/i.test(desc) || /ultimate\s*value/i.test(desc);
+}
+
+function isWatchDepartment(department: string, deptCompact: string): boolean {
+  return WATCH_DEPT_RULES.some((rule) => rule.matchDept(department, deptCompact));
+}
+
+/** Gold dept (GOLD CHAIN, GOLD ID, …) or GOLD JEWL / GOLD BANDS design. */
+export function isGoldJewelryCategory(
+  department: string,
+  design: string,
+  designCompact: string
+): boolean {
+  const deptCompact = compact(department);
+  if (isWatchDepartment(department, deptCompact)) return false;
+  return (
+    GOLD_DEPARTMENTS.has(department) ||
+    GOLD_JEWL_DESIGNS.has(design) ||
+    isGoldJewlDesign(design, designCompact)
+  );
+}
+
+/** UV gold signal: Design UV, Class UV, or UV / ultimate value in description. */
+export function isUvGoldSignal(
+  design: string,
+  designCompact: string,
+  productClass: string,
+  description?: string | null
+): boolean {
+  if (design === "UV" || designCompact === "UV") return true;
+  return hasUvOrUltimateValueText(productClass, description);
+}
+
+/** UV gold jewelry → Tag / Sales Amount ÷ 1.3 (not plain gold ÷ 4). */
+export function isUvGoldJewelry(fields: WholeCostRuleFields): boolean {
+  const department = norm(fields.department);
+  const design = norm(fields.design);
+  const designCompact = compact(design);
+  return (
+    isGoldJewelryCategory(department, design, designCompact) &&
+    isUvGoldSignal(design, designCompact, norm(fields.class), fields.description)
+  );
 }
 
 function isDiamondItem(department: string, description?: string | null): boolean {
@@ -258,10 +299,14 @@ export function resolveWholeCostFromRules(
     return finish(base / 8.8, "Gents ring department");
   }
 
-  // 1. Design GOLD JEWL + UV / ultimate value (description or Class UV) → ÷ 1.3
+  // 1. UV gold (GOLD JEWL / GOLD CHAIN + Design UV or Class UV or description UV) → ÷ 1.3
   if (
-    isGoldJewlDesign(design, designCompact) &&
-    hasUvOrUltimateValueText(productClass, fields.description)
+    isUvGoldJewelry({
+      department,
+      design,
+      class: productClass,
+      description: fields.description,
+    })
   ) {
     return finish(base / 1.3, "Gold JEWL + UV / Ultimate Value");
   }

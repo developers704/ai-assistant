@@ -7,7 +7,12 @@ import type {
   ProductCategory,
   TierPricing,
 } from "./types";
-import { fixedWholeCostForSku, skuCostKey, wholeCostFromRules } from "./whole-cost-rules";
+import {
+  fixedWholeCostForSku,
+  isUvGoldJewelry,
+  skuCostKey,
+  wholeCostFromRules,
+} from "./whole-cost-rules";
 
 const TIER_LABELS: Record<ManagerTier, string> = {
   dm: "District Manager (DM)",
@@ -249,9 +254,13 @@ export function getVisibleDmCostPrice(item: InventoryItem): number {
 }
 
 function isUvGoldJewelZeroDiscount(item: InventoryItem): boolean {
-  return (
-    /^UV$/i.test(item.class.trim()) && /^GOLD JEWL$/i.test(item.design.trim())
-  );
+  return isUvGoldJewelry({
+    department: item.department,
+    design: item.design,
+    class: item.class,
+    description: item.description,
+    sku: item.sku,
+  });
 }
 
 function isDiamondCategory(item: InventoryItem): boolean {

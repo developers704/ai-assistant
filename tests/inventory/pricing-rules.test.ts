@@ -45,6 +45,33 @@ describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
     expect(getVisibleDmCostPrice(item)).toBeCloseTo(559 / 1.3, 5);
   });
 
+  it("GOLD CHAIN + Design UV + Class 10KT + Ultimate Value → Tag ÷ 1.3 (not ÷ 4)", () => {
+    const item = makeItem({
+      sku: "239139-20",
+      department: "GOLD CHAIN",
+      design: "UV",
+      class: "10KT",
+      description: '10KT "ULTIMATE VALUE" YELLOW-GOLD D/C ROPE CHAIN (NO WARRANTY)',
+      tagPrice: 989,
+      wholesaleCost: 247.25,
+    });
+    expect(getVisibleDmCostPrice(item)).toBeCloseTo(989 / 1.3, 5);
+  });
+
+  it("GOLD CHAIN + Design UV + Class UV → Sales Amount ÷ 1.3", () => {
+    expect(
+      wholeCostFromRules(
+        {
+          department: "GOLD CHAIN",
+          design: "UV",
+          class: "UV",
+          description: '10KT "ULTIMATE VALUE" YELLOW-GOLD D/C SINGAPORE CHAIN (NO WARRANTY)',
+        },
+        149
+      )
+    ).toBeCloseTo(149 / 1.3, 5);
+  });
+
   it("Diamond + Ultimate Value in description → Tag ÷ 8.8 (non-special SKU)", () => {
     expect(
       wholeCostFromRules(

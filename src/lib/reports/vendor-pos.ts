@@ -5,7 +5,7 @@ import { isValidIsoDate, parseReportFilterDate, priorYearCompareWindow, shiftIso
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import {
   calculatorWholesaleUnitCost,
-  collapseCancelledSkuLegs,
+  collapseTopModelSaleRows,
   isPhantomZeroNetModel,
   signedWholesaleUnitCost,
   wholesaleProfitForModelRows,
@@ -323,7 +323,7 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
 
   const finalized = [...map.values()]
     .map((entry) => {
-      const collapsed = collapseCancelledSkuLegs(entry.rows);
+      const collapsed = collapseTopModelSaleRows(entry.rows);
       const deptRevenue = new Map<string, number>();
       let revenue = 0;
       let units = 0;

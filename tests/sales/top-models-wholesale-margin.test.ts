@@ -3,6 +3,8 @@ import type { VendorPosRow } from "@/lib/reports/types";
 import { skuLinesForModel } from "@/lib/sales/sales-aggregate";
 import {
   collapseSplitTxnSkuRows,
+  kashInventoryCostForRows,
+  signedKashInventoryCost,
   signedWholesaleUnitCost,
   wholesaleProfitForModelRows,
 } from "@/lib/sales/top-models-wholesale-margin";
@@ -180,6 +182,69 @@ describe("collapseSplitTxnSkuRows", () => {
     expect(skuLines[0]!.tagPrice).toBeCloseTo(20995, 2);
     // POS Inventory Cost unit × |qty| after split merge (126 × 1)
     expect(skuLines[0]!.kashCost).toBeCloseTo(126, 2);
+  });
+
+  it("does not double-count Kash CP on 50/50 split (POS repeats unit Inventory Cost)", () => {
+    const split = [
+      row({
+        sku: "234268",
+        vendorModel: "LGE+RBC5.00",
+        transactionId: "VS-10292236",
+        quantity: 0.5,
+        grossSales: 7497.5,
+        netRevenue: 1997.97,
+        inventoryCost: 1173,
+      }),
+      row({
+        sku: "234268",
+        vendorModel: "LGE+RBC5.00",
+        transactionId: "VS-10292236",
+        quantity: 0.5,
+        grossSales: 7497.5,
+        netRevenue: 1997.97,
+        inventoryCost: 1173,
+      }),
+    ];
+    // Excel raw sum wrongly adds 1173+1173
+    expect(split.reduce((s, r) => s + r.inventoryCost, 0)).toBe(2346);
+    expect(kashInventoryCostForRows(split)).toBeCloseTo(1173, 2);
+    expect(signedKashInventoryCost(split[0]!)).toBeCloseTo(586.5, 2);
+  });
+
+  it("sums Kash CP per piece sold across SKUs (Sep 15 LGE+RBC5.00 shape)", () => {
+    const rows = [
+      row({
+        sku: "234268",
+        vendorModel: "LGE+RBC5.00",
+        storeName: "VJ-SERRA",
+        transactionId: "VS-10292236",
+        quantity: 0.5,
+        grossSales: 7497.5,
+        netRevenue: 1997.97,
+        inventoryCost: 1173,
+      }),
+      row({
+        sku: "234268",
+        vendorModel: "LGE+RBC5.00",
+        storeName: "VJ-SERRA",
+        transactionId: "VS-10292236",
+        quantity: 0.5,
+        grossSales: 7497.5,
+        netRevenue: 1997.97,
+        inventoryCost: 1173,
+      }),
+      row({
+        sku: "228746",
+        vendorModel: "LGE+RBC5.00",
+        storeName: "VJ-EAST",
+        transactionId: "VE-10294160",
+        quantity: 1,
+        grossSales: 14995,
+        netRevenue: 5100,
+        inventoryCost: 1173,
+      }),
+    ];
+    expect(kashInventoryCostForRows(rows)).toBeCloseTo(2346, 2);
   });
 
   it("does not merge two SKUs on the same ticket", () => {
