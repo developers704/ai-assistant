@@ -131,16 +131,6 @@ function QtyBadge({ n }: { n: number }) {
   );
 }
 
-function TierBadge({ tier }: { tier: string }) {
-  const cls =
-    tier === "A"
-      ? "bg-emerald-400/15 text-emerald-200"
-      : tier === "B"
-        ? "bg-sky-400/15 text-sky-200"
-        : "bg-white/10 text-white/70";
-  return <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", cls)}>{tier}</span>;
-}
-
 function StoreBadge({ tier, kind }: { tier: string; kind?: string }) {
   if (kind === "main") return null;
   if (kind === "new") {
@@ -150,7 +140,8 @@ function StoreBadge({ tier, kind }: { tier: string; kind?: string }) {
       </span>
     );
   }
-  return <TierBadge tier={tier} />;
+  if (tier !== "A") return null;
+  return <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-200">A</span>;
 }
 
 function StoreBreakdown({
