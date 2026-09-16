@@ -91,6 +91,30 @@ export function signedWholesaleUnitCost(
   return amount;
 }
 
+/** POS Inventory Cost is unit cost (repeated on split salesperson rows). */
+export function signedKashInventoryCost(
+  row: Pick<VendorPosRow, "inventoryCost" | "quantity" | "netRevenue" | "grossSales">
+): number {
+  return signedWholesaleUnitCost(Number(row.inventoryCost) || 0, row);
+}
+
+/** Summed Kash CP for Top Vendor Models after split-merge / cancel collapse. */
+export function kashInventoryCostForRows(rows: VendorPosRow[]): number | null {
+  const active = collapseTopModelSaleRows(rows);
+  if (!active.length) return 0;
+  if (
+    active.some((r) => {
+      const sku = (r.sku || r.itemNumber || "").trim();
+      return isItemPlaceholderSku(sku) || isRepairServiceMemoSku(sku);
+    })
+  ) {
+    return null;
+  }
+  let sum = 0;
+  for (const r of active) sum += signedKashInventoryCost(r);
+  return sum;
+}
+
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
 export const TOP_MODELS_MARGIN_RULES_VERSION = 8;
 
@@ -215,15 +239,16 @@ function mergeSplitTxnSkuGroup<T extends VendorPosRow>(group: T[]): T {
   let netRevenue = 0;
   let grossSales = 0;
   let discountAmount = 0;
-  let inventoryCost = 0;
   let margin = 0;
+  let inventoryCost = 0;
   for (const r of group) {
     quantity += Number(r.quantity ?? 0);
     netRevenue += Number(r.netRevenue ?? 0);
     grossSales += Number(r.grossSales ?? 0);
     discountAmount += Number(r.discountAmount ?? 0);
-    inventoryCost += Number(r.inventoryCost ?? 0);
     margin += Number(r.margin ?? 0);
+    const ic = Number(r.inventoryCost ?? 0);
+    if (inventoryCost === 0 && ic !== 0) inventoryCost = ic;
   }
   return {
     ...first,

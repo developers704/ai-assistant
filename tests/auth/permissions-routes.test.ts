@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isDmAllowedAppPath, isDmAllowedApiPath } from "@/lib/auth/routes";
 import {
   canManageDmPermissions,
+  canSeeKashCostPrice,
   getDefaultPermissionMapForRole,
   hasRolesPermission,
   hasUsersPermission,
@@ -144,5 +145,15 @@ describe("Employee and HR routing", () => {
     expect(permissions.role_admin).toBe(false);
     expect(isDmAllowedAppPath("/admin/users", "hr", "hr", permissions)).toBe(true);
     expect(isDmAllowedAppPath("/admin/roles", "hr", "hr", permissions)).toBe(false);
+  });
+});
+
+describe("Kash CP visibility", () => {
+  it("shows Top Models CP (Kash) only to Kash, Ross, and admin", () => {
+    expect(canSeeKashCostPrice("kash", "admin")).toBe(true);
+    expect(canSeeKashCostPrice("ross", "dm")).toBe(true);
+    expect(canSeeKashCostPrice("admin", "admin")).toBe(true);
+    expect(canSeeKashCostPrice("marina", "dm")).toBe(false);
+    expect(canSeeKashCostPrice("aj", "dm")).toBe(false);
   });
 });

@@ -41,6 +41,7 @@ import { useApp } from "@/lib/store/app-context";
 import {
   showsAllSoldInTopVendorModels,
   userHidesVendorInfo,
+  canSeeKashCostPrice,
 } from "@/lib/auth/user-permissions";
 import { TrendingUp, TrendingDown, Package, Store, LineChart, GitCompareArrows, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,7 @@ export default function SalesPage() {
   const includeHiddenTopModels = showsAllSoldInTopVendorModels(
     state?.user?.username
   );
+  const showKashCost = canSeeKashCostPrice(state?.user?.username, state?.user?.role);
   const detailTypeFromUrl = searchParams.get("detail");
   const detailValueFromUrl = searchParams.get("detailValue");
   const [summary, setSummary] = useState<SalesSummary | null>(null);
@@ -857,8 +859,9 @@ export default function SalesPage() {
               <div className="p-3 sm:p-4">
                 <TopProductsTable
                   products={topProducts}
-                  showDateFilter={multiDayRange}
                   includeHiddenTopModels={includeHiddenTopModels}
+                  showKashCost={showKashCost}
+                  showDateFilter={multiDayRange}
                 />
               </div>
             </Card>

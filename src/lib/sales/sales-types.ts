@@ -201,6 +201,8 @@ export interface VendorModelSkuLine {
   marginRate?: number;
   /** Shown as "tag $" on Top Vendor Models — Sales Amount (gross), not inventory Tag. */
   tagPrice?: number;
+  /** POS Inventory Cost × |qty| (Kash CP). Hidden for ITEM / JVV. */
+  kashCost?: number;
   /** Per-store units sold for this SKU under the parent model / filter slice */
   stores?: VendorModelSkuStoreLine[];
   /** On-hand total across stores for this SKU. */
@@ -233,6 +235,8 @@ export interface SalesBreakdownRow {
   saleDates?: string[];
   /** Distinct SKUs sold under this vendor model (Top Vendor Models). */
   skus?: VendorModelSkuLine[];
+  /** POS Inventory Cost × |qty| for this model (Kash CP). Null for ITEM / JVV. */
+  kashCost?: number | null;
   /** On-hand total for every SKU under this vendor model (MAIN included). */
   onHandTotal?: number;
   /** Stores with on-hand qty > 0 for this vendor model (MAIN first). */

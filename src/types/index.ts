@@ -216,6 +216,8 @@ export interface SalesSummary {
     margin?: number;
     /** Profit margin = profit / net sales (0–1) */
     marginRate?: number;
+    /** POS Inventory Cost × |qty| — Kash / Ross / admin only in UI */
+    kashCost?: number | null;
     /** Dominant department by revenue */
     department?: string;
     /** Latest sale date (ISO) in the filtered window */
@@ -237,6 +239,8 @@ export interface SalesSummary {
       revenue: number;
       margin?: number;
       marginRate?: number;
+      tagPrice?: number;
+      kashCost?: number;
       onHandTotal?: number;
       stores?: {
         name: string;

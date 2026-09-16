@@ -67,6 +67,19 @@ export function canAccessInventoryMgmt(
   return u === "kash" || u === "ross" || u === "admin" || u === "marina";
 }
 
+/**
+ * Top Vendor Models CP (Kash) = POS Inventory Cost.
+ * Kash, Ross, admin only — not Marina / DMs / employees.
+ */
+export function canSeeKashCostPrice(
+  username?: string | null,
+  role?: string | null
+): boolean {
+  if (role === "admin") return true;
+  const u = normalizeUsername(username);
+  return u === "kash" || u === "ross" || u === "admin";
+}
+
 /** Admins see real Individual Cost; everyone else sees Whole Cost. */
 export function canSeeRealInventoryCost(
   username?: string | null,

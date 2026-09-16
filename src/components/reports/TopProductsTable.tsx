@@ -26,6 +26,7 @@ export interface TopProductSkuLine {
   margin?: number;
   marginRate?: number;
   tagPrice?: number;
+  kashCost?: number;
   onHandTotal?: number;
   stores?: {
     name: string;
@@ -50,6 +51,8 @@ export interface TopProductRow {
   margin?: number;
   /** Profit margin = profit / net sales (0–1) — CSV Profit Amount ÷ Total when present */
   marginRate?: number;
+  /** POS Inventory Cost × |qty| — Kash / Ross / admin only */
+  kashCost?: number | null;
   /** Dominant department by revenue under this model */
   department?: string;
   /** Latest ISO sale date in the current filter window */
@@ -74,11 +77,13 @@ interface TopProductsTableProps {
   showDateFilter?: boolean;
   /** Rozina: keep ITEM / soft-hidden sold lines in the table. */
   includeHiddenTopModels?: boolean;
+  /** Kash / Ross / admin: show CP (Kash) = POS Inventory Cost. */
+  showKashCost?: boolean;
 }
 
-type SortKey = "date" | "qty" | "revenue" | "margin";
+type SortKey = "date" | "qty" | "revenue" | "margin" | "kashCost";
 type SortDir = "asc" | "desc";
-export type MetricColumn = "dept" | "date" | "qty" | "revenue" | "margin";
+export type MetricColumn = "dept" | "date" | "qty" | "revenue" | "margin" | "kashCost";
 
 const ALL_METRIC_COLUMNS: { key: MetricColumn; label: string; width: string }[] = [
   { key: "dept", label: "Dept", width: "4.75rem" },
@@ -86,26 +91,31 @@ const ALL_METRIC_COLUMNS: { key: MetricColumn; label: string; width: string }[] 
   { key: "qty", label: "Qty", width: "3.25rem" },
   { key: "revenue", label: "Revenue", width: "5rem" },
   { key: "margin", label: "Margin", width: "3rem" },
+  { key: "kashCost", label: "CP (Kash)", width: "5.25rem" },
 ];
 
 const COLUMN_STORAGE_KEY = "athena.top-products.columns";
 
-function defaultVisibleColumns(): MetricColumn[] {
-  return ALL_METRIC_COLUMNS.map((c) => c.key);
+function defaultVisibleColumns(showKashCost?: boolean): MetricColumn[] {
+  return ALL_METRIC_COLUMNS.filter((c) => c.key !== "kashCost" || showKashCost).map((c) => c.key);
 }
 
-function loadVisibleColumns(): MetricColumn[] {
-  if (typeof window === "undefined") return defaultVisibleColumns();
+function loadVisibleColumns(showKashCost?: boolean): MetricColumn[] {
+  if (typeof window === "undefined") return defaultVisibleColumns(showKashCost);
   try {
     const raw = window.localStorage.getItem(COLUMN_STORAGE_KEY);
-    if (!raw) return defaultVisibleColumns();
+    if (!raw) return defaultVisibleColumns(showKashCost);
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return defaultVisibleColumns();
-    const allowed = new Set(ALL_METRIC_COLUMNS.map((c) => c.key));
+    if (!Array.isArray(parsed)) return defaultVisibleColumns(showKashCost);
+    const allowed = new Set(
+      ALL_METRIC_COLUMNS.filter((c) => c.key !== "kashCost" || showKashCost).map((c) => c.key)
+    );
     const next = parsed.filter((k): k is MetricColumn => allowed.has(k as MetricColumn));
-    return next.length ? next : defaultVisibleColumns();
+    // Always surface CP (Kash) when the viewer is allowed, even if older localStorage omitted it.
+    if (showKashCost && !next.includes("kashCost")) next.push("kashCost");
+    return next.length ? next : defaultVisibleColumns(showKashCost);
   } catch {
-    return defaultVisibleColumns();
+    return defaultVisibleColumns(showKashCost);
   }
 }
 
@@ -145,6 +155,7 @@ function MetricsBlock({
   revenue,
   marginRate,
   profit,
+  kashCost,
   department,
   dateLabel,
   mobile,
@@ -154,6 +165,7 @@ function MetricsBlock({
   revenue: number;
   marginRate: number | null;
   profit?: number;
+  kashCost?: number | null;
   department?: string;
   dateLabel?: string;
   mobile?: boolean;
@@ -214,6 +226,17 @@ function MetricsBlock({
           }
         >
           {formatMarginPct(marginRate)}
+        </span>
+      ),
+    },
+    {
+      key: "kashCost",
+      node: (
+        <span
+          className={cn(TYPE, "font-semibold tabular-nums text-right text-sky-200/90")}
+          title="POS Inventory Cost"
+        >
+          {kashCost == null || !Number.isFinite(kashCost) ? "—" : formatCurrency(kashCost)}
         </span>
       ),
     },
@@ -278,6 +301,19 @@ function MetricsBlock({
               }
             >
               {formatMarginPct(marginRate)}
+            </span>
+          </div>
+        ) : null,
+        show("kashCost") ? (
+          <div key="kashCost" className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
+            <span className={cn(TYPE_HEADER, "text-white/45")}>
+              CP (Kash)
+            </span>
+            <span
+              className={cn("mt-0.5 font-semibold tabular-nums text-sky-200/90", TYPE)}
+              title="POS Inventory Cost"
+            >
+              {kashCost == null || !Number.isFinite(kashCost) ? "—" : formatCurrency(kashCost)}
             </span>
           </div>
         ) : null,
@@ -369,6 +405,7 @@ export function TopProductsTable({
   emptyLabel = "No product data in this report.",
   showDateFilter = false,
   includeHiddenTopModels = false,
+  showKashCost = false,
 }: TopProductsTableProps) {
   const baseRows = filterTopProductSkus(products, { includeHiddenTopModels });
   const [query, setQuery] = useState("");
@@ -387,11 +424,18 @@ export function TopProductsTable({
     subtitle?: string;
   } | null>(null);
 
-  const columns = visibleCols ?? defaultVisibleColumns();
+  const columns = visibleCols ?? defaultVisibleColumns(showKashCost);
 
   useEffect(() => {
-    setVisibleCols(loadVisibleColumns());
-  }, []);
+    setVisibleCols(loadVisibleColumns(showKashCost));
+  }, [showKashCost]);
+
+  useEffect(() => {
+    if (!showKashCost) {
+      setVisibleCols((prev) => (prev ? prev.filter((k) => k !== "kashCost") : prev));
+      if (sortKey === "kashCost") setSortKey("qty");
+    }
+  }, [showKashCost, sortKey]);
 
   useEffect(() => {
     if (!visibleCols || typeof window === "undefined") return;
@@ -400,12 +444,14 @@ export function TopProductsTable({
 
   const toggleColumn = (key: MetricColumn) => {
     setVisibleCols((prev) => {
-      const current = prev ?? defaultVisibleColumns();
+      const current = prev ?? defaultVisibleColumns(showKashCost);
       if (current.includes(key)) {
         if (current.length <= 1) return current;
         return current.filter((k) => k !== key);
       }
-      const order = ALL_METRIC_COLUMNS.map((c) => c.key);
+      const order = ALL_METRIC_COLUMNS.filter((c) => c.key !== "kashCost" || showKashCost).map(
+        (c) => c.key
+      );
       return order.filter((k) => k === key || current.includes(k));
     });
   };
@@ -492,6 +538,10 @@ export function TopProductsTable({
           b.marginRate ??
           (b.revenue > 0 && b.margin != null ? b.margin / b.revenue : 0);
         if (ar !== br) return (ar - br) * mul;
+      } else if (sortKey === "kashCost") {
+        const ak = a.kashCost ?? Number.NEGATIVE_INFINITY;
+        const bk = b.kashCost ?? Number.NEGATIVE_INFINITY;
+        if (ak !== bk) return (ak - bk) * mul;
       }
       // Stable tie-breakers
       if (a.units !== b.units) return b.units - a.units;
@@ -552,7 +602,7 @@ export function TopProductsTable({
                   <p className="px-1.5 pb-1.5 text-[13px] font-semibold uppercase tracking-wide text-white/40">
                     Show / hide
                   </p>
-                  {ALL_METRIC_COLUMNS.map((col) => {
+                  {ALL_METRIC_COLUMNS.filter((c) => c.key !== "kashCost" || showKashCost).map((col) => {
                     const on = columns.includes(col.key);
                     return (
                       <label
@@ -653,6 +703,16 @@ export function TopProductsTable({
                 title="Profit ÷ Net sales"
               />
             )}
+            {columns.includes("kashCost") && (
+              <SortHeader
+                label="CP (Kash)"
+                active={sortKey === "kashCost"}
+                dir={sortDir}
+                onClick={() => toggleSort("kashCost")}
+                className="justify-end w-full"
+                title="POS Inventory Cost"
+              />
+            )}
           </div>
         </div>
 
@@ -676,6 +736,7 @@ export function TopProductsTable({
                 ["qty", "Qty"],
                 ["revenue", "Rev"],
                 ["margin", "Margin"],
+                ["kashCost", "CP"],
               ] as [SortKey, string][]
             )
               .filter(([key]) => columns.includes(key))
@@ -824,6 +885,7 @@ export function TopProductsTable({
                         revenue={product.revenue}
                         marginRate={marginRate}
                         profit={product.margin}
+                        kashCost={product.kashCost}
                         department={product.department}
                         dateLabel={formatModelDate(product)}
                         visible={columns}
@@ -845,6 +907,7 @@ export function TopProductsTable({
                         revenue={product.revenue}
                         marginRate={marginRate}
                         profit={product.margin}
+                        kashCost={product.kashCost}
                         department={product.department}
                         dateLabel={formatModelDate(product)}
                         visible={columns}

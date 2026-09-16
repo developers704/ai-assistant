@@ -17,6 +17,7 @@ import {
   calculatorWholesaleUnitCost,
   collapseTopModelSaleRows,
   isPhantomZeroNetModel,
+  signedKashInventoryCost,
   signedWholesaleUnitCost,
   vendorModelGroupKey,
 } from "./top-models-wholesale-margin";
@@ -146,11 +147,13 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       units: 0,
       revenue: 0,
       margin: 0,
+      kashCost: 0,
       sales: [],
     };
     const units = salesUnitsSold(r.quantity);
     cur.units += units;
     cur.revenue += r.netRevenue;
+    cur.kashCost = (cur.kashCost ?? 0) + signedKashInventoryCost(r);
     // Top-model SKU lines: revenue − signed calculator cost (returns add cost back)
     const cost = calculatorWholesaleUnitCost(sku, r.storeName, r);
     if (cost == null) {
@@ -187,6 +190,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
         margin != null
           ? margin / line.revenue
           : undefined;
+      const kashCost = hideMargin ? undefined : line.kashCost;
       const stores = [...sales].sort(
         (a, b) =>
           (b.date ?? "").localeCompare(a.date ?? "") ||
@@ -197,6 +201,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
         ...line,
         margin,
         marginRate,
+        kashCost,
         // UI label stays "tag $" — value is Sales Amount (gross), not inventory Tag
         tagPrice: salesAmount != null && salesAmount > 0 ? salesAmount : undefined,
         stores: stores.length ? stores : undefined,

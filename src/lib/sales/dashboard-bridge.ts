@@ -99,6 +99,8 @@ export function reportSummaryFromQueryResult(
           r.estimatedMargin != null && r.netSales > 0
             ? r.estimatedMargin / r.netSales
             : undefined,
+        /** POS Inventory Cost (Kash CP) — stripped later for non-Kash/Ross/admin. */
+        kashCost: r.kashCost ?? undefined,
         department: r.department,
         lastSaleDate: r.lastSaleDate,
         saleDates: r.saleDates,

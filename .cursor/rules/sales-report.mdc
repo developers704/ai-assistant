@@ -51,11 +51,17 @@ When changing Top Models soft-hide rules, update `src/lib/utils.ts` and this fil
 - **Real negative %** is allowed when Net &lt; wholesale unit cost — do not hide those.
 - **ITEM / JVV repair lines:** no margin % in Top Models (red `—`).
 
+### Top Vendor Models — CP (Kash)
+
+- Column **CP (Kash)** = POS CSV **Inventory Cost** × |qty| (signed like wholesale; split rows share unit cost).
+- Visible only to **Kash, Ross, admin** (`canSeeKashCostPrice`). Not Marina / DMs / employees.
+- Historical + daily sales both use the same `inventoryCost` field from parse — no separate backfill file.
+
 ## Bundled default report
 
 - File: `data/reports/Sales-Report.csv`
 - Seeded via `src/lib/reports/store.ts`; app refreshes `.data/reports/` when the file changes
-- Current seed window: **2025-01-01 → 2026-09-14**
+- Current seed window: **2025-01-01 → 2026-09-15**
 - Companion paycode overlay: `data/reports/Payment-Transactions.csv` (Applied Amt by Transaction # / Pay Code; daily files append / replace same day)
 
 ## Paycode overlay (Sales Dashboard only)

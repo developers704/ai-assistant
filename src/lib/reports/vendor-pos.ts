@@ -9,6 +9,7 @@ import {
   isPhantomZeroNetModel,
   signedWholesaleUnitCost,
   wholesaleProfitForModelRows,
+  kashInventoryCostForRows,
 } from "@/lib/sales/top-models-wholesale-margin";
 import { creditSalespersonRows } from "@/lib/sales/salesperson-credit";
 import type { ReportPeriod, ReportSummary, VendorPosRow } from "./types";
@@ -374,6 +375,7 @@ function rankProducts(rows: VendorPosRow[], limit?: number | null) {
       saleDates: dates.length ? dates : undefined,
       skus: skus.length ? skus : undefined,
       marginRate: marginRate ?? undefined,
+      kashCost: kashInventoryCostForRows(modelRows) ?? undefined,
       imageUrl: resolveProductImageUrl(p.imageDir),
     };
   });

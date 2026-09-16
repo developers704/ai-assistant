@@ -268,7 +268,7 @@ export default function InventoryPage() {
   const [view, setView] = useState<View>("transfers");
   const [dateRange, setDateRange] = useState<SalesDateRangeValue>({
     from: "2025-01-01",
-    to: "2026-09-14",
+    to: "2026-09-15",
   });
   const [stores, setStores] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -393,8 +393,8 @@ export default function InventoryPage() {
             All on-hand
           </Button>
           <SalesDateRangePicker
-            availableDates={datesBetween("2025-01-01", "2026-09-14")}
-            reportRange={{ from: "2025-01-01", to: "2026-09-14" }}
+            availableDates={datesBetween("2025-01-01", "2026-09-15")}
+            reportRange={{ from: "2025-01-01", to: "2026-09-15" }}
             value={dateRange}
             onChange={(next) => {
               if (!next) return;

@@ -32,7 +32,7 @@ import {
   scopeStoresForUser,
 } from "@/lib/auth/scope-stores";
 import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
-import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
+import { showsAllSoldInTopVendorModels, canSeeKashCostPrice } from "@/lib/auth/user-permissions";
 import {
   applySalespersonFilter,
   listPaycodes,
@@ -514,6 +514,18 @@ export async function GET(req: NextRequest) {
         summary.recommendations = summary.recommendations.filter(
           (r) => !/top vendor/i.test(r)
         );
+      }
+      if (!canSeeKashCostPrice(session.username, session.role)) {
+        summary.topProducts = (summary.topProducts ?? []).map((p) => {
+          const { kashCost: _drop, skus, ...rest } = p as typeof p & {
+            kashCost?: number | null;
+            skus?: Array<Record<string, unknown>>;
+          };
+          return {
+            ...rest,
+            skus: skus?.map(({ kashCost: _s, ...sku }) => sku),
+          };
+        }) as typeof summary.topProducts;
       }
       const salespeople = listSalespeopleFromRows(versionRows);
       const tableRows = salesTableRows(versionRows, {

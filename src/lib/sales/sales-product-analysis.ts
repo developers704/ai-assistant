@@ -10,6 +10,7 @@ import type { SalesBreakdownRow } from "./sales-types";
 import {
   vendorModelGroupKey,
   wholesaleProfitForModelRows,
+  kashInventoryCostForRows,
 } from "./top-models-wholesale-margin";
 
 function rowsForTopModels(
@@ -43,10 +44,14 @@ function applyWholesaleMargins(
     const modelRows = byKey.get(key) ?? [];
     // ITEM / JVV repairs: no margin % in Top Models (UI shows red —)
     if (modelRows.some((r) => isRepairServiceMemoSku(r.sku || r.itemNumber))) {
-      return { ...m, estimatedMargin: null };
+      return { ...m, estimatedMargin: null, kashCost: null };
     }
     const { profit } = wholesaleProfitForModelRows(modelRows);
-    return { ...m, estimatedMargin: profit };
+    return {
+      ...m,
+      estimatedMargin: profit,
+      kashCost: kashInventoryCostForRows(modelRows),
+    };
   });
 }
 

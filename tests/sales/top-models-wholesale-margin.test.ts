@@ -178,6 +178,8 @@ describe("collapseSplitTxnSkuRows", () => {
     expect(skuLines[0]!.units).toBeCloseTo(1, 6);
     expect(skuLines[0]!.revenue).toBeCloseTo(12376.45, 2);
     expect(skuLines[0]!.tagPrice).toBeCloseTo(20995, 2);
+    // POS Inventory Cost unit × |qty| after split merge (126 × 1)
+    expect(skuLines[0]!.kashCost).toBeCloseTo(126, 2);
   });
 
   it("does not merge two SKUs on the same ticket", () => {
