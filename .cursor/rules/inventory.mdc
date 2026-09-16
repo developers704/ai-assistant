@@ -1,0 +1,59 @@
+---
+description: Inventory page + daily onhand append (Umair / Cursor)
+alwaysApply: true
+---
+
+# Inventory
+
+## Daily onhand append (Cursor)
+
+Umair appends a **full POS onhand snapshot** through Cursor (not a same-day row merge like sales). Always replace live inventory:
+
+```
+npx tsx scripts/append-onhand.ts <onhand.csv>
+```
+
+| File | Lands in |
+|---|---|
+| Daily onhand CSV | `data/inventory/Inventory-Onhand.csv` + `.data/inventory/` (calculator + sales onhand stay in sync) |
+
+Normalize empty spacer columns; fill **Whole Cost** from Tag × CP divisor rules (`normalizeAndFillOnhandCsv`). **Do not** use Whole Cost as Kash’s transfer/onhand cost.
+
+After write, script fails if the snapshot looks empty. Inventory Transfers / All on-hand read this file — no extra rebuild.
+
+## Who sees Inventory
+
+Nav + `/inventory` + `/api/inventory-mgmt`: **Kash, admin, Ross, Marina** only (`canAccessInventoryMgmt`). AJ / Shaun / others do not.
+
+## Cost column (Transfers + All on-hand)
+
+| Login | Source column |
+|---|---|
+| Kash / admin / Ross / Marina | **Individual Cost Value** (`costPrice`) |
+| Everyone else (if they ever see it) | **Whole Cost** |
+
+Never use sales CSV Profit or another sheet for this column.
+
+## Stores
+
+- **AJ + Shaun** selling stores only for transfer From/To. Adeel, Rozina/VIS, CON, WEB excluded.
+- **MAIN** = warehouse. Show onhand qty (dropdown **top**, All on-hand filter + list). **Never** a transfer donor/destination. No sold. No A/B/C label. Not in Transfers store filter.
+- Store badges: **A** and **New** only. No B/C labels.
+
+## Ignore departments (inventory + transfers)
+
+`BATTERY`, `TRAY`, `GIFT BOX`, `BULOV GIFT` / `BULOVA GIFT`, `MISC`, `ROLEX BOX` (department match). Do **not** drop Gift Cards or Bulova watches whose subclass is Battery.
+
+## Transfers
+
+- Keep **at least 1** of each vendor model at every selling store.
+- Donor only if **onhand ≥ 2** and selling is **slow** (`sold * 2 < onhand`, e.g. 5/1–2 yes, 5/3 no). Never fall back to a healthy store. A stores never donate. MAIN never donates.
+- Click a line → all stores’ onhand/sold for that vendor model; MAIN first, onhand only (sold = —).
+- Columns: vendor model, description/department, To onhand/sold/store, From onhand/sold/store, tag, cost, sold revenue. No move-qty column.
+
+## Implementation
+
+- Engine: `src/lib/inventory/mgmt-engine.ts` + `mgmt-stores.ts`
+- API: `GET /api/inventory-mgmt`
+- Append: `scripts/append-onhand.ts` (alias `scripts/import-onhand.ts`)
+- Parse: `Individual Cost Value` → `costPrice`, `Whole Cost` → `wholesaleCost` (`parse-csv.ts`)
