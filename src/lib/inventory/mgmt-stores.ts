@@ -26,8 +26,8 @@ const IGNORED_DEPARTMENTS = new Set([
   "ROLEX BOX",
 ]);
 
-/** B/C stores keep at least this many of a vendor model. */
-export const MIN_STORE_MODEL_ONHAND = 2;
+/** Every store keeps at least one of a vendor model. Extra pieces can move if selling is slow. */
+export const MIN_STORE_MODEL_ONHAND = 1;
 
 const AJ_SET = new Set<string>(AJ_STORES);
 const SHAUN_SET = new Set<string>(SHAUN_STORES);

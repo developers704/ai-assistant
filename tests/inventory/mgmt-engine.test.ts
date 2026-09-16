@@ -65,7 +65,7 @@ describe("inventory mgmt stores", () => {
     expect(isInventoryMgmtStore("DE-SOUTH")).toBe(false);
     expect(isInventoryMgmtStore("VJ-CON")).toBe(false);
     expect(keepReserveQty(2, "new")).toBe(10);
-    expect(keepReserveQty(0, "core")).toBe(2);
+    expect(keepReserveQty(0, "core")).toBe(1);
   });
 
   it("ignores battery / tray / gift box / misc / Rolex box departments", () => {
@@ -146,8 +146,8 @@ describe("inventory transfers", () => {
     expect(hits).toHaveLength(0);
   });
 
-  it("does not donate when a B/C store only has 1–2 on hand", () => {
-    const sales = Array.from({ length: 25 }, (_, i) =>
+  it("does not donate the last piece; 2 unsold copies can move one", () => {
+    const serraNeed = Array.from({ length: 25 }, (_, i) =>
       sale({
         transactionId: `S${i}`,
         storeName: "VJ-SERRA",
@@ -156,9 +156,25 @@ describe("inventory transfers", () => {
         netRevenue: 100,
       })
     );
-    const items = [item({ store: "VJ-SERRA", onHand: 3 }), item({ store: "VJ-OAK", onHand: 2 })];
-    const hits = buildInventoryTransfers(sales, items).filter((t) => t.fromStore === "VJ-OAK");
-    expect(hits).toHaveLength(0);
+    const oneLeft = buildInventoryTransfers(serraNeed, [
+      item({ store: "VJ-SERRA", onHand: 3 }),
+      item({ store: "VJ-OAK", onHand: 1 }),
+    ]).filter((t) => t.fromStore === "VJ-OAK");
+    expect(oneLeft).toHaveLength(0);
+
+    const twoUnsold = buildInventoryTransfers(serraNeed, [
+      item({ store: "VJ-SERRA", onHand: 3 }),
+      item({ store: "VJ-OAK", onHand: 2 }),
+    ]).filter((t) => t.fromStore === "VJ-OAK");
+    expect(twoUnsold.length).toBeGreaterThan(0);
+
+    const twoSelling = buildInventoryTransfers(
+      serraNeed.concat(
+        sale({ storeName: "VJ-OAK", vendorModel: "RR8179WS", quantity: 1, netRevenue: 100 })
+      ),
+      [item({ store: "VJ-SERRA", onHand: 3 }), item({ store: "VJ-OAK", onHand: 2 })]
+    ).filter((t) => t.fromStore === "VJ-OAK");
+    expect(twoSelling).toHaveLength(0);
   });
 
   it("skips tray / battery / gift-box inventory from transfers", () => {

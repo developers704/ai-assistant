@@ -275,7 +275,6 @@ function pickDonor(
     soldQty: number;
     onhand: number;
     rank: number;
-    sellingWell: boolean;
   }> = [];
   for (const meta of listInventoryMgmtStores()) {
     if (isMainStore(meta.store)) continue;
@@ -283,6 +282,8 @@ function pickDonor(
     if (meta.tier === "A") continue;
     const onhand = onhandStores.get(key(meta.store))?.onhand ?? 0;
     const soldQty = byStoreSold.get(key(meta.store))?.soldQty ?? 0;
+    if (onhand < 2) continue;
+    if (isSellingWell(soldQty, onhand)) continue;
     const reserve = keepReserveQty(soldQty, meta.kind);
     const spare = onhand - reserve;
     if (spare < 1) continue;
@@ -292,13 +293,11 @@ function pickDonor(
       soldQty,
       onhand,
       rank: donorRank(meta, needyDm),
-      sellingWell: isSellingWell(soldQty, onhand),
     });
   }
-  const pool = candidates.filter((c) => !c.sellingWell);
-  if (!pool.length) return null;
-  pool.sort((a, b) => a.rank - b.rank || b.spare - a.spare || a.store.localeCompare(b.store));
-  const hit = pool[0]!;
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => a.rank - b.rank || b.spare - a.spare || a.store.localeCompare(b.store));
+  const hit = candidates[0]!;
   return { store: hit.store, qty: hit.spare, spare: hit.spare, soldQty: hit.soldQty };
 }
 
