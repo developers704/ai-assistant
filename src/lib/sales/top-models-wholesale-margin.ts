@@ -92,26 +92,19 @@ export function signedWholesaleUnitCost(
 }
 
 /**
- * POS Inventory Cost = per-piece unit cost (same 1173 on qty 0.5 split and qty 1).
- * Unlike Sales Amount / Total, it is NOT prorated on split salesperson rows.
- * Always collapse split txn+SKU rows first; then unit × merged |qty| (whole pieces).
+ * POS Inventory Cost = unit cost on every CSV line (same 1173 on qty 0.5 and qty 1).
+ * CP (Kash) shows that unit — never × qty, never sum lines (2 pcs still show 1173, not 2346).
  */
 export function signedKashInventoryCost(
   row: Pick<VendorPosRow, "inventoryCost" | "quantity" | "netRevenue" | "grossSales">
 ): number {
-  const unit = Number(row.inventoryCost) || 0;
-  if (!unit) return 0;
-  const qty = Number(row.quantity ?? 0);
-  const pieces = Number.isFinite(qty) && qty !== 0 ? Math.abs(qty) : 1;
-  const amount = unit * pieces;
-  if (qty < 0) return -amount;
-  if (qty > 0) return amount;
-  if (Number(row.netRevenue ?? 0) < 0) return -amount;
-  if (Number(row.grossSales ?? 0) < 0) return -amount;
-  return amount;
+  return Math.abs(Number(row.inventoryCost) || 0);
 }
 
-/** Summed Kash CP for Top Vendor Models after split-merge / cancel collapse. */
+/**
+ * Top Vendor Models CP (Kash) = POS unit Inventory Cost after split-merge.
+ * One unit value for the model (e.g. 1173) — do not add per piece / per SKU line.
+ */
 export function kashInventoryCostForRows(rows: VendorPosRow[]): number | null {
   const active = collapseTopModelSaleRows(rows);
   if (!active.length) return 0;
@@ -123,13 +116,15 @@ export function kashInventoryCostForRows(rows: VendorPosRow[]): number | null {
   ) {
     return null;
   }
-  let sum = 0;
-  for (const r of active) sum += signedKashInventoryCost(r);
-  return sum;
+  for (const r of active) {
+    const unit = signedKashInventoryCost(r);
+    if (unit > 0) return unit;
+  }
+  return 0;
 }
 
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
-export const TOP_MODELS_MARGIN_RULES_VERSION = 9;
+export const TOP_MODELS_MARGIN_RULES_VERSION = 10;
 
 function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
   const net = Number(row.netRevenue ?? 0);

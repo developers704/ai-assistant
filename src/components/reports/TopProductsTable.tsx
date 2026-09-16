@@ -51,7 +51,7 @@ export interface TopProductRow {
   margin?: number;
   /** Profit margin = profit / net sales (0–1) — CSV Profit Amount ÷ Total when present */
   marginRate?: number;
-  /** POS Inventory Cost × |qty| — Kash / Ross / admin only */
+  /** POS Inventory Cost (unit) — Kash / Ross / admin only */
   kashCost?: number | null;
   /** Dominant department by revenue under this model */
   department?: string;
@@ -234,7 +234,7 @@ function MetricsBlock({
       node: (
         <span
           className={cn(TYPE, "font-semibold tabular-nums text-right text-sky-200/90")}
-          title="POS Inventory Cost"
+          title="POS Inventory Cost (unit — not × qty)"
         >
           {kashCost == null || !Number.isFinite(kashCost) ? "—" : formatCurrency(kashCost)}
         </span>
@@ -311,7 +311,7 @@ function MetricsBlock({
             </span>
             <span
               className={cn("mt-0.5 font-semibold tabular-nums text-sky-200/90", TYPE)}
-              title="POS Inventory Cost"
+              title="POS Inventory Cost (unit — not × qty)"
             >
               {kashCost == null || !Number.isFinite(kashCost) ? "—" : formatCurrency(kashCost)}
             </span>
@@ -710,7 +710,7 @@ export function TopProductsTable({
                 dir={sortDir}
                 onClick={() => toggleSort("kashCost")}
                 className="justify-end w-full"
-                title="POS Inventory Cost"
+                title="POS Inventory Cost (unit — not × qty)"
               />
             )}
           </div>

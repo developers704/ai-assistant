@@ -180,7 +180,7 @@ describe("collapseSplitTxnSkuRows", () => {
     expect(skuLines[0]!.units).toBeCloseTo(1, 6);
     expect(skuLines[0]!.revenue).toBeCloseTo(12376.45, 2);
     expect(skuLines[0]!.tagPrice).toBeCloseTo(20995, 2);
-    // POS Inventory Cost unit × |qty| after split merge (126 × 1)
+    // POS Inventory Cost unit (not × qty)
     expect(skuLines[0]!.kashCost).toBeCloseTo(126, 2);
   });
 
@@ -205,13 +205,13 @@ describe("collapseSplitTxnSkuRows", () => {
         inventoryCost: 1173,
       }),
     ];
-    // Excel raw sum wrongly adds 1173+1173
+    // Excel raw sum wrongly adds 1173+1173 — CP (Kash) stays unit
     expect(split.reduce((s, r) => s + r.inventoryCost, 0)).toBe(2346);
     expect(kashInventoryCostForRows(split)).toBeCloseTo(1173, 2);
-    expect(signedKashInventoryCost(split[0]!)).toBeCloseTo(586.5, 2);
+    expect(signedKashInventoryCost(split[0]!)).toBeCloseTo(1173, 2);
   });
 
-  it("sums Kash CP per piece sold across SKUs (Sep 15 LGE+RBC5.00 shape)", () => {
+  it("shows unit Kash CP for 2 pcs / 2 SKUs (not 1173+1173)", () => {
     const rows = [
       row({
         sku: "234268",
@@ -244,7 +244,22 @@ describe("collapseSplitTxnSkuRows", () => {
         inventoryCost: 1173,
       }),
     ];
-    expect(kashInventoryCostForRows(rows)).toBeCloseTo(2346, 2);
+    expect(kashInventoryCostForRows(rows)).toBeCloseTo(1173, 2);
+  });
+
+  it("shows unit Kash CP when qty is 2 on one line (ST020 shape)", () => {
+    const rows = [
+      row({
+        sku: "237361-16",
+        vendorModel: "ST020",
+        quantity: 2,
+        grossSales: 278,
+        netRevenue: 278,
+        inventoryCost: 101,
+      }),
+    ];
+    expect(kashInventoryCostForRows(rows)).toBeCloseTo(101, 2);
+    expect(signedKashInventoryCost(rows[0]!)).toBeCloseTo(101, 2);
   });
 
   it("does not merge two SKUs on the same ticket", () => {

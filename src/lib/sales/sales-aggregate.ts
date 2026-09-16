@@ -153,7 +153,9 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     const units = salesUnitsSold(r.quantity);
     cur.units += units;
     cur.revenue += r.netRevenue;
-    cur.kashCost = (cur.kashCost ?? 0) + signedKashInventoryCost(r);
+    // Unit Inventory Cost (POS) — never sum across pieces sold
+    const unitKash = signedKashInventoryCost(r);
+    if (unitKash > 0 && !(cur.kashCost && cur.kashCost > 0)) cur.kashCost = unitKash;
     // Top-model SKU lines: revenue − signed calculator cost (returns add cost back)
     const cost = calculatorWholesaleUnitCost(sku, r.storeName, r);
     if (cost == null) {

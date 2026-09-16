@@ -53,7 +53,7 @@ When changing Top Models soft-hide rules, update `src/lib/utils.ts` and this fil
 
 ### Top Vendor Models — CP (Kash)
 
-- Column **CP (Kash)** = POS CSV **Inventory Cost** × |qty| after **split txn+SKU merge** (Inventory Cost is unit cost repeated on split lines — not prorated like Sales Amount / Total; never sum raw split lines).
+- Column **CP (Kash)** = POS CSV **Inventory Cost** as **unit cost** (same value on qty 0.5 / 1 / 2 lines). After split txn+SKU merge, show that unit once — **never** × qty and **never** sum across pieces/SKUs (2 pcs at $1,173 → show **$1,173**, not $2,346).
 - Visible only to **Kash, Ross, admin** (`canSeeKashCostPrice`). Not Marina / DMs / employees.
 - Historical + daily sales both use the same `inventoryCost` field from parse — no separate backfill file.
 
