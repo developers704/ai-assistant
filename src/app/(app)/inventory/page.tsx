@@ -142,6 +142,7 @@ function TierBadge({ tier }: { tier: string }) {
 }
 
 function StoreBadge({ tier, kind }: { tier: string; kind?: string }) {
+  if (kind === "main") return null;
   if (kind === "new") {
     return (
       <span className="rounded-full bg-fuchsia-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-fuchsia-200">
@@ -193,7 +194,9 @@ function StoreBreakdown({
                     </span>
                   </td>
                   <td className="py-0.5 pr-3 tabular-nums">{formatPieceCount(s.onhand)}</td>
-                  <td className="py-0.5 tabular-nums">{formatPieceCount(s.soldQty)}</td>
+                  <td className="py-0.5 tabular-nums">
+                    {s.kind === "main" ? "—" : formatPieceCount(s.soldQty)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -326,7 +329,7 @@ export default function InventoryPage() {
       </PageShellHeader>
       <PageShellBody className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant={view === "transfers" ? "primary" : "ghost"} onClick={() => { setView("transfers"); setOffset(0); setSort("fromSoldQty"); }}>
+          <Button size="sm" variant={view === "transfers" ? "primary" : "ghost"} onClick={() => { setView("transfers"); setOffset(0); setSort("fromSoldQty"); setStores((s) => s.filter((x) => x.toUpperCase() !== "MAIN")); }}>
             Transfers
           </Button>
           <Button size="sm" variant={view === "stock" ? "primary" : "ghost"} onClick={() => { setView("stock"); setOffset(0); setSort("onhand"); }}>

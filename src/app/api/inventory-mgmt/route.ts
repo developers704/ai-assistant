@@ -7,7 +7,7 @@ import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { getLatestReportMeta } from "@/lib/reports/store";
 import { listInventoryItems } from "@/lib/inventory/store";
 import { buildModelStoreBreakdown, queryInventoryMgmt } from "@/lib/inventory/mgmt-engine";
-import { isIgnoredInventoryDepartment, isInventoryMgmtStore, listInventoryMgmtStores } from "@/lib/inventory/mgmt-stores";
+import { isIgnoredInventoryDepartment, isInventoryMgmtStore, isInventoryOnhandStore, listInventoryMgmtStores } from "@/lib/inventory/mgmt-stores";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 
 export const runtime = "nodejs";
@@ -38,7 +38,9 @@ export async function GET(req: NextRequest) {
   const limit = Number(sp.get("limit") ?? 50) || 50;
   const q = sp.get("q")?.trim() || "";
 
-  const stores = parseMultiParam(sp, "store", "stores").filter(isInventoryMgmtStore);
+  const stores = parseMultiParam(sp, "store", "stores").filter((s) =>
+    view === "stock" ? isInventoryOnhandStore(s) : isInventoryMgmtStore(s)
+  );
   const departments = parseMultiParam(sp, "department", "departments");
   const designs = parseMultiParam(sp, "design", "designs");
   const classes = parseMultiParam(sp, "class", "classes");
@@ -47,7 +49,7 @@ export async function GET(req: NextRequest) {
 
   const allMgmtStores = listInventoryMgmtStores().map((s) => s.store);
   const items = listInventoryItems().filter(
-    (item) => isInventoryMgmtStore(item.store) && !isIgnoredInventoryDepartment(item.department)
+    (item) => isInventoryOnhandStore(item.store) && !isIgnoredInventoryDepartment(item.department)
   );
 
   if (view === "model") {

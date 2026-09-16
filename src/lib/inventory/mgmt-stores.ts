@@ -2,7 +2,7 @@ import { AJ_STORES, SHAUN_STORES } from "@/lib/auth/users";
 
 export type InventoryDm = "AJ" | "Shaun";
 export type InventoryTier = "A" | "B" | "C";
-export type InventoryStoreKind = "core" | "new" | "yearling";
+export type InventoryStoreKind = "core" | "new" | "yearling" | "main";
 
 export type InventoryStoreMeta = {
   store: string;
@@ -52,6 +52,15 @@ export function isIgnoredInventoryDepartment(department?: string | null): boolea
 export function isClosedOrWarehouseStore(store: string): boolean {
   const s = normalizeInventoryStore(store);
   return CLOSED.has(s) || s === "MAIN";
+}
+
+export function isMainStore(store: string): boolean {
+  return normalizeInventoryStore(store) === "MAIN";
+}
+
+/** AJ/Shaun selling stores + MAIN warehouse (on-hand only, never a transfer donor). */
+export function isInventoryOnhandStore(store: string): boolean {
+  return isMainStore(store) || isInventoryMgmtStore(store);
 }
 
 export function inventoryDmForStore(store: string): InventoryDm | null {

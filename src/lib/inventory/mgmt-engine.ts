@@ -8,6 +8,8 @@ import {
   inventoryTierForStore,
   isIgnoredInventoryDepartment,
   isInventoryMgmtStore,
+  isInventoryOnhandStore,
+  isMainStore,
   isSellingWell,
   keepReserveQty,
   listInventoryMgmtStores,
@@ -210,7 +212,7 @@ function aggregateSales(rows: VendorPosRow[]): Map<string, Map<string, ModelStor
 function aggregateOnhand(items: InventoryItem[]): Map<string, ModelInv> {
   const out = new Map<string, ModelInv>();
   for (const item of items) {
-    if (!isInventoryMgmtStore(item.store)) continue;
+    if (!isInventoryOnhandStore(item.store)) continue;
     if (isIgnoredInventoryDepartment(item.department)) continue;
     const model = key(item.vendorModel || item.sku);
     if (!model) continue;
@@ -276,6 +278,7 @@ function pickDonor(
     sellingWell: boolean;
   }> = [];
   for (const meta of listInventoryMgmtStores()) {
+    if (isMainStore(meta.store)) continue;
     if (key(meta.store) === key(needyStore)) continue;
     if (meta.tier === "A") continue;
     const onhand = onhandStores.get(key(meta.store))?.onhand ?? 0;
@@ -378,22 +381,23 @@ export function buildInventoryStockRows(
   const sales = aggregateSales(salesRows);
   const rows: InventoryStockRow[] = [];
   for (const item of items) {
-    if (!isInventoryMgmtStore(item.store)) continue;
+    if (!isInventoryOnhandStore(item.store)) continue;
     if (isIgnoredInventoryDepartment(item.department)) continue;
+    const main = isMainStore(item.store);
     const dm = inventoryDmForStore(item.store);
-    if (!dm) continue;
+    if (!dm && !main) continue;
     const model = key(item.vendorModel || item.sku);
     const storeKey = key(item.store);
-    const sold = sales.get(model)?.get(storeKey);
-    const skuSold = sold?.skuSold.get(item.sku);
-    const soldQty = skuSold?.qty ?? 0;
-    const revenue = skuSold?.revenue ?? 0;
+    const sold = main ? undefined : sales.get(model)?.get(storeKey);
+    const skuSold = sold?.skuSold?.get(item.sku);
+    const soldQty = main ? 0 : (skuSold?.qty ?? 0);
+    const revenue = main ? 0 : (skuSold?.revenue ?? 0);
     const onhand = Number(item.onHand) || 0;
     rows.push({
-      store: item.store,
-      dm,
-      tier: inventoryTierForStore(item.store),
-      kind: inventoryKindForStore(item.store),
+      store: main ? "MAIN" : item.store,
+      dm: dm ?? "AJ",
+      tier: main ? "C" : inventoryTierForStore(item.store),
+      kind: main ? "main" : inventoryKindForStore(item.store),
       vendorModel: item.vendorModel || item.sku,
       sku: item.sku,
       vendor: item.vendor,
@@ -423,7 +427,16 @@ export function buildModelStoreBreakdown(
   if (!model) return [];
   const soldByStore = aggregateSales(salesRows).get(model) ?? new Map();
   const onhandStores = aggregateOnhand(items).get(model)?.stores ?? new Map();
-  const rows: InventoryModelStoreRow[] = [];
+  const rows: InventoryModelStoreRow[] = [
+    {
+      store: "MAIN",
+      dm: "AJ",
+      tier: "C",
+      kind: "main",
+      onhand: onhandStores.get("MAIN")?.onhand ?? 0,
+      soldQty: 0,
+    },
+  ];
   for (const meta of listInventoryMgmtStores()) {
     const storeKey = key(meta.store);
     const onhand = onhandStores.get(storeKey)?.onhand ?? 0;
@@ -438,8 +451,9 @@ export function buildModelStoreBreakdown(
       soldQty,
     });
   }
-  rows.sort((a, b) => b.onhand - a.onhand || b.soldQty - a.soldQty || a.store.localeCompare(b.store));
-  return rows;
+  const main = rows[0]!;
+  const rest = rows.slice(1).sort((a, b) => b.onhand - a.onhand || b.soldQty - a.soldQty || a.store.localeCompare(b.store));
+  return [main, ...rest];
 }
 
 function filterStock(rows: InventoryStockRow[], q: InventoryMgmtQuery): InventoryStockRow[] {
@@ -513,8 +527,12 @@ export function queryInventoryMgmt(
     addFacet(facets, "subclasses", r.subClass);
     addFacet(facets, "vendors", r.vendor);
   }
+  const storeNames = uniqueSorted([...(facets.get("stores") ?? [])]);
   const available = {
-    stores: uniqueSorted([...(facets.get("stores") ?? [])]),
+    stores:
+      q.view === "transfers"
+        ? storeNames.filter((s) => !isMainStore(s))
+        : [storeNames.find((s) => isMainStore(s))].filter(Boolean).concat(storeNames.filter((s) => !isMainStore(s))) as string[],
     departments: uniqueSorted([...(facets.get("departments") ?? [])]),
     designs: uniqueSorted([...(facets.get("designs") ?? [])]),
     classes: uniqueSorted([...(facets.get("classes") ?? [])]),

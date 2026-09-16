@@ -5,6 +5,7 @@ import { buildInventoryTransfers, buildModelStoreBreakdown } from "@/lib/invento
 import {
   isIgnoredInventoryDepartment,
   isInventoryMgmtStore,
+  isInventoryOnhandStore,
   isSellingWell,
   keepReserveQty,
 } from "@/lib/inventory/mgmt-stores";
@@ -58,6 +59,8 @@ describe("inventory mgmt stores", () => {
     expect(isInventoryMgmtStore("VJ-SERRA")).toBe(true);
     expect(isInventoryMgmtStore("VJ-ONT")).toBe(true);
     expect(isInventoryMgmtStore("MAIN")).toBe(false);
+    expect(isInventoryOnhandStore("MAIN")).toBe(true);
+    expect(isInventoryOnhandStore("VJ-SERRA")).toBe(true);
     expect(isInventoryMgmtStore("VJ-VIS")).toBe(false);
     expect(isInventoryMgmtStore("DE-SOUTH")).toBe(false);
     expect(isInventoryMgmtStore("VJ-CON")).toBe(false);
@@ -188,8 +191,29 @@ describe("inventory transfers", () => {
       item({ store: "VJ-EAST", onHand: 4 }),
     ];
     const rows = buildModelStoreBreakdown(sales, items, "RR8179WS");
-    expect(rows.map((r) => r.store).sort()).toEqual(["VJ-EAST", "VJ-OAK", "VJ-SERRA"]);
+    expect(rows[0]).toMatchObject({ store: "MAIN", onhand: 0, soldQty: 0, kind: "main" });
+    expect(rows.map((r) => r.store).sort()).toEqual(["MAIN", "VJ-EAST", "VJ-OAK", "VJ-SERRA"]);
     expect(rows.find((r) => r.store === "VJ-OAK")).toMatchObject({ onhand: 12, soldQty: 1 });
     expect(rows.find((r) => r.store === "VJ-SERRA")).toMatchObject({ onhand: 2, soldQty: 3 });
+  });
+
+  it("never donates from MAIN even with spare warehouse qty", () => {
+    const sales = Array.from({ length: 25 }, (_, i) =>
+      sale({
+        transactionId: `S${i}`,
+        storeName: "VJ-SERRA",
+        vendorModel: "RR8179WS",
+        quantity: 1,
+        netRevenue: 100,
+      })
+    );
+    const items = [
+      item({ store: "VJ-SERRA", onHand: 3 }),
+      item({ store: "MAIN", onHand: 40 }),
+    ];
+    const hits = buildInventoryTransfers(sales, items);
+    expect(hits.every((t) => t.fromStore !== "MAIN")).toBe(true);
+    const rows = buildModelStoreBreakdown(sales, items, "RR8179WS");
+    expect(rows[0]).toMatchObject({ store: "MAIN", onhand: 40, soldQty: 0 });
   });
 });
