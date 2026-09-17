@@ -102,8 +102,10 @@ export function signedKashInventoryCost(
 }
 
 /**
- * Top Vendor Models CP (Kash) = POS unit Inventory Cost after split-merge.
- * One unit value for the model (e.g. 1173) — do not add per piece / per SKU line.
+ * Top Vendor Models row CP (Kash) next to Revenue / Margin:
+ * sum of each sold SKU's **unit** Inventory Cost (after split-merge).
+ * Same SKU 2 pcs still counts once; SKU A $1173 + SKU B $500 → $1673.
+ * Per-SKU / per-txn cells stay unit (never × qty).
  */
 export function kashInventoryCostForRows(rows: VendorPosRow[]): number | null {
   const active = collapseTopModelSaleRows(rows);
@@ -116,15 +118,20 @@ export function kashInventoryCostForRows(rows: VendorPosRow[]): number | null {
   ) {
     return null;
   }
+  const unitBySku = new Map<string, number>();
   for (const r of active) {
+    const sku = (r.sku || r.itemNumber || "").trim().toUpperCase();
+    if (!sku) continue;
     const unit = signedKashInventoryCost(r);
-    if (unit > 0) return unit;
+    if (unit > 0 && !(unitBySku.get(sku)! > 0)) unitBySku.set(sku, unit);
   }
-  return 0;
+  let total = 0;
+  for (const unit of unitBySku.values()) total += unit;
+  return total;
 }
 
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
-export const TOP_MODELS_MARGIN_RULES_VERSION = 10;
+export const TOP_MODELS_MARGIN_RULES_VERSION = 11;
 
 function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
   const net = Number(row.netRevenue ?? 0);
