@@ -216,7 +216,7 @@ export interface SalesSummary {
     margin?: number;
     /** Profit margin = profit / net sales (0–1) */
     marginRate?: number;
-    /** Sum of each sold SKU's unit POS Inventory Cost — Kash / Ross / admin only in UI */
+    /** POS Inventory Cost × |qty| — Kash / Ross / admin only in UI */
     kashCost?: number | null;
     /** Dominant department by revenue */
     department?: string;

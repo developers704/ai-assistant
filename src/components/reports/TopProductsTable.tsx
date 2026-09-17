@@ -235,7 +235,7 @@ function MetricsBlock({
       node: (
         <span
           className={cn(TYPE, "font-semibold tabular-nums text-right text-sky-200/90")}
-          title="Total CP (Kash): sum of each SKU's POS Inventory Cost (unit)"
+          title="POS Inventory Cost (unit — not × qty)"
         >
           {kashCost == null || !Number.isFinite(kashCost) ? "—" : formatCurrency(kashCost)}
         </span>
@@ -312,7 +312,7 @@ function MetricsBlock({
             </span>
             <span
               className={cn("mt-0.5 font-semibold tabular-nums text-sky-200/90", TYPE)}
-              title="Total CP (Kash): sum of each SKU's POS Inventory Cost (unit)"
+              title="POS Inventory Cost (unit — not × qty)"
             >
               {kashCost == null || !Number.isFinite(kashCost) ? "—" : formatCurrency(kashCost)}
             </span>
@@ -711,7 +711,7 @@ export function TopProductsTable({
                 dir={sortDir}
                 onClick={() => toggleSort("kashCost")}
                 className="justify-end w-full"
-                title="Total CP (Kash): sum of each SKU's POS Inventory Cost (unit)"
+                title="POS Inventory Cost (unit — not × qty)"
               />
             )}
           </div>
