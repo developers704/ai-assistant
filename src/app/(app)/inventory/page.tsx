@@ -288,6 +288,19 @@ export default function InventoryPage() {
   const [breakdowns, setBreakdowns] = useState<Record<string, ModelStoreRow[] | "loading" | "error">>({});
   const limit = 50;
 
+  // Live search: model / SKU / description (debounced)
+  useEffect(() => {
+    const next = qDraft.trim();
+    const t = window.setTimeout(() => {
+      setQ((prev) => (prev === next ? prev : next));
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [qDraft]);
+
+  useEffect(() => {
+    setOffset(0);
+  }, [q]);
+
   const available = data?.available ?? {
     stores: [],
     departments: [],
@@ -415,7 +428,8 @@ export default function InventoryPage() {
             className="flex items-center gap-1"
             onSubmit={(e) => {
               e.preventDefault();
-              setQ(qDraft.trim());
+              const next = qDraft.trim();
+              setQ(next);
               setOffset(0);
             }}
           >
@@ -424,8 +438,9 @@ export default function InventoryPage() {
               <input
                 value={qDraft}
                 onChange={(e) => setQDraft(e.target.value)}
-                placeholder="Vendor model or SKU"
-                className="h-9 w-48 rounded-xl bg-white/5 pl-8 pr-3 text-sm text-ink ring-1 ring-white/10 placeholder:text-white/30"
+                placeholder="Model, SKU, or description"
+                title="Search vendor model, SKU, or description (e.g. cuban chain)"
+                className="h-9 w-56 rounded-xl bg-white/5 pl-8 pr-3 text-sm text-ink ring-1 ring-white/10 placeholder:text-white/30 sm:w-72"
               />
             </div>
           </form>

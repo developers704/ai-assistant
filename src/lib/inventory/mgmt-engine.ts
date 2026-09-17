@@ -168,10 +168,17 @@ function inList(value: string, selected?: string[]): boolean {
   return selected.some((s) => key(s) === k);
 }
 
-function matchesQ(q: string | undefined, ...parts: string[]): boolean {
+/** Model / SKU / description search — all space-separated tokens must appear somewhere. */
+export function matchesInventorySearch(q: string | undefined, ...parts: string[]): boolean {
   const needle = (q ?? "").trim().toLowerCase();
   if (!needle) return true;
-  return parts.some((p) => p.toLowerCase().includes(needle));
+  const hay = parts.join("\n").toLowerCase();
+  const tokens = needle.split(/\s+/).filter(Boolean);
+  return tokens.every((t) => hay.includes(t));
+}
+
+function matchesQ(q: string | undefined, ...parts: string[]): boolean {
+  return matchesInventorySearch(q, ...parts);
 }
 
 function uniqueSorted(values: string[]): string[] {
@@ -519,7 +526,18 @@ function filterStock(rows: InventoryStockRow[], q: InventoryMgmtQuery): Inventor
       inList(r.productClass, q.classes) &&
       inList(r.subClass, q.subclasses) &&
       inList(r.vendor, q.vendors) &&
-      matchesQ(q.q, r.vendorModel, r.sku, r.vendor, r.description, r.department, r.store)
+      matchesQ(
+        q.q,
+        r.vendorModel,
+        r.sku,
+        r.vendor,
+        r.description,
+        r.department,
+        r.design,
+        r.productClass,
+        r.subClass,
+        r.store
+      )
   );
 }
 
@@ -532,7 +550,19 @@ function filterTransfers(rows: InventoryTransfer[], q: InventoryMgmtQuery): Inve
       inList(r.productClass, q.classes) &&
       inList(r.subClass, q.subclasses) &&
       inList(r.vendor, q.vendors) &&
-      matchesQ(q.q, r.vendorModel, r.sku, r.vendor, r.description, r.department, r.toStore, r.fromStore)
+      matchesQ(
+        q.q,
+        r.vendorModel,
+        r.sku,
+        r.vendor,
+        r.description,
+        r.department,
+        r.design,
+        r.productClass,
+        r.subClass,
+        r.toStore,
+        r.fromStore
+      )
   );
 }
 

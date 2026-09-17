@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "@/lib/inventory/types";
 import type { VendorPosRow } from "@/lib/reports/types";
-import { buildInventoryStockRows, buildInventoryTransfers, buildModelStoreBreakdown, transferPriority } from "@/lib/inventory/mgmt-engine";
+import { buildInventoryStockRows, buildInventoryTransfers, buildModelStoreBreakdown, matchesInventorySearch, transferPriority } from "@/lib/inventory/mgmt-engine";
 import {
   isIgnoredInventoryDepartment,
   isInventoryMgmtStore,
@@ -270,5 +270,27 @@ describe("transfer priority", () => {
     const hit = rows.find((t) => t.toStore === "VJ-SERRA" && t.vendorModel === "RR8179WS");
     expect(hit?.priority).toBe("rush");
     expect(hit?.priorityRank).toBe(0);
+  });
+});
+
+describe("inventory search (model / SKU / description)", () => {
+  it("matches description phrases like cuban chain / curb chain", () => {
+    const desc = '10KT "ULTIMATE VALUE" YELLOW-GOLD D/C CUBAN CHAIN (NO WARRANTY)';
+    expect(matchesInventorySearch("cuban", "TD040", "239132", desc)).toBe(true);
+    expect(matchesInventorySearch("cuban chain", "TD040", "239132", desc)).toBe(true);
+    expect(matchesInventorySearch("curb chain", "TD040", "239132", desc)).toBe(false);
+    expect(
+      matchesInventorySearch(
+        "curb chain",
+        "CPA100",
+        "237359",
+        '10KT "ULTIMATE VALUE" YELLOW-GOLD D/C CURB CHAIN'
+      )
+    ).toBe(true);
+  });
+
+  it("matches vendor model and SKU the same way", () => {
+    expect(matchesInventorySearch("lge+rbc", "LGE+RBC5.00", "228746", "solitaire ring")).toBe(true);
+    expect(matchesInventorySearch("228746", "LGE+RBC5.00", "228746", "solitaire ring")).toBe(true);
   });
 });
