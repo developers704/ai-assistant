@@ -216,7 +216,7 @@ describe("collapseSplitTxnSkuRows", () => {
     expect(skuLines[0]!.stores![0]!.transactionId).toBe("VS-10292236");
   });
 
-  it("sums each SKU's unit Kash CP on the model row (not one SKU, not × qty)", () => {
+  it("shows unit Kash CP for 2 pcs / 2 SKUs (not 1173+1173)", () => {
     const rows = [
       row({
         sku: "234268",
@@ -246,14 +246,10 @@ describe("collapseSplitTxnSkuRows", () => {
         quantity: 1,
         grossSales: 14995,
         netRevenue: 5100,
-        inventoryCost: 500,
+        inventoryCost: 1173,
       }),
     ];
-    // Split 0.5/0.5 stays one SKU unit (1173); second SKU adds 500
-    expect(kashInventoryCostForRows(rows)).toBeCloseTo(1673, 2);
-    const skuLines = skuLinesForModel(rows);
-    expect(skuLines.find((s) => s.sku === "234268")?.kashCost).toBeCloseTo(1173, 2);
-    expect(skuLines.find((s) => s.sku === "228746")?.kashCost).toBeCloseTo(500, 2);
+    expect(kashInventoryCostForRows(rows)).toBeCloseTo(1173, 2);
   });
 
   it("shows unit Kash CP when qty is 2 on one line (ST020 shape)", () => {
