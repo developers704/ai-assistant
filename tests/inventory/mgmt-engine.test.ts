@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "@/lib/inventory/types";
 import type { VendorPosRow } from "@/lib/reports/types";
-import { buildInventoryStockRows, buildInventoryTransfers, buildModelStoreBreakdown, matchesInventorySearch, transferPriority } from "@/lib/inventory/mgmt-engine";
+import { buildInventoryStockRows, buildInventoryTransfers, buildModelStoreBreakdown, buildModelStoreBreakdownFromStock, matchesInventorySearch, queryInventoryMgmtFromBase, transferPriority } from "@/lib/inventory/mgmt-engine";
 import {
   isIgnoredInventoryDepartment,
   isInventoryMgmtStore,
@@ -242,6 +242,83 @@ describe("inventory transfers", () => {
     const main = rows.filter((r) => r.store === "MAIN" && r.vendorModel === "KRI3067-10KW");
     expect(main).toHaveLength(1);
     expect(main[0]).toMatchObject({ onhand: 12, sku: "121126" });
+  });
+});
+
+describe("inventory mgmt query from cached base", () => {
+  const sales = [
+    sale({ storeName: "VJ-SERRA", vendorModel: "RR8179WS", quantity: 25, netRevenue: 2500 }),
+    sale({ storeName: "VJ-OAK", vendorModel: "RR8179WS", quantity: 1, netRevenue: 100 }),
+  ];
+  const items = [
+    item({ store: "VJ-SERRA", onHand: 0, department: "LADYS RING" }),
+    item({ store: "VJ-OAK", onHand: 12, department: "LADYS RING" }),
+    item({
+      store: "VJ-SERRA",
+      onHand: 4,
+      sku: "W1",
+      vendorModel: "WATCH1",
+      department: "WATCH",
+      description: "watch",
+    }),
+  ];
+
+  it("filters transfers after the full rebuild so store/dept changes do not rescan sales", () => {
+    const base = {
+      stock: buildInventoryStockRows(sales, items),
+      transfers: buildInventoryTransfers(sales, items),
+    };
+    const all = queryInventoryMgmtFromBase(base, {
+      dateFrom: "2026-03-01",
+      dateTo: "2026-03-01",
+      view: "transfers",
+      sort: "priorityRank",
+      dir: "asc",
+      offset: 0,
+      limit: 50,
+    });
+    expect(all.total).toBeGreaterThan(0);
+
+    const rings = queryInventoryMgmtFromBase(base, {
+      dateFrom: "2026-03-01",
+      dateTo: "2026-03-01",
+      departments: ["LADYS RING"],
+      view: "transfers",
+      sort: "priorityRank",
+      dir: "asc",
+      offset: 0,
+      limit: 50,
+    });
+    expect(rings.rows.every((r) => r.department === "LADYS RING")).toBe(true);
+
+    const serra = queryInventoryMgmtFromBase(base, {
+      dateFrom: "2026-03-01",
+      dateTo: "2026-03-01",
+      stores: ["VJ-SERRA"],
+      view: "transfers",
+      sort: "priorityRank",
+      dir: "asc",
+      offset: 0,
+      limit: 50,
+    });
+    expect(
+      serra.rows.every((r) => {
+        if (!("toStore" in r) || !("fromStore" in r)) return false;
+        return r.toStore === "VJ-SERRA" || r.fromStore === "VJ-SERRA";
+      })
+    ).toBe(true);
+  });
+
+  it("builds the model store grid from stock rows (same MAIN-first shape)", () => {
+    const stock = buildInventoryStockRows(sales, items);
+    const fromSales = buildModelStoreBreakdown(sales, items, "RR8179WS");
+    const fromStock = buildModelStoreBreakdownFromStock(stock, "RR8179WS");
+    expect(fromStock[0]).toMatchObject({ store: "MAIN", soldQty: 0, kind: "main" });
+    expect(fromStock.map((r) => r.store)).toEqual(fromSales.map((r) => r.store));
+    expect(fromStock.find((r) => r.store === "VJ-SERRA")).toMatchObject({
+      onhand: fromSales.find((r) => r.store === "VJ-SERRA")?.onhand,
+      soldQty: fromSales.find((r) => r.store === "VJ-SERRA")?.soldQty,
+    });
   });
 });
 

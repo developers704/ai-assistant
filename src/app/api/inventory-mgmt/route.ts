@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { readSessionFromCookies } from "@/lib/auth/session";
 import { canAccessInventoryMgmt, canSeeRealInventoryCost } from "@/lib/auth/user-permissions";
 import { parseMultiParam } from "@/lib/sales/filter-params";
-import { filterRows } from "@/lib/sales/sales-aggregate";
-import { loadRankRows } from "@/lib/reports/load-rank-rows";
 import { getLatestReportMeta } from "@/lib/reports/store";
-import { listInventoryItems } from "@/lib/inventory/store";
-import { buildModelStoreBreakdown, queryInventoryMgmt } from "@/lib/inventory/mgmt-engine";
-import { isIgnoredInventoryDepartment, isInventoryMgmtStore, isInventoryOnhandStore, listInventoryMgmtStores } from "@/lib/inventory/mgmt-stores";
+import { getInventoryMgmtDataset } from "@/lib/inventory/mgmt-cache";
+import {
+  buildModelStoreBreakdownFromStock,
+  queryInventoryMgmtFromBase,
+} from "@/lib/inventory/mgmt-engine";
+import { isInventoryMgmtStore, isInventoryOnhandStore } from "@/lib/inventory/mgmt-stores";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
 
 export const runtime = "nodejs";
@@ -22,8 +23,9 @@ export async function GET(req: NextRequest) {
 
   const sp = req.nextUrl.searchParams;
   const meta = getLatestReportMeta();
-  const defaultTo = meta?.dateRange?.to ?? "2026-09-15";
-  const from = sp.get("from")?.trim() || "2025-01-01";
+  const defaultFrom = meta?.dateRange?.from ?? "2025-01-01";
+  const defaultTo = meta?.dateRange?.to ?? "2026-09-16";
+  const from = sp.get("from")?.trim() || defaultFrom;
   const to = sp.get("to")?.trim() || defaultTo;
   if (!isValidIsoDate(from) || !isValidIsoDate(to)) {
     return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
@@ -52,39 +54,20 @@ export async function GET(req: NextRequest) {
   const subclasses = parseMultiParam(sp, "subclass", "subclasses");
   const vendors = parseMultiParam(sp, "vendor", "vendors");
 
-  const allMgmtStores = listInventoryMgmtStores().map((s) => s.store);
-  const items = listInventoryItems().filter(
-    (item) => isInventoryOnhandStore(item.store) && !isIgnoredInventoryDepartment(item.department)
-  );
+  const dataset = getInventoryMgmtDataset(dateFrom, dateTo);
 
   if (view === "model") {
     const model = sp.get("model")?.trim() || "";
-    const sales = filterRows(loadRankRows() ?? [], {
-      dateFrom,
-      dateTo,
-      stores: allMgmtStores,
-    });
     return NextResponse.json({
       view: "model",
       vendorModel: model,
-      stores: buildModelStoreBreakdown(sales, items, model),
+      stores: buildModelStoreBreakdownFromStock(dataset.base.stock, model),
       dateFrom,
       dateTo,
     });
   }
 
-  const sales = filterRows(loadRankRows() ?? [], {
-    dateFrom,
-    dateTo,
-    stores: stores.length ? stores : allMgmtStores,
-    departments,
-    designs,
-    classes,
-    subclasses,
-    vendors,
-  });
-
-  const result = queryInventoryMgmt(sales, items, {
+  const result = queryInventoryMgmtFromBase(dataset.base, {
     dateFrom,
     dateTo,
     stores,
@@ -112,6 +95,8 @@ export async function GET(req: NextRequest) {
     rows,
     dateFrom,
     dateTo,
+    availableDates: dataset.availableDates,
+    reportRange: { from: defaultFrom, to: defaultTo },
     showCost,
     costLabel: showCost ? "Cost (Kash)" : "Whole cost",
   });

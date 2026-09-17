@@ -19,6 +19,8 @@ interface InventoryIndex {
   bySku: Map<string, InventoryItem[]>;
   /** Leading Item # digits → full SKUs (231611 → 231611Y). */
   byCostKey: Map<string, string[]>;
+  /** Same catalog as byStoreSku, kept as an array so listInventoryItems is O(1). */
+  items: InventoryItem[];
   loadedAt: number;
   rowCount: number;
   fileMtime: number;
@@ -89,13 +91,15 @@ function buildIndex(items: InventoryItem[], fileMtime: number): InventoryIndex {
     byStoreSku,
     bySku,
     byCostKey,
+    items,
     loadedAt: Date.now(),
     rowCount: items.length,
     fileMtime,
   };
 }
 
-function inventorySourceStamp(): number {
+/** Newest live onhand mtime — used to drop stale inventory-mgmt caches. */
+export function getInventorySourceStamp(): number {
   let stamp = 0;
   for (const p of [
     DATA_INVENTORY_WHOLE_COST,
@@ -110,7 +114,7 @@ function inventorySourceStamp(): number {
 
 function loadIndex(): InventoryIndex | null {
   ensureDir();
-  const stamp = inventorySourceStamp();
+  const stamp = getInventorySourceStamp();
   if (!stamp) return null;
   if (cache && cache.fileMtime === stamp) return cache;
 
@@ -255,9 +259,7 @@ export function lookupInventory(
 
 /** Cached catalog rows (SKU × store). Used by Inventory management. */
 export function listInventoryItems(): InventoryItem[] {
-  const index = loadIndex();
-  if (!index) return [];
-  return [...index.byStoreSku.values()];
+  return loadIndex()?.items ?? [];
 }
 
 export function invalidateInventoryCache() {
