@@ -86,6 +86,9 @@ describe("skuLinesForModel store units", () => {
     const sold = (sku.stores ?? []).filter((s) => s.units > 0);
     expect(sold).toHaveLength(2);
     expect(sold.every((s) => s.kashCost === 444)).toBe(true);
+    expect(sku.kashCost).toBe(444);
+    expect(sold.every((s) => s.tagPrice === 1000)).toBe(true);
+    expect([...new Set(sold.map((s) => s.name))]).toEqual(["DBC-GM"]);
     expect(sold.map((s) => s.transactionId).sort()).toEqual([
       "GM-10293371",
       "GM-10293374",

@@ -37,6 +37,7 @@ export interface TopProductSkuLine {
     transactionId?: string;
     date?: string;
     kashCost?: number;
+    tagPrice?: number;
   }[];
 }
 

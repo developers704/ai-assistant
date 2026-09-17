@@ -164,6 +164,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       cur.margin = (cur.margin ?? 0) + (r.netRevenue - signedWholesaleUnitCost(cost, r));
     }
     const hideKash = isRepairServiceMemoSku(sku);
+    const salesAmt = Math.abs(Number(r.grossSales) || 0);
     cur.sales.push({
       name: r.storeName?.trim() || "—",
       units,
@@ -171,9 +172,9 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       transactionId: r.transactionId?.trim() || undefined,
       date: (r.date ?? "").trim() || undefined,
       kashCost: hideKash || unitKash <= 0 ? undefined : unitKash,
+      tagPrice: salesAmt > 0 ? salesAmt : undefined,
     });
     // Prefer latest sale's Sales Amount for the "tag $" label (not inventory Tag)
-    const salesAmt = Math.abs(Number(r.grossSales) || 0);
     if (salesAmt > 0) {
       const d = (r.date ?? "").trim();
       if (!cur.lastSaleDate || d >= cur.lastSaleDate) {
