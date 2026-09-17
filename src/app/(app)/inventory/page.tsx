@@ -326,22 +326,30 @@ function TransferMobileCard({
               <div className="min-w-0 rounded-lg bg-rose-500/[0.10] px-2.5 py-2">
                 <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-200/80">Need</div>
                 <StoreName store={row.toStore} tier={row.toTier} kind={row.toKind} tone="need" />
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-white/50">
-                  <span>Oh</span>
-                  <QtyBadge n={row.onhand} />
-                  <span>Sold</span>
-                  <QtyBadge n={row.soldQty} />
-                </div>
+                <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 text-[11px] text-white/50">
+                  <dt>Oh</dt>
+                  <dd className="min-w-0 justify-self-end">
+                    <QtyBadge n={row.onhand} />
+                  </dd>
+                  <dt>Sold</dt>
+                  <dd className="min-w-0 justify-self-end">
+                    <QtyBadge n={row.soldQty} />
+                  </dd>
+                </dl>
               </div>
               <div className="min-w-0 rounded-lg bg-emerald-500/[0.10] px-2.5 py-2">
                 <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200/80">From</div>
                 <StoreName store={row.fromStore} tier={row.fromTier} kind={row.fromKind} tone="from" />
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-white/50">
-                  <span>Oh</span>
-                  <QtyBadge n={row.fromOnhand} />
-                  <span>Sold</span>
-                  <QtyBadge n={row.fromSoldQty} />
-                </div>
+                <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 text-[11px] text-white/50">
+                  <dt>Oh</dt>
+                  <dd className="min-w-0 justify-self-end">
+                    <QtyBadge n={row.fromOnhand} />
+                  </dd>
+                  <dt>Sold</dt>
+                  <dd className="min-w-0 justify-self-end">
+                    <QtyBadge n={row.fromSoldQty} />
+                  </dd>
+                </dl>
               </div>
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] tabular-nums text-white/70">
