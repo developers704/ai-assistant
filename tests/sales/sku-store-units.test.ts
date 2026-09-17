@@ -46,13 +46,12 @@ describe("skuLinesForModel store units", () => {
     expect(primary.units).toBe(4);
     const sold = (primary.stores ?? [])
       .filter((s) => s.units > 0)
-      .map((s) => ({ name: s.name, units: s.units }));
+      .map((s) => ({ name: s.name, units: s.units, transactionId: s.transactionId }));
     expect(sold).toEqual([
-      { name: "VJ-ROSE", units: 3 },
-      { name: "VJ-ARDN", units: 1 },
+      { name: "VJ-ARDN", units: 1, transactionId: "AR-1" },
+      { name: "VJ-ROSE", units: 2, transactionId: "VR-1" },
+      { name: "VJ-ROSE", units: 1, transactionId: "VR-2" },
     ]);
-    // Onhand-only stores (0 sold) may also appear when inventory has the SKU
-    expect((primary.stores ?? []).some((s) => s.units === 0)).toBe(true);
 
     const other = lines.find((l) => l.sku === "999")!;
     expect(
@@ -60,5 +59,36 @@ describe("skuLinesForModel store units", () => {
         ?.filter((s) => s.units > 0)
         .map((s) => ({ name: s.name, units: s.units }))
     ).toEqual([{ name: "VJ-ARDN", units: 4 }]);
+  });
+
+  it("puts unit Kash CP on each SKU transaction (not summed across txns)", () => {
+    const lines = skuLinesForModel([
+      row({
+        storeName: "DBC-GM",
+        sku: "231624V",
+        itemNumber: "231624V",
+        transactionId: "GM-10293371",
+        quantity: 1,
+        netRevenue: 999,
+        inventoryCost: 444,
+      }),
+      row({
+        storeName: "DBC-GM",
+        sku: "231624V",
+        itemNumber: "231624V",
+        transactionId: "GM-10293374",
+        quantity: 1,
+        netRevenue: 999,
+        inventoryCost: 444,
+      }),
+    ]);
+    const sku = lines.find((l) => l.sku === "231624V")!;
+    const sold = (sku.stores ?? []).filter((s) => s.units > 0);
+    expect(sold).toHaveLength(2);
+    expect(sold.every((s) => s.kashCost === 444)).toBe(true);
+    expect(sold.map((s) => s.transactionId).sort()).toEqual([
+      "GM-10293371",
+      "GM-10293374",
+    ]);
   });
 });

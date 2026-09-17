@@ -14,6 +14,8 @@ export type SkuStoreBreakdownLine = {
   onhand?: number | null;
   transactionId?: string;
   date?: string;
+  /** POS Inventory Cost unit — Kash / Ross / admin only. */
+  kashCost?: number;
 };
 
 export type SkuBreakdownRow = {
@@ -48,8 +50,16 @@ function isMainStore(name: string): boolean {
   return name.trim().toUpperCase() === "MAIN";
 }
 
-function SaleTxnTable({ sales }: { sales: SkuStoreBreakdownLine[] }) {
-  const cols = "grid-cols-[7.25rem_minmax(0,1fr)_6.5rem_5.75rem]";
+function SaleTxnTable({
+  sales,
+  showKashCost,
+}: {
+  sales: SkuStoreBreakdownLine[];
+  showKashCost?: boolean;
+}) {
+  const cols = showKashCost
+    ? "grid-cols-[6.25rem_minmax(0,1fr)_5.5rem_5.25rem_5rem]"
+    : "grid-cols-[7.25rem_minmax(0,1fr)_6.5rem_5.75rem]";
 
   return (
     <>
@@ -58,6 +68,9 @@ function SaleTxnTable({ sales }: { sales: SkuStoreBreakdownLine[] }) {
         {sales.map((s, i) => {
           const storeNet = Number(s.revenue) || 0;
           const txn = s.transactionId?.trim() || "—";
+          const kash = s.kashCost;
+          const hasKash =
+            showKashCost && kash != null && Number.isFinite(kash) && kash !== 0;
           return (
             <li
               key={`${s.transactionId ?? ""}|${s.name}|${s.date ?? ""}|${i}`}
@@ -84,12 +97,25 @@ function SaleTxnTable({ sales }: { sales: SkuStoreBreakdownLine[] }) {
                   {storeNet !== 0 ? `$${formatMoneyCompact(storeNet)}` : "—"}
                 </span>
               </div>
+              {showKashCost && (
+                <div className="flex items-center justify-between gap-3 min-w-0">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-white/40">
+                    CP (Kash)
+                  </span>
+                  <span
+                    className="shrink-0 text-[13px] tabular-nums font-medium text-sky-200/90"
+                    title={hasKash ? formatCurrency(kash!) : "POS Inventory Cost (unit)"}
+                  >
+                    {hasKash ? `$${formatMoneyCompact(kash!)}` : "—"}
+                  </span>
+                </div>
+              )}
             </li>
           );
         })}
       </ul>
 
-      {/* iPad landscape + Mac: 4-col table, columns share the same template */}
+      {/* iPad landscape + Mac: table, columns share the same template */}
       <div className="hidden md:block min-w-0">
         <div
           className={cn(
@@ -100,12 +126,16 @@ function SaleTxnTable({ sales }: { sales: SkuStoreBreakdownLine[] }) {
           <span className="min-w-0">Store</span>
           <span className="min-w-0">Transaction #</span>
           <span className="text-right">Net Sale</span>
+          {showKashCost && <span className="text-right">CP (Kash)</span>}
           <span className="text-right">Date</span>
         </div>
         <ul className="divide-y divide-white/[0.05]">
           {sales.map((s, i) => {
             const storeNet = Number(s.revenue) || 0;
             const txn = s.transactionId?.trim() || "—";
+            const kash = s.kashCost;
+            const hasKash =
+              showKashCost && kash != null && Number.isFinite(kash) && kash !== 0;
             return (
               <li
                 key={`${s.transactionId ?? ""}|${s.name}|${s.date ?? ""}|${i}`}
@@ -132,6 +162,14 @@ function SaleTxnTable({ sales }: { sales: SkuStoreBreakdownLine[] }) {
                 >
                   {storeNet !== 0 ? `$${formatMoneyCompact(storeNet)}` : "—"}
                 </span>
+                {showKashCost && (
+                  <span
+                    className="tabular-nums text-right text-sky-200/90"
+                    title={hasKash ? formatCurrency(kash!) : "POS Inventory Cost (unit)"}
+                  >
+                    {hasKash ? `$${formatMoneyCompact(kash!)}` : "—"}
+                  </span>
+                )}
                 <span className="tabular-nums text-right text-white/60">
                   {shortSaleDate(s.date)}
                 </span>
@@ -348,12 +386,15 @@ export function SkuStoreBreakdownList({
   className,
   openSku: openSkuProp,
   onOpenSkuChange,
+  showKashCost = false,
 }: {
   lines: SkuBreakdownRow[];
   className?: string;
   /** Controlled expanded SKU (e.g. open first SKU from product title click). */
   openSku?: string | null;
   onOpenSkuChange?: (sku: string | null) => void;
+  /** Kash / Ross / admin: CP (Kash) column on each sale row. */
+  showKashCost?: boolean;
 }) {
   const [internalOpen, setInternalOpen] = useState<string | null>(null);
   const controlled = openSkuProp !== undefined;
@@ -442,7 +483,7 @@ export function SkuStoreBreakdownList({
 
             {expanded && line.stores && line.stores.length > 0 && (
               <div className="mt-1 w-full min-w-0 overflow-hidden rounded-md ring-1 ring-white/8 bg-black/20 max-h-64 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
-                <SaleTxnTable sales={line.stores} />
+                <SaleTxnTable sales={line.stores} showKashCost={showKashCost} />
               </div>
             )}
           </li>

@@ -163,12 +163,14 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
     } else {
       cur.margin = (cur.margin ?? 0) + (r.netRevenue - signedWholesaleUnitCost(cost, r));
     }
+    const hideKash = isRepairServiceMemoSku(sku);
     cur.sales.push({
       name: r.storeName?.trim() || "—",
       units,
       revenue: r.netRevenue,
       transactionId: r.transactionId?.trim() || undefined,
       date: (r.date ?? "").trim() || undefined,
+      kashCost: hideKash || unitKash <= 0 ? undefined : unitKash,
     });
     // Prefer latest sale's Sales Amount for the "tag $" label (not inventory Tag)
     const salesAmt = Math.abs(Number(r.grossSales) || 0);
