@@ -26,8 +26,25 @@ export type SkuBreakdownRow = {
   onHandTotal?: number;
   /** Shown as "tag $" — Sales Amount (gross), not inventory Tag. */
   tagPrice?: number;
+  /** POS Inventory Cost unit — Kash / Ross / admin only. */
+  kashCost?: number;
   stores?: SkuStoreBreakdownLine[];
 };
+
+function soldStoreNames(stores?: SkuStoreBreakdownLine[]): string[] {
+  const names: string[] = [];
+  const seen = new Set<string>();
+  for (const s of stores ?? []) {
+    if (!(s.units > 0)) continue;
+    const name = s.name?.trim();
+    if (!name || name === "—") continue;
+    const key = name.toUpperCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+  }
+  return names;
+}
 
 function formatOnhand(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
@@ -416,6 +433,12 @@ export function SkuStoreBreakdownList({
         const canExpand = saleCount > 0;
         const hasTag = typeof line.tagPrice === "number" && line.tagPrice > 0;
         const hasNet = typeof line.revenue === "number" && Number.isFinite(line.revenue);
+        const hasKash =
+          showKashCost &&
+          line.kashCost != null &&
+          Number.isFinite(line.kashCost) &&
+          line.kashCost !== 0;
+        const storeNames = soldStoreNames(line.stores);
 
         return (
           <li key={line.sku} className="min-w-0">
@@ -476,6 +499,32 @@ export function SkuStoreBreakdownList({
                     <span className="text-emerald-300/75">
                       {formatPieceCount(line.units).toUpperCase()} SOLD
                     </span>
+                    {hasKash && (
+                      <>
+                        <span className="text-white/25 select-none" aria-hidden>
+                          ·
+                        </span>
+                        <span
+                          className="text-sky-200/90 font-normal"
+                          title="POS Inventory Cost (unit — not × qty)"
+                        >
+                          CP (Kash) ${formatMoneyCompact(line.kashCost!)}
+                        </span>
+                      </>
+                    )}
+                    {storeNames.length > 0 && (
+                      <>
+                        <span className="text-white/25 select-none" aria-hidden>
+                          ·
+                        </span>
+                        <span
+                          className="text-white/55 font-normal truncate max-w-[14rem]"
+                          title={storeNames.join(", ")}
+                        >
+                          {storeNames.join(" · ")}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
