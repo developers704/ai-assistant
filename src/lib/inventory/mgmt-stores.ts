@@ -90,9 +90,12 @@ export function isInventoryMgmtStore(store: string): boolean {
   return inventoryDmForStore(store) != null;
 }
 
+let cachedMgmtStores: InventoryStoreMeta[] | null = null;
+
 export function listInventoryMgmtStores(): InventoryStoreMeta[] {
+  if (cachedMgmtStores) return cachedMgmtStores;
   const stores = [...AJ_STORES, ...SHAUN_STORES].filter((s) => isInventoryMgmtStore(s));
-  return stores
+  cachedMgmtStores = stores
     .map((store) => ({
       store,
       dm: inventoryDmForStore(store)!,
@@ -100,6 +103,7 @@ export function listInventoryMgmtStores(): InventoryStoreMeta[] {
       kind: inventoryKindForStore(store),
     }))
     .sort((a, b) => a.store.localeCompare(b.store));
+  return cachedMgmtStores;
 }
 
 export function keepReserveQty(soldQty: number, kind: InventoryStoreKind): number {

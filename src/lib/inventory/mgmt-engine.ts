@@ -154,6 +154,9 @@ function key(s: string): string {
   return s.trim().toUpperCase();
 }
 
+const MGMT_STORES = listInventoryMgmtStores();
+const MGMT_STORE_BY_KEY = new Map(MGMT_STORES.map((s) => [key(s.store), s]));
+
 function blank(s: string | null | undefined): string {
   return (s ?? "").trim();
 }
@@ -313,7 +316,7 @@ function pickDonor(
     onhand: number;
     rank: number;
   }> = [];
-  for (const meta of listInventoryMgmtStores()) {
+  for (const meta of MGMT_STORES) {
     if (isMainStore(meta.store)) continue;
     if (key(meta.store) === key(needyStore)) continue;
     if (meta.tier === "A") continue;
@@ -351,7 +354,7 @@ export function buildInventoryTransfers(
     const inv = onhand.get(model);
     const soldByStore = sales.get(model) ?? new Map();
     const onhandStores = inv?.stores ?? new Map();
-    for (const meta of listInventoryMgmtStores()) {
+    for (const meta of MGMT_STORES) {
       const storeKey = key(meta.store);
       const sold = soldByStore.get(storeKey);
       const soldQty = sold?.soldQty ?? 0;
@@ -367,7 +370,7 @@ export function buildInventoryTransfers(
         [...(sold?.skuSold.keys() ?? [])][0] ||
         inv?.sku ||
         model;
-      const fromMeta = listInventoryMgmtStores().find((s) => key(s.store) === key(donor.store));
+      const fromMeta = MGMT_STORE_BY_KEY.get(key(donor.store));
       const priority = transferPriority({
         onhand: onh,
         soldQty,
@@ -435,7 +438,7 @@ export function buildInventoryStockRows(
       if (!isInventoryOnhandStore(storeKey)) continue;
       const dm = inventoryDmForStore(storeKey);
       if (!dm && !main) continue;
-      const meta = listInventoryMgmtStores().find((s) => key(s.store) === storeKey);
+      const meta = MGMT_STORE_BY_KEY.get(storeKey);
       const sold = main ? undefined : soldByStore.get(storeKey);
       let sku = inv.sku;
       let tag = inv.tagPrice;
@@ -498,7 +501,7 @@ export function buildModelStoreBreakdown(
       soldQty: 0,
     },
   ];
-  for (const meta of listInventoryMgmtStores()) {
+  for (const meta of MGMT_STORES) {
     const storeKey = key(meta.store);
     const onhand = onhandStores.get(storeKey)?.onhand ?? 0;
     const soldQty = soldByStore.get(storeKey)?.soldQty ?? 0;
@@ -514,6 +517,49 @@ export function buildModelStoreBreakdown(
   }
   const main = rows[0]!;
   const rest = rows.slice(1).sort((a, b) => b.onhand - a.onhand || b.soldQty - a.soldQty || a.store.localeCompare(b.store));
+  return [main, ...rest];
+}
+
+/** Same store grid as `buildModelStoreBreakdown`, from cached stock rows (no sales rescan). */
+export function buildModelStoreBreakdownFromStock(
+  stock: InventoryStockRow[],
+  vendorModel: string
+): InventoryModelStoreRow[] {
+  const model = key(vendorModel);
+  if (!model) return [];
+  const byStore = new Map<string, InventoryStockRow>();
+  for (const r of stock) {
+    if (key(r.vendorModel) !== model) continue;
+    byStore.set(key(r.store), r);
+  }
+  const rows: InventoryModelStoreRow[] = [
+    {
+      store: "MAIN",
+      dm: "AJ",
+      tier: "C",
+      kind: "main",
+      onhand: byStore.get("MAIN")?.onhand ?? 0,
+      soldQty: 0,
+    },
+  ];
+  for (const meta of MGMT_STORES) {
+    const hit = byStore.get(key(meta.store));
+    const onhand = hit?.onhand ?? 0;
+    const soldQty = hit?.soldQty ?? 0;
+    if (onhand <= 0 && soldQty <= 0) continue;
+    rows.push({
+      store: meta.store,
+      dm: meta.dm,
+      tier: meta.tier,
+      kind: meta.kind,
+      onhand,
+      soldQty,
+    });
+  }
+  const main = rows[0]!;
+  const rest = rows
+    .slice(1)
+    .sort((a, b) => b.onhand - a.onhand || b.soldQty - a.soldQty || a.store.localeCompare(b.store));
   return [main, ...rest];
 }
 
@@ -583,9 +629,52 @@ function sortRows<T extends Record<string, unknown>>(rows: T[], sort: string, di
   });
 }
 
-export function queryInventoryMgmt(
+function availableFromStock(
+  stockAll: InventoryStockRow[],
+  view: "transfers" | "stock"
+) {
+  const facets = new Map<string, Set<string>>();
+  for (const r of stockAll) {
+    addFacet(facets, "stores", r.store);
+    addFacet(facets, "departments", r.department);
+    addFacet(facets, "designs", r.design);
+    addFacet(facets, "classes", r.productClass);
+    addFacet(facets, "subclasses", r.subClass);
+    addFacet(facets, "vendors", r.vendor);
+  }
+  const storeNames = uniqueSorted([...(facets.get("stores") ?? [])]);
+  return {
+    stores:
+      view === "transfers"
+        ? storeNames.filter((s) => !isMainStore(s))
+        : ([storeNames.find((s) => isMainStore(s))].filter(Boolean).concat(
+            storeNames.filter((s) => !isMainStore(s))
+          ) as string[]),
+    departments: uniqueSorted([...(facets.get("departments") ?? [])]),
+    designs: uniqueSorted([...(facets.get("designs") ?? [])]),
+    classes: uniqueSorted([...(facets.get("classes") ?? [])]),
+    subclasses: uniqueSorted([...(facets.get("subclasses") ?? [])]),
+    vendors: uniqueSorted([...(facets.get("vendors") ?? [])]),
+  };
+}
+
+export type InventoryMgmtBase = {
+  stock: InventoryStockRow[];
+  transfers: InventoryTransfer[];
+};
+
+export function buildInventoryMgmtBase(
   salesRows: VendorPosRow[],
-  items: InventoryItem[],
+  items: InventoryItem[]
+): InventoryMgmtBase {
+  return {
+    stock: buildInventoryStockRows(salesRows, items),
+    transfers: buildInventoryTransfers(salesRows, items),
+  };
+}
+
+export function queryInventoryMgmtFromBase(
+  base: InventoryMgmtBase,
   q: InventoryMgmtQuery
 ): {
   view: "transfers" | "stock";
@@ -601,34 +690,10 @@ export function queryInventoryMgmt(
     vendors: string[];
   };
 } {
-  const facets = new Map<string, Set<string>>();
-  const stockAll = buildInventoryStockRows(salesRows, items);
-  for (const r of stockAll) {
-    addFacet(facets, "stores", r.store);
-    addFacet(facets, "departments", r.department);
-    addFacet(facets, "designs", r.design);
-    addFacet(facets, "classes", r.productClass);
-    addFacet(facets, "subclasses", r.subClass);
-    addFacet(facets, "vendors", r.vendor);
-  }
-  const storeNames = uniqueSorted([...(facets.get("stores") ?? [])]);
-  const available = {
-    stores:
-      q.view === "transfers"
-        ? storeNames.filter((s) => !isMainStore(s))
-        : [storeNames.find((s) => isMainStore(s))].filter(Boolean).concat(storeNames.filter((s) => !isMainStore(s))) as string[],
-    departments: uniqueSorted([...(facets.get("departments") ?? [])]),
-    designs: uniqueSorted([...(facets.get("designs") ?? [])]),
-    classes: uniqueSorted([...(facets.get("classes") ?? [])]),
-    subclasses: uniqueSorted([...(facets.get("subclasses") ?? [])]),
-    vendors: uniqueSorted([...(facets.get("vendors") ?? [])]),
-  };
+  const available = availableFromStock(base.stock, q.view);
 
   if (q.view === "transfers") {
-    const filtered = filterTransfers(buildInventoryTransfers(salesRows, items), q) as unknown as Record<
-      string,
-      unknown
-    >[];
+    const filtered = filterTransfers(base.transfers, q) as unknown as Record<string, unknown>[];
     const sorted = sortRows(filtered, q.sort || "priorityRank", q.dir);
     const offset = Math.max(0, q.offset);
     const limit = Math.min(200, Math.max(1, q.limit));
@@ -641,7 +706,7 @@ export function queryInventoryMgmt(
     };
   }
 
-  const filtered = filterStock(stockAll, q) as unknown as Record<string, unknown>[];
+  const filtered = filterStock(base.stock, q) as unknown as Record<string, unknown>[];
   const sorted = sortRows(filtered, q.sort || "onhand", q.dir);
   const offset = Math.max(0, q.offset);
   const limit = Math.min(200, Math.max(1, q.limit));
@@ -652,4 +717,12 @@ export function queryInventoryMgmt(
     stores: listInventoryMgmtStores(),
     available,
   };
+}
+
+export function queryInventoryMgmt(
+  salesRows: VendorPosRow[],
+  items: InventoryItem[],
+  q: InventoryMgmtQuery
+): ReturnType<typeof queryInventoryMgmtFromBase> {
+  return queryInventoryMgmtFromBase(buildInventoryMgmtBase(salesRows, items), q);
 }

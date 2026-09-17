@@ -79,6 +79,8 @@ type Payload = {
   total: number;
   dateFrom: string;
   dateTo: string;
+  availableDates?: string[];
+  reportRange?: { from: string; to: string };
   showCost: boolean;
   costLabel: string;
   available: {
@@ -125,6 +127,9 @@ function datesBetween(from: string, to: string): string[] {
   }
   return out;
 }
+
+const FALLBACK_RANGE = { from: "2025-01-01", to: "2026-09-16" };
+const FALLBACK_DATES = datesBetween(FALLBACK_RANGE.from, FALLBACK_RANGE.to);
 
 function QtyBadge({ n }: { n: number }) {
   return (
@@ -266,10 +271,9 @@ function StoreBreakdown({
 
 export default function InventoryPage() {
   const [view, setView] = useState<View>("transfers");
-  const [dateRange, setDateRange] = useState<SalesDateRangeValue>({
-    from: "2025-01-01",
-    to: "2026-09-15",
-  });
+  const [dateRange, setDateRange] = useState<SalesDateRangeValue>(FALLBACK_RANGE);
+  const [reportRange, setReportRange] = useState(FALLBACK_RANGE);
+  const [availableDates, setAvailableDates] = useState<string[]>(FALLBACK_DATES);
   const [stores, setStores] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [designs, setDesigns] = useState<string[]>([]);
@@ -336,6 +340,8 @@ export default function InventoryPage() {
         const json = (await res.json()) as Payload & { error?: string };
         if (!res.ok) throw new Error(json.error || "Failed to load inventory");
         setData(json);
+        if (json.availableDates?.length) setAvailableDates(json.availableDates);
+        if (json.reportRange?.from && json.reportRange?.to) setReportRange(json.reportRange);
       })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -378,6 +384,7 @@ export default function InventoryPage() {
 
   const page = Math.floor(offset / limit) + 1;
   const pages = Math.max(1, Math.ceil((data?.total ?? 0) / limit));
+  const ready = Boolean(data && data.view === view);
 
   const header = useMemo(
     () =>
@@ -406,8 +413,8 @@ export default function InventoryPage() {
             All on-hand
           </Button>
           <SalesDateRangePicker
-            availableDates={datesBetween("2025-01-01", "2026-09-15")}
-            reportRange={{ from: "2025-01-01", to: "2026-09-15" }}
+            availableDates={availableDates}
+            reportRange={reportRange}
             value={dateRange}
             onChange={(next) => {
               if (!next) return;
@@ -464,7 +471,7 @@ export default function InventoryPage() {
         </div>
 
         <Card className="overflow-x-auto p-0">
-          {loading && !data ? (
+          {loading && !ready ? (
             <div className="p-8 text-center text-ink-muted">Loading inventory…</div>
           ) : error ? (
             <div className="p-8 text-center text-rose-300">{error}</div>
@@ -603,7 +610,7 @@ export default function InventoryPage() {
               </tbody>
             </table>
           )}
-          {data && data.rows.length === 0 && !loading ? (
+          {ready && data.rows.length === 0 && !loading ? (
             <div className="p-8 text-center text-ink-muted">No rows for this filter.</div>
           ) : null}
         </Card>
