@@ -42,7 +42,7 @@ const net14 = sep14.reduce((s, r) => s + r.netRevenue, 0);
 const dates = [...new Set(rows.map((r) => r.date))].sort();
 
 assert.ok(sep14.length > 0, "Sep 14 rows must exist after append");
-assert.equal(dates.at(-1), "2026-09-14");
+assert.ok((dates.at(-1) ?? "") >= "2026-09-14", `data must reach Sep 14, got ${dates.at(-1)}`);
 assert.ok(sep13.length > 0, "Sep 13 must still be present");
 assert.ok(Math.abs(net14 - dailyNet) < 0.05, `seed ${net14} vs daily parse ${dailyNet}`);
 assert.ok(Math.abs(dailyNet - csvTotalCol) < 0.05, `parsed ${dailyNet} vs CSV Total ${csvTotalCol}`);
