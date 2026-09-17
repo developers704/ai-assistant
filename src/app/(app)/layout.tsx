@@ -98,7 +98,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {children}
             </div>
           ) : (
-            <div className="max-w-[100rem] mx-auto px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
+            <div className="max-w-[100rem] mx-auto min-w-0 w-full px-3 sm:px-5 lg:px-6 py-4 lg:py-6">
               {children}
             </div>
           )}
