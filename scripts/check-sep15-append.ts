@@ -59,7 +59,7 @@ const seedInvCost = sep15.reduce((s, r) => s + signedKashInventoryCost(r), 0);
 const dates = [...new Set(rows.map((r) => r.date))].sort();
 
 assert.ok(sep15.length > 0, "Sep 15 rows must exist after append");
-assert.equal(dates.at(-1), DAY);
+assert.ok((dates.at(-1) ?? "") >= DAY, `data must reach Sep 15, got ${dates.at(-1)}`);
 assert.ok(sep14.length > 0, "Sep 14 must still be present");
 assert.ok(Math.abs(net15 - dailyNet) < 0.05, `seed ${net15} vs daily parse ${dailyNet}`);
 assert.ok(Math.abs(dailyNet - csvTotalCol) < 0.05, `parsed ${dailyNet} vs CSV Total ${csvTotalCol}`);
