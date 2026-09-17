@@ -188,6 +188,8 @@ export interface VendorModelSkuStoreLine {
   onhand?: number | null;
   transactionId?: string;
   date?: string;
+  /** POS Inventory Cost unit for this sale (Kash CP). Never × qty. */
+  kashCost?: number;
 }
 
 /** SKUs that contributed to a vendor-model ranking row. */

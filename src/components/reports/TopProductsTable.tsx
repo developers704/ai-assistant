@@ -36,6 +36,7 @@ export interface TopProductSkuLine {
     onhand?: number | null;
     transactionId?: string;
     date?: string;
+    kashCost?: number;
   }[];
 }
 
@@ -870,6 +871,7 @@ export function TopProductsTable({
                               onOpenSkuChange={(sku) =>
                                 setOpenSkuByRow((prev) => ({ ...prev, [rowKey]: sku }))
                               }
+                              showKashCost={showKashCost}
                             />
                           )}
                         </div>
@@ -898,6 +900,7 @@ export function TopProductsTable({
                           onOpenSkuChange={(sku) =>
                             setOpenSkuByRow((prev) => ({ ...prev, [rowKey]: sku }))
                           }
+                          showKashCost={showKashCost}
                         />
                       )}
                     </div>

@@ -209,6 +209,11 @@ describe("collapseSplitTxnSkuRows", () => {
     expect(split.reduce((s, r) => s + r.inventoryCost, 0)).toBe(2346);
     expect(kashInventoryCostForRows(split)).toBeCloseTo(1173, 2);
     expect(signedKashInventoryCost(split[0]!)).toBeCloseTo(1173, 2);
+    const skuLines = skuLinesForModel(split);
+    expect(skuLines[0]!.stores).toHaveLength(1);
+    expect(skuLines[0]!.stores![0]!.kashCost).toBeCloseTo(1173, 2);
+    expect(skuLines[0]!.stores![0]!.revenue).toBeCloseTo(3995.94, 2);
+    expect(skuLines[0]!.stores![0]!.transactionId).toBe("VS-10292236");
   });
 
   it("shows unit Kash CP for 2 pcs / 2 SKUs (not 1173+1173)", () => {

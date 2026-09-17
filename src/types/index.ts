@@ -249,6 +249,7 @@ export interface SalesSummary {
         transactionId?: string;
         date?: string;
         revenue?: number;
+        kashCost?: number;
       }[];
     }[];
   }[];
