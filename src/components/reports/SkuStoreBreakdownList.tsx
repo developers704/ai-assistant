@@ -536,7 +536,7 @@ export function SkuStoreBreakdownList({
                           className="text-sky-200/90 font-normal"
                           title="POS Inventory Cost (unit)"
                         >
-                          CP (Kash) ${formatMoneyCompact(kash!)}
+                          CP ${formatMoneyCompact(kash!)}
                         </span>
                       </>
                     )}
