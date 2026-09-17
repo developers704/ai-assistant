@@ -610,7 +610,7 @@ export default function InventoryPage() {
               </tbody>
             </table>
           )}
-          {ready && data.rows.length === 0 && !loading ? (
+          {ready && data && data.rows.length === 0 && !loading ? (
             <div className="p-8 text-center text-ink-muted">No rows for this filter.</div>
           ) : null}
         </Card>
