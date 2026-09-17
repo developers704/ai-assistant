@@ -250,6 +250,7 @@ export interface SalesSummary {
         date?: string;
         revenue?: number;
         kashCost?: number;
+        tagPrice?: number;
       }[];
     }[];
   }[];

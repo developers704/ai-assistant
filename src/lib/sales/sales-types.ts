@@ -190,6 +190,8 @@ export interface VendorModelSkuStoreLine {
   date?: string;
   /** POS Inventory Cost unit for this sale (Kash CP). Never × qty. */
   kashCost?: number;
+  /** Sales Amount (gross) for this sale — shown as Tag before Net Sale. */
+  tagPrice?: number;
 }
 
 /** SKUs that contributed to a vendor-model ranking row. */
