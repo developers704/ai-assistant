@@ -298,16 +298,17 @@ export function SalesDateRangePicker({
       {/* ERP-style: Date From: [____][📅]  To: [____][📅] */}
       <div
         className={cn(
-          "inline-flex h-10 items-center gap-2 sm:gap-3 px-2.5 sm:px-3 rounded-[11px] text-sm whitespace-nowrap",
+          "flex h-auto min-h-9 w-fit max-w-full flex-wrap items-center gap-2 px-2.5 rounded-[11px] text-sm sm:inline-flex sm:h-10 sm:flex-nowrap sm:gap-3 sm:px-3",
           light
             ? "bg-white border border-[#d5dbe6] text-[#121826]"
-            : "select-dark h-9 backdrop-blur-md"
+            : "select-dark sm:h-9 backdrop-blur-md"
         )}
         aria-label={triggerLabel}
       >
         <label className="inline-flex items-center gap-1.5 min-w-0">
           <span className={cn("text-[12px] shrink-0", light ? "text-[#5e6b7a]" : "text-ink-muted")}>
-            Date From:
+            <span className="sm:hidden">From:</span>
+            <span className="hidden sm:inline">Date From:</span>
           </span>
           <span
             className={cn(
@@ -327,7 +328,7 @@ export function SalesDateRangePicker({
                 openField === "from" ? discardAndClose() : openCalendar("from")
               }
               className={cn(
-                "min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums",
+                "min-w-[4.75rem] px-2 text-left text-[12px] tabular-nums sm:min-w-[5.75rem]",
                 light ? "text-[#121826] hover:bg-[#f1eeff]" : "text-white/90 hover:bg-white/[0.06]"
               )}
               aria-label="Date from"
@@ -375,7 +376,7 @@ export function SalesDateRangePicker({
                 openField === "to" ? discardAndClose() : openCalendar("to")
               }
               className={cn(
-                "min-w-[5.75rem] px-2 text-left text-[12px] tabular-nums",
+                "min-w-[4.75rem] px-2 text-left text-[12px] tabular-nums sm:min-w-[5.75rem]",
                 light ? "text-[#121826] hover:bg-[#f1eeff]" : "text-white/90 hover:bg-white/[0.06]"
               )}
               aria-label="Date to"
@@ -405,7 +406,7 @@ export function SalesDateRangePicker({
       {openField != null && (
         <div
           className={cn(
-            "absolute left-0 z-40 mt-2 w-[19rem] overflow-hidden rounded-xl shadow-2xl",
+            "absolute left-0 z-40 mt-2 w-[19rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl shadow-2xl",
             light
               ? "border border-[#e4e8f0] bg-white"
               : "border border-white/12 bg-[#101826] ring-1 ring-white/10"

@@ -189,10 +189,10 @@ function StoreName({
   tone?: "need" | "from";
 }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <span className="inline-flex min-w-0 items-center gap-1.5">
       <span
         className={cn(
-          "font-semibold",
+          "truncate font-semibold",
           tone === "need" && "text-rose-200",
           tone === "from" && "text-emerald-200"
         )}
@@ -200,6 +200,61 @@ function StoreName({
         {store}
       </span>
       <StoreBadge tier={tier} kind={kind} />
+    </span>
+  );
+}
+
+function StoreBreakdownBody({
+  rows,
+  highlightTo,
+  highlightFrom,
+}: {
+  rows: ModelStoreRow[] | "loading" | "error" | undefined;
+  highlightTo?: string;
+  highlightFrom?: string;
+}) {
+  const need = (highlightTo ?? "").toUpperCase();
+  const from = (highlightFrom ?? "").toUpperCase();
+  if (rows === "loading" || rows == null) {
+    return <div className="py-2 text-white/40">Loading stores…</div>;
+  }
+  if (rows === "error") {
+    return <div className="py-2 text-rose-300">Could not load stores.</div>;
+  }
+  if (rows.length === 0) {
+    return <div className="py-2 text-white/40">No other store stock for this vendor model.</div>;
+  }
+  return (
+    <div className="w-full max-w-xl overflow-hidden">
+      <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4rem] gap-x-2 text-[10px] uppercase tracking-wide text-white/35">
+        <div className="py-1">Store</div>
+        <div className="py-1">Onhand</div>
+        <div className="py-1">Sold</div>
+      </div>
+      {rows.map((s) => {
+        const key = s.store.toUpperCase();
+        const isNeed = key === need;
+        const isFrom = key === from;
+        return (
+          <div
+            key={s.store}
+            className={cn(
+              "grid grid-cols-[minmax(0,1fr)_4.5rem_4rem] gap-x-2 rounded-md px-1.5 py-0.5 text-[12px]",
+              isNeed && "bg-rose-500/15 text-rose-100",
+              isFrom && "bg-emerald-500/15 text-emerald-100"
+            )}
+          >
+            <div className="min-w-0 truncate">
+              <span className="inline-flex max-w-full items-center gap-1.5">
+                <span className="truncate">{s.store}</span>
+                <StoreBadge tier={s.tier} kind={s.kind} />
+              </span>
+            </div>
+            <div className="tabular-nums">{formatPieceCount(s.onhand)}</div>
+            <div className="tabular-nums">{s.kind === "main" ? "—" : formatPieceCount(s.soldQty)}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -215,57 +270,162 @@ function StoreBreakdown({
   highlightTo?: string;
   highlightFrom?: string;
 }) {
-  const need = (highlightTo ?? "").toUpperCase();
-  const from = (highlightFrom ?? "").toUpperCase();
   return (
     <tr className="border-t border-white/[0.06] bg-white/[0.02]">
       <td colSpan={colSpan} className="px-4 py-2">
-        {rows === "loading" || rows == null ? (
-          <div className="py-2 text-white/40">Loading stores…</div>
-        ) : rows === "error" ? (
-          <div className="py-2 text-rose-300">Could not load stores.</div>
-        ) : rows.length === 0 ? (
-          <div className="py-2 text-white/40">No other store stock for this vendor model.</div>
-        ) : (
-          <table className="w-full max-w-xl text-left text-[12px]">
-            <thead className="text-[10px] uppercase tracking-wide text-white/35">
-              <tr>
-                <th className="py-1 pr-3">Store</th>
-                <th className="py-1 pr-3">Onhand</th>
-                <th className="py-1">Sold</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => {
-                const key = s.store.toUpperCase();
-                const isNeed = key === need;
-                const isFrom = key === from;
-                return (
-                  <tr
-                    key={s.store}
-                    className={cn(
-                      isNeed && "bg-rose-500/15 text-rose-100",
-                      isFrom && "bg-emerald-500/15 text-emerald-100"
-                    )}
-                  >
-                    <td className="py-0.5 pr-3">
-                      <span className="inline-flex items-center gap-1.5">
-                        {s.store}
-                        <StoreBadge tier={s.tier} kind={s.kind} />
-                      </span>
-                    </td>
-                    <td className="py-0.5 pr-3 tabular-nums">{formatPieceCount(s.onhand)}</td>
-                    <td className="py-0.5 tabular-nums">
-                      {s.kind === "main" ? "—" : formatPieceCount(s.soldQty)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        <StoreBreakdownBody rows={rows} highlightTo={highlightTo} highlightFrom={highlightFrom} />
       </td>
     </tr>
+  );
+}
+
+function TransferMobileCard({
+  row,
+  open,
+  costLabel,
+  breakdown,
+  onToggle,
+}: {
+  row: TransferRow;
+  open: boolean;
+  costLabel: string;
+  breakdown: ModelStoreRow[] | "loading" | "error" | undefined;
+  onToggle: () => void;
+}) {
+  return (
+    <li className="border-t border-white/[0.06] first:border-t-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          "w-full min-w-0 px-3 py-3 text-left transition-colors hover:bg-white/[0.04]",
+          open && "bg-white/[0.04]"
+        )}
+      >
+        <div className="flex items-start gap-2.5 min-w-0">
+          <ChevronDown
+            size={14}
+            className={cn("mt-1 shrink-0 text-white/40 transition-transform", open && "rotate-180")}
+          />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="break-all font-semibold text-ink">{row.vendorModel}</div>
+                <div className="break-all text-[12px] text-white/45">
+                  {row.sku}
+                  {row.vendor ? ` · ${row.vendor}` : ""}
+                </div>
+              </div>
+              <PriorityBadge priority={row.priority ?? "fill"} />
+            </div>
+            <div className="min-w-0">
+              <div className="whitespace-normal break-words text-[13px] text-ink">{row.description || "—"}</div>
+              <div className="whitespace-normal break-words text-[12px] text-white/45">{row.department || "—"}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="min-w-0 rounded-lg bg-rose-500/[0.10] px-2.5 py-2">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-200/80">Need</div>
+                <StoreName store={row.toStore} tier={row.toTier} kind={row.toKind} tone="need" />
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-white/50">
+                  <span>Oh</span>
+                  <QtyBadge n={row.onhand} />
+                  <span>Sold</span>
+                  <QtyBadge n={row.soldQty} />
+                </div>
+              </div>
+              <div className="min-w-0 rounded-lg bg-emerald-500/[0.10] px-2.5 py-2">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200/80">From</div>
+                <StoreName store={row.fromStore} tier={row.fromTier} kind={row.fromKind} tone="from" />
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-white/50">
+                  <span>Oh</span>
+                  <QtyBadge n={row.fromOnhand} />
+                  <span>Sold</span>
+                  <QtyBadge n={row.fromSoldQty} />
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] tabular-nums text-white/70">
+              <span>Tag {money(row.tagPrice)}</span>
+              <span>
+                {costLabel} {money(row.costPrice)}
+              </span>
+              <span>Rev {money(row.revenue)}</span>
+            </div>
+          </div>
+        </div>
+      </button>
+      {open ? (
+        <div className="px-3 pb-3">
+          <StoreBreakdownBody rows={breakdown} highlightTo={row.toStore} highlightFrom={row.fromStore} />
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+function StockMobileCard({
+  row,
+  open,
+  costLabel,
+  breakdown,
+  onToggle,
+}: {
+  row: StockRow;
+  open: boolean;
+  costLabel: string;
+  breakdown: ModelStoreRow[] | "loading" | "error" | undefined;
+  onToggle: () => void;
+}) {
+  return (
+    <li className="border-t border-white/[0.06] first:border-t-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          "w-full min-w-0 px-3 py-3 text-left transition-colors hover:bg-white/[0.04]",
+          open && "bg-white/[0.04]"
+        )}
+      >
+        <div className="flex items-start gap-2.5 min-w-0">
+          <ChevronDown
+            size={14}
+            className={cn("mt-1 shrink-0 text-white/40 transition-transform", open && "rotate-180")}
+          />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-ink">{row.store}</span>
+              <StoreBadge tier={row.tier} kind={row.kind} />
+            </div>
+            <div className="min-w-0">
+              <div className="break-all font-semibold text-ink">{row.vendorModel}</div>
+              <div className="break-all text-[12px] text-white/45">
+                {row.sku}
+                {row.vendor ? ` · ${row.vendor}` : ""}
+              </div>
+            </div>
+            <div className="min-w-0">
+              <div className="whitespace-normal break-words text-[13px] text-ink">{row.description || "—"}</div>
+              <div className="whitespace-normal break-words text-[12px] text-white/45">
+                {[row.department, row.design, row.productClass].filter(Boolean).join(" · ") || "—"}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[12px]">
+              <span className="text-white/50">
+                On hand <span className="font-semibold tabular-nums text-ink">{formatPieceCount(row.onhand)}</span>
+              </span>
+              <span className="tabular-nums text-white/70">
+                Tag {money(row.tagPrice)} · {costLabel} {money(row.costPrice)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </button>
+      {open ? (
+        <div className="px-3 pb-3">
+          <StoreBreakdownBody rows={breakdown} highlightTo={row.store} />
+        </div>
+      ) : null}
+    </li>
   );
 }
 
@@ -395,7 +555,7 @@ export default function InventoryPage() {
   );
 
   return (
-    <PageShell accent="amber">
+    <PageShell accent="amber" className="min-w-0">
       <PageShellHeader>
         <PageHeader
           gradient
@@ -404,35 +564,41 @@ export default function InventoryPage() {
           subtitle={header}
         />
       </PageShellHeader>
-      <PageShellBody className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant={view === "transfers" ? "primary" : "ghost"} onClick={() => { setView("transfers"); setOffset(0); setSort("priorityRank"); setDir("asc"); setStores((s) => s.filter((x) => x.toUpperCase() !== "MAIN")); }}>
-            Transfers
-          </Button>
-          <Button size="sm" variant={view === "stock" ? "primary" : "ghost"} onClick={() => { setView("stock"); setOffset(0); setSort("onhand"); setDir("desc"); }}>
-            All on-hand
-          </Button>
-          <SalesDateRangePicker
-            availableDates={availableDates}
-            reportRange={reportRange}
-            value={dateRange}
-            onChange={(next) => {
-              if (!next) return;
-              setDateRange(next);
-              setOffset(0);
-            }}
-          />
+      <PageShellBody className="min-w-0 space-y-4 overflow-x-hidden">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant={view === "transfers" ? "primary" : "ghost"} onClick={() => { setView("transfers"); setOffset(0); setSort("priorityRank"); setDir("asc"); setStores((s) => s.filter((x) => x.toUpperCase() !== "MAIN")); }}>
+              Transfers
+            </Button>
+            <Button size="sm" variant={view === "stock" ? "primary" : "ghost"} onClick={() => { setView("stock"); setOffset(0); setSort("onhand"); setDir("desc"); }}>
+              All on-hand
+            </Button>
+          </div>
+          <div className="min-w-0 max-w-full">
+            <SalesDateRangePicker
+              availableDates={availableDates}
+              reportRange={reportRange}
+              value={dateRange}
+              onChange={(next) => {
+                if (!next) return;
+                setDateRange(next);
+                setOffset(0);
+              }}
+            />
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <SalesMultiSelectFilter label="Store" allLabel="All stores" options={available.stores} value={stores} onChange={(v) => { setStores(v); setOffset(0); }} />
-          <SalesMultiSelectFilter label="Department" allLabel="All departments" options={available.departments} value={departments} onChange={(v) => { setDepartments(v); setOffset(0); }} />
-          <SalesMultiSelectFilter label="Design" allLabel="All designs" options={available.designs} value={designs} onChange={(v) => { setDesigns(v); setOffset(0); }} />
-          <SalesMultiSelectFilter label="Class" allLabel="All classes" options={available.classes} value={classes} onChange={(v) => { setClasses(v); setOffset(0); }} />
-          <SalesMultiSelectFilter label="Subclass" allLabel="All subclasses" options={available.subclasses} value={subclasses} onChange={(v) => { setSubclasses(v); setOffset(0); }} />
-          <SalesMultiSelectFilter label="Vendor #" allLabel="All vendors" options={available.vendors} value={vendors} onChange={(v) => { setVendors(v); setOffset(0); }} />
+        <div className="flex min-w-0 flex-col gap-2 xl:flex-row xl:flex-wrap xl:items-center">
+          <div className="grid min-w-0 grid-cols-2 gap-2 xl:contents">
+            <SalesMultiSelectFilter fullWidth className="min-w-0 w-full xl:w-fit xl:min-w-[8.75rem]" label="Store" allLabel="All stores" options={available.stores} value={stores} onChange={(v) => { setStores(v); setOffset(0); }} />
+            <SalesMultiSelectFilter fullWidth className="min-w-0 w-full xl:w-fit xl:min-w-[8.75rem]" label="Department" allLabel="All departments" options={available.departments} value={departments} onChange={(v) => { setDepartments(v); setOffset(0); }} />
+            <SalesMultiSelectFilter fullWidth className="min-w-0 w-full xl:w-fit xl:min-w-[8.75rem]" label="Design" allLabel="All designs" options={available.designs} value={designs} onChange={(v) => { setDesigns(v); setOffset(0); }} />
+            <SalesMultiSelectFilter fullWidth className="min-w-0 w-full xl:w-fit xl:min-w-[8.75rem]" label="Class" allLabel="All classes" options={available.classes} value={classes} onChange={(v) => { setClasses(v); setOffset(0); }} />
+            <SalesMultiSelectFilter fullWidth className="min-w-0 w-full xl:w-fit xl:min-w-[8.75rem]" label="Subclass" allLabel="All subclasses" options={available.subclasses} value={subclasses} onChange={(v) => { setSubclasses(v); setOffset(0); }} />
+            <SalesMultiSelectFilter fullWidth className="min-w-0 w-full xl:w-fit xl:min-w-[8.75rem]" label="Vendor #" allLabel="All vendors" options={available.vendors} value={vendors} onChange={(v) => { setVendors(v); setOffset(0); }} />
+          </div>
           <form
-            className="flex items-center gap-1"
+            className="min-w-0 w-full xl:w-auto"
             onSubmit={(e) => {
               e.preventDefault();
               const next = qDraft.trim();
@@ -440,42 +606,61 @@ export default function InventoryPage() {
               setOffset(0);
             }}
           >
-            <div className="relative">
+            <div className="relative min-w-0">
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/35" />
               <input
                 value={qDraft}
                 onChange={(e) => setQDraft(e.target.value)}
                 placeholder="Model, SKU, or description"
                 title="Search vendor model, SKU, or description (e.g. cuban chain)"
-                className="h-9 w-56 rounded-xl bg-white/5 pl-8 pr-3 text-sm text-ink ring-1 ring-white/10 placeholder:text-white/30 sm:w-72"
+                className="h-9 w-full min-w-0 rounded-xl bg-white/5 pl-8 pr-3 text-sm text-ink ring-1 ring-white/10 placeholder:text-white/30 xl:w-72"
               />
             </div>
           </form>
-          <select
-            value={sort}
-            onChange={(e) => {
-              const id = e.target.value;
-              setSort(id);
-              setDir(id === "priorityRank" || id === "vendorModel" || id === "fromStore" || id === "toStore" ? "asc" : "desc");
-              setOffset(0);
-            }}
-            className="h-9 rounded-xl bg-white/5 px-2 text-sm text-ink ring-1 ring-white/10"
-          >
-            {(view === "transfers" ? TRANSFER_SORTS : STOCK_SORTS).map((s) => (
-              <option key={s.id} value={s.id}>{s.label}</option>
-            ))}
-          </select>
-          <Button size="sm" variant="ghost" onClick={() => setDir((d) => (d === "asc" ? "desc" : "asc"))}>
-            {dir === "asc" ? "Asc" : "Desc"}
-          </Button>
+          <div className="flex min-w-0 items-center gap-2">
+            <select
+              value={sort}
+              onChange={(e) => {
+                const id = e.target.value;
+                setSort(id);
+                setDir(id === "priorityRank" || id === "vendorModel" || id === "fromStore" || id === "toStore" ? "asc" : "desc");
+                setOffset(0);
+              }}
+              className="h-9 min-w-0 flex-1 rounded-xl bg-white/5 px-2 text-sm text-ink ring-1 ring-white/10 xl:flex-none"
+            >
+              {(view === "transfers" ? TRANSFER_SORTS : STOCK_SORTS).map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+            <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setDir((d) => (d === "asc" ? "desc" : "asc"))}>
+              {dir === "asc" ? "Asc" : "Desc"}
+            </Button>
+          </div>
         </div>
 
-        <Card className="overflow-x-auto p-0">
+        <Card className="min-w-0 overflow-hidden p-0">
           {loading && !ready ? (
             <div className="p-8 text-center text-ink-muted">Loading inventory…</div>
           ) : error ? (
             <div className="p-8 text-center text-rose-300">{error}</div>
           ) : view === "transfers" ? (
+            <>
+              <ul className="lg:hidden">
+                {(data?.rows as TransferRow[]).map((r, i) => {
+                  const rowKey = `${r.vendorModel}-${r.toStore}-${r.fromStore}-${i}`;
+                  return (
+                    <TransferMobileCard
+                      key={rowKey}
+                      row={r}
+                      open={expandedKey === rowKey}
+                      costLabel={data?.costLabel ?? "Cost"}
+                      breakdown={breakdowns[r.vendorModel]}
+                      onToggle={() => toggleRow(rowKey, r.vendorModel)}
+                    />
+                  );
+                })}
+              </ul>
+              <div className="hidden overflow-x-auto lg:block">
             <table className="w-full text-left text-[13px]">
               <thead className="bg-white/[0.03] text-[11px] uppercase tracking-wide text-white/45">
                 <tr>
@@ -555,7 +740,26 @@ export default function InventoryPage() {
                 })}
               </tbody>
             </table>
+              </div>
+            </>
           ) : (
+            <>
+              <ul className="lg:hidden">
+                {(data?.rows as StockRow[]).map((r, i) => {
+                  const rowKey = `${r.store}-${r.sku}-${i}`;
+                  return (
+                    <StockMobileCard
+                      key={rowKey}
+                      row={r}
+                      open={expandedKey === rowKey}
+                      costLabel={data?.costLabel ?? "Cost"}
+                      breakdown={breakdowns[r.vendorModel]}
+                      onToggle={() => toggleRow(rowKey, r.vendorModel)}
+                    />
+                  );
+                })}
+              </ul>
+              <div className="hidden overflow-x-auto lg:block">
             <table className="w-full text-left text-[13px]">
               <thead className="bg-white/[0.03] text-[11px] uppercase tracking-wide text-white/45">
                 <tr>
@@ -609,13 +813,15 @@ export default function InventoryPage() {
                 })}
               </tbody>
             </table>
+              </div>
+            </>
           )}
           {ready && data && data.rows.length === 0 && !loading ? (
             <div className="p-8 text-center text-ink-muted">No rows for this filter.</div>
           ) : null}
         </Card>
 
-        <div className="flex items-center justify-between text-sm text-white/60">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-white/60">
           <div className="flex items-center gap-2">
             <Package size={14} />
             {data ? `${data.total.toLocaleString()} rows` : "—"}
