@@ -2,6 +2,7 @@ import { applyHrSalesDesigns } from "@/lib/hr/hr-sales-design";
 import { assembleEmployeeCommission, type EmployeeCommission } from "@/lib/hr/commission";
 import {
   buildHrAttendanceIndex,
+  absenceWriteUpCount,
   commissionAttendanceForAssociate,
   countedCommissionViolations,
   directoryNamesForCode,
@@ -15,7 +16,7 @@ import {
 } from "@/lib/hr/august-2026-commission-data";
 import { loadActiveScheduleEntries, loadActiveTimecardRows } from "@/lib/hr/store";
 import {
-  countedScheduleWarnings,
+  countedWriteUps,
   listAbsenceWaivers,
   unwaivedAbsentDates,
 } from "@/lib/hr/warning-store";
@@ -92,7 +93,7 @@ export type EmployeeCommissionBuildCache = {
   punches: HrTimecardRow[];
   schedule: HrScheduleEntry[];
   waivers: HrAbsenceWaiver[];
-  windowWarnings: HrWarningNotice[];
+  windowWriteUps: HrWarningNotice[];
   hrIndex?: HrAttendanceIndex;
 };
 
@@ -103,7 +104,7 @@ export function loadEmployeeCommissionBuildCache(from: string, to: string): Empl
     punches,
     schedule,
     waivers: listAbsenceWaivers(),
-    windowWarnings: countedScheduleWarnings({ from, to }),
+    windowWriteUps: countedWriteUps({ from, to }),
     hrIndex: buildHrAttendanceIndex(from, to, punches, schedule),
   };
 }
@@ -112,6 +113,8 @@ type AttendanceParts = {
   attendance: ReturnType<typeof commissionAttendanceForAssociate>;
   unwaivedAbsent: string[];
   attendanceIssues: ReturnType<typeof countedCommissionViolations>;
+  writeUpCount: number;
+  absenceWriteUpCount: number;
   presentDays: number;
 };
 
@@ -141,7 +144,7 @@ function attendancePartsFor(
   const nameHints = [attendance.payrollName, ...directoryNamesForCode(code)].filter(
     (n): n is string => Boolean(n)
   );
-  const warningNotices = cache.windowWarnings.filter((n) => {
+  const writeUps = cache.windowWriteUps.filter((n) => {
     if ((n.employeeCode ?? "").trim().toUpperCase() === code) return true;
     return nameHints.some((nm) => namesMatch(n.employeeName, nm));
   });
@@ -150,8 +153,10 @@ function attendancePartsFor(
     unwaivedAbsent,
     attendanceIssues: countedCommissionViolations({
       unwaivedAbsentDates: unwaivedAbsent,
-      warnings: warningNotices,
+      writeUps,
     }),
+    writeUpCount: writeUps.length,
+    absenceWriteUpCount: absenceWriteUpCount(writeUps, attendance.absentDates),
     presentDays: presentDaysWithWaivedAbsences(
       attendance.presentDays,
       attendance.absentDates,
@@ -244,7 +249,8 @@ export function buildEmployeeCommissionFromSales(opts: {
     scheduledDays: parts.attendance.scheduledDays,
     presentDays: parts.presentDays,
     absences: parts.unwaivedAbsent.length,
-    scheduleViolations: parts.attendanceIssues.filter((i) => i.kind !== "absent").length,
+    writeUps: parts.writeUpCount,
+    absenceWriteUps: parts.absenceWriteUpCount,
     attendanceIssues: parts.attendanceIssues,
   });
 }
@@ -308,7 +314,8 @@ export function buildEmployeeSalesRoster(opts: {
       scheduledDays: parts.attendance.scheduledDays,
       presentDays: parts.presentDays,
       absences: parts.unwaivedAbsent.length,
-      scheduleViolations: parts.attendanceIssues.filter((i) => i.kind !== "absent").length,
+      writeUps: parts.writeUpCount,
+      absenceWriteUps: parts.absenceWriteUpCount,
       attendanceIssues: parts.attendanceIssues,
     });
     out.push({

@@ -252,6 +252,20 @@ export function countedScheduleWarnings(opts: {
   );
 }
 
+export function countedWriteUps(opts: {
+  from: string;
+  to: string;
+  notices?: HrWarningNotice[];
+}): HrWarningNotice[] {
+  const notices = opts.notices ?? listWarningNotices();
+  return notices.filter(
+    (n) =>
+      noticeKind(n) === "writeup" &&
+      n.date >= opts.from &&
+      n.date <= opts.to
+  );
+}
+
 export function listAbsenceWaivers(): HrAbsenceWaiver[] {
   return readStore().absenceWaivers ?? [];
 }

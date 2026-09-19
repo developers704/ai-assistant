@@ -202,6 +202,13 @@ export function presentDaysWithWaivedAbsences(
   return presentDays + Math.max(0, waived);
 }
 
+export function absenceWriteUpCount(
+  writeUps: Pick<HrWarningNotice, "date">[],
+  absentDates: string[]
+): number {
+  return writeUps.filter((notice) => absentDates.includes(notice.date)).length;
+}
+
 export function scheduleWarningIssueKind(
   notice: Pick<HrWarningNotice, "caseId">
 ): "late" | "early" | "early_out" {
@@ -225,24 +232,24 @@ export function scheduleWarningIssueLabel(
 
 /**
  * Commission Violations list = header counts only:
- * unwaived absences + unwaived sent schedule warnings.
- * Punch-level early/late days are not listed unless a warning was sent.
+ * unwaived absences + sent write-ups.
+ * Punch-level early/late days are not listed unless a write-up was sent.
  */
 export function countedCommissionViolations(opts: {
   unwaivedAbsentDates: string[];
-  warnings: HrWarningNotice[];
+  writeUps: HrWarningNotice[];
 }): CommissionAttendanceIssue[] {
   const absents: CommissionAttendanceIssue[] = opts.unwaivedAbsentDates.map((date) => ({
     date,
     kind: "absent",
     label: "Absent",
   }));
-  const warns: CommissionAttendanceIssue[] = opts.warnings.map((n) => ({
+  const writeUps: CommissionAttendanceIssue[] = opts.writeUps.map((n) => ({
     date: n.date,
     kind: scheduleWarningIssueKind(n),
     label: scheduleWarningIssueLabel(n),
   }));
-  return [...absents, ...warns].sort(
+  return [...absents, ...writeUps].sort(
     (a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind)
   );
 }

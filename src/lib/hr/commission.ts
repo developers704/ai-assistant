@@ -1,6 +1,5 @@
 import {
-  ATTENDANCE_PASS_MAX_ABSENCES,
-  ATTENDANCE_PASS_MAX_SCHEDULE_VIOLATIONS,
+  ATTENDANCE_PASS_MAX_WRITE_UPS,
   designCommissionDollars,
   employeeCommissionRateForDesign,
   fullCommissionRateForDesign,
@@ -35,7 +34,8 @@ export type CommissionSummary = {
   /** Punched scheduled days plus waived scheduled no-punch days. */
   presentDays: number;
   absences: number;
-  scheduleViolations: number;
+  writeUps: number;
+  absenceWriteUps: number;
   attendanceIssues: CommissionAttendanceIssue[];
   attendancePassed: boolean;
   baseCommission: number;
@@ -51,12 +51,8 @@ export type EmployeeCommission = {
   summary: CommissionSummary;
 };
 
-export function attendancePasses(absences: number, scheduleViolations = 0): boolean {
-  // Unwaived absences must be 0. Unwaived schedule warnings ≤ 3 is the same as < 4.
-  return (
-    absences <= ATTENDANCE_PASS_MAX_ABSENCES &&
-    scheduleViolations <= ATTENDANCE_PASS_MAX_SCHEDULE_VIOLATIONS
-  );
+export function attendancePasses(writeUps: number, absenceWriteUps = 0): boolean {
+  return absenceWriteUps === 0 && writeUps <= ATTENDANCE_PASS_MAX_WRITE_UPS;
 }
 
 export function buildDesignCommissionLines(
@@ -80,8 +76,8 @@ export function buildDesignCommissionLines(
 }
 
 /**
- * Attendance extras apply only when unwaived absences are 0 and unwaived
- * schedule warnings are ≤ 3 (< 4). Base commission is always paid.
+ * Attendance extras are dissolved by four write-ups of any kind or one
+ * write-up for an unwaived absence. Base commission is always paid.
  */
 export function summarizeCommission(input: {
   lines: CommissionDesignLine[];
@@ -93,13 +89,15 @@ export function summarizeCommission(input: {
   scheduledDays: number;
   presentDays: number;
   absences: number;
-  scheduleViolations?: number;
+  writeUps?: number;
+  absenceWriteUps?: number;
   attendanceIssues?: CommissionAttendanceIssue[];
 }): CommissionSummary {
   const exactBase = input.lines.reduce((s, l) => s + l.baseCommission, 0);
   const baseCommission = roundCommissionDollars(exactBase);
-  const scheduleViolations = input.scheduleViolations ?? 0;
-  const passed = attendancePasses(input.absences, scheduleViolations);
+  const writeUps = input.writeUps ?? 0;
+  const absenceWriteUps = input.absenceWriteUps ?? 0;
+  const passed = attendancePasses(writeUps, absenceWriteUps);
   const personalGoalAchieved = input.netSales >= input.personalGoal && input.personalGoal > 0;
   const storeGoalAchieved = input.storeTotalSales >= input.storeGoal && input.storeGoal > 0;
   const attendanceBonus = passed ? baseCommission : 0;
@@ -116,7 +114,8 @@ export function summarizeCommission(input: {
     scheduledDays: input.scheduledDays,
     presentDays: input.presentDays,
     absences: input.absences,
-    scheduleViolations,
+    writeUps,
+    absenceWriteUps,
     attendanceIssues: input.attendanceIssues ?? [],
     attendancePassed: passed,
     baseCommission,
@@ -138,7 +137,8 @@ export function assembleEmployeeCommission(input: {
   scheduledDays: number;
   presentDays: number;
   absences: number;
-  scheduleViolations?: number;
+  writeUps?: number;
+  absenceWriteUps?: number;
   attendanceIssues?: CommissionAttendanceIssue[];
 }): EmployeeCommission {
   const netHint = Number.isFinite(input.netSales) ? input.netSales : 0;
@@ -164,7 +164,8 @@ export function assembleEmployeeCommission(input: {
       scheduledDays: input.scheduledDays,
       presentDays: input.presentDays,
       absences: input.absences,
-      scheduleViolations: input.scheduleViolations,
+      writeUps: input.writeUps,
+      absenceWriteUps: input.absenceWriteUps,
       attendanceIssues: input.attendanceIssues,
     }),
   };

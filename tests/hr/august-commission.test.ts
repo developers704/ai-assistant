@@ -99,7 +99,7 @@ describe("Zoya August commission test case", () => {
     expect(zoya.summary.totalCommission).toBe(4_080);
   });
 
-  it("pays extras when absences are 0 and schedule warnings are under 4", () => {
+  it("pays extras with fewer than four write-ups and no absence write-up", () => {
     const three = assembleEmployeeCommission({
       code: "ZA2",
       designs: ZOYA_AUGUST_DESIGN_SALES,
@@ -111,9 +111,9 @@ describe("Zoya August commission test case", () => {
       scheduledDays: 26,
       presentDays: 26,
       absences: 0,
-      scheduleViolations: 3,
+      writeUps: 3,
     });
-    expect(attendancePasses(0, 3)).toBe(true);
+    expect(attendancePasses(3, 0)).toBe(true);
     expect(three.summary.attendancePassed).toBe(true);
     expect(three.summary.attendanceBonus).toBe(1_360);
     expect(three.summary.personalGoalBonus).toBe(680);
@@ -133,7 +133,7 @@ describe("Zoya August commission test case", () => {
         presentDays: 26,
         absences: 0,
       },
-      scheduleViolations: 1,
+      writeUps: 1,
     });
     expect(one.summary.attendancePassed).toBe(true);
     expect(one.summary.attendanceBonus).toBe(1_360);
@@ -149,9 +149,9 @@ describe("Zoya August commission test case", () => {
       scheduledDays: 26,
       presentDays: 26,
       absences: 0,
-      scheduleViolations: 4,
+      writeUps: 4,
     });
-    expect(attendancePasses(0, 4)).toBe(false);
+    expect(attendancePasses(4, 0)).toBe(false);
     expect(four.summary.attendancePassed).toBe(false);
     expect(four.summary.baseCommission).toBe(1_360);
     expect(four.summary.attendanceBonus).toBe(0);
@@ -170,10 +170,12 @@ describe("Zoya August commission test case", () => {
       scheduledDays: 26,
       presentDays: 22,
       absences: 1,
+      writeUps: 1,
+      absenceWriteUps: 1,
     });
-    expect(attendancePasses(1)).toBe(false);
-    expect(attendancePasses(0, 4)).toBe(false);
-    expect(attendancePasses(0, 3)).toBe(true);
+    expect(attendancePasses(1, 1)).toBe(false);
+    expect(attendancePasses(4, 0)).toBe(false);
+    expect(attendancePasses(3, 0)).toBe(true);
     expect(failed.summary.baseCommission).toBe(1_360);
     expect(failed.summary.attendanceBonus).toBe(0);
     expect(failed.summary.personalGoalBonus).toBe(0);
@@ -229,7 +231,7 @@ describe("August dummy attendance absences", () => {
     expect(lynette.absences).toBe(0);
     expect(lynette.scheduledDays).toBe(27);
     expect(lynette.presentDays).toBe(27);
-    expect(attendancePasses(lynette.absences)).toBe(true);
+    expect(attendancePasses(0, 0)).toBe(true);
   });
 
   it("still counts scheduled days with no punch as absences", () => {
@@ -244,7 +246,7 @@ describe("August dummy attendance absences", () => {
     expect(lynette.absences).toBe(27);
     expect(lynette.scheduledDays).toBe(27);
     expect(lynette.presentDays).toBe(0);
-    expect(attendancePasses(lynette.absences)).toBe(false);
+    expect(attendancePasses(0, 0)).toBe(true);
   });
 
   it("does not count unscheduled days as absences", () => {
@@ -257,7 +259,7 @@ describe("August dummy attendance absences", () => {
     );
     expect(none.scheduledDays).toBe(0);
     expect(none.absences).toBe(0);
-    expect(attendancePasses(none.absences)).toBe(true);
+    expect(attendancePasses(0, 0)).toBe(true);
   });
 });
 

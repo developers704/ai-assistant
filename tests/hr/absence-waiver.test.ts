@@ -1,20 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { attendancePasses } from "@/lib/hr/commission";
 import { absenceWaiverAppliesTo, normalizeWaiverComment, unwaivedAbsentDates } from "@/lib/hr/warning-store";
-import { countedCommissionViolations, presentDaysWithWaivedAbsences } from "@/lib/hr/commission-attendance";
+import { absenceWriteUpCount, countedCommissionViolations, presentDaysWithWaivedAbsences } from "@/lib/hr/commission-attendance";
 import type { HrWarningNotice } from "@/lib/hr/types";
 
 describe("commission extra gates", () => {
-  it("treats schedule warnings ≤ 3 the same as < 4", () => {
+  it("dissolves bonuses on four write-ups", () => {
     expect(attendancePasses(0, 0)).toBe(true);
-    expect(attendancePasses(0, 3)).toBe(true);
-    expect(attendancePasses(0, 4)).toBe(false);
+    expect(attendancePasses(3, 0)).toBe(true);
+    expect(attendancePasses(4, 0)).toBe(false);
     expect(3 <= 3).toBe(3 < 4);
   });
 
-  it("blocks extras on one unwaived absence even with zero warnings", () => {
-    expect(attendancePasses(1, 0)).toBe(false);
+  it("dissolves bonuses on one absence write-up", () => {
+    expect(attendancePasses(1, 1)).toBe(false);
     expect(attendancePasses(0, 0)).toBe(true);
+  });
+
+  it("recognizes an absence write-up by its attendance date", () => {
+    expect(
+      absenceWriteUpCount(
+        [{ date: "2026-08-04" }, { date: "2026-08-05" }],
+        ["2026-08-04"]
+      )
+    ).toBe(1);
   });
 });
 
@@ -80,7 +89,7 @@ describe("absence waivers", () => {
       { employeeName: "Alvarez, Lynette L", employeeCode: "LY" }
     );
     expect(remaining).toEqual([]);
-    expect(attendancePasses(remaining.length, 0)).toBe(true);
+    expect(attendancePasses(0, 0)).toBe(true);
   });
 
   it("counts waived scheduled days as present so 0 absent reads as 21/21", () => {
@@ -115,12 +124,12 @@ describe("absence waivers", () => {
       { employeeName: "Evangelista, Karla M", employeeCode: "KB" }
     );
     expect(remaining).toEqual(["2026-08-06"]);
-    expect(attendancePasses(remaining.length, 0)).toBe(false);
+    expect(attendancePasses(0, 0)).toBe(true);
   });
 });
 
 describe("commission Violations list", () => {
-  it("lists only the counted absent and sent schedule warning", () => {
+  it("lists only the counted absent and sent write-up", () => {
     const warning: HrWarningNotice = {
       caseId: "HR-LEAVE-SA4-2026-08-13",
       employeeName: "Sultan Ansari",
@@ -139,12 +148,12 @@ describe("commission Violations list", () => {
     };
     const issues = countedCommissionViolations({
       unwaivedAbsentDates: ["2026-08-02"],
-      warnings: [warning],
+      writeUps: [warning],
     });
     expect(issues).toHaveLength(2);
     expect(issues.map((i) => i.label).sort()).toEqual(["Absent", "Left Early by 399 minutes"]);
     expect(issues.some((i) => /arrived early|left early 27/i.test(i.label))).toBe(false);
     expect(attendancePasses(1, 1)).toBe(false);
-    expect(attendancePasses(0, 1)).toBe(true);
+    expect(attendancePasses(1, 0)).toBe(true);
   });
 });
