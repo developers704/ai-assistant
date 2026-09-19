@@ -76,8 +76,10 @@ export function buildDesignCommissionLines(
 }
 
 /**
- * Attendance extras are dissolved by four write-ups of any kind or one
- * write-up for an unwaived absence. Base commission is always paid.
+ * Attendance extras dissolve only when write-ups are sent:
+ * — 1+ absence write-up, or
+ * — 4+ write-ups on other violations (late in/out, early in/out, leave).
+ * Raw absences and warnings alone never dissolve bonuses. Base always pays.
  */
 export function summarizeCommission(input: {
   lines: CommissionDesignLine[];

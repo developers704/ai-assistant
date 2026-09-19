@@ -202,43 +202,80 @@ export function presentDaysWithWaivedAbsences(
   return presentDays + Math.max(0, waived);
 }
 
+export function isAbsenceWriteUp(
+  notice: Pick<HrWarningNotice, "date"> &
+    Partial<Pick<HrWarningNotice, "description" | "caseId">>,
+  absentDates: string[]
+): boolean {
+  if (absentDates.includes(notice.date)) return true;
+  const desc = (notice.description ?? "").toLowerCase();
+  if (/\babsent\b/.test(desc)) return true;
+  return /HR-(?:WRITEUP-)?ABSENT-/i.test(notice.caseId ?? "");
+}
+
 export function absenceWriteUpCount(
-  writeUps: Pick<HrWarningNotice, "date">[],
+  writeUps: Array<
+    Pick<HrWarningNotice, "date"> &
+      Partial<Pick<HrWarningNotice, "description" | "caseId">>
+  >,
   absentDates: string[]
 ): number {
-  return writeUps.filter((notice) => absentDates.includes(notice.date)).length;
+  return writeUps.filter((notice) => isAbsenceWriteUp(notice, absentDates)).length;
+}
+
+/** Write-ups for late / early / leave — not absence. Four of these dissolve bonuses. */
+export function otherWriteUpCount(
+  writeUps: Array<
+    Pick<HrWarningNotice, "date"> &
+      Partial<Pick<HrWarningNotice, "description" | "caseId">>
+  >,
+  absentDates: string[]
+): number {
+  return writeUps.filter((notice) => !isAbsenceWriteUp(notice, absentDates)).length;
 }
 
 export function scheduleWarningIssueKind(
-  notice: Pick<HrWarningNotice, "caseId">
-): "late" | "early" | "early_out" {
+  notice: Pick<HrWarningNotice, "caseId" | "date"> &
+    Partial<Pick<HrWarningNotice, "description">>,
+  absentDates: string[] = []
+): "late" | "early" | "early_out" | "absent" {
+  if (isAbsenceWriteUp(notice, absentDates)) return "absent";
   const id = notice.caseId.toUpperCase();
   if (id.includes("-EARLY-")) return "early";
   if (id.includes("-LEAVE-")) return "early_out";
+  const desc = (notice.description ?? "").toLowerCase();
+  if (/\bleft early\b|\bearly out\b/.test(desc)) return "early_out";
+  if (/\barrived early\b|\bearly in\b/.test(desc)) return "early";
   return "late";
 }
 
 export function scheduleWarningIssueLabel(
-  notice: Pick<HrWarningNotice, "caseId" | "description" | "lateMinutes">
+  notice: Pick<HrWarningNotice, "caseId" | "description" | "lateMinutes" | "date">,
+  absentDates: string[] = []
 ): string {
   const desc = (notice.description ?? "").trim().replace(/\.$/, "");
   if (desc) return desc;
-  const kind = scheduleWarningIssueKind(notice);
+  const kind = scheduleWarningIssueKind(notice, absentDates);
   const mins = notice.lateMinutes;
-  if (kind === "early") return mins ? `Arrived early ${mins} min` : "Schedule warning";
-  if (kind === "early_out") return mins ? `Left early ${mins} min` : "Schedule warning";
-  return mins ? `Late arrival ${mins} min` : "Schedule warning";
+  if (kind === "absent") return "Absent write-up";
+  if (kind === "early") return mins ? `Arrived early ${mins} min` : "Schedule write-up";
+  if (kind === "early_out") return mins ? `Left early ${mins} min` : "Schedule write-up";
+  return mins ? `Late arrival ${mins} min` : "Schedule write-up";
 }
 
 /**
  * Commission Violations list = header counts only:
  * unwaived absences + sent write-ups.
  * Punch-level early/late days are not listed unless a write-up was sent.
+ * Absences alone do not dissolve bonuses — only sent write-ups do.
  */
 export function countedCommissionViolations(opts: {
   unwaivedAbsentDates: string[];
   writeUps: HrWarningNotice[];
+  /** All scheduled no-punch dates (incl. waived) — used to tag absence write-ups. */
+  absentDates?: string[];
 }): CommissionAttendanceIssue[] {
+  const absentDates = opts.absentDates ?? opts.unwaivedAbsentDates;
   const absents: CommissionAttendanceIssue[] = opts.unwaivedAbsentDates.map((date) => ({
     date,
     kind: "absent",
@@ -246,8 +283,8 @@ export function countedCommissionViolations(opts: {
   }));
   const writeUps: CommissionAttendanceIssue[] = opts.writeUps.map((n) => ({
     date: n.date,
-    kind: scheduleWarningIssueKind(n),
-    label: scheduleWarningIssueLabel(n),
+    kind: scheduleWarningIssueKind(n, absentDates),
+    label: scheduleWarningIssueLabel(n, absentDates),
   }));
   return [...absents, ...writeUps].sort(
     (a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind)

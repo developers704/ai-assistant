@@ -261,6 +261,7 @@ export function countedWriteUps(opts: {
   return notices.filter(
     (n) =>
       noticeKind(n) === "writeup" &&
+      !isWarningWaived(n) &&
       n.date >= opts.from &&
       n.date <= opts.to
   );

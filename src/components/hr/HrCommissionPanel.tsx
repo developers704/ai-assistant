@@ -164,7 +164,7 @@ export function HrCommissionPanel({
             <span>{s.absences}</span>
           </div>
           <div className="hr-comm-row hr-comm-row-quiet">
-            <span>Write-ups</span>
+            <span>Other write-ups</span>
             <span>{s.writeUps}</span>
           </div>
           <div className="hr-comm-row hr-comm-row-quiet">

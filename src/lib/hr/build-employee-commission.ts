@@ -6,6 +6,7 @@ import {
   commissionAttendanceForAssociate,
   countedCommissionViolations,
   directoryNamesForCode,
+  otherWriteUpCount,
   presentDaysWithWaivedAbsences,
   type HrAttendanceIndex,
 } from "@/lib/hr/commission-attendance";
@@ -148,15 +149,21 @@ function attendancePartsFor(
     if ((n.employeeCode ?? "").trim().toUpperCase() === code) return true;
     return nameHints.some((nm) => namesMatch(n.employeeName, nm));
   });
+  // Bonuses dissolve only when write-ups are sent:
+  // 1 absence write-up, or 4 write-ups on other violations (late/early/leave).
+  // Raw absences / warnings alone never dissolve bonuses.
+  const absenceWriteUps = absenceWriteUpCount(writeUps, attendance.absentDates);
+  const otherWriteUps = otherWriteUpCount(writeUps, attendance.absentDates);
   const parts: AttendanceParts = {
     attendance,
     unwaivedAbsent,
     attendanceIssues: countedCommissionViolations({
       unwaivedAbsentDates: unwaivedAbsent,
       writeUps,
+      absentDates: attendance.absentDates,
     }),
-    writeUpCount: writeUps.length,
-    absenceWriteUpCount: absenceWriteUpCount(writeUps, attendance.absentDates),
+    writeUpCount: otherWriteUps,
+    absenceWriteUpCount: absenceWriteUps,
     presentDays: presentDaysWithWaivedAbsences(
       attendance.presentDays,
       attendance.absentDates,
