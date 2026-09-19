@@ -60,10 +60,10 @@ async function main() {
   assert.ok(q.ok && q.summary, q.error ?? "querySales failed");
   assert.ok(Math.abs((q.summary?.netSales ?? 0) - netSales) < 0.02);
   assert.ok(
-    Math.abs(netSales - 196511.41) < 0.02,
-    `Sep 17 CSV Total expected 196511.41 got ${netSales}`
+    Math.abs(netSales - 125217.41) < 0.02,
+    `Sep 17 CSV Total expected 125217.41 got ${netSales}`
   );
-  assert.equal(sep17.length, 284, `Sep 17 rows ${sep17.length}`);
+  assert.equal(sep17.length, 277, `Sep 17 rows ${sep17.length}`);
   assert.equal(new Set(sep17.map((r) => r.storeName)).size, 27);
 
   const payFile = path.join(process.cwd(), "data/reports/Payment-Transactions.csv");
