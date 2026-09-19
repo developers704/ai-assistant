@@ -9,36 +9,73 @@ import { clearHrRuntimeCache } from "./hr-runtime-cache";
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const STORE_PATH = path.join(DATA_DIR, "warnings.json");
 
-type WarningStoreFile = {
+/** Bump to wipe sent test warnings / write-ups / remarks / absence waivers on deploy. */
+export const HR_NOTICE_RESET_KEY = "clear-test-notices-2026-09-19";
+
+export type WarningStoreFile = {
   notices: HrWarningNotice[];
   absenceWaivers?: HrAbsenceWaiver[];
+  noticeResetKey?: string;
 };
 
 function ensureDir() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+function isTestEnv() {
+  return process.env.VITEST === "true" || process.env.NODE_ENV === "test";
+}
+
+/** Empty the notice store when the deploy reset key does not match. */
+export function applyPendingHrNoticeReset(store: WarningStoreFile): WarningStoreFile {
+  if (store.noticeResetKey === HR_NOTICE_RESET_KEY) return store;
+  return { notices: [], absenceWaivers: [], noticeResetKey: HR_NOTICE_RESET_KEY };
+}
+
 function readStore(): WarningStoreFile {
   ensureDir();
-  if (!fs.existsSync(STORE_PATH)) return { notices: [], absenceWaivers: [] };
-  try {
-    const parsed = JSON.parse(fs.readFileSync(STORE_PATH, "utf8")) as WarningStoreFile;
-    if (!parsed || !Array.isArray(parsed.notices)) return { notices: [], absenceWaivers: [] };
-    return {
-      notices: parsed.notices.map((n) => ({
-        ...n,
-        remarks: Array.isArray(n.remarks) ? n.remarks : [],
-      })),
-      absenceWaivers: Array.isArray(parsed.absenceWaivers) ? parsed.absenceWaivers : [],
-    };
-  } catch {
-    return { notices: [], absenceWaivers: [] };
+  let store: WarningStoreFile = { notices: [], absenceWaivers: [] };
+  if (fs.existsSync(STORE_PATH)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(STORE_PATH, "utf8")) as WarningStoreFile;
+      if (parsed && Array.isArray(parsed.notices)) {
+        store = {
+          notices: parsed.notices.map((n) => ({
+            ...n,
+            remarks: Array.isArray(n.remarks) ? n.remarks : [],
+          })),
+          absenceWaivers: Array.isArray(parsed.absenceWaivers) ? parsed.absenceWaivers : [],
+          noticeResetKey: typeof parsed.noticeResetKey === "string" ? parsed.noticeResetKey : undefined,
+        };
+      }
+    } catch {
+      store = { notices: [], absenceWaivers: [] };
+    }
   }
+  if (isTestEnv()) return store;
+  const next = applyPendingHrNoticeReset(store);
+  if (next.noticeResetKey !== store.noticeResetKey) {
+    writeStore(next);
+    hrLog.info("db.write", {
+      file: STORE_PATH,
+      table: "hr_warning_notices",
+      action: "reset-test-notices",
+      previousKey: store.noticeResetKey ?? null,
+      noticeResetKey: next.noticeResetKey,
+    });
+    return next;
+  }
+  return store;
 }
 
 function writeStore(store: WarningStoreFile) {
   ensureDir();
-  fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
+  const payload: WarningStoreFile = {
+    notices: store.notices,
+    absenceWaivers: store.absenceWaivers ?? [],
+    noticeResetKey: store.noticeResetKey ?? HR_NOTICE_RESET_KEY,
+  };
+  fs.writeFileSync(STORE_PATH, JSON.stringify(payload, null, 2), "utf8");
   clearHrRuntimeCache();
 }
 
@@ -49,11 +86,12 @@ export function noticeKind(notice: Pick<HrWarningNotice, "kind" | "caseId">): Hr
 
 /** Wipe test/sent notices and absence waivers. Commission then has no warning side effects. */
 export function resetHrNoticeStore(): void {
-  writeStore({ notices: [], absenceWaivers: [] });
+  writeStore({ notices: [], absenceWaivers: [], noticeResetKey: HR_NOTICE_RESET_KEY });
   hrLog.info("db.write", {
     file: STORE_PATH,
     table: "hr_warning_notices",
     action: "reset-empty",
+    noticeResetKey: HR_NOTICE_RESET_KEY,
   });
 }
 

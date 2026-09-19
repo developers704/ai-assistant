@@ -7,7 +7,14 @@ import { parseScheduleCsv } from "@/lib/hr/parse-schedule";
 import { analyzeDay, analyzeDays } from "@/lib/hr/analyze";
 import { namesMatch } from "@/lib/hr/name-match";
 import { keepHrAttendanceEmployee } from "@/lib/hr/attendance-roster";
-import { listAbsenceWaivers, listWarningNotices, resetHrNoticeStore } from "@/lib/hr/warning-store";
+import type { HrAbsenceWaiver, HrWarningNotice } from "@/lib/hr/types";
+import {
+  applyPendingHrNoticeReset,
+  HR_NOTICE_RESET_KEY,
+  listAbsenceWaivers,
+  listWarningNotices,
+  resetHrNoticeStore,
+} from "@/lib/hr/warning-store";
 
 const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const TIME_DIR = path.join(DATA_DIR, "timecards");
@@ -61,6 +68,30 @@ describe("HR upload replace", () => {
 });
 
 describe("HR notice reset", () => {
+  it("drops stale warnings, write-ups, remarks, and waivers when the reset key changes", () => {
+    const staleNotice = { caseId: "HR-LATE-ZZ-2026-08-01", kind: "warning" } as HrWarningNotice;
+    const staleWriteUp = { caseId: "HR-WRITEUP-ZZ-2026-08-01", kind: "writeup" } as HrWarningNotice;
+    const staleWaiver = { employeeName: "Test, Reset", employeeCode: "ZZ", date: "2026-08-01" } as HrAbsenceWaiver;
+    const stale = applyPendingHrNoticeReset({
+      notices: [staleNotice, staleWriteUp],
+      absenceWaivers: [staleWaiver],
+      noticeResetKey: "old-test-notices",
+    });
+    expect(stale).toEqual({
+      notices: [],
+      absenceWaivers: [],
+      noticeResetKey: HR_NOTICE_RESET_KEY,
+    });
+
+    const keepNotice = { caseId: "HR-LATE-KEEP-2026-08-02", kind: "warning" } as HrWarningNotice;
+    const keep = applyPendingHrNoticeReset({
+      notices: [keepNotice],
+      absenceWaivers: [],
+      noticeResetKey: HR_NOTICE_RESET_KEY,
+    });
+    expect(keep.notices).toEqual([keepNotice]);
+  });
+
   it("clears warnings, write-ups, and absence waivers", () => {
     const prev = fs.existsSync(path.join(DATA_DIR, "warnings.json"))
       ? fs.readFileSync(path.join(DATA_DIR, "warnings.json"), "utf8")
