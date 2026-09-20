@@ -40,6 +40,8 @@ const EXACT: Record<string, PayChannel> = {
   AFFIR: "affirm",
   AFFIRM: "affirm",
   AFFR: "affirm",
+  AFRIM: "affirm",
+  AFRM: "affirm",
   AFIRM: "affirm",
   // Financing / bank / private label
   WELL: "financing",

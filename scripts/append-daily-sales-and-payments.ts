@@ -7,7 +7,7 @@
  *
  * Sales: same Transaction Date replaces that day (no double-count).
  * Payments: stay raw POS Pay Codes in Payment-Transactions.csv; overlay parse
- * folds ACIM→ACIMA, AFFR/AFRIM→AFFIRM, WELL/WELS/WELLS FARGO→WELLS, etc.
+ * folds ACIM→ACIMA, AFFR/AFRIM/AFRM→AFFIRM, WELL/WELS/WELLS FARGO→WELLS, etc.
  */
 import fs from "fs";
 import path from "path";

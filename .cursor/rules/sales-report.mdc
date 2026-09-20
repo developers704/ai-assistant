@@ -61,7 +61,7 @@ When changing Top Models soft-hide rules, update `src/lib/utils.ts` and this fil
 
 - File: `data/reports/Sales-Report.csv`
 - Seeded via `src/lib/reports/store.ts`; app refreshes `.data/reports/` when the file changes
-- Current seed window: **2025-01-01 → 2026-09-18**
+- Current seed window: **2025-01-01 → 2026-09-19**
 - Companion paycode overlay: `data/reports/Payment-Transactions.csv` (Applied Amt by Transaction # / Pay Code; daily files append / replace same day)
 
 ## Paycode overlay (Sales Dashboard only)
@@ -73,7 +73,7 @@ Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CAS
 | Canonical | Aliases (POS truncations) |
 |---|---|
 | **ACIMA** | ACIMA, ACIM |
-| **AFFIRM** | AFFIRM, AFFR, AFRIM |
+| **AFFIRM** | AFFIRM, AFFR, AFRIM, AFRM |
 | **IDDEAL** | IDDEAL, IDEA, IDEAL |
 | **PROG** | PROG, PROGR, PROGRE, PROGRESSIVE |
 | **SYNC** | SYNC, SYCHY, SYNCH, SYNCHRONY, SYNCHRO, SYNCHY, SYNCY, SYNY, GE |
@@ -84,7 +84,7 @@ Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CAS
 |---|---|
 | `VJS-CASH`, `VJE-CASH`, bare `CASH` | **CASH** |
 | `DBCST-ACIM`, `VJSO-ACIMA` | **ACIMA** |
-| `DES-AFFIRM`, `DBCST-AFFR`, `VJST-AFRIM` | **AFFIRM** |
+| `DES-AFFIRM`, `DBCST-AFFR`, `VJST-AFRIM`, `VJVIC-AFRM` | **AFFIRM** |
 | `VJE-IDDEAL`, `DBCST-IDEA`, `VJSL-IDEAL` | **IDDEAL** |
 | `BB-SYNC`, `VJRE-SYNY`, Synchrony truncations | **SYNC** |
 | `VJB-PROG`, `VJF-PROGRE`, `HD-PROGR`, `VJLV-PROGRESSIVE` | **PROG** |
@@ -113,7 +113,7 @@ npx tsx scripts/append-daily-sales-and-payments.ts <sales.csv> <payments.csv>
 | Daily sales CSV | `data/reports/Sales-Report.csv` | `normalizeDailySalesCsv()`; same **Transaction Date** replaces that day; Net Sales = CSV **Total** |
 | Daily payment CSV | `data/reports/Payment-Transactions.csv` | Keep raw POS Pay Codes; same-day replace; leftover rows upsert by txn + **canonical** pay method + Applied Amt |
 
-After write, the script refreshes sales data, clears the overlay cache, and **fails** if ACIM / AFFR / AFRIM / WELL / WELS / WELLS FARGO / IDEA / … appear as separate overlay labels. Dashboard filter uses the alias groups above (ACIMA = ACIMA+ACIM Applied Amt, etc.).
+After write, the script refreshes sales data, clears the overlay cache, and **fails** if ACIM / AFFR / AFRIM / AFRM / WELL / WELS / WELLS FARGO / IDEA / … appear as separate overlay labels. Dashboard filter uses the alias groups above (ACIMA = ACIMA+ACIM Applied Amt, etc.).
 
 ## Daily append format (always)
 
