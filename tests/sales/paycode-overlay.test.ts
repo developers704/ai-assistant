@@ -444,6 +444,7 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(codes).not.toContain("ACIM");
     expect(codes).not.toContain("AFFR");
     expect(codes).not.toContain("AFRIM");
+    expect(codes).not.toContain("AFRM");
     expect(codes).not.toContain("WELL");
     expect(codes).not.toContain("WELS");
     expect(codes).not.toContain("WELLS FARGO");
@@ -890,5 +891,29 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(byName["GE"]).toBeUndefined();
     const sum = totals.reduce((s, t) => s + t.revenue, 0);
     expect(sum).toBeCloseTo(187848.87, 2);
+  });
+
+  it("Paycodes card Sep 19 2026 matches the appended daily payment CSV", () => {
+    const file = path.join(process.cwd(), "data/reports/Payment-Transactions.csv");
+    const totals = paycodeTotalsForPaymentWindow({
+      from: "2026-09-19",
+      to: "2026-09-19",
+      legs: parsePaycodeLegs(fs.readFileSync(file, "utf8")),
+    });
+    const byName = Object.fromEntries(totals.map((t) => [t.name, t.revenue]));
+    expect(byName["IDDEAL"]).toBeCloseTo(122537.98, 2);
+    expect(byName["CC"]).toBeCloseTo(105334.84, 2);
+    expect(byName["KAFE"]).toBeCloseTo(39665.56, 2);
+    expect(byName["WELLS"]).toBeCloseTo(26949.77, 2);
+    expect(byName["CASH"]).toBeCloseTo(19324.43, 2);
+    expect(byName["SYNC"]).toBeCloseTo(14065.27, 2);
+    expect(byName["PROG"]).toBeCloseTo(4100, 2);
+    expect(byName["ACIMA"]).toBeCloseTo(3677, 2);
+    expect(byName["AFFIRM"]).toBeCloseTo(2092.85, 2);
+    expect(byName["MULBRY"]).toBeCloseTo(12, 2);
+    expect(byName["GE"]).toBeUndefined();
+    expect(byName["AFRM"]).toBeUndefined();
+    const sum = totals.reduce((s, t) => s + t.revenue, 0);
+    expect(sum).toBeCloseTo(337759.7, 2);
   });
 });

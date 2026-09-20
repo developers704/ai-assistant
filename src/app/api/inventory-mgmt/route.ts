@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const meta = getLatestReportMeta();
   const defaultFrom = meta?.dateRange?.from ?? "2025-01-01";
-  const defaultTo = meta?.dateRange?.to ?? "2026-09-18";
+  const defaultTo = meta?.dateRange?.to ?? "2026-09-19";
   const from = sp.get("from")?.trim() || defaultFrom;
   const to = sp.get("to")?.trim() || defaultTo;
   if (!isValidIsoDate(from) || !isValidIsoDate(to)) {

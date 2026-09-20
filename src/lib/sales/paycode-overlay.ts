@@ -5,7 +5,7 @@
  * Paycode amounts use **Applied Amt** (not Payment Amt, not sales-line Total).
  *
  * Display / filter keys are the method after the store hyphen (`VJS-CASH` →
- * `CASH`) with ACIM→ACIMA, AFFR/AFRIM→AFFIRM, IDEA/IDEAL→IDDEAL,
+ * `CASH`) with ACIM→ACIMA, AFFR/AFRIM/AFRM→AFFIRM, IDEA/IDEAL→IDDEAL,
  * SYNY/Synchrony truncations→SYNC (incl. SYNCHRO), PROG*→PROG,
  * WELL/WELS/WELLS FARGO/WE→WELLS.
  * Store prefixes (VJF, VIS, VJPB, …) are never listed as paycodes.
@@ -36,7 +36,7 @@ import {
   sortPaycodeLabels,
 } from "@/lib/sales/paycode-normalize";
 
-export const PAYCODE_OVERLAY_VERSION = 6;
+export const PAYCODE_OVERLAY_VERSION = 7;
 export { canonicalPaycode, canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 
 export type PaycodeAmountMap = Map<string, number>;

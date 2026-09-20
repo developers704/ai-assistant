@@ -7,7 +7,7 @@
  *
  * Alias groups (same product, truncated POS names):
  *   ACIMA + ACIM → ACIMA
- *   AFFIRM + AFFR + AFRIM → AFFIRM
+ *   AFFIRM + AFFR + AFRIM + AFRM → AFFIRM
  *   IDEA + IDEAL + IDDEAL → IDDEAL
  *   PROG + PROGR + PROGRE + PROGRESSIVE → PROG
  *   SYNC + SYNY + Synchrony truncations (SYNCHRO, …) + GE → SYNC
@@ -44,6 +44,7 @@ const ALIAS_TO_CANONICAL: Record<string, string> = {
   ACIMA: "ACIMA",
   AFFR: "AFFIRM",
   AFRIM: "AFFIRM",
+  AFRM: "AFFIRM",
   AFFIRM: "AFFIRM",
   IDEA: "IDDEAL",
   IDEAL: "IDDEAL",
