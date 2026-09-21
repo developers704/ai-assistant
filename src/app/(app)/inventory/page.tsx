@@ -128,7 +128,7 @@ function datesBetween(from: string, to: string): string[] {
   return out;
 }
 
-const FALLBACK_RANGE = { from: "2025-01-01", to: "2026-09-19" };
+const FALLBACK_RANGE = { from: "2025-01-01", to: "2026-09-20" };
 const FALLBACK_DATES = datesBetween(FALLBACK_RANGE.from, FALLBACK_RANGE.to);
 
 function QtyBadge({ n }: { n: number }) {
