@@ -49,7 +49,7 @@ Never use sales CSV Profit or another sheet for this column.
 - Keep **at least 1** of each vendor model at every selling store.
 - Donor only if **onhand ≥ 2** and selling is **slow** (`sold * 2 < onhand`, e.g. 5/1–2 yes, 5/3 no). Never fall back to a healthy store. A stores never donate. MAIN never donates.
 - Click a line → all stores’ onhand/sold for that vendor model; MAIN first, onhand only (sold = —).
-- Columns: priority, vendor model (+ product photo), description/department, Need onhand/sold/store, From onhand/sold/store, tag, cost, sold revenue. No move-qty column.
+- Columns: priority, vendor model (+ product photo), description, onhand, sold, Need, From, onhand, sold, tag, cost, sold revenue. No move-qty column.
 - Product photo: same `ProductThumb` / lightbox as Top Vendor Models (`Image Dir.` → webp). Transfers + All on-hand (desktop + mobile). Empty Image Dir. shows the missing-image placeholder.
 - Transfer priority (sheet badge, default sort Rush first):
   - **Rush** — Need store onhand is 0 (empty case, already selling). Move today.
