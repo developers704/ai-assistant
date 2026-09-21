@@ -100,14 +100,14 @@ type Payload = {
 
 const TRANSFER_SORTS: { id: string; label: string }[] = [
   { id: "priorityRank", label: "Priority" },
-  { id: "fromSoldQty", label: "Sold qty" },
+  { id: "vendorModel", label: "Vendor model" },
+  { id: "toStore", label: "Need store" },
+  { id: "fromStore", label: "From store" },
   { id: "fromOnhand", label: "On hand" },
-  { id: "fromRevenue", label: "Sold revenue" },
+  { id: "fromSoldQty", label: "Sold qty" },
   { id: "tagPrice", label: "Tag" },
   { id: "costPrice", label: "Cost" },
-  { id: "vendorModel", label: "Vendor model" },
-  { id: "fromStore", label: "From store" },
-  { id: "toStore", label: "Need store" },
+  { id: "fromRevenue", label: "Sold revenue" },
 ];
 
 const STOCK_SORTS: { id: string; label: string }[] = [
@@ -720,9 +720,9 @@ export default function InventoryPage() {
                   <th className="whitespace-nowrap px-3 py-2">Onhand</th>
                   <th className="whitespace-nowrap px-3 py-2">Sold</th>
                   <th className="whitespace-nowrap px-3 py-2 text-rose-200/80">Need</th>
+                  <th className="whitespace-nowrap px-3 py-2 text-emerald-200/80">From</th>
                   <th className="whitespace-nowrap px-3 py-2">Onhand</th>
                   <th className="whitespace-nowrap px-3 py-2">Sold</th>
-                  <th className="whitespace-nowrap px-3 py-2 text-emerald-200/80">From</th>
                   <th className="px-3 py-2">Tag price</th>
                   <th className="px-3 py-2">{data?.costLabel ?? "Cost price"}</th>
                   <th className="px-3 py-2">Sold revenue</th>
@@ -773,14 +773,14 @@ export default function InventoryPage() {
                     <td className="whitespace-nowrap bg-rose-500/[0.10] px-3 py-2 align-middle">
                       <StoreName store={r.toStore} tier={r.toTier} kind={r.toKind} tone="need" />
                     </td>
+                    <td className="whitespace-nowrap bg-emerald-500/[0.10] px-3 py-2 align-middle">
+                      <StoreName store={r.fromStore} tier={r.fromTier} kind={r.fromKind} tone="from" />
+                    </td>
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <QtyBadge n={r.fromOnhand} />
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 align-middle">
                       <QtyBadge n={r.fromSoldQty} />
-                    </td>
-                    <td className="whitespace-nowrap bg-emerald-500/[0.10] px-3 py-2 align-middle">
-                      <StoreName store={r.fromStore} tier={r.fromTier} kind={r.fromKind} tone="from" />
                     </td>
                     <td className="px-3 py-2 align-top tabular-nums">{money(r.tagPrice)}</td>
                     <td className="px-3 py-2 align-top tabular-nums">{money(r.costPrice)}</td>
