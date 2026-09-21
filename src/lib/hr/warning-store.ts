@@ -10,7 +10,7 @@ const DATA_DIR = path.join(process.cwd(), ".data", "hr");
 const STORE_PATH = path.join(DATA_DIR, "warnings.json");
 
 /** Bump to wipe sent test warnings / write-ups / remarks / absence waivers on deploy. */
-export const HR_NOTICE_RESET_KEY = "clear-test-notices-2026-09-19";
+export const HR_NOTICE_RESET_KEY = "clear-test-notices-2026-09-21";
 
 export type WarningStoreFile = {
   notices: HrWarningNotice[];
