@@ -1,3 +1,4 @@
+import { normalizeSalesImageDir } from "@/lib/reports/product-image";
 import type { InventoryItem } from "./types";
 
 function parsePrice(raw: string): number {
@@ -194,7 +195,7 @@ function rowToItem(cols: string[], map: Partial<Record<ColumnKey, number>>): Inv
   const design = getField(cols, map, "design");
   const description = getField(cols, map, "description");
   const vendorModel = getField(cols, map, "vendorModel");
-  const imageDir = getField(cols, map, "imageDir") || undefined;
+  const imageDir = normalizeSalesImageDir(getField(cols, map, "imageDir")) || undefined;
   const createDate = getField(cols, map, "createDate") || undefined;
 
   return {

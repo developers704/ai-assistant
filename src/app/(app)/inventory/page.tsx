@@ -10,6 +10,7 @@ import { formatCurrency, formatPieceCount, cn } from "@/lib/utils";
 import { SalesDateRangePicker, type SalesDateRangeValue } from "@/components/sales/SalesDateRangePicker";
 import { SalesMultiSelectFilter } from "@/components/sales/SalesMultiSelectFilter";
 import { appendSalesFilterParams } from "@/lib/sales/filter-params";
+import { ProductLightbox, ProductThumb } from "@/components/reports/ProductImagePreview";
 
 type View = "transfers" | "stock";
 type Dir = "asc" | "desc";
@@ -41,6 +42,8 @@ type TransferRow = {
   fromRevenue: number;
   priority: "rush" | "high" | "fill";
   priorityRank: number;
+  imageDir?: string;
+  imageUrl?: string | null;
 };
 
 type StockRow = {
@@ -62,6 +65,8 @@ type StockRow = {
   soldQty: number;
   revenue: number;
   coverage: number | null;
+  imageDir?: string;
+  imageUrl?: string | null;
 };
 
 type ModelStoreRow = {
@@ -161,6 +166,29 @@ function PriorityBadge({ priority }: { priority: "rush" | "high" | "fill" }) {
     <span title={meta.title} className={cn("inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", meta.className)}>
       {meta.label}
     </span>
+  );
+}
+
+type ImagePreview = { src: string; alt: string; subtitle?: string };
+
+function ModelThumb({
+  row,
+  size = "sm",
+  onOpen,
+}: {
+  row: { vendorModel: string; description?: string; imageDir?: string; imageUrl?: string | null };
+  size?: "sm" | "md";
+  onOpen: (src: string, alt: string, subtitle?: string) => void;
+}) {
+  return (
+    <ProductThumb
+      imageDir={row.imageDir}
+      imageUrl={row.imageUrl}
+      alt={row.description || row.vendorModel}
+      subtitle={row.vendorModel !== "—" ? row.vendorModel : undefined}
+      size={size}
+      onOpen={onOpen}
+    />
   );
 }
 
@@ -285,29 +313,35 @@ function TransferMobileCard({
   costLabel,
   breakdown,
   onToggle,
+  onOpen,
 }: {
   row: TransferRow;
   open: boolean;
   costLabel: string;
   breakdown: ModelStoreRow[] | "loading" | "error" | undefined;
   onToggle: () => void;
+  onOpen: (src: string, alt: string, subtitle?: string) => void;
 }) {
   return (
     <li className="border-t border-white/[0.06] first:border-t-0">
-      <button
-        type="button"
-        onClick={onToggle}
+      <div
         className={cn(
           "w-full min-w-0 px-3 py-3 text-left transition-colors hover:bg-white/[0.04]",
           open && "bg-white/[0.04]"
         )}
       >
         <div className="flex items-start gap-2.5 min-w-0">
-          <ChevronDown
-            size={14}
-            className={cn("mt-1 shrink-0 text-white/40 transition-transform", open && "rotate-180")}
-          />
-          <div className="min-w-0 flex-1 space-y-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="mt-1 shrink-0 text-white/40"
+            aria-expanded={open}
+            aria-label={open ? "Collapse store breakdown" : "Expand store breakdown"}
+          >
+            <ChevronDown size={14} className={cn("transition-transform", open && "rotate-180")} />
+          </button>
+          <ModelThumb row={row} size="md" onOpen={onOpen} />
+          <button type="button" onClick={onToggle} className="min-w-0 flex-1 space-y-2 text-left">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="break-all font-semibold text-ink">{row.vendorModel}</div>
@@ -359,9 +393,9 @@ function TransferMobileCard({
               </span>
               <span>Rev {money(row.revenue)}</span>
             </div>
-          </div>
+          </button>
         </div>
-      </button>
+      </div>
       {open ? (
         <div className="px-3 pb-3">
           <StoreBreakdownBody rows={breakdown} highlightTo={row.toStore} highlightFrom={row.fromStore} />
@@ -377,29 +411,35 @@ function StockMobileCard({
   costLabel,
   breakdown,
   onToggle,
+  onOpen,
 }: {
   row: StockRow;
   open: boolean;
   costLabel: string;
   breakdown: ModelStoreRow[] | "loading" | "error" | undefined;
   onToggle: () => void;
+  onOpen: (src: string, alt: string, subtitle?: string) => void;
 }) {
   return (
     <li className="border-t border-white/[0.06] first:border-t-0">
-      <button
-        type="button"
-        onClick={onToggle}
+      <div
         className={cn(
           "w-full min-w-0 px-3 py-3 text-left transition-colors hover:bg-white/[0.04]",
           open && "bg-white/[0.04]"
         )}
       >
         <div className="flex items-start gap-2.5 min-w-0">
-          <ChevronDown
-            size={14}
-            className={cn("mt-1 shrink-0 text-white/40 transition-transform", open && "rotate-180")}
-          />
-          <div className="min-w-0 flex-1 space-y-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="mt-1 shrink-0 text-white/40"
+            aria-expanded={open}
+            aria-label={open ? "Collapse store breakdown" : "Expand store breakdown"}
+          >
+            <ChevronDown size={14} className={cn("transition-transform", open && "rotate-180")} />
+          </button>
+          <ModelThumb row={row} size="md" onOpen={onOpen} />
+          <button type="button" onClick={onToggle} className="min-w-0 flex-1 space-y-2 text-left">
             <div className="flex items-center gap-1.5">
               <span className="font-semibold text-ink">{row.store}</span>
               <StoreBadge tier={row.tier} kind={row.kind} />
@@ -425,9 +465,9 @@ function StockMobileCard({
                 Tag {money(row.tagPrice)} · {costLabel} {money(row.costPrice)}
               </span>
             </div>
-          </div>
+          </button>
         </div>
-      </button>
+      </div>
       {open ? (
         <div className="px-3 pb-3">
           <StoreBreakdownBody rows={breakdown} highlightTo={row.store} />
@@ -458,6 +498,7 @@ export default function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [breakdowns, setBreakdowns] = useState<Record<string, ModelStoreRow[] | "loading" | "error">>({});
+  const [preview, setPreview] = useState<ImagePreview | null>(null);
   const limit = 50;
 
   // Live search: model / SKU / description (debounced)
@@ -664,6 +705,7 @@ export default function InventoryPage() {
                       costLabel={data?.costLabel ?? "Cost"}
                       breakdown={breakdowns[r.vendorModel]}
                       onToggle={() => toggleRow(rowKey, r.vendorModel)}
+                      onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
                     />
                   );
                 })}
@@ -703,11 +745,20 @@ export default function InventoryPage() {
                       <PriorityBadge priority={r.priority ?? "fill"} />
                     </td>
                     <td className="px-3 py-2 align-top">
-                      <div className="flex items-center gap-1.5 font-semibold text-ink">
-                        <ChevronDown size={14} className={cn("shrink-0 text-white/40 transition-transform", open && "rotate-180")} />
-                        {r.vendorModel}
+                      <div className="flex items-start gap-2 min-w-0">
+                        <ModelThumb
+                          row={r}
+                          size="sm"
+                          onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 font-semibold text-ink">
+                            <ChevronDown size={14} className={cn("shrink-0 text-white/40 transition-transform", open && "rotate-180")} />
+                            {r.vendorModel}
+                          </div>
+                          <div className="pl-5 text-white/45">{r.sku}{r.vendor ? ` · ${r.vendor}` : ""}</div>
+                        </div>
                       </div>
-                      <div className="pl-5 text-white/45">{r.sku}{r.vendor ? ` · ${r.vendor}` : ""}</div>
                     </td>
                     <td className="px-3 py-2 align-top">
                       <div className="text-ink">{r.description || "—"}</div>
@@ -763,6 +814,7 @@ export default function InventoryPage() {
                       costLabel={data?.costLabel ?? "Cost"}
                       breakdown={breakdowns[r.vendorModel]}
                       onToggle={() => toggleRow(rowKey, r.vendorModel)}
+                      onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
                     />
                   );
                 })}
@@ -799,8 +851,17 @@ export default function InventoryPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2 align-top">
-                      <div className="font-semibold text-ink">{r.vendorModel}</div>
-                      <div className="text-white/45">{r.sku}{r.vendor ? ` · ${r.vendor}` : ""}</div>
+                      <div className="flex items-start gap-2 min-w-0">
+                        <ModelThumb
+                          row={r}
+                          size="sm"
+                          onOpen={(src, alt, subtitle) => setPreview({ src, alt, subtitle })}
+                        />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-ink">{r.vendorModel}</div>
+                          <div className="text-white/45">{r.sku}{r.vendor ? ` · ${r.vendor}` : ""}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-3 py-2 align-top">
                       <div className="text-ink">{r.description || "—"}</div>
@@ -846,6 +907,14 @@ export default function InventoryPage() {
           </div>
         </div>
       </PageShellBody>
+      {preview ? (
+        <ProductLightbox
+          src={preview.src}
+          alt={preview.alt}
+          subtitle={preview.subtitle}
+          onClose={() => setPreview(null)}
+        />
+      ) : null}
     </PageShell>
   );
 }

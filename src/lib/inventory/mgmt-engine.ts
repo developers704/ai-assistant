@@ -1,4 +1,5 @@
 import type { InventoryItem } from "@/lib/inventory/types";
+import { normalizeSalesImageDir } from "@/lib/reports/product-image";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { isHiddenFromTopVendorModelsRow, salesUnitsSold } from "@/lib/utils";
 import {
@@ -38,6 +39,8 @@ export type InventoryStockRow = {
   soldQty: number;
   revenue: number;
   coverage: number | null;
+  /** POS Image Dir. (webp) — same as Top Vendor Models. */
+  imageDir: string;
 };
 
 export type InventoryModelStoreRow = {
@@ -107,6 +110,8 @@ export type InventoryTransfer = {
   reason: string;
   priority: TransferPriority;
   priorityRank: number;
+  /** POS Image Dir. (webp) — same as Top Vendor Models. */
+  imageDir: string;
 };
 
 export type InventoryMgmtQuery = {
@@ -132,6 +137,11 @@ type ModelStoreAgg = {
   skuSold: Map<string, { qty: number; revenue: number }>;
 };
 
+type ModelSales = {
+  imageDir: string;
+  stores: Map<string, ModelStoreAgg>;
+};
+
 type ModelInv = {
   description: string;
   department: string;
@@ -144,6 +154,7 @@ type ModelInv = {
   costPrice: number;
   wholesaleCost: number;
   sku: string;
+  imageDir: string;
   stores: Map<
     string,
     { onhand: number; skus: Map<string, { onhand: number; tag: number; cost: number; wholesale: number }> }
@@ -159,6 +170,10 @@ const MGMT_STORE_BY_KEY = new Map(MGMT_STORES.map((s) => [key(s.store), s]));
 
 function blank(s: string | null | undefined): string {
   return (s ?? "").trim();
+}
+
+function pickImageDir(raw?: string | null): string {
+  return normalizeSalesImageDir(raw);
 }
 
 function modelKeyOf(row: { vendorModel?: string; sku?: string; itemNumber?: string }): string {
@@ -217,8 +232,8 @@ function addFacet(map: Map<string, Set<string>>, field: string, value: string) {
   set.add(value);
 }
 
-function aggregateSales(rows: VendorPosRow[]): Map<string, Map<string, ModelStoreAgg>> {
-  const out = new Map<string, Map<string, ModelStoreAgg>>();
+function aggregateSales(rows: VendorPosRow[]): Map<string, ModelSales> {
+  const out = new Map<string, ModelSales>();
   for (const row of rows) {
     if (!isInventoryMgmtStore(row.storeName)) continue;
     if (isIgnoredInventoryDepartment(row.department)) continue;
@@ -226,15 +241,19 @@ function aggregateSales(rows: VendorPosRow[]): Map<string, Map<string, ModelStor
     const model = modelKeyOf(row);
     if (!model) continue;
     const store = key(row.storeName);
-    let byStore = out.get(model);
-    if (!byStore) {
-      byStore = new Map();
-      out.set(model, byStore);
+    let modelAgg = out.get(model);
+    if (!modelAgg) {
+      modelAgg = { imageDir: "", stores: new Map() };
+      out.set(model, modelAgg);
     }
-    let agg = byStore.get(store);
+    if (!modelAgg.imageDir) {
+      const dir = pickImageDir(row.imageDir);
+      if (dir) modelAgg.imageDir = dir;
+    }
+    let agg = modelAgg.stores.get(store);
     if (!agg) {
       agg = { soldQty: 0, revenue: 0, skuSold: new Map() };
-      byStore.set(store, agg);
+      modelAgg.stores.set(store, agg);
     }
     const qty = salesUnitsSold(row.quantity);
     const rev = Number(row.netRevenue) || 0;
@@ -270,6 +289,7 @@ function aggregateOnhand(items: InventoryItem[]): Map<string, ModelInv> {
         costPrice: item.costPrice,
         wholesaleCost: item.wholesaleCost,
         sku: item.sku,
+        imageDir: pickImageDir(item.imageDir),
         stores: new Map(),
       };
       out.set(model, inv);
@@ -280,6 +300,10 @@ function aggregateOnhand(items: InventoryItem[]): Map<string, ModelInv> {
     if (!inv.productClass && item.class) inv.productClass = item.class;
     if (!inv.subClass && item.subClass) inv.subClass = item.subClass;
     if (!inv.vendor && item.vendor) inv.vendor = item.vendor;
+    if (!inv.imageDir) {
+      const dir = pickImageDir(item.imageDir);
+      if (dir) inv.imageDir = dir;
+    }
     if ((item.tagPrice || 0) > (inv.tagPrice || 0)) inv.tagPrice = item.tagPrice;
     if ((item.costPrice || 0) > 0) inv.costPrice = item.costPrice;
     if ((item.wholesaleCost || 0) > 0) inv.wholesaleCost = item.wholesaleCost;
@@ -352,7 +376,7 @@ export function buildInventoryTransfers(
 
   for (const model of models) {
     const inv = onhand.get(model);
-    const soldByStore = sales.get(model) ?? new Map();
+    const soldByStore = sales.get(model)?.stores ?? new Map();
     const onhandStores = inv?.stores ?? new Map();
     for (const meta of MGMT_STORES) {
       const storeKey = key(meta.store);
@@ -409,6 +433,7 @@ export function buildInventoryTransfers(
           `Take spare from ${donor.store} (${Math.round(donor.spare)} spare, sold ${Math.round(donor.soldQty)}).`,
         priority,
         priorityRank: TRANSFER_PRIORITY_RANK[priority],
+        imageDir: inv?.imageDir || sales.get(model)?.imageDir || "",
       });
     }
   }
@@ -432,7 +457,7 @@ export function buildInventoryStockRows(
   const rows: InventoryStockRow[] = [];
   for (const inv of onhand.values()) {
     const model = key(inv.vendorModel);
-    const soldByStore = sales.get(model) ?? new Map();
+    const soldByStore = sales.get(model)?.stores ?? new Map();
     for (const [storeKey, storeRow] of inv.stores) {
       const main = isMainStore(storeKey);
       if (!isInventoryOnhandStore(storeKey)) continue;
@@ -476,6 +501,7 @@ export function buildInventoryStockRows(
         soldQty,
         revenue: main ? 0 : (sold?.revenue ?? 0),
         coverage: coverageOf(oh, soldQty),
+        imageDir: inv.imageDir || sales.get(model)?.imageDir || "",
       });
     }
   }
@@ -489,7 +515,7 @@ export function buildModelStoreBreakdown(
 ): InventoryModelStoreRow[] {
   const model = key(vendorModel);
   if (!model) return [];
-  const soldByStore = aggregateSales(salesRows).get(model) ?? new Map();
+  const soldByStore = aggregateSales(salesRows).get(model)?.stores ?? new Map();
   const onhandStores = aggregateOnhand(items).get(model)?.stores ?? new Map();
   const rows: InventoryModelStoreRow[] = [
     {
