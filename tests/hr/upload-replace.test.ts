@@ -90,6 +90,15 @@ describe("HR notice reset", () => {
       noticeResetKey: HR_NOTICE_RESET_KEY,
     });
     expect(keep.notices).toEqual([keepNotice]);
+
+    const priorDeploy = applyPendingHrNoticeReset({
+      notices: [staleNotice, staleWriteUp],
+      absenceWaivers: [staleWaiver],
+      noticeResetKey: "clear-test-notices-2026-09-19",
+    });
+    expect(priorDeploy.notices).toEqual([]);
+    expect(priorDeploy.absenceWaivers).toEqual([]);
+    expect(priorDeploy.noticeResetKey).toBe(HR_NOTICE_RESET_KEY);
   });
 
   it("clears warnings, write-ups, and absence waivers", () => {
