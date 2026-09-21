@@ -10,6 +10,7 @@ import {
 } from "@/lib/inventory/mgmt-engine";
 import { isInventoryMgmtStore, isInventoryOnhandStore } from "@/lib/inventory/mgmt-stores";
 import { isValidIsoDate } from "@/lib/reports/date-utils";
+import { resolveProductImageUrl } from "@/lib/reports/product-image";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -87,7 +88,14 @@ export async function GET(req: NextRequest) {
   const showCost = canSeeRealInventoryCost(session.username, session.role);
   const rows = result.rows.map((row) => {
     const costPrice = showCost ? row.costPrice : row.wholesaleCost;
-    return { ...row, costPrice, wholesaleCost: row.wholesaleCost };
+    const imageDir = row.imageDir || "";
+    return {
+      ...row,
+      costPrice,
+      wholesaleCost: row.wholesaleCost,
+      imageDir,
+      imageUrl: resolveProductImageUrl(imageDir),
+    };
   });
 
   return NextResponse.json({

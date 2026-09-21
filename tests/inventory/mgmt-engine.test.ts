@@ -245,6 +245,83 @@ describe("inventory transfers", () => {
   });
 });
 
+describe("vendor-model photos", () => {
+  it("puts onhand Image Dir on transfers and all-on-hand, jpg → webp", () => {
+    const sales = Array.from({ length: 25 }, (_, i) =>
+      sale({
+        transactionId: `S${i}`,
+        storeName: "VJ-SERRA",
+        vendorModel: "RR8179WS",
+        quantity: 1,
+        netRevenue: 100,
+      })
+    ).concat(sale({ storeName: "VJ-OAK", vendorModel: "RR8179WS", quantity: 1, netRevenue: 100 }));
+    const items = [
+      item({ store: "VJ-SERRA", onHand: 0, imageDir: "\\191402.jpg" }),
+      item({ store: "VJ-OAK", onHand: 12, imageDir: "\\191402.jpg" }),
+    ];
+    const transfers = buildInventoryTransfers(sales, items).filter((t) => t.vendorModel === "RR8179WS");
+    expect(transfers.length).toBeGreaterThan(0);
+    expect(transfers[0]!.imageDir).toBe("\\191402.webp");
+    const stock = buildInventoryStockRows(sales, items).filter((r) => r.vendorModel === "RR8179WS");
+    expect(stock.length).toBeGreaterThan(0);
+    expect(stock.every((r) => r.imageDir === "\\191402.webp")).toBe(true);
+  });
+
+  it("falls back to sales Image Dir when onhand has none", () => {
+    const sales = Array.from({ length: 25 }, (_, i) =>
+      sale({
+        transactionId: `S${i}`,
+        storeName: "VJ-SERRA",
+        vendorModel: "RR8179WS",
+        quantity: 1,
+        netRevenue: 100,
+        imageDir: "\\229149.jpg",
+      })
+    ).concat(
+      sale({
+        storeName: "VJ-OAK",
+        vendorModel: "RR8179WS",
+        quantity: 1,
+        netRevenue: 100,
+        imageDir: "\\229149.jpg",
+      })
+    );
+    const items = [item({ store: "VJ-SERRA", onHand: 0 }), item({ store: "VJ-OAK", onHand: 12 })];
+    const transfers = buildInventoryTransfers(sales, items).filter((t) => t.vendorModel === "RR8179WS");
+    expect(transfers[0]!.imageDir).toBe("\\229149.webp");
+    const stock = buildInventoryStockRows(sales, items).filter((r) => r.vendorModel === "RR8179WS");
+    expect(stock[0]!.imageDir).toBe("\\229149.webp");
+  });
+
+  it("prefers onhand Image Dir over sales", () => {
+    const sales = Array.from({ length: 25 }, (_, i) =>
+      sale({
+        transactionId: `S${i}`,
+        storeName: "VJ-SERRA",
+        vendorModel: "RR8179WS",
+        quantity: 1,
+        netRevenue: 100,
+        imageDir: "\\229149.jpg",
+      })
+    ).concat(
+      sale({
+        storeName: "VJ-OAK",
+        vendorModel: "RR8179WS",
+        quantity: 1,
+        netRevenue: 100,
+        imageDir: "\\229149.jpg",
+      })
+    );
+    const items = [
+      item({ store: "VJ-SERRA", onHand: 0, imageDir: "\\191402.jpg" }),
+      item({ store: "VJ-OAK", onHand: 12, imageDir: "\\191402.jpg" }),
+    ];
+    const transfers = buildInventoryTransfers(sales, items).filter((t) => t.vendorModel === "RR8179WS");
+    expect(transfers[0]!.imageDir).toBe("\\191402.webp");
+  });
+});
+
 describe("inventory mgmt query from cached base", () => {
   const sales = [
     sale({ storeName: "VJ-SERRA", vendorModel: "RR8179WS", quantity: 25, netRevenue: 2500 }),
