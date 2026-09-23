@@ -851,7 +851,7 @@ export async function querySales(rawInput: SalesQueryInput): Promise<SalesQueryR
     );
     rankings.topVendorModels = getTopVendorModels(filtered, {
       sortBy: productSort,
-      limit,
+      limit: include.allVendorModels ? null : limit,
       periodDays,
       includeHiddenTopModels: include.includeHiddenTopModels === true,
     });

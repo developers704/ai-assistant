@@ -289,6 +289,8 @@ async function queryDashboardSlice(opts: {
   includeHiddenTopModels?: boolean;
   /** HR Management Sales: Love→Lovespell, BELLA OVAN→BELLA OVANI, UV bucket. */
   hrSalesDesigns?: boolean;
+  /** The Edition needs every vendor model so last year's absence means zero sales. */
+  allVendorModels?: boolean;
 }): Promise<SalesQueryResult> {
   const isCompare = opts.mode === "comparison";
   const from = opts.dateFrom ?? opts.date;
@@ -331,6 +333,7 @@ async function queryDashboardSlice(opts: {
           topClasses: true,
           topPaycodes: true,
           includeHiddenTopModels: opts.includeHiddenTopModels === true,
+          allVendorModels: opts.allVendorModels === true,
           // Dashboard uses vendor models (not separate product ranking).
           topVendorModels: true,
           topSalesPeople: true,
@@ -383,6 +386,7 @@ export async function GET(req: NextRequest) {
     sp.get("hrSales") === "1" ||
     sp.get("hrSales") === "true" ||
     sp.get("hrDesigns") === "1";
+  const editionModels = sp.get("edition") === "1";
   const hrLock = lockHrSalesQuery({
     hrSales: hrSalesDesigns,
     session,
@@ -450,6 +454,7 @@ export async function GET(req: NextRequest) {
         hrSalesDesigns,
         // Net Sales = full CSV for everyone; only Rozina sees ITEM/JVV in Top Models
         includeHiddenTopModels: showsAllSoldInTopVendorModels(session.username),
+        allVendorModels: editionModels,
       };
       const result = await queryDashboardSlice({ ...slice, mode: "dashboard" });
 
@@ -534,6 +539,12 @@ export async function GET(req: NextRequest) {
             })),
           };
         }) as typeof summary.topProducts;
+      }
+      if (editionModels) {
+        summary.topProducts = (summary.topProducts ?? []).map((p) => {
+          const { skus: _skus, onHandStores: _stores, ...rest } = p;
+          return rest;
+        });
       }
       const salespeople = listSalespeopleFromRows(versionRows);
       const tableRows = salesTableRows(versionRows, {
