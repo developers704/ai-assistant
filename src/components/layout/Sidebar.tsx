@@ -55,6 +55,7 @@ const SHOW_INTELLIGENCE_NAV = false;
 
 const ADMIN_NAV: NavItem[] = [
   { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
+  // The Edition stays on the admin nav only until Umair says to open it.
   { href: "/brief", label: "The Edition", icon: ScrollText, palette: "rose" },
   { href: "/inventory", label: "Inventory", icon: Package, palette: "amber" },
   { href: "/intelligence", label: "Intelligence", icon: Brain, palette: "violet" },
@@ -78,7 +79,6 @@ const ADMIN_NAV: NavItem[] = [
 
 const ALL_NAV_ITEMS: Record<string, NavItem> = {
   "/sales": { href: "/sales", label: "Sales Dashboard", icon: BarChart3, palette: "emerald" },
-  "/brief": { href: "/brief", label: "The Edition", icon: ScrollText, palette: "rose" },
   "/inventory": { href: "/inventory", label: "Inventory", icon: Package, palette: "amber" },
   "/intelligence": { href: "/intelligence", label: "Intelligence", icon: Brain, palette: "violet" },
   "/stores": { href: "/stores", label: "Stores Map & Info", icon: MapPinned, palette: "violet" },
@@ -103,7 +103,6 @@ const ALL_NAV_ITEMS: Record<string, NavItem> = {
 
 const DM_PAGE_TO_PERMISSION: Record<string, UserPermissionKey> = {
   "/sales": "sales_dashboard",
-  "/brief": "sales_dashboard",
   "/inventory": "sales_dashboard",
   "/intelligence": "sales_dashboard",
   "/stores": "stores_map",
@@ -164,7 +163,6 @@ function fallbackNavForRole(role?: string | null): NavItem[] {
   }
   return [
     ALL_NAV_ITEMS["/sales"]!,
-    ALL_NAV_ITEMS["/brief"]!,
     ALL_NAV_ITEMS["/inventory"]!,
     ALL_NAV_ITEMS["/intelligence"]!,
     ALL_NAV_ITEMS["/stores"]!,
