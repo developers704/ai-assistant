@@ -1,6 +1,41 @@
 import { priorYearCompareWindow } from "@/lib/reports/date-utils";
 import { formatCurrency, formatPieceCount } from "@/lib/utils";
 
+export type BriefStoreHouse = "aj" | "shaun" | "new";
+
+/** Same selling stores as AJ_STORES / SHAUN_STORES. Kept here so the paper stays off the auth module. */
+const AJ_HOUSE = new Set([
+  "DBC-GM",
+  "VJ-VAL",
+  "VJ-EAST",
+  "VJ-OAK",
+  "VJ-LIV",
+  "VJ-SERRA",
+  "VJ-SAL",
+  "VJ-MOD",
+  "DBC-STOCK",
+  "VJ-ARDN",
+  "VJ-ROSE",
+  "VJ-FRE",
+  "VJ-CHAND",
+  "VJ-DEER",
+  "VJ-BAY",
+  "VJ-BAKER",
+]);
+const SHAUN_HOUSE = new Set([
+  "VJ-CULVER",
+  "VJ-INLND",
+  "VJ-ONT",
+  "VJ-VICTOR",
+  "VJ-PB",
+  "VJ-NORTH",
+  "VJ-PALM",
+  "VJ-S.ANITA",
+  "VJ-HEND",
+]);
+const NEW_STORES = new Set(["VJ-DEER", "VJ-BAY", "VJ-HEND"]);
+const SKIP_STORES = new Set(["MAIN", "VJ-CON", "VJ-WEB", "CON", "WEB"]);
+
 export type BriefWindow = "week" | "month" | "season";
 
 export type BriefModel = {
@@ -274,6 +309,180 @@ function namedRanks(rows: BriefRank[]): BriefRank[] {
   return rows.filter((r) => r.name && !isUnknownBriefName(r.name) && r.revenue !== 0);
 }
 
+export function isNewBriefStore(name: string): boolean {
+  return NEW_STORES.has(rankKey(name));
+}
+
+export function briefHouseForStore(name: string): BriefStoreHouse | "other" {
+  const key = rankKey(name);
+  if (NEW_STORES.has(key)) return "new";
+  if (AJ_HOUSE.has(key)) return "aj";
+  if (SHAUN_HOUSE.has(key)) return "shaun";
+  return "other";
+}
+
+function storeMatchesHouse(name: string, house: BriefStoreHouse): boolean {
+  const key = rankKey(name);
+  if (SKIP_STORES.has(key) || isUnknownBriefName(name)) return false;
+  if (house === "new") return NEW_STORES.has(key);
+  if (house === "aj") return AJ_HOUSE.has(key);
+  return SHAUN_HOUSE.has(key);
+}
+
+function sellingStores(rows: BriefRank[]): BriefRank[] {
+  return namedRanks(rows).filter((r) => !SKIP_STORES.has(rankKey(r.name)));
+}
+
+function comparableDelta(current: number, prior: BriefRank | undefined, name: string): number | null {
+  if (!prior || !(prior.revenue > 0) || isNewBriefStore(name)) return null;
+  return pctDelta(current, prior.revenue);
+}
+
+export function storeLines(
+  stores: BriefRank[],
+  lyStores: BriefRank[],
+  house: BriefStoreHouse,
+  limit = 16
+): BriefLine[] {
+  const ly = new Map(sellingStores(lyStores).map((r) => [rankKey(r.name), r]));
+  return sellingStores(stores)
+    .filter((r) => storeMatchesHouse(r.name, house))
+    .sort((a, b) => b.revenue - a.revenue || (b.units ?? 0) - (a.units ?? 0))
+    .slice(0, limit)
+    .map((r) => {
+      const prior = ly.get(rankKey(r.name));
+      const delta = comparableDelta(r.revenue, prior, r.name);
+      return {
+        id: `store:${r.name}`,
+        name: r.name,
+        revenue: r.revenue,
+        units: r.units ?? 0,
+        lyRevenue: prior ? prior.revenue : null,
+        lyUnits: prior?.units ?? null,
+        delta,
+        tone: toneOf(delta),
+      };
+    });
+}
+
+function sumRanks(rows: BriefRank[]): { revenue: number; units: number; count: number } {
+  return rows.reduce(
+    (acc, r) => ({
+      revenue: acc.revenue + r.revenue,
+      units: acc.units + (r.units ?? 0),
+      count: acc.count + 1,
+    }),
+    { revenue: 0, units: 0, count: 0 }
+  );
+}
+
+function houseRows(rows: BriefRank[], house: BriefStoreHouse): BriefRank[] {
+  return sellingStores(rows).filter((r) => storeMatchesHouse(r.name, house));
+}
+
+function buildHouseStory(
+  id: string,
+  title: string,
+  nowRows: BriefRank[],
+  lyRows: BriefRank[],
+  kind: "house" | "new"
+): BriefStory {
+  const now = sumRanks(nowRows);
+  const prior = sumRanks(lyRows);
+  const delta = kind === "new" ? null : prior.revenue > 0 ? pctDelta(now.revenue, prior.revenue) : null;
+  const lead = [...nowRows].sort((a, b) => b.revenue - a.revenue)[0]?.name ?? null;
+  const kicker =
+    kind === "new"
+      ? "Opened this year"
+      : delta == null
+        ? "This September"
+        : delta >= 8
+          ? "Ahead of last year"
+          : delta <= -8
+            ? "Behind last year"
+            : "Steady";
+  const lySentence =
+    kind === "new" || prior.revenue <= 0
+      ? "No sales on these dates last year."
+      : `Last year ${money(prior.revenue)} on the same dates.`;
+  const leadSentence = lead ? ` ${lead} leads the floor.` : "";
+  return {
+    id,
+    kicker,
+    title,
+    deck: `${money(now.revenue)} this September${now.units ? ` on ${pieces(now.units)}` : ""}. ${lySentence}${leadSentence}`.replace(/\s+/g, " ").trim(),
+    figure: kind === "new" ? money(now.revenue) : formatSignedPct(delta),
+    tone: toneOf(delta),
+    facts: [
+      { label: "Net", value: money(now.revenue) },
+      { label: "Last year", value: prior.revenue > 0 && kind !== "new" ? money(prior.revenue) : "—" },
+      { label: "Vs last year", value: kind === "new" ? "—" : formatSignedPct(delta) },
+      { label: "Units", value: pieces(now.units) },
+      { label: "Stores", value: String(now.count) },
+    ],
+  };
+}
+
+function buildMoverStories(stores: BriefRank[], lyStores: BriefRank[]): BriefStory[] {
+  const ly = new Map(sellingStores(lyStores).map((r) => [rankKey(r.name), r]));
+  const scored = sellingStores(stores)
+    .filter((r) => !isNewBriefStore(r.name))
+    .map((r) => {
+      const prior = ly.get(rankKey(r.name));
+      if (!prior || !(prior.revenue > 0)) return null;
+      const delta = pctDelta(r.revenue, prior.revenue);
+      if (delta == null) return null;
+      return { row: r, prior, delta, dollars: r.revenue - prior.revenue };
+    })
+    .filter((row): row is NonNullable<typeof row> => row != null);
+  const up = [...scored].filter((r) => r.dollars > 0).sort((a, b) => b.dollars - a.dollars).slice(0, 3);
+  const down = [...scored].filter((r) => r.dollars < 0).sort((a, b) => a.dollars - b.dollars).slice(0, 3);
+  return [
+    ...up.map((r) => ({
+      id: `store:${r.row.name}`,
+      kicker: "Rose this September",
+      title: r.row.name,
+      deck: `${money(r.row.revenue)} this September${r.row.units != null ? ` on ${pieces(r.row.units)}` : ""}. Last year ${money(r.prior.revenue)} on the same dates.`,
+      figure: formatSignedPct(r.delta),
+      tone: toneOf(r.delta),
+      facts: [
+        { label: "Net", value: money(r.row.revenue) },
+        { label: "Last year", value: money(r.prior.revenue) },
+        { label: "Vs last year", value: formatSignedPct(r.delta) },
+        ...(r.row.units != null ? [{ label: "Units", value: pieces(r.row.units) }] : []),
+      ],
+    })),
+    ...down.map((r) => ({
+      id: `store:${r.row.name}`,
+      kicker: "Slipped this September",
+      title: r.row.name,
+      deck: `${money(r.row.revenue)} this September${r.row.units != null ? ` on ${pieces(r.row.units)}` : ""}. Last year ${money(r.prior.revenue)} on the same dates.`,
+      figure: formatSignedPct(r.delta),
+      tone: toneOf(r.delta),
+      facts: [
+        { label: "Net", value: money(r.row.revenue) },
+        { label: "Last year", value: money(r.prior.revenue) },
+        { label: "Vs last year", value: formatSignedPct(r.delta) },
+        ...(r.row.units != null ? [{ label: "Units", value: pieces(r.row.units) }] : []),
+      ],
+    })),
+  ];
+}
+
+function buildStoreStories(stores: BriefRank[], lyStores: BriefRank[]): BriefStory[] {
+  const houses: Array<{ id: string; title: string; house: BriefStoreHouse; kind: "house" | "new" }> = [
+    { id: "house:AJ", title: "AJ", house: "aj", kind: "house" },
+    { id: "house:Shaun", title: "Shaun", house: "shaun", kind: "house" },
+    { id: "house:New", title: "New stores", house: "new", kind: "new" },
+  ];
+  const houseStories = houses.flatMap(({ id, title, house, kind }) => {
+    const nowRows = houseRows(stores, house);
+    if (sumRanks(nowRows).revenue === 0) return [];
+    return [buildHouseStory(id, title, nowRows, houseRows(lyStores, house), kind)];
+  });
+  return [...houseStories, ...buildMoverStories(stores, lyStores)];
+}
+
 export function designLines(designs: BriefRank[], lyDesigns: BriefRank[], limit = 8): BriefLine[] {
   const ly = new Map(namedRanks(lyDesigns).map((r) => [rankKey(r.name), r]));
   return namedRanks(designs)
@@ -459,8 +668,8 @@ export function buildBriefEdition(input: {
   const sections: BriefSection[] = [
     { id: "departments", label: "Departments", stories: buildDepartmentStories(input.departments ?? [], input.lyDepartments ?? []) },
     { id: "designs", label: "Designs", stories: buildDesignStories(input.designs ?? [], input.lyDesigns ?? []) },
+    { id: "stores", label: "Stores", stories: buildStoreStories(input.stores, input.lyStores) },
     { id: "models", label: "Models", stories: buildModelStories(input.models, input.lyModels, days, input.showKash) },
-    { id: "stores", label: "Stores", stories: buildRankStories("store", input.stores, input.lyStores) },
     { id: "vendors", label: "Vendors", stories: buildRankStories("vendor", input.vendors, input.lyVendors) },
     { id: "people", label: "People", stories: buildRankStories("person", input.people, input.lyPeople) },
     { id: "pay", label: "Pay", stories: buildPayStories(input.pay, input.lyPay) },

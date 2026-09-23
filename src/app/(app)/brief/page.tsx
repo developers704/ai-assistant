@@ -8,12 +8,14 @@ import {
   buildBriefEdition,
   designLines,
   formatSignedPct,
+  storeLines,
   type BriefEdition,
   type BriefLine,
   type BriefModel,
   type BriefPay,
   type BriefRank,
   type BriefSection,
+  type BriefStoreHouse,
   type BriefStory,
 } from "@/lib/brief/edition";
 import { formatCurrency, formatPieceCount, cn } from "@/lib/utils";
@@ -84,6 +86,8 @@ export default function BriefPage() {
   const [linesLoading, setLinesLoading] = useState<string | null>(null);
   const [lineYear, setLineYear] = useState<"now" | "ly">("now");
   const [openLine, setOpenLine] = useState<string | null>(null);
+  const [storeNow, setStoreNow] = useState<BriefRank[]>([]);
+  const [storeLy, setStoreLy] = useState<BriefRank[]>([]);
 
   const range = ISSUE;
 
@@ -113,8 +117,8 @@ export default function BriefPage() {
           units: summary?.totalTransactions ?? 0,
           models,
           lyModels: lySummary?.topProducts ?? [],
-          stores: summary?.topStores ?? [],
-          lyStores: lySummary?.topStores ?? [],
+          stores: asRanks(summary?.topStores),
+          lyStores: asRanks(lySummary?.topStores),
           vendors: summary?.topVendors ?? [],
           lyVendors: lySummary?.topVendors ?? [],
           departments: asRanks(summary?.topDepartments),
@@ -128,6 +132,8 @@ export default function BriefPage() {
           showKash,
         });
         setEdition(next);
+        setStoreNow(asRanks(summary?.topStores));
+        setStoreLy(asRanks(lySummary?.topStores));
         setStoryId(null);
         setOpenLine(null);
         setLinesByDept({});
@@ -147,6 +153,13 @@ export default function BriefPage() {
   const story = section?.stories.find((s) => s.id === storyId) ?? section?.stories[0] ?? null;
   const departmentTitle = section?.id === "departments" ? story?.title ?? null : null;
   const departmentLines = departmentTitle ? linesByDept[departmentTitle] : undefined;
+  const houseId =
+    story?.id === "house:AJ" ? "aj" : story?.id === "house:Shaun" ? "shaun" : story?.id === "house:New" ? "new" : null;
+  const houseLines = houseId ? storeLines(storeNow, storeLy, houseId as BriefStoreHouse) : undefined;
+  const articleLines = houseLines ?? departmentLines;
+  const linesLabel = houseId ? "Stores inside" : "Designs inside";
+  const linesEmpty = houseId ? "No selling stores in this house." : "No named designs in this department.";
+  const linesLoadingLabel = houseId ? "Opening stores…" : "Opening designs…";
 
   useEffect(() => {
     if (!isAdmin || !departmentTitle || linesByDept[departmentTitle] || linesFailed[departmentTitle]) return;
@@ -263,9 +276,13 @@ export default function BriefPage() {
                 {story ? (
                   <Article
                     story={story}
-                    lines={departmentLines}
-                    linesLoading={linesLoading === departmentTitle}
-                    linesError={departmentTitle ? linesError : null}
+                    lines={articleLines}
+                    linesLabel={linesLabel}
+                    linesEmpty={linesEmpty}
+                    linesLoadingLabel={linesLoadingLabel}
+                    linesLoading={!houseId && linesLoading === departmentTitle}
+                    linesError={!houseId && departmentTitle ? linesError : null}
+                    showAllLink={!houseId && Boolean(departmentTitle)}
                     lineYear={lineYear}
                     openLine={openLine}
                     onYear={(year) => setLineYear(year)}
@@ -322,8 +339,12 @@ export default function BriefPage() {
 function Article({
   story,
   lines,
+  linesLabel,
+  linesEmpty,
+  linesLoadingLabel,
   linesLoading,
   linesError,
+  showAllLink,
   lineYear,
   openLine,
   onYear,
@@ -333,8 +354,12 @@ function Article({
 }: {
   story: BriefStory;
   lines?: BriefLine[];
+  linesLabel: string;
+  linesEmpty: string;
+  linesLoadingLabel: string;
   linesLoading?: boolean;
   linesError?: string | null;
+  showAllLink?: boolean;
   lineYear: "now" | "ly";
   openLine: string | null;
   onYear: (year: "now" | "ly") => void;
@@ -368,7 +393,7 @@ function Article({
       {lines || linesLoading || linesError ? (
         <div className="mt-8 border-t border-[var(--rule)] pt-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <p className="brief-kicker text-[var(--muted)]">Designs inside</p>
+            <p className="brief-kicker text-[var(--muted)]">{linesLabel}</p>
             <div className="brief-sans flex gap-3 text-[12px]">
               <button
                 type="button"
@@ -386,9 +411,9 @@ function Article({
               </button>
             </div>
           </div>
-          {linesLoading && !lines ? <p className="brief-sans mt-4 text-[13px] text-[var(--muted)]">Opening designs…</p> : null}
+          {linesLoading && !lines ? <p className="brief-sans mt-4 text-[13px] text-[var(--muted)]">{linesLoadingLabel}</p> : null}
           {linesError && !lines ? <p className="brief-sans mt-4 text-[13px] text-[var(--oxblood)]">{linesError}</p> : null}
-          {lines && lines.length === 0 ? <p className="mt-4 italic text-[var(--muted)]">No named designs in this department.</p> : null}
+          {lines && lines.length === 0 ? <p className="mt-4 italic text-[var(--muted)]">{linesEmpty}</p> : null}
           {lines && lines.length > 0 ? (
             <ol className="mt-2">
               {lines.map((line) => {
@@ -434,9 +459,11 @@ function Article({
               })}
             </ol>
           ) : null}
-          <button type="button" onClick={onOpenDesigns} className="brief-sans mt-3 text-[12px] text-[var(--muted)] underline decoration-[var(--rule)] underline-offset-4 hover:text-[var(--ink)]">
-            All designs
-          </button>
+          {showAllLink ? (
+            <button type="button" onClick={onOpenDesigns} className="brief-sans mt-3 text-[12px] text-[var(--muted)] underline decoration-[var(--rule)] underline-offset-4 hover:text-[var(--ink)]">
+              All designs
+            </button>
+          ) : null}
         </div>
       ) : null}
     </article>

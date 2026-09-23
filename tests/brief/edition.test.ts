@@ -9,6 +9,7 @@ import {
   formatSignedPct,
   isUnknownBriefName,
   pctDelta,
+  storeLines,
 } from "@/lib/brief/edition";
 
 describe("morning brief edition", () => {
@@ -165,5 +166,73 @@ describe("morning brief edition", () => {
     );
     expect(lines.map((line) => line.name)).toEqual(["HALO"]);
     expect(lines[0]?.delta).toBeCloseTo(100);
+  });
+
+  it("splits AJ, Shaun, and new stores and does not invent a new-store percent", () => {
+    const edition = buildBriefEdition({
+      from: "2026-09-01",
+      to: "2026-09-21",
+      compareFrom: "2025-09-01",
+      compareTo: "2025-09-21",
+      net: 4000,
+      lyNet: 3800,
+      units: 20,
+      models: [],
+      lyModels: [],
+      stores: [
+        { name: "Unknown store", revenue: 900, units: 2 },
+        { name: "MAIN", revenue: 50, units: 1 },
+        { name: "VJ-FRE", revenue: 800, units: 4 },
+        { name: "VJ-DEER", revenue: 200, units: 2 },
+        { name: "VJ-ONT", revenue: 500, units: 3 },
+        { name: "VJ-HEND", revenue: 300, units: 2 },
+        { name: "VJ-LIV", revenue: 400, units: 3 },
+        { name: "DBC-STOCK", revenue: 100, units: 1 },
+      ],
+      lyStores: [
+        { name: "VJ-FRE", revenue: 600, units: 3 },
+        { name: "VJ-ONT", revenue: 700, units: 4 },
+        { name: "VJ-LIV", revenue: 150, units: 1 },
+        { name: "DBC-STOCK", revenue: 400, units: 2 },
+      ],
+      vendors: [],
+      lyVendors: [],
+      people: [],
+      lyPeople: [],
+      pay: [],
+      lyPay: [],
+      showKash: false,
+    });
+    const storeStories = edition.sections.find((s) => s.id === "stores")!.stories;
+    expect(storeStories.map((s) => s.title)).toEqual([
+      "AJ",
+      "Shaun",
+      "New stores",
+      "VJ-LIV",
+      "VJ-FRE",
+      "DBC-STOCK",
+      "VJ-ONT",
+    ]);
+    expect(storeStories[0]?.kicker).toBe("Ahead of last year");
+    expect(storeStories[1]?.kicker).toBe("Ahead of last year");
+    expect(storeStories[2]?.kicker).toBe("Opened this year");
+    expect(storeStories[2]?.figure).toBe("$500");
+    expect(storeStories[2]?.facts.find((f) => f.label === "Vs last year")?.value).toBe("—");
+    expect(storeStories[3]?.kicker).toBe("Rose this September");
+    expect(storeStories[5]?.kicker).toBe("Slipped this September");
+
+    const ajLines = storeLines(
+      [
+        { name: "VJ-FRE", revenue: 800, units: 4 },
+        { name: "VJ-DEER", revenue: 200, units: 2 },
+        { name: "Unknown store", revenue: 90 },
+      ],
+      [{ name: "VJ-FRE", revenue: 600, units: 3 }],
+      "aj"
+    );
+    expect(ajLines.map((line) => line.name)).toEqual(["VJ-FRE", "VJ-DEER"]);
+    expect(ajLines[0]?.delta).toBeCloseTo(((800 - 600) / 600) * 100);
+    expect(ajLines[1]?.delta).toBeNull();
+    expect(ajLines[1]?.lyRevenue).toBeNull();
   });
 });
