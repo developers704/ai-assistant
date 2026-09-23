@@ -62,7 +62,7 @@ When changing Top Models soft-hide rules, update `src/lib/utils.ts` and this fil
 - File: `data/reports/Sales-Report.csv`
 - Seeded via `src/lib/reports/store.ts`; app refreshes `.data/reports/` when the file changes
 - Current seed window: **2025-01-01 → 2026-09-22**
-- Companion paycode overlay: `data/reports/Payment-Transactions.csv` (Applied Amt by Transaction # / Pay Code; daily files append / replace same day)
+- Companion paycode overlay: `data/reports/Payment-Transactions.csv` (Applied Amt by Transaction # / Pay Code). The file is the full POS payment export through **2026-09-22**. Daily files still append / replace that same day. A few legs in the export have a Transaction Date before 2026-01-01 ($19,622.96 Applied Amt); the dashboard date filter leaves them out.
 
 ## Paycode overlay (Sales Dashboard only)
 
@@ -73,7 +73,8 @@ Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CAS
 | Canonical | Aliases (POS truncations) |
 |---|---|
 | **ACIMA** | ACIMA, ACIM |
-| **AFFIRM** | AFFIRM, AFFR, AFRIM, AFRM |
+| **AFFIRM** | AFFIRM, AFFR, AFRIM, AFRM, AFIRM |
+| **FLEX** | FLEX, FLEX PAY |
 | **IDDEAL** | IDDEAL, IDEA, IDEAL |
 | **PROG** | PROG, PROGR, PROGRE, PROGRESSIVE |
 | **SYNC** | SYNC, SYCHY, SYNCH, SYNCHRONY, SYNCHRO, SYNCHY, SYNCY, SYNY, GE |
@@ -84,7 +85,8 @@ Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CAS
 |---|---|
 | `VJS-CASH`, `VJE-CASH`, bare `CASH` | **CASH** |
 | `DBCST-ACIM`, `VJSO-ACIMA` | **ACIMA** |
-| `DES-AFFIRM`, `DBCST-AFFR`, `VJST-AFRIM`, `VJVIC-AFRM` | **AFFIRM** |
+| `DES-AFFIRM`, `DBCST-AFFR`, `VJST-AFRIM`, `VJVIC-AFRM`, `VJCL-AFIRM` | **AFFIRM** |
+| `VJF-FLEX PAY`, `VJCH-FLEX PAY` | **FLEX** |
 | `VJE-IDDEAL`, `DBCST-IDEA`, `VJSL-IDEAL` | **IDDEAL** |
 | `BB-SYNC`, `VJRE-SYNY`, Synchrony truncations | **SYNC** |
 | `VJB-PROG`, `VJF-PROGRE`, `HD-PROGR`, `VJLV-PROGRESSIVE` | **PROG** |

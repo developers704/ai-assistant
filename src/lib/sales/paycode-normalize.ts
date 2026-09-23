@@ -7,12 +7,13 @@
  *
  * Alias groups (same product, truncated POS names):
  *   ACIMA + ACIM → ACIMA
- *   AFFIRM + AFFR + AFRIM + AFRM → AFFIRM
+ *   AFFIRM + AFFR + AFRIM + AFRM + AFIRM → AFFIRM
  *   IDEA + IDEAL + IDDEAL → IDDEAL
  *   PROG + PROGR + PROGRE + PROGRESSIVE → PROG
  *   SYNC + SYNY + Synchrony truncations (SYNCHRO, …) + GE → SYNC
  *   CHK + CHECK → CHK
  *   WELLS + WELL + WELS + WELLS FARGO + WE → WELLS
+ *   FLEX PAY → FLEX (POS Pay Code Group already says FLEX)
  *
  * Applied at overlay parse so daily payment appends follow the same rule.
  */
@@ -45,6 +46,7 @@ const ALIAS_TO_CANONICAL: Record<string, string> = {
   AFFR: "AFFIRM",
   AFRIM: "AFFIRM",
   AFRM: "AFFIRM",
+  AFIRM: "AFFIRM",
   AFFIRM: "AFFIRM",
   IDEA: "IDDEAL",
   IDEAL: "IDDEAL",
@@ -69,6 +71,7 @@ const ALIAS_TO_CANONICAL: Record<string, string> = {
   "WELLS FARGO": "WELLS",
   WELLS: "WELLS",
   WE: "WELLS",
+  "FLEX PAY": "FLEX",
 };
 
 /** Preferred filter order for the paycodes Umair called out. */
