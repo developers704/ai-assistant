@@ -19,6 +19,7 @@ export const DM_ALLOWED_APP_PREFIXES = [
 
 const APP_TO_PERMISSION: Record<string, UserPermissionKey | UserPermissionKey[]> = {
   "/sales": "sales_dashboard",
+  "/brief": "sales_dashboard",
   "/inventory": "sales_dashboard",
   "/intelligence": "sales_dashboard",
   "/stores": "stores_map",
