@@ -148,7 +148,7 @@ function kickerForModel(input: {
 }): string {
   const { units, onHand, delta } = input;
   if (onHand != null && units >= 3 && onHand <= 1) return "Running thin";
-  if (onHand != null && onHand >= 6 && units > 0 && onHand > units * 3) return "Sitting still";
+  if (onHand != null && onHand >= 6 && units > 0 && onHand > units * 3) return "Stock is heavy";
   if (delta == null) return "New this year";
   if (delta >= 20) return "Ahead of last year";
   if (delta <= -20) return "Behind last year";
@@ -162,12 +162,36 @@ function kashLine(revenue: number, units: number, kashCost: number | null | unde
   return `Average ${money(avg)} clears Kash cost ${money(kashCost)}.`;
 }
 
+function isJewelryModel(model: BriefModel): boolean {
+  const vm = (model.vendorModel || model.name || "").trim().toUpperCase();
+  const name = `${model.name || ""} ${model.department || ""}`.toUpperCase();
+  if (!vm || vm === "—" || vm === "ITEM" || vm === "BATTERY") return false;
+  if (vm.startsWith("MLB-") || vm.startsWith("JVV-")) return false;
+  if (/RECYCLING FEE|CARE PLAN|GIFT BOX|\bBATTERY\b/.test(name)) return false;
+  const avg = model.units > 0 ? model.revenue / model.units : model.revenue;
+  if (model.units > 0 && avg < 40) return false;
+  return model.revenue !== 0 || model.units !== 0;
+}
+
+/** A few fast movers and a few big tickets, without fee or care-plan lines. */
+function pickModels(models: BriefModel[]): BriefModel[] {
+  const pool = models.filter(isJewelryModel);
+  const byUnits = [...pool].sort((a, b) => b.units - a.units || b.revenue - a.revenue);
+  const byRevenue = [...pool].sort((a, b) => b.revenue - a.revenue || b.units - a.units);
+  const chosen: BriefModel[] = [];
+  const seen = new Set<string>();
+  for (const model of [...byRevenue.slice(0, 3), ...byUnits.slice(0, 3)]) {
+    const key = modelKey(model);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    chosen.push(model);
+  }
+  return chosen.slice(0, SECTION_LIMIT);
+}
+
 function buildModelStories(models: BriefModel[], lyModels: BriefModel[], dayCount: number, showKash: boolean): BriefStory[] {
-  const ly = new Map(lyModels.map((m) => [modelKey(m), m]));
-  const ranked = [...models]
-    .filter((m) => modelTitle(m) !== "—" && (m.revenue !== 0 || m.units !== 0))
-    .sort((a, b) => b.units - a.units || b.revenue - a.revenue)
-    .slice(0, SECTION_LIMIT);
+  const ly = new Map(lyModels.filter(isJewelryModel).map((m) => [modelKey(m), m]));
+  const ranked = pickModels(models);
 
   return ranked.map((m) => {
     const title = modelTitle(m);
@@ -302,7 +326,7 @@ export function buildBriefEdition(input: {
     { id: "pay", label: "Pay", stories: buildPayStories(input.pay, input.lyPay) },
   ];
   const topStore = [...input.stores].sort((a, b) => b.revenue - a.revenue)[0]?.name ?? null;
-  const topModel = [...input.models].sort((a, b) => b.units - a.units)[0];
+  const topModel = pickModels(input.models)[0];
   const modelBit = topModel ? `${modelTitle(topModel)} is the busiest model.` : "";
   const pace =
     delta == null

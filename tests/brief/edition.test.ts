@@ -64,6 +64,31 @@ describe("morning brief edition", () => {
     expect(model.kicker).toBe("Running thin");
     expect(model.facts.find((f) => f.label === "Kash CP")?.value).toBe("$90");
     expect(model.deck).toContain("under Kash cost");
+    const noisy = buildBriefEdition({
+      from: "2026-09-15",
+      to: "2026-09-21",
+      net: 500,
+      lyNet: 400,
+      units: 20,
+      models: [
+        { vendorModel: "250000", name: "Covered Battery-Embedded (CBE) Recycling Fee", revenue: 130, units: 13, onHandTotal: 0 },
+        { vendorModel: "MLB-LT-2500", name: "Mulberry Lifetime Care Plan", revenue: 3880, units: 10 },
+        { vendorModel: "BATTERY", name: "BATTERY", revenue: 142, units: 8, department: "BATTERY" },
+        { vendorModel: "MV064-SL", name: "Diamond hoops", revenue: 3192, units: 8, onHandTotal: 4, department: "EARRINGS" },
+      ],
+      lyModels: [],
+      stores: [],
+      lyStores: [],
+      vendors: [],
+      lyVendors: [],
+      people: [],
+      lyPeople: [],
+      pay: [],
+      lyPay: [],
+      showKash: false,
+    });
+    const titles = noisy.sections.find((s) => s.id === "models")!.stories.map((s) => s.title);
+    expect(titles).toEqual(["MV064-SL"]);
     expect(model.figure).toBe("+100%");
   });
 });
