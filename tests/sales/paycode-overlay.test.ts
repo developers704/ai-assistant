@@ -469,6 +469,9 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(filterLabels).not.toContain("SYNY");
     expect(filterLabels).not.toContain("WELL");
     expect(filterLabels).not.toContain("AFIRM");
+    expect(filterLabels).not.toContain("AFFIR");
+    expect(filterLabels).not.toContain("AFF");
+    expect(filterLabels).not.toContain("PROGRES");
     expect(filterLabels).not.toContain("FLEX PAY");
   });
 
@@ -486,9 +489,9 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(byName["CASH"]).toBeCloseTo(3440190.41, 2);
     expect(byName["CC"]).toBeCloseTo(19479507.92, 2);
     expect(byName["ACIMA"]).toBeCloseTo(541875.43, 2);
-    expect(byName["AFFIRM"]).toBeCloseTo(374538.55, 2);
+    expect(byName["AFFIRM"]).toBeCloseTo(391011.81, 2);
     expect(byName["IDDEAL"]).toBeCloseTo(18635874.35, 2);
-    expect(byName["PROG"]).toBeCloseTo(453879.89, 2);
+    expect(byName["PROG"]).toBeCloseTo(461102.89, 2);
     expect(byName["SYNC"]).toBeCloseTo(5689693.69, 2);
     expect(byName["CHK"]).toBeCloseTo(853325.83, 2);
     expect(byName["WELLS"]).toBeCloseTo(2983316.58, 2);
@@ -498,6 +501,9 @@ describe("bundled Payment-Transactions.csv", () => {
     expect(byName["MULBRY"]).toBeCloseTo(2994.97, 2);
     expect(byName["GC"]).toBeCloseTo(3400, 2);
     expect(byName["AFIRM"]).toBeUndefined();
+    expect(byName["AFFIR"]).toBeUndefined();
+    expect(byName["AFF"]).toBeUndefined();
+    expect(byName["PROGRES"]).toBeUndefined();
     expect(byName["FLEX PAY"]).toBeUndefined();
     expect(byName["ACIM"]).toBeUndefined();
     expect(byName["GE"]).toBeUndefined();
