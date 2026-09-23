@@ -9,12 +9,14 @@ import {
   designLines,
   formatSignedPct,
   modelLines,
+  payLines,
   storeLines,
   type BriefEdition,
   type BriefLine,
   type BriefModel,
   type BriefModelStack,
   type BriefPay,
+  type BriefPayGroup,
   type BriefRank,
   type BriefSection,
   type BriefStoreHouse,
@@ -93,6 +95,8 @@ export default function BriefPage() {
   const [storeLy, setStoreLy] = useState<BriefRank[]>([]);
   const [modelNow, setModelNow] = useState<BriefModel[]>([]);
   const [modelLy, setModelLy] = useState<BriefModel[]>([]);
+  const [payNow, setPayNow] = useState<BriefPay[]>([]);
+  const [payLy, setPayLy] = useState<BriefPay[]>([]);
 
   const range = ISSUE;
 
@@ -144,6 +148,8 @@ export default function BriefPage() {
         setStoreLy(asRanks(lySummary?.topStores));
         setModelNow(summary?.topProducts ?? []);
         setModelLy(lySummary?.topProducts ?? []);
+        setPayNow(summary?.paymentMethods ?? []);
+        setPayLy(lySummary?.paymentMethods ?? []);
         setStoryId(null);
         setOpenLine(null);
         setLinesByDept({});
@@ -170,15 +176,20 @@ export default function BriefPage() {
   const modelStack: BriefModelStack | null =
     story?.id === "model:returning" ? "returning" : story?.id === "model:fresh" ? "fresh" : null;
   const stackLines = modelStack ? modelLines(modelNow, modelLy, modelStack, { showKash }) : undefined;
-  const articleLines = stackLines ?? houseLines ?? departmentLines;
-  const linesLabel = modelStack ? "Models inside" : houseId ? "Stores inside" : "Designs inside";
-  const linesEmpty = modelStack
-    ? "No jewelry models in this stack."
-    : houseId
-      ? "No selling stores in this house."
-      : "No named designs in this department.";
+  const payGroup: BriefPayGroup | null =
+    story?.id === "pay:Cash" ? "cash" : story?.id === "pay:Card" ? "card" : story?.id === "pay:Financing" ? "financing" : null;
+  const methodLines = payGroup ? payLines(payNow, payLy, payGroup) : undefined;
+  const articleLines = methodLines ?? stackLines ?? houseLines ?? departmentLines;
+  const linesLabel = payGroup ? "Methods inside" : modelStack ? "Models inside" : houseId ? "Stores inside" : "Designs inside";
+  const linesEmpty = payGroup
+    ? "No methods in this group."
+    : modelStack
+      ? "No jewelry models in this stack."
+      : houseId
+        ? "No selling stores in this house."
+        : "No named designs in this department.";
   const linesLoadingLabel = houseId ? "Opening stores…" : "Opening designs…";
-  const blankDelta = modelStack === "fresh";
+  const blankDelta = modelStack === "fresh" || Boolean(payGroup);
 
   useEffect(() => {
     if (!isAdmin || !departmentTitle || linesByDept[departmentTitle] || linesFailed[departmentTitle]) return;
@@ -467,10 +478,12 @@ function Article({
                           <dt className="brief-kicker">Last year</dt>
                           <dd className="mt-1 text-[var(--ink)]">{line.lyRevenue == null ? "—" : formatCurrency(line.lyRevenue)}</dd>
                         </div>
-                        <div>
-                          <dt className="brief-kicker">Units</dt>
-                          <dd className="mt-1 text-[var(--ink)]">{formatPieceCount(lineYear === "ly" ? line.lyUnits ?? 0 : line.units)}</dd>
-                        </div>
+                        {line.units !== 0 || line.lyUnits != null ? (
+                          <div>
+                            <dt className="brief-kicker">Units</dt>
+                            <dd className="mt-1 text-[var(--ink)]">{formatPieceCount(lineYear === "ly" ? line.lyUnits ?? 0 : line.units)}</dd>
+                          </div>
+                        ) : null}
                         <div>
                           <dt className="brief-kicker">Vs last year</dt>
                           <dd className="mt-1 text-[var(--ink)]">{line.delta == null && blankDelta ? "—" : formatSignedPct(line.delta)}</dd>

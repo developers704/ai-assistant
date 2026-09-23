@@ -7,6 +7,7 @@ import {
   designLines,
   forecastTwoWeeks,
   modelLines,
+  payLines,
   formatSignedPct,
   isUnknownBriefName,
   pctDelta,
@@ -147,6 +148,64 @@ describe("morning brief edition", () => {
     expect(fresh.map((line) => line.name)).toEqual(["NEW-1"]);
     expect(fresh[0]?.delta).toBeNull();
     expect(fresh[0]?.lyRevenue).toBeNull();
+  });
+
+  it("groups pay into cash, card, and financing and drops store prefixes", () => {
+    const edition = buildBriefEdition({
+      from: "2026-09-01",
+      to: "2026-09-21",
+      compareFrom: "2025-09-01",
+      compareTo: "2025-09-21",
+      net: 1000,
+      lyNet: 900,
+      units: 10,
+      models: [],
+      lyModels: [],
+      stores: [],
+      lyStores: [],
+      vendors: [],
+      lyVendors: [],
+      people: [],
+      lyPeople: [],
+      pay: [
+        { name: "VJS-CASH", revenue: 100 },
+        { name: "CASH", revenue: 50 },
+        { name: "CC", revenue: 400 },
+        { name: "DBCST-ACIM", revenue: 80 },
+        { name: "ACIMA", revenue: 20 },
+        { name: "VJS", revenue: 30 },
+        { name: "MULBRY", revenue: 15 },
+        { name: "GE", revenue: 200 },
+      ],
+      lyPay: [
+        { name: "CASH", revenue: 200 },
+        { name: "CC", revenue: 300 },
+        { name: "SYNC", revenue: 100 },
+        { name: "ACIMA", revenue: 50 },
+      ],
+      showKash: false,
+    });
+    const pay = edition.sections.find((s) => s.id === "pay")!.stories;
+    expect(pay.map((story) => story.title)).toEqual(["Card", "Financing", "Cash"]);
+    expect(pay.map((story) => story.figure)).toEqual(["47%", "35%", "18%"]);
+    expect(pay[0]?.facts.find((fact) => fact.label === "Applied")?.value).toBe("$400");
+    expect(pay[2]?.facts.find((fact) => fact.label === "Applied")?.value).toBe("$150");
+    expect(pay.find((story) => story.title === "Financing")?.facts.find((fact) => fact.label === "Applied")?.value).toBe("$300");
+    const financing = pay.find((story) => story.title === "Financing")!;
+    expect(financing.kicker).toBe("Heavier than last year");
+    expect(financing.deck).toContain("share rose");
+    const methods = payLines(
+      [
+        { name: "DBCST-ACIM", revenue: 80 },
+        { name: "GE", revenue: 200 },
+        { name: "VJS-CASH", revenue: 100 },
+      ],
+      [{ name: "SYNC", revenue: 100 }],
+      "financing"
+    );
+    expect(methods.map((line) => line.name)).toEqual(["SYNC", "ACIMA"]);
+    expect(methods[0]?.lyRevenue).toBe(100);
+    expect(methods[1]?.delta).toBeNull();
   });
 
   it("locks September 1–21 to the same dates last year and drops unknown buckets", () => {

@@ -1,4 +1,5 @@
 import { priorYearCompareWindow } from "@/lib/reports/date-utils";
+import { canonicalPaycode } from "@/lib/sales/paycode-normalize";
 import { formatCurrency, formatPieceCount } from "@/lib/utils";
 
 export type BriefStoreHouse = "aj" | "shaun" | "new";
@@ -93,6 +94,26 @@ export type BriefLine = {
 };
 
 export type BriefModelStack = "returning" | "fresh";
+
+export type BriefPayGroup = "cash" | "card" | "financing";
+
+const PAY_CASH = new Set(["CASH", "CHK"]);
+const PAY_CARD = new Set(["CC"]);
+const PAY_FINANCING = new Set([
+  "SYNC",
+  "WELLS",
+  "IDDEAL",
+  "PROG",
+  "ACIMA",
+  "AFFIRM",
+  "FLEX",
+  "KAFE",
+  "KAFENE",
+  "BREAD",
+  "GAFCO",
+  "SNAP",
+  "UOWN",
+]);
 
 export type BriefSection = {
   id: "departments" | "designs" | "models" | "stores" | "vendors" | "people" | "pay";
@@ -641,34 +662,118 @@ function buildRankStories(prefix: string, rows: BriefRank[], lyRows: BriefRank[]
     });
 }
 
-function buildPayStories(rows: BriefPay[], lyRows: BriefPay[]): BriefStory[] {
-  const ly = new Map(lyRows.map((r) => [r.name.trim().toUpperCase(), r]));
-  const total = rows.reduce((s, r) => s + r.revenue, 0);
-  return [...rows]
-    .filter((r) => r.name && r.revenue !== 0)
+export function briefPayGroup(name: string | null | undefined): BriefPayGroup | null {
+  const canon = canonicalPaycode(name);
+  if (!canon || isUnknownBriefName(canon)) return null;
+  if (PAY_CASH.has(canon)) return "cash";
+  if (PAY_CARD.has(canon)) return "card";
+  if (PAY_FINANCING.has(canon)) return "financing";
+  return null;
+}
+
+function foldedPay(rows: BriefPay[]): Map<string, { name: string; revenue: number; group: BriefPayGroup }> {
+  const map = new Map<string, { name: string; revenue: number; group: BriefPayGroup }>();
+  for (const row of rows) {
+    const name = canonicalPaycode(row.name);
+    const group = briefPayGroup(name);
+    if (!name || !group || row.revenue === 0) continue;
+    const prev = map.get(name);
+    map.set(name, { name, revenue: (prev?.revenue ?? 0) + row.revenue, group });
+  }
+  return map;
+}
+
+function groupTotal(rows: Map<string, { revenue: number; group: BriefPayGroup }>, group: BriefPayGroup): number {
+  let total = 0;
+  for (const row of rows.values()) {
+    if (row.group === group) total += row.revenue;
+  }
+  return total;
+}
+
+export function payLines(rows: BriefPay[], lyRows: BriefPay[], group: BriefPayGroup): BriefLine[] {
+  const now = foldedPay(rows);
+  const ly = foldedPay(lyRows);
+  const window = [...now.values()].reduce((sum, row) => sum + row.revenue, 0);
+  return [...now.values()]
+    .filter((row) => row.group === group)
     .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, SECTION_LIMIT)
-    .map((r) => {
-      const prior = ly.get(r.name.trim().toUpperCase());
-      const delta = prior ? pctDelta(r.revenue, prior.revenue) : null;
-      const share = total > 0 ? Math.round((r.revenue / total) * 100) : 0;
+    .map((row) => {
+      const prior = ly.get(row.name);
+      const delta = prior && prior.revenue !== 0 ? pctDelta(row.revenue, prior.revenue) : null;
       return {
-        id: `pay:${r.name}`,
-        kicker: delta == null ? "This window" : delta >= 15 ? "Heavier than last year" : delta <= -15 ? "Lighter than last year" : "Steady",
-        title: r.name,
-        deck: `${money(r.revenue)} applied, ${share}% of this window. ${
-          prior ? `Last year ${money(prior.revenue)}.` : "Not among last year's leading methods."
-        }`,
-        figure: formatSignedPct(delta),
+        id: `pay:${row.name}`,
+        name: row.name,
+        revenue: row.revenue,
+        units: 0,
+        lyRevenue: prior ? prior.revenue : null,
+        lyUnits: null,
+        delta,
         tone: toneOf(delta),
-        facts: [
-          { label: "Applied", value: money(r.revenue) },
-          { label: "Share", value: `${share}%` },
-          { label: "Last year", value: prior ? money(prior.revenue) : "—" },
-          { label: "Vs last year", value: formatSignedPct(delta) },
-        ],
+        note: window > 0 ? `${Math.round((row.revenue / window) * 100)}% of applied payments` : null,
       };
     });
+}
+
+function buildPayStories(rows: BriefPay[], lyRows: BriefPay[]): BriefStory[] {
+  const now = foldedPay(rows);
+  const ly = foldedPay(lyRows);
+  const nowTotal = [...now.values()].reduce((sum, row) => sum + row.revenue, 0);
+  const lyTotal = [...ly.values()].reduce((sum, row) => sum + row.revenue, 0);
+  const groups: Array<{ id: BriefPayGroup; title: string }> = [
+    { id: "card", title: "Card" },
+    { id: "financing", title: "Financing" },
+    { id: "cash", title: "Cash" },
+  ];
+  const scored = groups
+    .map((group) => {
+      const revenue = groupTotal(now, group.id);
+      const lyRevenue = groupTotal(ly, group.id);
+      const share = nowTotal > 0 ? (revenue / nowTotal) * 100 : 0;
+      const lyShare = lyTotal > 0 ? (lyRevenue / lyTotal) * 100 : null;
+      return { ...group, revenue, lyRevenue, share, lyShare, shareDelta: lyShare == null ? null : share - lyShare };
+    })
+    .filter((group) => group.revenue !== 0)
+    .sort((a, b) => b.revenue - a.revenue);
+  const heavier = scored
+    .filter((group) => group.shareDelta != null && group.shareDelta >= 3)
+    .sort((a, b) => (b.shareDelta ?? 0) - (a.shareDelta ?? 0))[0];
+  return scored.map((group) => {
+    const delta = group.lyRevenue !== 0 ? pctDelta(group.revenue, group.lyRevenue) : null;
+    const shareLabel = `${Math.round(group.share)}%`;
+    const kicker =
+      heavier && heavier.id === group.id
+        ? "Heavier than last year"
+        : group.lyShare == null
+          ? "This September"
+          : group.shareDelta != null && group.shareDelta <= -3
+            ? "Lighter than last year"
+            : "Steady";
+    const lySentence =
+      group.lyShare == null
+        ? "No applied payments on these dates last year."
+        : `Last year ${money(group.lyRevenue)}, ${Math.round(group.lyShare)}% of that September.`;
+    const mix =
+      heavier && heavier.id === group.id && group.lyShare != null
+        ? ` Its share rose from ${Math.round(group.lyShare)}% to ${shareLabel}.`
+        : group.lyShare == null && scored[0]?.id === group.id
+          ? ` ${group.title} is ${shareLabel} of applied payments.`
+          : "";
+    return {
+      id: `pay:${group.title}`,
+      kicker,
+      title: group.title,
+      deck: `${money(group.revenue)} applied, ${shareLabel} of this September. ${lySentence}${mix}`.replace(/\s+/g, " ").trim(),
+      figure: shareLabel,
+      tone: toneOf(group.shareDelta),
+      facts: [
+        { label: "Applied", value: money(group.revenue) },
+        { label: "Share", value: shareLabel },
+        { label: "Last year", value: group.lyRevenue !== 0 ? money(group.lyRevenue) : "—" },
+        { label: "Vs last year", value: delta == null ? "—" : formatSignedPct(delta) },
+      ],
+    };
+  });
 }
 
 function paperHeadline(delta: number | null, leadName: string | null, leadIsDepartment: boolean): string {
