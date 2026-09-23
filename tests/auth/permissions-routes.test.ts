@@ -33,6 +33,7 @@ describe("DM permission routing", () => {
 
     expect(isDmAllowedAppPath("/email", "rozina", "dm", permissions)).toBe(false);
     expect(isDmAllowedAppPath("/sales", "rozina", "dm", permissions)).toBe(false);
+    expect(isDmAllowedAppPath("/brief", "ross", "dm", { ...permissions, sales_dashboard: true })).toBe(false);
     expect(isDmAllowedAppPath("/inventory", "aj", "dm", permissions)).toBe(false);
     expect(isDmAllowedAppPath("/settings", "rozina", "dm", permissions)).toBe(true);
   });

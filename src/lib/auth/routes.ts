@@ -19,7 +19,6 @@ export const DM_ALLOWED_APP_PREFIXES = [
 
 const APP_TO_PERMISSION: Record<string, UserPermissionKey | UserPermissionKey[]> = {
   "/sales": "sales_dashboard",
-  "/brief": "sales_dashboard",
   "/inventory": "sales_dashboard",
   "/intelligence": "sales_dashboard",
   "/stores": "stores_map",
@@ -115,6 +114,10 @@ export function isDmAllowedAppPath(
   if (pathname === "/" || pathname === "") return true;
   if (pathname === "/settings" || pathname.startsWith("/settings/")) {
     return true;
+  }
+  // The Edition is admin-only until Umair opens it. Middleware already lets role=admin through.
+  if (pathname === "/brief" || pathname.startsWith("/brief/")) {
+    return false;
   }
   if (pathname === "/inventory" || pathname.startsWith("/inventory/")) {
     return canAccessInventoryMgmt(username, role);

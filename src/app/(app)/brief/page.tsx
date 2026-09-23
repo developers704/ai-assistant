@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProductLightbox } from "@/components/reports/ProductImagePreview";
 import {
   briefPriorYear,
@@ -16,6 +17,7 @@ import {
   type BriefWindow,
 } from "@/lib/brief/edition";
 import { formatCurrency, formatPieceCount, cn } from "@/lib/utils";
+import { useApp } from "@/lib/store/app-context";
 import "./brief.css";
 
 type SalesPayload = {
@@ -63,6 +65,9 @@ async function loadSlice(from: string, to: string): Promise<SalesPayload> {
 }
 
 export default function BriefPage() {
+  const router = useRouter();
+  const { state } = useApp();
+  const isAdmin = state?.user?.authRole === "admin";
   const [dataThrough, setDataThrough] = useState("2026-09-21");
   const [windowId, setWindowId] = useState<BriefWindow>("week");
   const [edition, setEdition] = useState<BriefEdition | null>(null);
@@ -75,6 +80,11 @@ export default function BriefPage() {
   const range = useMemo(() => briefWindowRange(windowId, dataThrough), [windowId, dataThrough]);
 
   useEffect(() => {
+    if (state && !isAdmin) router.replace("/sales");
+  }, [state, isAdmin, router]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
     const ac = new AbortController();
     setLoading(true);
     setError(null);
@@ -121,10 +131,12 @@ export default function BriefPage() {
         if (!ac.signal.aborted) setLoading(false);
       });
     return () => ac.abort();
-  }, [range.from, range.to, dataThrough]);
+  }, [isAdmin, range.from, range.to, dataThrough]);
 
   const section = edition?.sections.find((s) => s.id === sectionId) ?? edition?.sections[0];
   const story = section?.stories.find((s) => s.id === storyId) ?? section?.stories[0] ?? null;
+
+  if (!isAdmin) return null;
 
   return (
     <div className="brief-root -mx-3 -my-4 px-4 py-8 sm:-mx-5 sm:px-8 lg:-mx-6 lg:-my-6 lg:px-10 lg:py-10">
