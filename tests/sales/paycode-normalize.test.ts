@@ -70,6 +70,14 @@ describe("canonicalPaycode", () => {
     expect(canonicalPaycode("VJVIC-AFRM")).toBe("AFFIRM");
     expect(canonicalPaycode("AFRIM")).toBe("AFFIRM");
     expect(canonicalPaycode("AFRM")).toBe("AFFIRM");
+    expect(canonicalPaycode("VJCL-AFIRM")).toBe("AFFIRM");
+    expect(canonicalPaycode("AFIRM")).toBe("AFFIRM");
+  });
+
+  it("folds FLEX PAY into FLEX", () => {
+    expect(canonicalPaycode("VJF-FLEX PAY")).toBe("FLEX");
+    expect(canonicalPaycode("VJCH-FLEX PAY")).toBe("FLEX");
+    expect(canonicalPaycode("FLEX")).toBe("FLEX");
   });
 
   it("folds WELLS + WELL + WELS + WELLS FARGO into WELLS", () => {
@@ -112,15 +120,17 @@ describe("canonicalPaycode", () => {
   });
 
   it("flags POS truncations that must not appear as filter labels", () => {
-    expect(leakedPaycodeAliases(["ACIMA", "ACIM", "AFFIRM", "AFFR", "AFRM", "WELLS", "WELS", "WE", "SYNCHRO", "GE", "CHECK"])).toEqual([
+    expect(leakedPaycodeAliases(["ACIMA", "ACIM", "AFFIRM", "AFFR", "AFRM", "AFIRM", "WELLS", "WELS", "WE", "SYNCHRO", "GE", "CHECK", "FLEX PAY", "FLEX"])).toEqual([
       "ACIM",
       "AFFR",
       "AFRM",
+      "AFIRM",
       "WELS",
       "WE",
       "SYNCHRO",
       "GE",
       "CHECK",
+      "FLEX PAY",
     ]);
   });
 });

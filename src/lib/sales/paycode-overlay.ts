@@ -7,7 +7,7 @@
  * Display / filter keys are the method after the store hyphen (`VJS-CASH` →
  * `CASH`) with ACIM→ACIMA, AFFR/AFRIM/AFRM→AFFIRM, IDEA/IDEAL→IDDEAL,
  * SYNY/Synchrony truncations→SYNC (incl. SYNCHRO), PROG*→PROG,
- * WELL/WELS/WELLS FARGO/WE→WELLS.
+ * WELL/WELS/WELLS FARGO/WE→WELLS, AFIRM→AFFIRM, FLEX PAY→FLEX.
  * Store prefixes (VJF, VIS, VJPB, …) are never listed as paycodes.
  * HR Management Sales has no paycode filter.
  *
@@ -36,7 +36,7 @@ import {
   sortPaycodeLabels,
 } from "@/lib/sales/paycode-normalize";
 
-export const PAYCODE_OVERLAY_VERSION = 7;
+export const PAYCODE_OVERLAY_VERSION = 8;
 export { canonicalPaycode, canonicalizePaycodeList } from "@/lib/sales/paycode-normalize";
 
 export type PaycodeAmountMap = Map<string, number>;
