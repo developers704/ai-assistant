@@ -73,10 +73,10 @@ Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CAS
 | Canonical | Aliases (POS truncations) |
 |---|---|
 | **ACIMA** | ACIMA, ACIM |
-| **AFFIRM** | AFFIRM, AFFR, AFRIM, AFRM, AFIRM |
+| **AFFIRM** | AFFIRM, AFFR, AFRIM, AFRM, AFIRM, AFFIR, AFF |
 | **FLEX** | FLEX, FLEX PAY |
 | **IDDEAL** | IDDEAL, IDEA, IDEAL |
-| **PROG** | PROG, PROGR, PROGRE, PROGRESSIVE |
+| **PROG** | PROG, PROGR, PROGRE, PROGRES, PROGRESSIVE |
 | **SYNC** | SYNC, SYCHY, SYNCH, SYNCHRONY, SYNCHRO, SYNCHY, SYNCY, SYNY, GE |
 | **CHK** | CHK, CHECK |
 | **WELLS** | WELLS, WELL, WELLS FARGO, WELS, WE |
@@ -85,11 +85,11 @@ Display and filter by the **method after the store hyphen** (`VJS-CASH` → `CAS
 |---|---|
 | `VJS-CASH`, `VJE-CASH`, bare `CASH` | **CASH** |
 | `DBCST-ACIM`, `VJSO-ACIMA` | **ACIMA** |
-| `DES-AFFIRM`, `DBCST-AFFR`, `VJST-AFRIM`, `VJVIC-AFRM`, `VJCL-AFIRM` | **AFFIRM** |
+| `DES-AFFIRM`, `DBCST-AFFR`, `VJST-AFRIM`, `VJVIC-AFRM`, `VJCL-AFIRM`, `VJVF-AFFIR`, `VJV-AFF` | **AFFIRM** |
 | `VJF-FLEX PAY`, `VJCH-FLEX PAY` | **FLEX** |
 | `VJE-IDDEAL`, `DBCST-IDEA`, `VJSL-IDEAL` | **IDDEAL** |
 | `BB-SYNC`, `VJRE-SYNY`, Synchrony truncations | **SYNC** |
-| `VJB-PROG`, `VJF-PROGRE`, `HD-PROGR`, `VJLV-PROGRESSIVE` | **PROG** |
+| `VJB-PROG`, `VJF-PROGRE`, `HD-PROGR`, `VJLV-PROGRESSIVE`, `PROGRES` | **PROG** |
 | `VJO-WELLS`, `VJPB-WELL`, `DBCST-WELS`, `VJST-WELLS FARGO` | **WELLS** |
 
 Same canonical rule on overlay parse — Cursor daily payment appends stay raw in `Payment-Transactions.csv` and fold in automatically.

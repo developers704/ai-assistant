@@ -55,6 +55,7 @@ describe("canonicalPaycode", () => {
     expect(canonicalPaycode("HD-PROGR")).toBe("PROG");
     expect(canonicalPaycode("VJF-PROGRE")).toBe("PROG");
     expect(canonicalPaycode("VJLV-PROGRESSIVE")).toBe("PROG");
+    expect(canonicalPaycode("PROGRES")).toBe("PROG");
   });
 
   it("folds ACIMA + ACIM into ACIMA", () => {
@@ -72,6 +73,9 @@ describe("canonicalPaycode", () => {
     expect(canonicalPaycode("AFRM")).toBe("AFFIRM");
     expect(canonicalPaycode("VJCL-AFIRM")).toBe("AFFIRM");
     expect(canonicalPaycode("AFIRM")).toBe("AFFIRM");
+    expect(canonicalPaycode("VJVF-AFFIR")).toBe("AFFIRM");
+    expect(canonicalPaycode("VJV-AFF")).toBe("AFFIRM");
+    expect(canonicalPaycode("AFF")).toBe("AFFIRM");
   });
 
   it("folds FLEX PAY into FLEX", () => {
@@ -120,17 +124,20 @@ describe("canonicalPaycode", () => {
   });
 
   it("flags POS truncations that must not appear as filter labels", () => {
-    expect(leakedPaycodeAliases(["ACIMA", "ACIM", "AFFIRM", "AFFR", "AFRM", "AFIRM", "WELLS", "WELS", "WE", "SYNCHRO", "GE", "CHECK", "FLEX PAY", "FLEX"])).toEqual([
+    expect(leakedPaycodeAliases(["ACIMA", "ACIM", "AFFIRM", "AFFR", "AFRM", "AFIRM", "AFFIR", "AFF", "WELLS", "WELS", "WE", "SYNCHRO", "GE", "CHECK", "FLEX PAY", "FLEX", "PROGRES"])).toEqual([
       "ACIM",
       "AFFR",
       "AFRM",
       "AFIRM",
+      "AFFIR",
+      "AFF",
       "WELS",
       "WE",
       "SYNCHRO",
       "GE",
       "CHECK",
       "FLEX PAY",
+      "PROGRES",
     ]);
   });
 });
