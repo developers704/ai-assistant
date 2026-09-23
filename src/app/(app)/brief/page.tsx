@@ -8,10 +8,12 @@ import {
   buildBriefEdition,
   designLines,
   formatSignedPct,
+  modelLines,
   storeLines,
   type BriefEdition,
   type BriefLine,
   type BriefModel,
+  type BriefModelStack,
   type BriefPay,
   type BriefRank,
   type BriefSection,
@@ -57,9 +59,10 @@ function formatSpan(from: string, to: string): string {
   return `${a.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${b.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
-async function loadSlice(from: string, to: string, department?: string): Promise<SalesPayload> {
+async function loadSlice(from: string, to: string, department?: string, edition = false): Promise<SalesPayload> {
   const params = new URLSearchParams({ from, to });
   if (department) params.set("department", department);
+  if (edition) params.set("edition", "1");
   const res = await fetch(`/api/sales?${params}`);
   const json = (await res.json()) as SalesPayload;
   if (!res.ok) throw new Error(json.error || "Could not load the edition");
@@ -88,6 +91,8 @@ export default function BriefPage() {
   const [openLine, setOpenLine] = useState<string | null>(null);
   const [storeNow, setStoreNow] = useState<BriefRank[]>([]);
   const [storeLy, setStoreLy] = useState<BriefRank[]>([]);
+  const [modelNow, setModelNow] = useState<BriefModel[]>([]);
+  const [modelLy, setModelLy] = useState<BriefModel[]>([]);
 
   const range = ISSUE;
 
@@ -100,7 +105,10 @@ export default function BriefPage() {
     const ac = new AbortController();
     setLoading(true);
     setError(null);
-    Promise.all([loadSlice(ISSUE.from, ISSUE.to), loadSlice(ISSUE_LY.from, ISSUE_LY.to)])
+    Promise.all([
+      loadSlice(ISSUE.from, ISSUE.to, undefined, true),
+      loadSlice(ISSUE_LY.from, ISSUE_LY.to, undefined, true),
+    ])
       .then(([now, prior]) => {
         if (ac.signal.aborted) return;
         const summary = now.summary;
@@ -134,6 +142,8 @@ export default function BriefPage() {
         setEdition(next);
         setStoreNow(asRanks(summary?.topStores));
         setStoreLy(asRanks(lySummary?.topStores));
+        setModelNow(summary?.topProducts ?? []);
+        setModelLy(lySummary?.topProducts ?? []);
         setStoryId(null);
         setOpenLine(null);
         setLinesByDept({});
@@ -156,10 +166,19 @@ export default function BriefPage() {
   const houseId =
     story?.id === "house:AJ" ? "aj" : story?.id === "house:Shaun" ? "shaun" : story?.id === "house:New" ? "new" : null;
   const houseLines = houseId ? storeLines(storeNow, storeLy, houseId as BriefStoreHouse) : undefined;
-  const articleLines = houseLines ?? departmentLines;
-  const linesLabel = houseId ? "Stores inside" : "Designs inside";
-  const linesEmpty = houseId ? "No selling stores in this house." : "No named designs in this department.";
+  const showKash = modelNow.some((model) => model.kashCost != null && Number(model.kashCost) > 0);
+  const modelStack: BriefModelStack | null =
+    story?.id === "model:returning" ? "returning" : story?.id === "model:fresh" ? "fresh" : null;
+  const stackLines = modelStack ? modelLines(modelNow, modelLy, modelStack, { showKash }) : undefined;
+  const articleLines = stackLines ?? houseLines ?? departmentLines;
+  const linesLabel = modelStack ? "Models inside" : houseId ? "Stores inside" : "Designs inside";
+  const linesEmpty = modelStack
+    ? "No jewelry models in this stack."
+    : houseId
+      ? "No selling stores in this house."
+      : "No named designs in this department.";
   const linesLoadingLabel = houseId ? "Opening stores…" : "Opening designs…";
+  const blankDelta = modelStack === "fresh";
 
   useEffect(() => {
     if (!isAdmin || !departmentTitle || linesByDept[departmentTitle] || linesFailed[departmentTitle]) return;
@@ -280,9 +299,10 @@ export default function BriefPage() {
                     linesLabel={linesLabel}
                     linesEmpty={linesEmpty}
                     linesLoadingLabel={linesLoadingLabel}
-                    linesLoading={!houseId && linesLoading === departmentTitle}
-                    linesError={!houseId && departmentTitle ? linesError : null}
-                    showAllLink={!houseId && Boolean(departmentTitle)}
+                    linesLoading={!houseId && !modelStack && linesLoading === departmentTitle}
+                    linesError={!houseId && !modelStack && departmentTitle ? linesError : null}
+                    showAllLink={!houseId && !modelStack && Boolean(departmentTitle)}
+                    blankDelta={blankDelta}
                     lineYear={lineYear}
                     openLine={openLine}
                     onYear={(year) => setLineYear(year)}
@@ -345,6 +365,7 @@ function Article({
   linesLoading,
   linesError,
   showAllLink,
+  blankDelta,
   lineYear,
   openLine,
   onYear,
@@ -360,6 +381,7 @@ function Article({
   linesLoading?: boolean;
   linesError?: string | null;
   showAllLink?: boolean;
+  blankDelta?: boolean;
   lineYear: "now" | "ly";
   openLine: string | null;
   onYear: (year: "now" | "ly") => void;
@@ -428,13 +450,14 @@ function Article({
                     >
                       <span className="min-w-0 flex-1 text-[16px] leading-snug">{line.name}</span>
                       <span className={cn("brief-sans shrink-0 text-[12px] tabular-nums", line.tone === "up" && "text-[var(--pine)]", line.tone === "down" && "text-[var(--oxblood)]")}>
-                        {formatSignedPct(line.delta)}
+                        {line.delta == null && blankDelta ? "—" : formatSignedPct(line.delta)}
                       </span>
                       <span className="brief-sans w-24 shrink-0 text-right text-[13px] tabular-nums">
                         {amount == null ? "—" : formatCurrency(amount)}
                       </span>
                     </button>
                     {open ? (
+                      <>
                       <dl className="brief-sans mb-3 grid grid-cols-2 gap-3 text-[12px] text-[var(--muted)] sm:grid-cols-4">
                         <div>
                           <dt className="brief-kicker">This year</dt>
@@ -450,9 +473,23 @@ function Article({
                         </div>
                         <div>
                           <dt className="brief-kicker">Vs last year</dt>
-                          <dd className="mt-1 text-[var(--ink)]">{formatSignedPct(line.delta)}</dd>
+                          <dd className="mt-1 text-[var(--ink)]">{line.delta == null && blankDelta ? "—" : formatSignedPct(line.delta)}</dd>
                         </div>
+                        {line.onHand != null ? (
+                          <div>
+                            <dt className="brief-kicker">On hand</dt>
+                            <dd className="mt-1 text-[var(--ink)]">{formatPieceCount(line.onHand)}</dd>
+                          </div>
+                        ) : null}
+                        {line.kashCost != null ? (
+                          <div>
+                            <dt className="brief-kicker">Kash CP</dt>
+                            <dd className="mt-1 text-[var(--ink)]">{formatCurrency(line.kashCost)}</dd>
+                          </div>
+                        ) : null}
                       </dl>
+                      {line.note ? <p className="mb-3 text-[14px] leading-snug text-[var(--ink)]">{line.note}</p> : null}
+                      </>
                     ) : null}
                   </li>
                 );

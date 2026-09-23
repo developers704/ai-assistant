@@ -86,7 +86,13 @@ export type BriefLine = {
   lyUnits: number | null;
   delta: number | null;
   tone: "up" | "down" | "ink";
+  note?: string | null;
+  onHand?: number | null;
+  kashCost?: number | null;
+  imageUrl?: string | null;
 };
+
+export type BriefModelStack = "returning" | "fresh";
 
 export type BriefSection = {
   id: "departments" | "designs" | "models" | "stores" | "vendors" | "people" | "pay";
@@ -196,15 +202,6 @@ function pieces(n: number): string {
   return formatPieceCount(n);
 }
 
-function forecastLabel(units: number): string {
-  if (units <= 0) return "0";
-  if (units < 10) {
-    const rounded = Math.round(units * 10) / 10;
-    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-  }
-  return String(Math.round(units));
-}
-
 function modelKey(model: BriefModel): string {
   return (model.vendorModel || model.name || "").trim().toUpperCase();
 }
@@ -245,59 +242,110 @@ function isJewelryModel(model: BriefModel): boolean {
   return model.revenue !== 0 || model.units !== 0;
 }
 
-/** A few fast movers and a few big tickets, without fee or care-plan lines. */
-function pickModels(models: BriefModel[]): BriefModel[] {
-  const pool = models.filter(isJewelryModel);
-  const byUnits = [...pool].sort((a, b) => b.units - a.units || b.revenue - a.revenue);
-  const byRevenue = [...pool].sort((a, b) => b.revenue - a.revenue || b.units - a.units);
-  const chosen: BriefModel[] = [];
-  const seen = new Set<string>();
-  for (const model of [...byRevenue.slice(0, 3), ...byUnits.slice(0, 3)]) {
-    const key = modelKey(model);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    chosen.push(model);
-  }
-  return chosen.slice(0, SECTION_LIMIT);
+function jewelryModels(models: BriefModel[]): BriefModel[] {
+  return models.filter((model) => {
+    if (!isJewelryModel(model)) return false;
+    const title = modelTitle(model);
+    return !isUnknownBriefName(title) && !isUnknownBriefName(model.vendorModel);
+  });
 }
 
-function buildModelStories(models: BriefModel[], lyModels: BriefModel[], dayCount: number, showKash: boolean): BriefStory[] {
-  const ly = new Map(lyModels.filter(isJewelryModel).map((m) => [modelKey(m), m]));
-  const ranked = pickModels(models);
+function modelsInStack(models: BriefModel[], lyModels: BriefModel[], stack: BriefModelStack): BriefModel[] {
+  const ly = new Map(jewelryModels(lyModels).map((model) => [modelKey(model), model]));
+  return jewelryModels(models).filter((model) => {
+    const prior = ly.get(modelKey(model));
+    const returning = prior != null && prior.revenue > 0;
+    return stack === "returning" ? returning : !returning;
+  });
+}
 
-  return ranked.map((m) => {
-    const title = modelTitle(m);
-    const prior = ly.get(modelKey(m));
-    const delta = prior ? pctDelta(m.revenue, prior.revenue) : null;
-    const onHand = m.onHandTotal == null ? null : m.onHandTotal;
-    const next = forecastTwoWeeks(m.units, dayCount);
-    const kash = showKash ? kashLine(m.revenue, m.units, m.kashCost) : null;
-    const lySentence = prior
-      ? `Last year this window was ${money(prior.revenue)} on ${pieces(prior.units)}.`
-      : "Not among last year's leading models.";
-    const handSentence = onHand == null ? "" : ` ${pieces(onHand)} on hand.`;
-    const forecastSentence =
-      next > 0 ? ` About ${forecastLabel(next)} in the next two weeks.` : "";
-    const dept = m.department && m.name && m.name !== title ? `${m.department}. ` : "";
-    return {
-      id: `model:${title}`,
-      kicker: kickerForModel({ units: m.units, onHand, delta }),
-      title,
-      deck: `${dept}Sold ${pieces(m.units)} for ${money(m.revenue)}.${handSentence} ${lySentence}${forecastSentence}${kash ? ` ${kash}` : ""}`.replace(/\s+/g, " ").trim(),
-      figure: formatSignedPct(delta),
-      tone: toneOf(delta),
-      imageUrl: m.imageUrl,
-      facts: [
-        { label: "Sold", value: pieces(m.units) },
-        { label: "Net", value: money(m.revenue) },
-        { label: "On hand", value: onHand == null ? "—" : pieces(onHand) },
-        { label: "Last year", value: prior ? money(prior.revenue) : "—" },
-        { label: "Next 2 wks", value: `${forecastLabel(next)} pcs` },
-        ...(showKash && m.kashCost != null && m.kashCost > 0
-          ? [{ label: "Kash CP", value: money(m.kashCost) }]
-          : []),
-      ],
-    };
+export function modelLines(
+  models: BriefModel[],
+  lyModels: BriefModel[],
+  stack: BriefModelStack,
+  opts?: { limit?: number; showKash?: boolean }
+): BriefLine[] {
+  const limit = opts?.limit ?? 8;
+  const ly = new Map(jewelryModels(lyModels).map((model) => [modelKey(model), model]));
+  return modelsInStack(models, lyModels, stack)
+    .sort((a, b) => b.revenue - a.revenue || b.units - a.units)
+    .slice(0, limit)
+    .map((model) => {
+      const title = modelTitle(model);
+      const prior = ly.get(modelKey(model));
+      const delta = stack === "returning" && prior && prior.revenue > 0 ? pctDelta(model.revenue, prior.revenue) : null;
+      const onHand = model.onHandTotal == null ? null : model.onHandTotal;
+      const kash = opts?.showKash ? kashLine(model.revenue, model.units, model.kashCost) : null;
+      const hand = onHand == null ? null : kickerForModel({ units: model.units, onHand, delta });
+      const note = [hand === "Running thin" ? hand : null, kash].filter(Boolean).join(" ");
+      return {
+        id: `model:${title}`,
+        name: title,
+        revenue: model.revenue,
+        units: model.units,
+        lyRevenue: prior && prior.revenue > 0 ? prior.revenue : null,
+        lyUnits: prior && prior.revenue > 0 ? prior.units : null,
+        delta,
+        tone: toneOf(delta),
+        note: note || null,
+        onHand,
+        kashCost: opts?.showKash && model.kashCost != null && model.kashCost > 0 ? model.kashCost : null,
+        imageUrl: model.imageUrl,
+      };
+    });
+}
+
+function buildModelStackStories(models: BriefModel[], lyModels: BriefModel[], showKash: boolean): BriefStory[] {
+  const ly = new Map(jewelryModels(lyModels).map((model) => [modelKey(model), model]));
+  const stacks: Array<{ id: string; title: string; stack: BriefModelStack }> = [
+    { id: "model:returning", title: "Still here", stack: "returning" },
+    { id: "model:fresh", title: "This year", stack: "fresh" },
+  ];
+  return stacks.flatMap(({ id, title, stack }) => {
+    const rows = modelsInStack(models, lyModels, stack);
+    if (rows.length === 0) return [];
+    const revenue = rows.reduce((sum, row) => sum + row.revenue, 0);
+    const units = rows.reduce((sum, row) => sum + row.units, 0);
+    const lyRevenue = rows.reduce((sum, row) => sum + (ly.get(modelKey(row))?.revenue ?? 0), 0);
+    const delta = stack === "returning" && lyRevenue > 0 ? pctDelta(revenue, lyRevenue) : null;
+    const lead = [...rows].sort((a, b) => b.revenue - a.revenue)[0];
+    const leadName = lead ? modelTitle(lead) : null;
+    const kicker =
+      stack === "fresh"
+        ? "This September"
+        : delta == null
+          ? "This September"
+          : delta >= 8
+            ? "Ahead of last year"
+            : delta <= -8
+              ? "Behind last year"
+              : "Steady";
+    const lySentence =
+      stack === "fresh" || lyRevenue <= 0
+        ? "No sales on these dates last year."
+        : `Last year ${money(lyRevenue)} on the same dates.`;
+    const leadSentence = leadName ? ` ${leadName} leads the stack.` : "";
+    return [
+      {
+        id,
+        kicker,
+        title,
+        deck: `${money(revenue)} this September on ${pieces(units)}. ${lySentence}${leadSentence}`.replace(/\s+/g, " ").trim(),
+        figure: stack === "fresh" ? money(revenue) : formatSignedPct(delta),
+        tone: toneOf(delta),
+        imageUrl: lead?.imageUrl,
+        facts: [
+          { label: "Net", value: money(revenue) },
+          { label: "Last year", value: stack === "returning" && lyRevenue > 0 ? money(lyRevenue) : "—" },
+          { label: "Vs last year", value: stack === "fresh" ? "—" : formatSignedPct(delta) },
+          { label: "Units", value: pieces(units) },
+          { label: "Models", value: String(rows.length) },
+          ...(showKash && lead?.kashCost != null && lead.kashCost > 0
+            ? [{ label: "Kash CP", value: money(lead.kashCost) }]
+            : []),
+        ],
+      },
+    ];
   });
 }
 
@@ -661,7 +709,6 @@ export function buildBriefEdition(input: {
     input.compareFrom && input.compareTo
       ? { from: input.compareFrom, to: input.compareTo }
       : briefPriorYear(input.from, input.to);
-  const days = inclusiveDays(input.from, input.to);
   const delta = pctDelta(input.net, input.lyNet);
   const departments = namedRanks(input.departments ?? []).sort((a, b) => b.revenue - a.revenue);
   const designs = namedRanks(input.designs ?? []).sort((a, b) => b.revenue - a.revenue);
@@ -669,14 +716,14 @@ export function buildBriefEdition(input: {
     { id: "departments", label: "Departments", stories: buildDepartmentStories(input.departments ?? [], input.lyDepartments ?? []) },
     { id: "designs", label: "Designs", stories: buildDesignStories(input.designs ?? [], input.lyDesigns ?? []) },
     { id: "stores", label: "Stores", stories: buildStoreStories(input.stores, input.lyStores) },
-    { id: "models", label: "Models", stories: buildModelStories(input.models, input.lyModels, days, input.showKash) },
+    { id: "models", label: "Models", stories: buildModelStackStories(input.models, input.lyModels, input.showKash) },
     { id: "vendors", label: "Vendors", stories: buildRankStories("vendor", input.vendors, input.lyVendors) },
     { id: "people", label: "People", stories: buildRankStories("person", input.people, input.lyPeople) },
     { id: "pay", label: "Pay", stories: buildPayStories(input.pay, input.lyPay) },
   ];
   const topStore = [...input.stores].filter((r) => !isUnknownBriefName(r.name)).sort((a, b) => b.revenue - a.revenue)[0]?.name ?? null;
   const leadDepartment = departments[0]?.name ?? null;
-  const topModel = pickModels(input.models)[0];
+  const topModel = [...jewelryModels(input.models)].sort((a, b) => b.revenue - a.revenue)[0];
   const designBit = designs[0] ? `${designs[0].name} is the strongest design.` : "";
   const modelBit = topModel ? `${modelTitle(topModel)} is the busiest model.` : "";
   const comparedWith = input.compareFrom ? "the same dates last year" : "the same weekdays last year";

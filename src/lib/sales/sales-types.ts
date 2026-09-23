@@ -135,6 +135,8 @@ export interface SalesQueryInput {
      * Used for Rozina so she can see full sold-line breakdown by Total/net.
      */
     includeHiddenTopModels?: boolean;
+    /** Edition: every vendor model in the window, so a missing last-year row means zero sales. */
+    allVendorModels?: boolean;
     topPaycodes?: boolean;
     trends?: boolean;
   };

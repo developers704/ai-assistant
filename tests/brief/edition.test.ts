@@ -6,6 +6,7 @@ import {
   buildBriefEdition,
   designLines,
   forecastTwoWeeks,
+  modelLines,
   formatSignedPct,
   isUnknownBriefName,
   pctDelta,
@@ -65,9 +66,28 @@ describe("morning brief edition", () => {
     expect(edition.headline).toContain("VJ-HEND");
     expect(edition.headline).toContain("ahead");
     const model = edition.sections.find((s) => s.id === "models")!.stories[0]!;
-    expect(model.kicker).toBe("Running thin");
+    expect(model.title).toBe("Still here");
+    expect(model.figure).toBe("+100%");
     expect(model.facts.find((f) => f.label === "Kash CP")?.value).toBe("$90");
-    expect(model.deck).toContain("under Kash cost");
+    const thin = modelLines(
+      [
+        {
+          vendorModel: "EVEBS025",
+          name: "Studs",
+          revenue: 400,
+          units: 8,
+          onHandTotal: 0,
+          kashCost: 90,
+          department: "EARRINGS",
+        },
+      ],
+      [{ vendorModel: "EVEBS025", name: "Studs", revenue: 200, units: 4 }],
+      "returning",
+      { showKash: true }
+    );
+    expect(thin[0]?.note).toContain("Running thin");
+    expect(thin[0]?.note).toContain("under Kash cost");
+    expect(thin[0]?.kashCost).toBe(90);
     const noisy = buildBriefEdition({
       from: "2026-09-15",
       to: "2026-09-21",
@@ -92,8 +112,41 @@ describe("morning brief edition", () => {
       showKash: false,
     });
     const titles = noisy.sections.find((s) => s.id === "models")!.stories.map((s) => s.title);
-    expect(titles).toEqual(["MV064-SL"]);
-    expect(model.figure).toBe("+100%");
+    expect(titles).toEqual(["This year"]);
+    expect(noisy.sections.find((s) => s.id === "models")!.stories[0]?.figure).toBe("$3,192");
+    const freshOnly = modelLines(
+      [
+        { vendorModel: "250000", name: "Covered Battery-Embedded (CBE) Recycling Fee", revenue: 130, units: 13, onHandTotal: 0 },
+        { vendorModel: "MLB-LT-2500", name: "Mulberry Lifetime Care Plan", revenue: 3880, units: 10 },
+        { vendorModel: "BATTERY", name: "BATTERY", revenue: 142, units: 8, department: "BATTERY" },
+        { vendorModel: "MV064-SL", name: "Diamond hoops", revenue: 3192, units: 8, onHandTotal: 4, department: "EARRINGS" },
+        { vendorModel: "Unknown model", name: "Unknown model", revenue: 900, units: 2 },
+      ],
+      [{ vendorModel: "MV064-SL", name: "Diamond hoops", revenue: 1000, units: 2 }],
+      "fresh"
+    );
+    expect(freshOnly.map((line) => line.name)).toEqual([]);
+    const returning = modelLines(
+      [
+        { vendorModel: "MV064-SL", name: "Diamond hoops", revenue: 3192, units: 8 },
+        { vendorModel: "NEW-1", name: "New hoop", revenue: 500, units: 1 },
+      ],
+      [{ vendorModel: "MV064-SL", name: "Diamond hoops", revenue: 1000, units: 2 }],
+      "returning"
+    );
+    expect(returning.map((line) => line.name)).toEqual(["MV064-SL"]);
+    expect(returning[0]?.delta).toBeCloseTo(((3192 - 1000) / 1000) * 100);
+    const fresh = modelLines(
+      [
+        { vendorModel: "MV064-SL", name: "Diamond hoops", revenue: 3192, units: 8 },
+        { vendorModel: "NEW-1", name: "New hoop", revenue: 500, units: 1 },
+      ],
+      [{ vendorModel: "MV064-SL", name: "Diamond hoops", revenue: 1000, units: 2 }],
+      "fresh"
+    );
+    expect(fresh.map((line) => line.name)).toEqual(["NEW-1"]);
+    expect(fresh[0]?.delta).toBeNull();
+    expect(fresh[0]?.lyRevenue).toBeNull();
   });
 
   it("locks September 1–21 to the same dates last year and drops unknown buckets", () => {
