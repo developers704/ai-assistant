@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  briefHotStoreDay,
+  briefMonthPace,
   briefPriorYear,
+  briefReturnSpike,
   briefSameDatesLastYear,
   briefWindowRange,
   buildBriefEdition,
+  costLines,
   designLines,
+  expertiseLeaders,
   forecastTwoWeeks,
   modelLines,
   payLines,
@@ -12,6 +17,7 @@ import {
   isUnknownBriefName,
   pctDelta,
   storeLines,
+  watchLines,
 } from "@/lib/brief/edition";
 
 describe("morning brief edition", () => {
@@ -346,5 +352,184 @@ describe("morning brief edition", () => {
     expect(ajLines[0]?.delta).toBeCloseTo(((800 - 600) / 600) * 100);
     expect(ajLines[1]?.delta).toBeNull();
     expect(ajLines[1]?.lyRevenue).toBeNull();
+  });
+
+  it("separates watches, Kash piles, design strength, flags, and September pace", () => {
+    const daily = Array.from({ length: 21 }, (_, index) => {
+      const day = String(index + 1).padStart(2, "0");
+      const net = index >= 14 ? 50 : 200;
+      return { date: `2026-09-${day}`, net, units: 1, returns: index === 10 ? 9000 : 100 };
+    });
+    const edition = buildBriefEdition({
+      from: "2026-09-01",
+      to: "2026-09-21",
+      compareFrom: "2025-09-01",
+      compareTo: "2025-09-21",
+      net: 2100,
+      lyNet: 2000,
+      units: 20,
+      models: [
+        {
+          vendorModel: "DATEJUST",
+          name: "DATEJUST",
+          revenue: 12000,
+          units: 2,
+          kashCost: 8000,
+          department: "ROLEX",
+          storeCount: 1,
+          leadStore: "VJ-FRE",
+        },
+        {
+          vendorModel: "HOOP",
+          name: "HOOP",
+          revenue: 500,
+          units: 5,
+          kashCost: 200,
+          department: "EARRINGS",
+        },
+        {
+          vendorModel: "BAND",
+          name: "BAND",
+          revenue: 310,
+          units: 1,
+          kashCost: 300,
+          department: "GOLD",
+        },
+      ],
+      lyModels: [],
+      stores: [
+        { name: "VJ-FRE", revenue: 400 },
+        { name: "VJ-LIV", revenue: 900 },
+      ],
+      lyStores: [
+        { name: "VJ-FRE", revenue: 1000 },
+        { name: "VJ-LIV", revenue: 200 },
+      ],
+      vendors: [],
+      lyVendors: [],
+      people: [],
+      lyPeople: [],
+      pay: [
+        { name: "CC", revenue: 100 },
+        { name: "SYNC", revenue: 900 },
+      ],
+      lyPay: [
+        { name: "CC", revenue: 800 },
+        { name: "SYNC", revenue: 200 },
+      ],
+      showKash: true,
+      scopeLabel: null,
+      watches: [
+        { name: "VJ-FRE", revenue: 800, units: 2 },
+        { name: "VJ-DEER", revenue: 100, units: 1 },
+      ],
+      lyWatches: [{ name: "VJ-FRE", revenue: 400, units: 1 }],
+      expertise: [
+        { department: "LADYS RING", design: "NOVELLO", person: "Sara (SN)", revenue: 800, units: 4 },
+        { department: "LADYS RING", design: "NOVELLO", person: "Pat (SP)", revenue: 200, units: 1 },
+        { department: "GOLD", design: "GOLD JEWL", person: "Pat (SP)", revenue: 100, units: 1 },
+      ],
+      daily,
+      hotDay: { store: "VJ-LIV", date: "2026-09-04", net: 20000, average: 4000 },
+      departments: [
+        { name: "LADYS RING", revenue: 600 },
+        { name: "GOLD", revenue: 200 },
+        { name: "EARRINGS", revenue: 150 },
+        { name: "ROLEX", revenue: 100 },
+      ],
+      lyDepartments: [
+        { name: "ROLEX", revenue: 900 },
+        { name: "GOLD", revenue: 400 },
+        { name: "EARRINGS", revenue: 200 },
+        { name: "LADYS RING", revenue: 300 },
+      ],
+      designs: [{ name: "NOVELLO", revenue: 800 }],
+      lyDesigns: [],
+    });
+
+    expect(edition.sections.find((s) => s.id === "watches")?.stories[0]?.title).toBe("Watches");
+    expect(watchLines(
+      [{ name: "VJ-DEER", revenue: 100, units: 1 }, { name: "VJ-FRE", revenue: 800, units: 2 }],
+      [{ name: "VJ-FRE", revenue: 400, units: 1 }]
+    )[0]).toMatchObject({ name: "VJ-FRE", delta: 100 });
+    expect(watchLines(
+      [{ name: "VJ-DEER", revenue: 100 }],
+      []
+    )[0]?.delta).toBeNull();
+
+    const cost = edition.sections.find((s) => s.id === "cost")!.stories.map((s) => s.title);
+    expect(cost).toContain("Under Kash cost");
+    expect(cost).toContain("Near Kash cost");
+    const under = costLines(
+      [{ vendorModel: "HOOP", name: "HOOP", revenue: 500, units: 5, kashCost: 200 }],
+      "under"
+    );
+    expect(under[0]?.note).toContain("under");
+    expect(under[0]?.note).toContain("Kash cost");
+
+    const people = edition.sections.find((s) => s.id === "people")!.stories;
+    expect(people[0]?.title).toBe("Sara (SN)");
+    expect(people[0]?.kicker).toBe("Strong in NOVELLO");
+    expect(expertiseLeaders(
+      [{ department: "GOLD", design: "GOLD JEWL", person: "Pat (SP)", revenue: 900, units: 2 }],
+      { department: "LADYS RING" }
+    )).toEqual([]);
+
+    const scoped = buildBriefEdition({
+      from: "2026-09-01",
+      to: "2026-09-21",
+      compareFrom: "2025-09-01",
+      compareTo: "2025-09-21",
+      net: 600,
+      lyNet: 300,
+      units: 4,
+      models: [],
+      lyModels: [],
+      stores: [],
+      lyStores: [],
+      vendors: [],
+      lyVendors: [],
+      people: [],
+      lyPeople: [],
+      pay: [],
+      lyPay: [],
+      showKash: false,
+      scopeLabel: "LADYS RING",
+      designs: [{ name: "NOVELLO", revenue: 600 }],
+      daily: [],
+    });
+    expect(scoped.headline).toBe("NOVELLO leads LADYS RING.");
+
+    const notes = edition.sections.find((s) => s.id === "notes")!.stories;
+    expect(notes[0]?.kicker).toBe("Pace");
+    expect(notes[0]?.deck).toContain("pace, not a forecast");
+    expect(notes[0]?.deck).toContain("slowed");
+    expect(notes.filter((s) => s.kicker === "Recommendation")).toHaveLength(3);
+    expect(notes.some((s) => s.id === "flag:store-day")).toBe(true);
+    expect(notes.some((s) => s.id === "flag:returns")).toBe(true);
+    expect(notes.some((s) => s.id === "flag:model" && s.title === "DATEJUST")).toBe(true);
+    expect(notes.some((s) => s.id === "flag:pay" && s.title === "SYNC")).toBe(true);
+    expect(notes.some((s) => s.id === "flag:department" && s.title === "ROLEX")).toBe(true);
+
+    const pace = briefMonthPace({
+      from: "2026-09-01",
+      to: "2026-09-21",
+      net: 2100,
+      daily: daily.map((day) => ({ date: day.date, net: 100 })),
+    });
+    expect(pace.dayCount).toBe(21);
+    expect(pace.restDays).toBe(9);
+    expect(pace.dailyPace).toBeCloseTo(100);
+    expect(pace.rest).toBeCloseTo(900);
+    expect(pace.slowed).toBe(false);
+    expect(briefMonthPace({ from: "2026-09-01", to: "2026-09-21", net: 2100, daily }).slowed).toBe(true);
+
+    expect(briefHotStoreDay([
+      { store: "MAIN", date: "2026-09-01", net: 50000 },
+      { store: "VJ-LIV", date: "2026-09-01", net: 1000 },
+      { store: "VJ-LIV", date: "2026-09-02", net: 1000 },
+      { store: "VJ-LIV", date: "2026-09-03", net: 12000 },
+    ])).toMatchObject({ store: "VJ-LIV", date: "2026-09-03" });
+    expect(briefReturnSpike(daily)?.date).toBe("2026-09-11");
   });
 });

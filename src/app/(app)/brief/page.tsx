@@ -1,49 +1,86 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductLightbox } from "@/components/reports/ProductImagePreview";
 import {
-  briefSameDatesLastYear,
   buildBriefEdition,
+  costLines,
   designLines,
   formatSignedPct,
   modelLines,
   payLines,
   storeLines,
+  watchLines,
   type BriefEdition,
   type BriefLine,
   type BriefModel,
   type BriefModelStack,
-  type BriefPay,
+  type BriefPacket,
   type BriefPayGroup,
-  type BriefRank,
   type BriefSection,
   type BriefStoreHouse,
   type BriefStory,
+  type CostPile,
 } from "@/lib/brief/edition";
 import { formatCurrency, formatPieceCount, cn } from "@/lib/utils";
 import { useApp } from "@/lib/store/app-context";
 import "./brief.css";
 
-type SalesPayload = {
-  summary?: {
-    totalRevenue?: number;
-    totalTransactions?: number;
-    topProducts?: BriefModel[];
-    topStores?: BriefRank[];
-    topVendors?: BriefRank[];
-    topDepartments?: BriefRank[];
-    topDesigns?: BriefRank[];
-    topSalesPeople?: Array<BriefRank & { units?: number }>;
-    paymentMethods?: BriefPay[];
-  };
-  error?: string;
-};
-
 /** One issue: September 1–21, 2026 against the same dates in 2025. */
 const ISSUE = { from: "2026-09-01", to: "2026-09-21" };
-const ISSUE_LY = briefSameDatesLastYear(ISSUE.from, ISSUE.to) ?? { from: "2025-09-01", to: "2025-09-21" };
+
+function sameName(a: string, b: string): boolean {
+  return a.trim().toUpperCase() === b.trim().toUpperCase();
+}
+
+function modelsIn(models: BriefModel[], department: string | null): BriefModel[] {
+  if (!department) return models;
+  return models.filter((model) => model.department && sameName(model.department, department));
+}
+
+function departmentSlice(packet: BriefPacket, name: string) {
+  if (packet.byDepartment[name]) return packet.byDepartment[name];
+  const key = Object.keys(packet.byDepartment).find((dept) => sameName(dept, name));
+  return key ? packet.byDepartment[key] : undefined;
+}
+
+function editionFrom(packet: BriefPacket, scope: string | null): BriefEdition {
+  const slice = scope ? departmentSlice(packet, scope) : undefined;
+  const scoped = Boolean(scope && slice);
+  const now = slice?.now ?? packet.now;
+  const ly = slice?.ly ?? packet.ly;
+  return buildBriefEdition({
+    from: packet.from,
+    to: packet.to,
+    compareFrom: packet.lyFrom,
+    compareTo: packet.lyTo,
+    net: now.net,
+    lyNet: ly.net,
+    units: now.units,
+    models: modelsIn(packet.models, scoped ? scope : null),
+    lyModels: modelsIn(packet.lyModels, scoped ? scope : null),
+    stores: now.stores,
+    lyStores: ly.stores,
+    vendors: now.vendors,
+    lyVendors: ly.vendors,
+    departments: now.departments,
+    lyDepartments: ly.departments,
+    designs: now.designs,
+    lyDesigns: ly.designs,
+    people: now.people,
+    lyPeople: ly.people,
+    pay: now.pay,
+    lyPay: ly.pay,
+    showKash: packet.showKash,
+    scopeLabel: scoped ? scope : null,
+    watches: scoped ? undefined : packet.watches,
+    lyWatches: scoped ? undefined : packet.lyWatches,
+    expertise: packet.expertise,
+    daily: now.daily,
+    hotDay: now.hotDay,
+  });
+}
 
 function formatEditionDate(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
@@ -61,42 +98,26 @@ function formatSpan(from: string, to: string): string {
   return `${a.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${b.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
-async function loadSlice(from: string, to: string, department?: string, edition = false): Promise<SalesPayload> {
-  const params = new URLSearchParams({ from, to });
-  if (department) params.set("department", department);
-  if (edition) params.set("edition", "1");
-  const res = await fetch(`/api/sales?${params}`);
-  const json = (await res.json()) as SalesPayload;
+async function loadPacket(): Promise<BriefPacket> {
+  const res = await fetch("/api/brief");
+  const json = (await res.json()) as BriefPacket & { error?: string };
   if (!res.ok) throw new Error(json.error || "Could not load the edition");
   return json;
-}
-
-function asRanks(rows: BriefRank[] | undefined): BriefRank[] {
-  return (rows ?? []).map((r) => ({ name: r.name, revenue: r.revenue, units: r.units }));
 }
 
 export default function BriefPage() {
   const router = useRouter();
   const { state } = useApp();
   const isAdmin = state?.user?.authRole === "admin";
-  const [edition, setEdition] = useState<BriefEdition | null>(null);
+  const [packet, setPacket] = useState<BriefPacket | null>(null);
+  const [scope, setScope] = useState<string | null>(null);
   const [sectionId, setSectionId] = useState<BriefSection["id"]>("departments");
   const [storyId, setStoryId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ src: string; alt: string; subtitle?: string } | null>(null);
-  const [linesByDept, setLinesByDept] = useState<Record<string, BriefLine[]>>({});
-  const [linesFailed, setLinesFailed] = useState<Record<string, string>>({});
-  const [linesError, setLinesError] = useState<string | null>(null);
-  const [linesLoading, setLinesLoading] = useState<string | null>(null);
   const [lineYear, setLineYear] = useState<"now" | "ly">("now");
   const [openLine, setOpenLine] = useState<string | null>(null);
-  const [storeNow, setStoreNow] = useState<BriefRank[]>([]);
-  const [storeLy, setStoreLy] = useState<BriefRank[]>([]);
-  const [modelNow, setModelNow] = useState<BriefModel[]>([]);
-  const [modelLy, setModelLy] = useState<BriefModel[]>([]);
-  const [payNow, setPayNow] = useState<BriefPay[]>([]);
-  const [payLy, setPayLy] = useState<BriefPay[]>([]);
 
   const range = ISSUE;
 
@@ -109,51 +130,13 @@ export default function BriefPage() {
     const ac = new AbortController();
     setLoading(true);
     setError(null);
-    Promise.all([
-      loadSlice(ISSUE.from, ISSUE.to, undefined, true),
-      loadSlice(ISSUE_LY.from, ISSUE_LY.to, undefined, true),
-    ])
-      .then(([now, prior]) => {
+    loadPacket()
+      .then((next) => {
         if (ac.signal.aborted) return;
-        const summary = now.summary;
-        const lySummary = prior.summary;
-        const models = summary?.topProducts ?? [];
-        const showKash = models.some((m) => m.kashCost != null && Number(m.kashCost) > 0);
-        const next = buildBriefEdition({
-          from: ISSUE.from,
-          to: ISSUE.to,
-          compareFrom: ISSUE_LY.from,
-          compareTo: ISSUE_LY.to,
-          net: summary?.totalRevenue ?? 0,
-          lyNet: lySummary?.totalRevenue ?? 0,
-          units: summary?.totalTransactions ?? 0,
-          models,
-          lyModels: lySummary?.topProducts ?? [],
-          stores: asRanks(summary?.topStores),
-          lyStores: asRanks(lySummary?.topStores),
-          vendors: summary?.topVendors ?? [],
-          lyVendors: lySummary?.topVendors ?? [],
-          departments: asRanks(summary?.topDepartments),
-          lyDepartments: asRanks(lySummary?.topDepartments),
-          designs: asRanks(summary?.topDesigns),
-          lyDesigns: asRanks(lySummary?.topDesigns),
-          people: summary?.topSalesPeople ?? [],
-          lyPeople: lySummary?.topSalesPeople ?? [],
-          pay: summary?.paymentMethods ?? [],
-          lyPay: lySummary?.paymentMethods ?? [],
-          showKash,
-        });
-        setEdition(next);
-        setStoreNow(asRanks(summary?.topStores));
-        setStoreLy(asRanks(lySummary?.topStores));
-        setModelNow(summary?.topProducts ?? []);
-        setModelLy(lySummary?.topProducts ?? []);
-        setPayNow(summary?.paymentMethods ?? []);
-        setPayLy(lySummary?.paymentMethods ?? []);
+        setPacket(next);
+        setScope(null);
         setStoryId(null);
         setOpenLine(null);
-        setLinesByDept({});
-        setLinesFailed({});
       })
       .catch((err: unknown) => {
         if (ac.signal.aborted) return;
@@ -165,61 +148,58 @@ export default function BriefPage() {
     return () => ac.abort();
   }, [isAdmin]);
 
+  const company = useMemo(() => (packet ? editionFrom(packet, null) : null), [packet]);
+  const scoped = useMemo(() => (packet && scope ? editionFrom(packet, scope) : null), [packet, scope]);
+  const edition = useMemo(() => {
+    if (!company) return null;
+    if (!scope || !scoped) return company;
+    const departments = company.sections.find((section) => section.id === "departments");
+    if (!departments) return scoped;
+    return {
+      ...scoped,
+      sections: scoped.sections.map((section) => (section.id === "departments" ? departments : section)),
+    };
+  }, [company, scoped, scope]);
+
   const section = edition?.sections.find((s) => s.id === sectionId) ?? edition?.sections[0];
   const story = section?.stories.find((s) => s.id === storyId) ?? section?.stories[0] ?? null;
+  const activeSlice = (scope && packet ? departmentSlice(packet, scope) : undefined) ?? (packet ? { now: packet.now, ly: packet.ly } : undefined);
   const departmentTitle = section?.id === "departments" ? story?.title ?? null : null;
-  const departmentLines = departmentTitle ? linesByDept[departmentTitle] : undefined;
+  const departmentPack = departmentTitle && packet ? departmentSlice(packet, departmentTitle) : undefined;
+  const departmentLines = departmentPack ? designLines(departmentPack.now.designs, departmentPack.ly.designs) : undefined;
   const houseId =
     story?.id === "house:AJ" ? "aj" : story?.id === "house:Shaun" ? "shaun" : story?.id === "house:New" ? "new" : null;
-  const houseLines = houseId ? storeLines(storeNow, storeLy, houseId as BriefStoreHouse) : undefined;
-  const showKash = modelNow.some((model) => model.kashCost != null && Number(model.kashCost) > 0);
+  const houseLines =
+    houseId && activeSlice ? storeLines(activeSlice.now.stores, activeSlice.ly.stores, houseId as BriefStoreHouse) : undefined;
+  const modelNow = packet ? modelsIn(packet.models, scope) : [];
+  const modelLy = packet ? modelsIn(packet.lyModels, scope) : [];
+  const showKash = packet?.showKash === true;
   const modelStack: BriefModelStack | null =
     story?.id === "model:returning" ? "returning" : story?.id === "model:fresh" ? "fresh" : null;
   const stackLines = modelStack ? modelLines(modelNow, modelLy, modelStack, { showKash }) : undefined;
   const payGroup: BriefPayGroup | null =
     story?.id === "pay:Cash" ? "cash" : story?.id === "pay:Card" ? "card" : story?.id === "pay:Financing" ? "financing" : null;
-  const methodLines = payGroup ? payLines(payNow, payLy, payGroup) : undefined;
-  const articleLines = methodLines ?? stackLines ?? houseLines ?? departmentLines;
-  const linesLabel = payGroup ? "Methods inside" : modelStack ? "Models inside" : houseId ? "Stores inside" : "Designs inside";
+  const methodLines = payGroup && activeSlice ? payLines(activeSlice.now.pay, activeSlice.ly.pay, payGroup) : undefined;
+  const watchOpen = story?.id === "watch:all" && packet && !scope;
+  const openedWatchLines = watchOpen ? watchLines(packet.watches, packet.lyWatches) : undefined;
+  const costPile: CostPile | null = story?.id === "cost:under" ? "under" : story?.id === "cost:near" ? "near" : null;
+  const openedCostLines = costPile ? costLines(modelNow, costPile) : undefined;
+  const articleLines = methodLines ?? stackLines ?? houseLines ?? openedWatchLines ?? openedCostLines ?? departmentLines;
+  const linesLabel = payGroup
+    ? "Methods inside"
+    : modelStack || costPile
+      ? "Models inside"
+      : houseId || watchOpen
+        ? "Stores inside"
+        : "Designs inside";
   const linesEmpty = payGroup
     ? "No methods in this group."
-    : modelStack
+    : modelStack || costPile
       ? "No jewelry models in this stack."
-      : houseId
+      : houseId || watchOpen
         ? "No selling stores in this house."
         : "No named designs in this department.";
-  const linesLoadingLabel = houseId ? "Opening stores…" : "Opening designs…";
-  const blankDelta = modelStack === "fresh" || Boolean(payGroup);
-
-  useEffect(() => {
-    if (!isAdmin || !departmentTitle || linesByDept[departmentTitle] || linesFailed[departmentTitle]) return;
-    let cancelled = false;
-    setLinesLoading(departmentTitle);
-    setLinesError(null);
-    Promise.all([
-      loadSlice(ISSUE.from, ISSUE.to, departmentTitle),
-      loadSlice(ISSUE_LY.from, ISSUE_LY.to, departmentTitle),
-    ])
-      .then(([now, prior]) => {
-        if (cancelled) return;
-        setLinesByDept((prev) => ({
-          ...prev,
-          [departmentTitle]: designLines(asRanks(now.summary?.topDesigns), asRanks(prior.summary?.topDesigns)),
-        }));
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : "Could not load designs";
-        setLinesError(message);
-        setLinesFailed((prev) => ({ ...prev, [departmentTitle]: message }));
-      })
-      .finally(() => {
-        if (!cancelled) setLinesLoading((current) => (current === departmentTitle ? null : current));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isAdmin, departmentTitle, linesByDept, linesFailed]);
+  const blankDelta = modelStack === "fresh" || Boolean(payGroup) || Boolean(watchOpen) || Boolean(costPile);
 
   if (!isAdmin) return null;
 
@@ -239,7 +219,23 @@ export default function BriefPage() {
           </p>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="brief-sans text-[13px] text-[var(--ink)]">September 1–21</p>
+          <div className="brief-sans flex flex-wrap items-center gap-3 text-[13px]">
+            <button
+              type="button"
+              onClick={() => {
+                setScope(null);
+                setStoryId(null);
+                setOpenLine(null);
+                setSectionId("departments");
+              }}
+              className={cn(
+                scope ? "text-[var(--muted)] hover:text-[var(--ink)]" : "text-[var(--ink)] underline decoration-[var(--oxblood)] underline-offset-4"
+              )}
+            >
+              All
+            </button>
+            {scope ? <span className="text-[var(--ink)]">{scope}</span> : <span className="text-[var(--muted)]">September 1–21</span>}
+          </div>
           <p className="brief-sans text-[12px] tracking-wide text-[var(--muted)]">
             {formatSpan(range.from, range.to)}
             {edition?.lyFrom && edition.lyTo ? `  ·  compared with ${formatSpan(edition.lyFrom, edition.lyTo)}, ${edition.lyFrom.slice(0, 4)}` : ""}
@@ -309,10 +305,7 @@ export default function BriefPage() {
                     lines={articleLines}
                     linesLabel={linesLabel}
                     linesEmpty={linesEmpty}
-                    linesLoadingLabel={linesLoadingLabel}
-                    linesLoading={!houseId && !modelStack && linesLoading === departmentTitle}
-                    linesError={!houseId && !modelStack && departmentTitle ? linesError : null}
-                    showAllLink={!houseId && !modelStack && Boolean(departmentTitle)}
+                    showAllLink={Boolean(departmentTitle)}
                     blankDelta={blankDelta}
                     lineYear={lineYear}
                     openLine={openLine}
@@ -334,6 +327,10 @@ export default function BriefPage() {
                         <button
                           type="button"
                           onClick={() => {
+                            if (section.id === "departments" && packet && departmentSlice(packet, s.title)) {
+                              setScope(s.title);
+                              setSectionId("departments");
+                            }
                             setStoryId(s.id);
                             setOpenLine(null);
                           }}
@@ -372,9 +369,6 @@ function Article({
   lines,
   linesLabel,
   linesEmpty,
-  linesLoadingLabel,
-  linesLoading,
-  linesError,
   showAllLink,
   blankDelta,
   lineYear,
@@ -388,9 +382,6 @@ function Article({
   lines?: BriefLine[];
   linesLabel: string;
   linesEmpty: string;
-  linesLoadingLabel: string;
-  linesLoading?: boolean;
-  linesError?: string | null;
   showAllLink?: boolean;
   blankDelta?: boolean;
   lineYear: "now" | "ly";
@@ -423,7 +414,7 @@ function Article({
           </div>
         ))}
       </dl>
-      {lines || linesLoading || linesError ? (
+      {lines ? (
         <div className="mt-8 border-t border-[var(--rule)] pt-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <p className="brief-kicker text-[var(--muted)]">{linesLabel}</p>
@@ -444,9 +435,7 @@ function Article({
               </button>
             </div>
           </div>
-          {linesLoading && !lines ? <p className="brief-sans mt-4 text-[13px] text-[var(--muted)]">{linesLoadingLabel}</p> : null}
-          {linesError && !lines ? <p className="brief-sans mt-4 text-[13px] text-[var(--oxblood)]">{linesError}</p> : null}
-          {lines && lines.length === 0 ? <p className="mt-4 italic text-[var(--muted)]">{linesEmpty}</p> : null}
+          {lines.length === 0 ? <p className="mt-4 italic text-[var(--muted)]">{linesEmpty}</p> : null}
           {lines && lines.length > 0 ? (
             <ol className="mt-2">
               {lines.map((line) => {

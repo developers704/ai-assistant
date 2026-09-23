@@ -48,6 +48,60 @@ export type BriefModel = {
   imageUrl?: string | null;
   kashCost?: number | null;
   department?: string;
+  /** Selling stores with positive net. Used for the one-store flag. */
+  storeCount?: number;
+  leadStore?: string | null;
+};
+
+export type BriefDay = {
+  date: string;
+  net: number;
+  units: number;
+  returns: number;
+};
+
+export type BriefExpertise = {
+  department: string;
+  design: string;
+  person: string;
+  revenue: number;
+  units: number;
+};
+
+export type BriefHotDay = {
+  store: string;
+  date: string;
+  net: number;
+  average: number;
+};
+
+export type BriefSlice = {
+  net: number;
+  units: number;
+  departments: BriefRank[];
+  designs: BriefRank[];
+  stores: BriefRank[];
+  vendors: BriefRank[];
+  people: BriefRank[];
+  pay: BriefPay[];
+  daily: BriefDay[];
+  hotDay: BriefHotDay | null;
+};
+
+export type BriefPacket = {
+  from: string;
+  to: string;
+  lyFrom: string;
+  lyTo: string;
+  showKash: boolean;
+  now: BriefSlice;
+  ly: BriefSlice;
+  models: BriefModel[];
+  lyModels: BriefModel[];
+  watches: BriefRank[];
+  lyWatches: BriefRank[];
+  expertise: BriefExpertise[];
+  byDepartment: Record<string, { now: BriefSlice; ly: BriefSlice }>;
 };
 
 export type BriefRank = {
@@ -116,7 +170,7 @@ const PAY_FINANCING = new Set([
 ]);
 
 export type BriefSection = {
-  id: "departments" | "designs" | "models" | "stores" | "vendors" | "people" | "pay";
+  id: "departments" | "designs" | "models" | "stores" | "watches" | "cost" | "vendors" | "people" | "pay" | "notes";
   label: string;
   stories: BriefStory[];
 };
@@ -185,8 +239,12 @@ function minusOneCalendarYear(iso: string): string | null {
 
 /** Blank and "Unknown department / vendor / class / design" buckets stay out of stories. */
 export function isUnknownBriefName(name: string | null | undefined): boolean {
-  const n = (name ?? "").trim().toLowerCase();
-  if (!n || n === "—" || n === "-") return true;
+  const n = (name ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^["'`]+|["'`]+$/g, "")
+    .trim();
+  if (!n || n === "—" || n === "-" || n === "–" || n === "n/a" || n === "na" || n === "none") return true;
   return n.startsWith("unknown");
 }
 
@@ -252,7 +310,7 @@ function kashLine(revenue: number, units: number, kashCost: number | null | unde
   return `Average ${money(avg)} clears Kash cost ${money(kashCost)}.`;
 }
 
-function isJewelryModel(model: BriefModel): boolean {
+export function isJewelryModel(model: BriefModel): boolean {
   const vm = (model.vendorModel || model.name || "").trim().toUpperCase();
   const name = `${model.name || ""} ${model.department || ""}`.toUpperCase();
   if (!vm || vm === "—" || vm === "ITEM" || vm === "BATTERY") return false;
@@ -776,6 +834,598 @@ function buildPayStories(rows: BriefPay[], lyRows: BriefPay[]): BriefStory[] {
   });
 }
 
+export function isBriefSellingStore(name: string): boolean {
+  const key = rankKey(name);
+  if (!key || isUnknownBriefName(name)) return false;
+  return !SKIP_STORES.has(key);
+}
+
+function monthEndIso(to: string): string {
+  const [y, m] = to.split("-").map(Number);
+  if (!y || !m) return to;
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return `${to.slice(0, 7)}-${String(last).padStart(2, "0")}`;
+}
+
+function editionDaySpan(from: string, to: string): string {
+  const a = new Date(`${from}T12:00:00Z`);
+  const b = new Date(`${to}T12:00:00Z`);
+  const month = a.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  if (a.getUTCMonth() === b.getUTCMonth() && a.getUTCFullYear() === b.getUTCFullYear()) {
+    return `${month} ${a.getUTCDate()}–${b.getUTCDate()}`;
+  }
+  const left = a.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+  const right = b.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+  return `${left}–${right}`;
+}
+
+/** Daily pace of the issue, applied to the rest of that month. Not a forecast. */
+export function briefMonthPace(opts: {
+  from: string;
+  to: string;
+  net: number;
+  monthEnd?: string;
+  daily?: { date: string; net: number }[];
+}): {
+  dayCount: number;
+  dailyPace: number;
+  restDays: number;
+  rest: number;
+  month: number;
+  last7PerDay: number;
+  earlierPerDay: number;
+  slowed: boolean;
+  restFrom: string;
+  monthEnd: string;
+} {
+  const dayCount = inclusiveDays(opts.from, opts.to);
+  const dailyPace = dayCount > 0 ? opts.net / dayCount : 0;
+  const monthEnd = opts.monthEnd && opts.monthEnd >= opts.to ? opts.monthEnd : monthEndIso(opts.to);
+  const restFrom = shiftIsoDays(opts.to, 1);
+  const restDays = restFrom <= monthEnd ? inclusiveDays(restFrom, monthEnd) : 0;
+  const lastStart = shiftIsoDays(opts.to, -6);
+  const earlierEnd = shiftIsoDays(opts.to, -7);
+  let last7 = 0;
+  let earlier = 0;
+  for (const day of opts.daily ?? []) {
+    if (day.date >= lastStart && day.date <= opts.to) last7 += day.net;
+    else if (day.date >= opts.from && day.date <= earlierEnd) earlier += day.net;
+  }
+  const lastDays = lastStart <= opts.to ? inclusiveDays(lastStart < opts.from ? opts.from : lastStart, opts.to) : 0;
+  const earlierDays = opts.from <= earlierEnd ? inclusiveDays(opts.from, earlierEnd) : 0;
+  const last7PerDay = lastDays > 0 ? last7 / lastDays : 0;
+  const earlierPerDay = earlierDays > 0 ? earlier / earlierDays : 0;
+  const slowed = earlierPerDay > 0 && last7PerDay < earlierPerDay * 0.9;
+  return {
+    dayCount,
+    dailyPace,
+    restDays,
+    rest: dailyPace * restDays,
+    month: opts.net + dailyPace * restDays,
+    last7PerDay,
+    earlierPerDay,
+    slowed,
+    restFrom,
+    monthEnd,
+  };
+}
+
+/** A store-day at least 2.5× that store's own pace, and at least $8,000. */
+export function briefHotStoreDay(
+  rows: { store: string; date: string; net: number }[]
+): BriefHotDay | null {
+  const byStore = new Map<string, { store: string; days: { date: string; net: number }[] }>();
+  for (const row of rows) {
+    if (!isBriefSellingStore(row.store) || row.net === 0) continue;
+    const key = rankKey(row.store);
+    const cur = byStore.get(key) ?? { store: row.store, days: [] };
+    cur.days.push({ date: row.date, net: row.net });
+    byStore.set(key, cur);
+  }
+  let best: BriefHotDay | null = null;
+  let bestRatio = 0;
+  for (const group of byStore.values()) {
+    if (group.days.length < 3) continue;
+    const average = group.days.reduce((sum, day) => sum + day.net, 0) / group.days.length;
+    if (!(average > 0)) continue;
+    for (const day of group.days) {
+      const ratio = day.net / average;
+      if (ratio < 2.5 || day.net < 8000) continue;
+      if (ratio > bestRatio || (ratio === bestRatio && best && day.net > best.net)) {
+        bestRatio = ratio;
+        best = { store: group.store, date: day.date, net: day.net, average };
+      }
+    }
+  }
+  return best;
+}
+
+export function briefReturnSpike(
+  daily: { date: string; returns: number }[]
+): { date: string; returns: number; average: number } | null {
+  const active = daily.filter((day) => day.returns > 0);
+  if (active.length < 3) return null;
+  const average = active.reduce((sum, day) => sum + day.returns, 0) / active.length;
+  if (!(average > 0)) return null;
+  let best: { date: string; returns: number; average: number } | null = null;
+  for (const day of active) {
+    if (day.returns < average * 2.5 || day.returns < 4000) continue;
+    if (!best || day.returns > best.returns) best = { date: day.date, returns: day.returns, average };
+  }
+  return best;
+}
+
+export function briefSingleStoreModel(models: BriefModel[]): BriefModel | null {
+  let best: BriefModel | null = null;
+  for (const model of jewelryModels(models)) {
+    if (model.storeCount !== 1 || !model.leadStore || model.units < 2 || model.revenue < 8000) continue;
+    if (!best || model.revenue > best.revenue) best = model;
+  }
+  return best;
+}
+
+function payShareJump(
+  pay: BriefPay[],
+  lyPay: BriefPay[]
+): { name: string; share: number; lyShare: number } | null {
+  const now = foldedPay(pay);
+  const ly = foldedPay(lyPay);
+  const nowTotal = [...now.values()].reduce((sum, row) => sum + row.revenue, 0);
+  const lyTotal = [...ly.values()].reduce((sum, row) => sum + row.revenue, 0);
+  if (!(nowTotal > 0) || !(lyTotal > 0)) return null;
+  let best: { name: string; share: number; lyShare: number } | null = null;
+  let bestMove = 0;
+  const names = new Set([...now.keys(), ...ly.keys()]);
+  for (const name of names) {
+    const share = ((now.get(name)?.revenue ?? 0) / nowTotal) * 100;
+    const lyShare = ((ly.get(name)?.revenue ?? 0) / lyTotal) * 100;
+    const move = Math.abs(share - lyShare);
+    if (move < 8) continue;
+    const rose = !best || share - lyShare > best.share - best.lyShare;
+    if (move > bestMove || (move === bestMove && rose)) {
+      bestMove = move;
+      best = { name, share, lyShare };
+    }
+  }
+  return best;
+}
+
+function departmentFlip(
+  rows: BriefRank[],
+  lyRows: BriefRank[]
+): { name: string; fromRank: number; toRank: number } | null {
+  const now = namedRanks(rows).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
+  const ly = namedRanks(lyRows).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
+  const lyRank = new Map(ly.map((row, index) => [rankKey(row.name), index + 1]));
+  let best: { name: string; fromRank: number; toRank: number } | null = null;
+  let bestMove = 0;
+  now.forEach((row, index) => {
+    const fromRank = lyRank.get(rankKey(row.name));
+    if (!fromRank) return;
+    const toRank = index + 1;
+    const move = Math.abs(fromRank - toRank);
+    if (move < 3) return;
+    if (move > bestMove) {
+      bestMove = move;
+      best = { name: row.name, fromRank, toRank };
+    }
+  });
+  return best;
+}
+
+function furthestBehind(rows: BriefRank[], lyRows: BriefRank[]): { name: string; drop: number; revenue: number; ly: number } | null {
+  const ly = new Map(namedRanks(lyRows).map((row) => [rankKey(row.name), row]));
+  let best: { name: string; drop: number; revenue: number; ly: number } | null = null;
+  for (const row of namedRanks(rows)) {
+    const prior = ly.get(rankKey(row.name));
+    if (!prior || !(prior.revenue > 0)) continue;
+    const drop = prior.revenue - row.revenue;
+    if (drop <= 0) continue;
+    if (!best || drop > best.drop) best = { name: row.name, drop, revenue: row.revenue, ly: prior.revenue };
+  }
+  return best;
+}
+
+function furthestStoreSlip(stores: BriefRank[], lyStores: BriefRank[]): { name: string; drop: number; revenue: number; ly: number } | null {
+  const ly = new Map(sellingStores(lyStores).map((row) => [rankKey(row.name), row]));
+  let best: { name: string; drop: number; revenue: number; ly: number } | null = null;
+  for (const row of sellingStores(stores)) {
+    if (isNewBriefStore(row.name)) continue;
+    const prior = ly.get(rankKey(row.name));
+    if (!prior || !(prior.revenue > 0)) continue;
+    const drop = prior.revenue - row.revenue;
+    if (drop <= 0) continue;
+    if (!best || drop > best.drop) best = { name: row.name, drop, revenue: row.revenue, ly: prior.revenue };
+  }
+  return best;
+}
+
+export type CostPile = "under" | "near";
+
+export function costPileModels(models: BriefModel[], pile: CostPile): BriefModel[] {
+  return jewelryModels(models)
+    .filter((model) => {
+      if (!(model.units > 0) || model.kashCost == null || !(model.kashCost > 0)) return false;
+      const avg = model.revenue / model.units;
+      if (pile === "under") return avg < model.kashCost;
+      return avg >= model.kashCost && avg <= model.kashCost * 1.1;
+    })
+    .sort((a, b) => b.revenue - a.revenue || b.units - a.units);
+}
+
+export function costLines(models: BriefModel[], pile: CostPile, limit = 8): BriefLine[] {
+  return costPileModels(models, pile)
+    .slice(0, limit)
+    .map((model) => {
+      const title = modelTitle(model);
+      const avg = model.units > 0 ? model.revenue / model.units : model.revenue;
+      const kash = model.kashCost ?? 0;
+      return {
+        id: `cost:${pile}:${title}`,
+        name: title,
+        revenue: model.revenue,
+        units: model.units,
+        lyRevenue: null,
+        lyUnits: null,
+        delta: null,
+        tone: pile === "under" ? "down" : "ink",
+        note:
+          pile === "under"
+            ? `Average ${money(avg)} sits under Kash cost ${money(kash)}.`
+            : `Average ${money(avg)} is near Kash cost ${money(kash)}.`,
+        kashCost: kash,
+        imageUrl: model.imageUrl,
+      };
+    });
+}
+
+function buildCostStories(models: BriefModel[], showKash: boolean): BriefStory[] {
+  if (!showKash) return [];
+  const piles: Array<{ id: CostPile; title: string }> = [
+    { id: "under", title: "Under Kash cost" },
+    { id: "near", title: "Near Kash cost" },
+  ];
+  return piles
+    .map((pile) => {
+      const rows = costPileModels(models, pile.id);
+      const revenue = rows.reduce((sum, row) => sum + row.revenue, 0);
+      const units = rows.reduce((sum, row) => sum + row.units, 0);
+      const lead = rows[0];
+      return { ...pile, rows, revenue, units, lead };
+    })
+    .filter((pile) => pile.revenue > 0 && pile.lead)
+    .sort((a, b) => b.revenue - a.revenue)
+    .map((pile) => {
+      const lead = pile.lead!;
+      const avg = lead.units > 0 ? lead.revenue / lead.units : lead.revenue;
+      return {
+        id: `cost:${pile.id}`,
+        kicker: pile.id === "under" ? "Below cost" : "Within 10%",
+        title: pile.title,
+        deck: `${pieces(pile.units)} across ${pile.rows.length} models, ${money(pile.revenue)} net. ${modelTitle(lead)} is the largest, average ${money(avg)} against Kash cost ${money(lead.kashCost ?? 0)}.`,
+        figure: money(pile.revenue),
+        tone: pile.id === "under" ? "down" : "ink",
+        imageUrl: lead.imageUrl,
+        facts: [
+          { label: "Net", value: money(pile.revenue) },
+          { label: "Models", value: String(pile.rows.length) },
+          { label: "Units", value: pieces(pile.units) },
+          { label: "Kash CP", value: money(lead.kashCost ?? 0) },
+        ],
+      } satisfies BriefStory;
+    });
+}
+
+export function watchLines(stores: BriefRank[], lyStores: BriefRank[], limit = 12): BriefLine[] {
+  const ly = new Map(sellingStores(lyStores).map((row) => [rankKey(row.name), row]));
+  return sellingStores(stores)
+    .sort((a, b) => b.revenue - a.revenue || (b.units ?? 0) - (a.units ?? 0))
+    .slice(0, limit)
+    .map((row) => {
+      const prior = ly.get(rankKey(row.name));
+      const delta = comparableDelta(row.revenue, prior, row.name);
+      return {
+        id: `watch:${row.name}`,
+        name: row.name,
+        revenue: row.revenue,
+        units: row.units ?? 0,
+        lyRevenue: prior && !isNewBriefStore(row.name) ? prior.revenue : null,
+        lyUnits: prior && !isNewBriefStore(row.name) ? prior.units ?? null : null,
+        delta,
+        tone: toneOf(delta),
+      };
+    });
+}
+
+function buildWatchStories(stores: BriefRank[], lyStores: BriefRank[]): BriefStory[] {
+  const nowRows = sellingStores(stores);
+  const lyRows = sellingStores(lyStores);
+  if (sumRanks(nowRows).revenue === 0) return [];
+  const total = buildHouseStory("watch:all", "Watches", nowRows, lyRows, "house");
+  const top = watchLines(stores, lyStores, 3).map((line) => ({
+    id: `watch:${line.name}`,
+    kicker: line.delta != null && line.delta >= 8 ? "Rose this September" : line.delta != null && line.delta <= -8 ? "Slipped this September" : "This September",
+    title: line.name,
+    deck: `${money(line.revenue)} in watches this September${line.units ? ` on ${pieces(line.units)}` : ""}. ${
+      line.lyRevenue != null ? `Last year ${money(line.lyRevenue)} on the same dates.` : "No watch sales on these dates last year."
+    }`,
+    figure: line.delta == null ? money(line.revenue) : formatSignedPct(line.delta),
+    tone: line.tone,
+    facts: [
+      { label: "Net", value: money(line.revenue) },
+      { label: "Last year", value: line.lyRevenue != null ? money(line.lyRevenue) : "—" },
+      { label: "Vs last year", value: line.delta == null ? "—" : formatSignedPct(line.delta) },
+      { label: "Units", value: pieces(line.units) },
+    ],
+  }));
+  return [{ ...total, id: "watch:all", kicker: "By store" }, ...top];
+}
+
+export function expertiseLeaders(
+  rows: BriefExpertise[],
+  opts?: { department?: string | null; limit?: number }
+): BriefStory[] {
+  const limit = opts?.limit ?? 6;
+  const department = opts?.department?.trim().toUpperCase() || "";
+  const byDesign = new Map<string, { design: string; total: number; people: Map<string, { person: string; revenue: number; units: number }> }>();
+  for (const row of rows) {
+    if (isUnknownBriefName(row.design) || isUnknownBriefName(row.person) || !(row.revenue > 0)) continue;
+    if (department && row.department.trim().toUpperCase() !== department) continue;
+    const key = rankKey(row.design);
+    const group = byDesign.get(key) ?? { design: row.design.trim(), total: 0, people: new Map() };
+    group.total += row.revenue;
+    const person = group.people.get(row.person) ?? { person: row.person, revenue: 0, units: 0 };
+    person.revenue += row.revenue;
+    person.units += row.units;
+    group.people.set(row.person, person);
+    byDesign.set(key, group);
+  }
+  return [...byDesign.values()]
+    .map((group) => {
+      const lead = [...group.people.values()].sort((a, b) => b.revenue - a.revenue || b.units - a.units)[0]!;
+      const share = group.total > 0 ? (lead.revenue / group.total) * 100 : 0;
+      return { ...group, lead, share };
+    })
+    .filter((group) => group.share >= 25 && group.total >= 500 && group.lead.revenue >= 200)
+    .sort((a, b) => b.share - a.share || b.lead.revenue - a.lead.revenue)
+    .slice(0, limit)
+    .map((group) => {
+      const share = `${Math.round(group.share)}%`;
+      return {
+        id: `person:${group.design}:${group.lead.person}`,
+        kicker: `Strong in ${group.design}`,
+        title: group.lead.person,
+        deck: `${group.lead.person} wrote ${money(group.lead.revenue)} of ${group.design}, ${share} of that design.`,
+        figure: share,
+        tone: "ink" as const,
+        facts: [
+          { label: "Net", value: money(group.lead.revenue) },
+          { label: "Share", value: share },
+          { label: "Design", value: group.design },
+          { label: "Units", value: pieces(group.lead.units) },
+        ],
+      };
+    });
+}
+
+function buildNotesStories(input: {
+  from: string;
+  to: string;
+  net: number;
+  daily?: BriefDay[] | null;
+  hotDay?: BriefHotDay | null;
+  departments?: BriefRank[];
+  lyDepartments?: BriefRank[];
+  stores: BriefRank[];
+  lyStores: BriefRank[];
+  models: BriefModel[];
+  pay: BriefPay[];
+  lyPay: BriefPay[];
+  showKash: boolean;
+}): BriefStory[] {
+  if (!input.daily) return [];
+  const pace = briefMonthPace({ from: input.from, to: input.to, net: input.net, daily: input.daily });
+  const windowLabel = editionDaySpan(input.from, input.to);
+  const restLabel = pace.restDays > 0 ? editionDaySpan(pace.restFrom, pace.monthEnd) : "the rest of the month";
+  const slowSentence = pace.slowed
+    ? ` The last seven days slowed to ${money(pace.last7PerDay)} a day, from ${money(pace.earlierPerDay)} before that.`
+    : "";
+  const stories: BriefStory[] = [
+    {
+      id: "note:pace",
+      kicker: "Pace",
+      title: restLabel,
+      deck: `${windowLabel} averaged ${money(pace.dailyPace)} a day. At that pace, ${restLabel} adds ${money(pace.rest)}. The month would land near ${money(pace.month)}. This is pace, not a forecast.${slowSentence}`,
+      figure: money(pace.rest),
+      tone: pace.slowed ? "down" : "ink",
+      facts: [
+        { label: "A day", value: money(pace.dailyPace) },
+        { label: "Rest of month", value: money(pace.rest) },
+        { label: "Month at pace", value: money(pace.month) },
+        { label: "Last seven", value: pace.slowed ? "Slower" : "Holding" },
+      ],
+    },
+  ];
+
+  const hot = input.hotDay;
+  if (hot) {
+    stories.push({
+      id: "flag:store-day",
+      kicker: "Unusual",
+      title: hot.store,
+      deck: `${hot.store} took ${money(hot.net)} on ${hot.date}, against its own ${money(hot.average)} a day this September.`,
+      figure: money(hot.net),
+      tone: "up",
+      facts: [
+        { label: "That day", value: money(hot.net) },
+        { label: "Its pace", value: money(hot.average) },
+        { label: "Date", value: hot.date },
+      ],
+    });
+  }
+  const returns = briefReturnSpike(input.daily);
+  if (returns) {
+    stories.push({
+      id: "flag:returns",
+      kicker: "Unusual",
+      title: "Returns",
+      deck: `Returns reached ${money(returns.returns)} on ${returns.date}, against ${money(returns.average)} on a typical day with returns.`,
+      figure: money(returns.returns),
+      tone: "down",
+      facts: [
+        { label: "That day", value: money(returns.returns) },
+        { label: "Typical", value: money(returns.average) },
+        { label: "Date", value: returns.date },
+      ],
+    });
+  }
+  const single = briefSingleStoreModel(input.models);
+  if (single) {
+    stories.push({
+      id: "flag:model",
+      kicker: "Unusual",
+      title: modelTitle(single),
+      deck: `${modelTitle(single)} sold in ${single.leadStore} only, ${money(single.revenue)} on ${pieces(single.units)}.`,
+      figure: money(single.revenue),
+      tone: "ink",
+      facts: [
+        { label: "Net", value: money(single.revenue) },
+        { label: "Store", value: single.leadStore ?? "—" },
+        { label: "Units", value: pieces(single.units) },
+      ],
+    });
+  }
+  const jump = payShareJump(input.pay, input.lyPay);
+  if (jump) {
+    stories.push({
+      id: "flag:pay",
+      kicker: "Unusual",
+      title: jump.name,
+      deck: `${jump.name} moved from ${Math.round(jump.lyShare)}% to ${Math.round(jump.share)}% of applied payments.`,
+      figure: `${Math.round(jump.share - jump.lyShare)} pts`,
+      tone: toneOf(jump.share - jump.lyShare),
+      facts: [
+        { label: "Share", value: `${Math.round(jump.share)}%` },
+        { label: "Last year", value: `${Math.round(jump.lyShare)}%` },
+      ],
+    });
+  }
+  const flip = departmentFlip(input.departments ?? [], input.lyDepartments ?? []);
+  if (flip) {
+    stories.push({
+      id: "flag:department",
+      kicker: "Unusual",
+      title: flip.name,
+      deck: `${flip.name} moved from #${flip.fromRank} to #${flip.toRank} among departments.`,
+      figure: `#${flip.toRank}`,
+      tone: flip.toRank < flip.fromRank ? "up" : "down",
+      facts: [
+        { label: "Last year", value: `#${flip.fromRank}` },
+        { label: "This year", value: `#${flip.toRank}` },
+      ],
+    });
+  }
+
+  const behind = furthestBehind(input.departments ?? [], input.lyDepartments ?? []);
+  const slip = furthestStoreSlip(input.stores, input.lyStores);
+  const under = input.showKash ? costPileModels(input.models, "under") : [];
+  const underRevenue = under.reduce((sum, row) => sum + row.revenue, 0);
+  const recs: BriefStory[] = [];
+  if (input.showKash && underRevenue >= 1000 && (!behind || underRevenue > behind.drop)) {
+    recs.push({
+      id: "rec:cost",
+      kicker: "Recommendation",
+      title: "Under Kash cost",
+      deck: `Look at pieces selling under Kash cost. ${under.length} models, ${money(underRevenue)} net.`,
+      figure: money(underRevenue),
+      tone: "down",
+      facts: [
+        { label: "Net", value: money(underRevenue) },
+        { label: "Models", value: String(under.length) },
+      ],
+    });
+  } else if (behind) {
+    recs.push({
+      id: "rec:department",
+      kicker: "Recommendation",
+      title: behind.name,
+      deck: `Put time on ${behind.name}. It is ${money(behind.drop)} behind the same dates last year.`,
+      figure: money(behind.drop),
+      tone: "down",
+      facts: [
+        { label: "This year", value: money(behind.revenue) },
+        { label: "Last year", value: money(behind.ly) },
+        { label: "Behind", value: money(behind.drop) },
+      ],
+    });
+  } else {
+    recs.push({
+      id: "rec:department",
+      kicker: "Recommendation",
+      title: "Departments",
+      deck: "No department is materially behind the same dates last year.",
+      figure: "Level",
+      tone: "ink",
+      facts: [{ label: "Vs last year", value: "Level" }],
+    });
+  }
+  if (slip) {
+    recs.push({
+      id: "rec:store",
+      kicker: "Recommendation",
+      title: slip.name,
+      deck: `Walk ${slip.name}. ${money(slip.revenue)} this September, ${money(slip.ly)} on the same dates last year.`,
+      figure: money(slip.drop),
+      tone: "down",
+      facts: [
+        { label: "This year", value: money(slip.revenue) },
+        { label: "Last year", value: money(slip.ly) },
+        { label: "Behind", value: money(slip.drop) },
+      ],
+    });
+  } else {
+    recs.push({
+      id: "rec:store",
+      kicker: "Recommendation",
+      title: "Stores",
+      deck: "No comparable store is materially behind the same dates last year.",
+      figure: "Level",
+      tone: "ink",
+      facts: [{ label: "Vs last year", value: "Level" }],
+    });
+  }
+  if (pace.slowed) {
+    const catchup = pace.earlierPerDay * pace.restDays;
+    recs.push({
+      id: "rec:pace",
+      kicker: "Recommendation",
+      title: "Last seven days",
+      deck: `The close slowed. The earlier pace was ${money(pace.earlierPerDay)} a day; the last seven were ${money(pace.last7PerDay)}. Catching the earlier pace for the remaining ${pace.restDays} days is about ${money(catchup)}. This is pace, not a forecast.`,
+      figure: money(catchup),
+      tone: "down",
+      facts: [
+        { label: "Earlier", value: money(pace.earlierPerDay) },
+        { label: "Last seven", value: money(pace.last7PerDay) },
+        { label: "Catch-up", value: money(catchup) },
+      ],
+    });
+  } else {
+    recs.push({
+      id: "rec:pace",
+      kicker: "Recommendation",
+      title: "Hold this pace",
+      deck: `${windowLabel} is ${money(pace.dailyPace)} a day. The remaining ${pace.restDays} days add about ${money(pace.rest)} if that pace holds. This is pace, not a forecast.`,
+      figure: money(pace.rest),
+      tone: "ink",
+      facts: [
+        { label: "A day", value: money(pace.dailyPace) },
+        { label: "Remaining", value: money(pace.rest) },
+      ],
+    });
+  }
+  return [...stories, ...recs.slice(0, 3)];
+}
+
 function paperHeadline(delta: number | null, leadName: string | null, leadIsDepartment: boolean): string {
   if (leadIsDepartment && leadName) return `${leadName} leads this September.`;
   const who = leadName ? `${leadName} leads` : "The floor";
@@ -809,6 +1459,14 @@ export function buildBriefEdition(input: {
   /** Calendar comparison, e.g. Sep 1–21 vs Sep 1–21. Falls back to weekday alignment. */
   compareFrom?: string | null;
   compareTo?: string | null;
+  /** When set, the headline names this department and people stay inside it. */
+  scopeLabel?: string | null;
+  watches?: BriefRank[];
+  lyWatches?: BriefRank[];
+  expertise?: BriefExpertise[];
+  /** Pass an array (even empty) to include pace, flags, and recommendations. */
+  daily?: BriefDay[] | null;
+  hotDay?: BriefHotDay | null;
 }): BriefEdition {
   const ly =
     input.compareFrom && input.compareTo
@@ -817,14 +1475,25 @@ export function buildBriefEdition(input: {
   const delta = pctDelta(input.net, input.lyNet);
   const departments = namedRanks(input.departments ?? []).sort((a, b) => b.revenue - a.revenue);
   const designs = namedRanks(input.designs ?? []).sort((a, b) => b.revenue - a.revenue);
+  const peopleFromDesign = expertiseLeaders(input.expertise ?? [], { department: input.scopeLabel });
+  const watchStories = input.watches ? buildWatchStories(input.watches, input.lyWatches ?? []) : [];
+  const costStories = buildCostStories(input.models, input.showKash);
+  const noteStories = buildNotesStories(input);
   const sections: BriefSection[] = [
     { id: "departments", label: "Departments", stories: buildDepartmentStories(input.departments ?? [], input.lyDepartments ?? []) },
     { id: "designs", label: "Designs", stories: buildDesignStories(input.designs ?? [], input.lyDesigns ?? []) },
     { id: "stores", label: "Stores", stories: buildStoreStories(input.stores, input.lyStores) },
+    ...(watchStories.length ? [{ id: "watches" as const, label: "Watches", stories: watchStories }] : []),
     { id: "models", label: "Models", stories: buildModelStackStories(input.models, input.lyModels, input.showKash) },
+    ...(costStories.length ? [{ id: "cost" as const, label: "Cost", stories: costStories }] : []),
     { id: "vendors", label: "Vendors", stories: buildRankStories("vendor", input.vendors, input.lyVendors) },
-    { id: "people", label: "People", stories: buildRankStories("person", input.people, input.lyPeople) },
+    {
+      id: "people",
+      label: "People",
+      stories: peopleFromDesign.length ? peopleFromDesign : buildRankStories("person", input.people, input.lyPeople),
+    },
     { id: "pay", label: "Pay", stories: buildPayStories(input.pay, input.lyPay) },
+    ...(noteStories.length ? [{ id: "notes" as const, label: "Notes", stories: noteStories }] : []),
   ];
   const topStore = [...input.stores].filter((r) => !isUnknownBriefName(r.name)).sort((a, b) => b.revenue - a.revenue)[0]?.name ?? null;
   const leadDepartment = departments[0]?.name ?? null;
@@ -846,7 +1515,11 @@ export function buildBriefEdition(input: {
     lyNet: input.lyNet,
     units: input.units,
     delta,
-    headline: paperHeadline(delta, leadDepartment ?? topStore, Boolean(leadDepartment)),
+    headline: input.scopeLabel
+      ? designs[0]
+        ? `${designs[0].name} leads ${input.scopeLabel}.`
+        : `${input.scopeLabel} this September.`
+      : paperHeadline(delta, leadDepartment ?? topStore, Boolean(leadDepartment)),
     deck: `${pace} ${aside}`.trim(),
     sections,
   };
