@@ -149,7 +149,7 @@ function kickerForModel(input: {
   const { units, onHand, delta } = input;
   if (onHand != null && units >= 3 && onHand <= 1) return "Running thin";
   if (onHand != null && onHand >= 6 && units > 0 && onHand > units * 3) return "Stock is heavy";
-  if (delta == null) return "New this year";
+  if (delta == null) return "This window";
   if (delta >= 20) return "Ahead of last year";
   if (delta <= -20) return "Behind last year";
   return "Steady";
@@ -220,7 +220,7 @@ function buildModelStories(models: BriefModel[], lyModels: BriefModel[], dayCoun
         { label: "Net", value: money(m.revenue) },
         { label: "On hand", value: onHand == null ? "—" : pieces(onHand) },
         { label: "Last year", value: prior ? money(prior.revenue) : "—" },
-        { label: "Next 2 wks", value: forecastLabel(next) },
+        { label: "Next 2 wks", value: `${forecastLabel(next)} pcs` },
         ...(showKash && m.kashCost != null && m.kashCost > 0
           ? [{ label: "Kash CP", value: money(m.kashCost) }]
           : []),
@@ -238,7 +238,7 @@ function buildRankStories(prefix: string, rows: BriefRank[], lyRows: BriefRank[]
     .map((r) => {
       const prior = ly.get(r.name.trim().toUpperCase());
       const delta = prior ? pctDelta(r.revenue, prior.revenue) : null;
-      const kicker = delta == null ? "New this year" : delta >= 20 ? "Ahead of last year" : delta <= -20 ? "Behind last year" : "Steady";
+      const kicker = delta == null ? "This window" : delta >= 20 ? "Ahead of last year" : delta <= -20 ? "Behind last year" : "Steady";
       return {
         id: `${prefix}:${r.name}`,
         kicker,
@@ -248,7 +248,6 @@ function buildRankStories(prefix: string, rows: BriefRank[], lyRows: BriefRank[]
         }`,
         figure: formatSignedPct(delta),
         tone: toneOf(delta),
-        imageUrl: r.imageUrl,
         facts: [
           { label: "Net", value: money(r.revenue) },
           { label: "Last year", value: prior ? money(prior.revenue) : "—" },
@@ -272,7 +271,7 @@ function buildPayStories(rows: BriefPay[], lyRows: BriefPay[]): BriefStory[] {
       const share = total > 0 ? Math.round((r.revenue / total) * 100) : 0;
       return {
         id: `pay:${r.name}`,
-        kicker: delta == null ? "New this year" : delta >= 15 ? "Heavier than last year" : delta <= -15 ? "Lighter than last year" : "Steady",
+        kicker: delta == null ? "This window" : delta >= 15 ? "Heavier than last year" : delta <= -15 ? "Lighter than last year" : "Steady",
         title: r.name,
         deck: `${money(r.revenue)} applied, ${share}% of this window. ${
           prior ? `Last year ${money(prior.revenue)}.` : "Not among last year's leading methods."
