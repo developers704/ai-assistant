@@ -42,8 +42,19 @@ export type BriefStory = {
   facts: BriefFact[];
 };
 
+export type BriefLine = {
+  id: string;
+  name: string;
+  revenue: number;
+  units: number;
+  lyRevenue: number | null;
+  lyUnits: number | null;
+  delta: number | null;
+  tone: "up" | "down" | "ink";
+};
+
 export type BriefSection = {
-  id: "models" | "stores" | "vendors" | "people" | "pay";
+  id: "departments" | "designs" | "models" | "stores" | "vendors" | "people" | "pay";
   label: string;
   stories: BriefStory[];
 };
@@ -89,6 +100,32 @@ export function briefWindowRange(window: BriefWindow, dataThrough: string): { fr
 
 export function briefPriorYear(from: string, to: string): { from: string; to: string } | null {
   return priorYearCompareWindow(from, to, "2025-01-01");
+}
+
+/** Same month and day last year. September 1–21 stays September 1–21. */
+export function briefSameDatesLastYear(from: string, to: string): { from: string; to: string } | null {
+  const start = minusOneCalendarYear(from);
+  const end = minusOneCalendarYear(to);
+  if (!start || !end || start > end) return null;
+  return { from: start, to: end };
+}
+
+function minusOneCalendarYear(iso: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const year = Number(iso.slice(0, 4)) - 1;
+  const candidate = `${year}${iso.slice(4)}`;
+  const parsed = new Date(`${candidate}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== candidate) {
+    return `${year}-02-28`;
+  }
+  return candidate;
+}
+
+/** Blank and "Unknown department / vendor / class / design" buckets stay out of stories. */
+export function isUnknownBriefName(name: string | null | undefined): boolean {
+  const n = (name ?? "").trim().toLowerCase();
+  if (!n || n === "—" || n === "-") return true;
+  return n.startsWith("unknown");
 }
 
 /** Null when last year has no base to compare. */
@@ -229,10 +266,99 @@ function buildModelStories(models: BriefModel[], lyModels: BriefModel[], dayCoun
   });
 }
 
+function rankKey(name: string): string {
+  return name.trim().toUpperCase();
+}
+
+function namedRanks(rows: BriefRank[]): BriefRank[] {
+  return rows.filter((r) => r.name && !isUnknownBriefName(r.name) && r.revenue !== 0);
+}
+
+export function designLines(designs: BriefRank[], lyDesigns: BriefRank[], limit = 8): BriefLine[] {
+  const ly = new Map(namedRanks(lyDesigns).map((r) => [rankKey(r.name), r]));
+  return namedRanks(designs)
+    .sort((a, b) => b.revenue - a.revenue || (b.units ?? 0) - (a.units ?? 0))
+    .slice(0, limit)
+    .map((r) => {
+      const prior = ly.get(rankKey(r.name));
+      const delta = prior ? pctDelta(r.revenue, prior.revenue) : null;
+      return {
+        id: `design:${r.name}`,
+        name: r.name,
+        revenue: r.revenue,
+        units: r.units ?? 0,
+        lyRevenue: prior ? prior.revenue : null,
+        lyUnits: prior?.units ?? null,
+        delta,
+        tone: toneOf(delta),
+      };
+    });
+}
+
+function buildDepartmentStories(rows: BriefRank[], lyRows: BriefRank[]): BriefStory[] {
+  const ly = new Map(namedRanks(lyRows).map((r) => [rankKey(r.name), r]));
+  const pool = namedRanks(rows).sort((a, b) => b.revenue - a.revenue);
+  let worst: BriefRank | null = null;
+  let worstDrop = 0;
+  for (const row of pool) {
+    const prior = ly.get(rankKey(row.name));
+    if (!prior) continue;
+    const drop = prior.revenue - row.revenue;
+    if (drop > worstDrop) {
+      worstDrop = drop;
+      worst = row;
+    }
+  }
+  const worstName = worst?.name ?? null;
+  let ranked = pool.slice(0, SECTION_LIMIT);
+  if (worst && worstName && worstDrop > 0 && !ranked.some((r) => rankKey(r.name) === rankKey(worstName))) {
+    ranked = [...ranked.slice(0, Math.max(0, SECTION_LIMIT - 1)), worst];
+  }
+  const bestName = pool[0]?.name ?? null;
+  return ranked.map((r) => {
+    const prior = ly.get(rankKey(r.name));
+    const delta = prior ? pctDelta(r.revenue, prior.revenue) : null;
+    const kicker =
+      bestName && r.name === bestName
+        ? "Best this September"
+        : worstName && r.name === worstName && worstDrop > 0
+          ? "Furthest behind"
+          : delta == null
+            ? "This September"
+            : delta >= 20
+              ? "Ahead of last year"
+              : delta <= -20
+                ? "Behind last year"
+                : "Steady";
+    return {
+      id: `department:${r.name}`,
+      kicker,
+      title: r.name,
+      deck: `${money(r.revenue)} this September${r.units != null ? ` on ${pieces(r.units)}` : ""}. ${
+        prior ? `Last year ${money(prior.revenue)} on the same dates.` : "No sales on these dates last year."
+      }`,
+      figure: formatSignedPct(delta),
+      tone: toneOf(delta),
+      facts: [
+        { label: "Net", value: money(r.revenue) },
+        { label: "Last year", value: prior ? money(prior.revenue) : "—" },
+        { label: "Vs last year", value: formatSignedPct(delta) },
+        ...(r.units != null ? [{ label: "Units", value: pieces(r.units) }] : []),
+      ],
+    };
+  });
+}
+
+function buildDesignStories(rows: BriefRank[], lyRows: BriefRank[]): BriefStory[] {
+  return buildRankStories("design", rows, lyRows).map((story) => ({
+    ...story,
+    deck: story.deck.replace("this window", "this September").replace("Last year", "Last year, same dates,"),
+  }));
+}
+
 function buildRankStories(prefix: string, rows: BriefRank[], lyRows: BriefRank[]): BriefStory[] {
-  const ly = new Map(lyRows.map((r) => [r.name.trim().toUpperCase(), r]));
-  return [...rows]
-    .filter((r) => r.name && r.revenue !== 0)
+  const ly = new Map(namedRanks(lyRows).map((r) => [rankKey(r.name), r]));
+  return namedRanks(rows)
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, SECTION_LIMIT)
     .map((r) => {
@@ -288,7 +414,8 @@ function buildPayStories(rows: BriefPay[], lyRows: BriefPay[]): BriefStory[] {
     });
 }
 
-function paperHeadline(delta: number | null, leadName: string | null): string {
+function paperHeadline(delta: number | null, leadName: string | null, leadIsDepartment: boolean): string {
+  if (leadIsDepartment && leadName) return `${leadName} leads this September.`;
   const who = leadName ? `${leadName} leads` : "The floor";
   if (delta == null) return `${who} this edition.`;
   if (delta >= 8) return `${who}, ahead of last year.`;
@@ -313,24 +440,42 @@ export function buildBriefEdition(input: {
   pay: BriefPay[];
   lyPay: BriefPay[];
   showKash: boolean;
+  departments?: BriefRank[];
+  lyDepartments?: BriefRank[];
+  designs?: BriefRank[];
+  lyDesigns?: BriefRank[];
+  /** Calendar comparison, e.g. Sep 1–21 vs Sep 1–21. Falls back to weekday alignment. */
+  compareFrom?: string | null;
+  compareTo?: string | null;
 }): BriefEdition {
-  const ly = briefPriorYear(input.from, input.to);
+  const ly =
+    input.compareFrom && input.compareTo
+      ? { from: input.compareFrom, to: input.compareTo }
+      : briefPriorYear(input.from, input.to);
   const days = inclusiveDays(input.from, input.to);
   const delta = pctDelta(input.net, input.lyNet);
+  const departments = namedRanks(input.departments ?? []).sort((a, b) => b.revenue - a.revenue);
+  const designs = namedRanks(input.designs ?? []).sort((a, b) => b.revenue - a.revenue);
   const sections: BriefSection[] = [
+    { id: "departments", label: "Departments", stories: buildDepartmentStories(input.departments ?? [], input.lyDepartments ?? []) },
+    { id: "designs", label: "Designs", stories: buildDesignStories(input.designs ?? [], input.lyDesigns ?? []) },
     { id: "models", label: "Models", stories: buildModelStories(input.models, input.lyModels, days, input.showKash) },
     { id: "stores", label: "Stores", stories: buildRankStories("store", input.stores, input.lyStores) },
     { id: "vendors", label: "Vendors", stories: buildRankStories("vendor", input.vendors, input.lyVendors) },
     { id: "people", label: "People", stories: buildRankStories("person", input.people, input.lyPeople) },
     { id: "pay", label: "Pay", stories: buildPayStories(input.pay, input.lyPay) },
   ];
-  const topStore = [...input.stores].sort((a, b) => b.revenue - a.revenue)[0]?.name ?? null;
+  const topStore = [...input.stores].filter((r) => !isUnknownBriefName(r.name)).sort((a, b) => b.revenue - a.revenue)[0]?.name ?? null;
+  const leadDepartment = departments[0]?.name ?? null;
   const topModel = pickModels(input.models)[0];
+  const designBit = designs[0] ? `${designs[0].name} is the strongest design.` : "";
   const modelBit = topModel ? `${modelTitle(topModel)} is the busiest model.` : "";
+  const comparedWith = input.compareFrom ? "the same dates last year" : "the same weekdays last year";
   const pace =
     delta == null
       ? `${money(input.net)} net.`
-      : `${money(input.net)} net, ${formatSignedPct(delta)} versus the same weekdays last year.`;
+      : `${money(input.net)} net, ${formatSignedPct(delta)} versus ${comparedWith}.`;
+  const aside = leadDepartment ? designBit : modelBit;
   return {
     from: input.from,
     to: input.to,
@@ -340,8 +485,8 @@ export function buildBriefEdition(input: {
     lyNet: input.lyNet,
     units: input.units,
     delta,
-    headline: paperHeadline(delta, topStore),
-    deck: `${pace} ${modelBit}`.trim(),
+    headline: paperHeadline(delta, leadDepartment ?? topStore, Boolean(leadDepartment)),
+    deck: `${pace} ${aside}`.trim(),
     sections,
   };
 }

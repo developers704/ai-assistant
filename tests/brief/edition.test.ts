@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   briefPriorYear,
+  briefSameDatesLastYear,
   briefWindowRange,
   buildBriefEdition,
+  designLines,
   forecastTwoWeeks,
   formatSignedPct,
+  isUnknownBriefName,
   pctDelta,
 } from "@/lib/brief/edition";
 
@@ -90,5 +93,77 @@ describe("morning brief edition", () => {
     const titles = noisy.sections.find((s) => s.id === "models")!.stories.map((s) => s.title);
     expect(titles).toEqual(["MV064-SL"]);
     expect(model.figure).toBe("+100%");
+  });
+
+  it("locks September 1–21 to the same dates last year and drops unknown buckets", () => {
+    expect(briefSameDatesLastYear("2026-09-01", "2026-09-21")).toEqual({
+      from: "2025-09-01",
+      to: "2025-09-21",
+    });
+    expect(isUnknownBriefName("Unknown department")).toBe(true);
+    expect(isUnknownBriefName("Unknown vendor")).toBe(true);
+    expect(isUnknownBriefName("Unknown class")).toBe(true);
+
+    const edition = buildBriefEdition({
+      from: "2026-09-01",
+      to: "2026-09-21",
+      compareFrom: "2025-09-01",
+      compareTo: "2025-09-21",
+      net: 1000,
+      lyNet: 800,
+      units: 10,
+      models: [],
+      lyModels: [],
+      stores: [{ name: "VJ-HEND", revenue: 1000 }],
+      lyStores: [],
+      vendors: [
+        { name: "Unknown vendor", revenue: 50 },
+        { name: "Vendor A", revenue: 40 },
+      ],
+      lyVendors: [],
+      people: [],
+      lyPeople: [],
+      pay: [],
+      lyPay: [],
+      showKash: false,
+      departments: [
+        { name: "Unknown department", revenue: 900, units: 9 },
+        { name: "DIAMOND", revenue: 600, units: 4 },
+        { name: "GOLD", revenue: 200, units: 3 },
+      ],
+      lyDepartments: [
+        { name: "DIAMOND", revenue: 400, units: 3 },
+        { name: "GOLD", revenue: 500, units: 6 },
+      ],
+      designs: [
+        { name: "Unknown design", revenue: 300, units: 2 },
+        { name: "SOLITAIRE", revenue: 250, units: 2 },
+      ],
+      lyDesigns: [{ name: "SOLITAIRE", revenue: 100, units: 1 }],
+    });
+
+    expect(edition.lyFrom).toBe("2025-09-01");
+    expect(edition.lyTo).toBe("2025-09-21");
+    expect(edition.sections[0]?.id).toBe("departments");
+    expect(edition.headline).toBe("DIAMOND leads this September.");
+    expect(edition.deck).toContain("same dates last year");
+    const deptStories = edition.sections[0]!.stories;
+    expect(deptStories.map((s) => s.title)).toEqual(["DIAMOND", "GOLD"]);
+    expect(deptStories[0]?.kicker).toBe("Best this September");
+    expect(deptStories[1]?.kicker).toBe("Furthest behind");
+    expect(deptStories[0]?.figure).toBe("+50%");
+    const designTitles = edition.sections.find((s) => s.id === "designs")!.stories.map((s) => s.title);
+    expect(designTitles).toEqual(["SOLITAIRE"]);
+    const vendorTitles = edition.sections.find((s) => s.id === "vendors")!.stories.map((s) => s.title);
+    expect(vendorTitles).toEqual(["Vendor A"]);
+    const lines = designLines(
+      [
+        { name: "Unknown design", revenue: 10 },
+        { name: "HALO", revenue: 80, units: 2 },
+      ],
+      [{ name: "HALO", revenue: 40, units: 1 }]
+    );
+    expect(lines.map((line) => line.name)).toEqual(["HALO"]);
+    expect(lines[0]?.delta).toBeCloseTo(100);
   });
 });

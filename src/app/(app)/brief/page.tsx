@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductLightbox } from "@/components/reports/ProductImagePreview";
 import {
-  briefPriorYear,
-  briefWindowRange,
+  briefSameDatesLastYear,
   buildBriefEdition,
+  designLines,
   formatSignedPct,
   type BriefEdition,
+  type BriefLine,
   type BriefModel,
   type BriefPay,
   type BriefRank,
   type BriefSection,
   type BriefStory,
-  type BriefWindow,
 } from "@/lib/brief/edition";
 import { formatCurrency, formatPieceCount, cn } from "@/lib/utils";
 import { useApp } from "@/lib/store/app-context";
@@ -27,18 +27,17 @@ type SalesPayload = {
     topProducts?: BriefModel[];
     topStores?: BriefRank[];
     topVendors?: BriefRank[];
+    topDepartments?: BriefRank[];
+    topDesigns?: BriefRank[];
     topSalesPeople?: Array<BriefRank & { units?: number }>;
     paymentMethods?: BriefPay[];
   };
-  dataThrough?: string | null;
   error?: string;
 };
 
-const WINDOWS: { id: BriefWindow; label: string }[] = [
-  { id: "week", label: "Week" },
-  { id: "month", label: "Month" },
-  { id: "season", label: "Season" },
-];
+/** One issue: September 1–21, 2026 against the same dates in 2025. */
+const ISSUE = { from: "2026-09-01", to: "2026-09-21" };
+const ISSUE_LY = briefSameDatesLastYear(ISSUE.from, ISSUE.to) ?? { from: "2025-09-01", to: "2025-09-21" };
 
 function formatEditionDate(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
@@ -56,28 +55,37 @@ function formatSpan(from: string, to: string): string {
   return `${a.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${b.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
-async function loadSlice(from: string, to: string): Promise<SalesPayload> {
+async function loadSlice(from: string, to: string, department?: string): Promise<SalesPayload> {
   const params = new URLSearchParams({ from, to });
+  if (department) params.set("department", department);
   const res = await fetch(`/api/sales?${params}`);
   const json = (await res.json()) as SalesPayload;
   if (!res.ok) throw new Error(json.error || "Could not load the edition");
   return json;
 }
 
+function asRanks(rows: BriefRank[] | undefined): BriefRank[] {
+  return (rows ?? []).map((r) => ({ name: r.name, revenue: r.revenue, units: r.units }));
+}
+
 export default function BriefPage() {
   const router = useRouter();
   const { state } = useApp();
   const isAdmin = state?.user?.authRole === "admin";
-  const [dataThrough, setDataThrough] = useState("2026-09-21");
-  const [windowId, setWindowId] = useState<BriefWindow>("week");
   const [edition, setEdition] = useState<BriefEdition | null>(null);
-  const [sectionId, setSectionId] = useState<BriefSection["id"]>("models");
+  const [sectionId, setSectionId] = useState<BriefSection["id"]>("departments");
   const [storyId, setStoryId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ src: string; alt: string; subtitle?: string } | null>(null);
+  const [linesByDept, setLinesByDept] = useState<Record<string, BriefLine[]>>({});
+  const [linesFailed, setLinesFailed] = useState<Record<string, string>>({});
+  const [linesError, setLinesError] = useState<string | null>(null);
+  const [linesLoading, setLinesLoading] = useState<string | null>(null);
+  const [lineYear, setLineYear] = useState<"now" | "ly">("now");
+  const [openLine, setOpenLine] = useState<string | null>(null);
 
-  const range = useMemo(() => briefWindowRange(windowId, dataThrough), [windowId, dataThrough]);
+  const range = ISSUE;
 
   useEffect(() => {
     if (state && !isAdmin) router.replace("/sales");
@@ -88,23 +96,18 @@ export default function BriefPage() {
     const ac = new AbortController();
     setLoading(true);
     setError(null);
-    const ly = briefPriorYear(range.from, range.to);
-    Promise.all([
-      loadSlice(range.from, range.to),
-      ly ? loadSlice(ly.from, ly.to) : Promise.resolve(null),
-    ])
+    Promise.all([loadSlice(ISSUE.from, ISSUE.to), loadSlice(ISSUE_LY.from, ISSUE_LY.to)])
       .then(([now, prior]) => {
         if (ac.signal.aborted) return;
-        if (now.dataThrough && now.dataThrough < dataThrough) {
-          setDataThrough(now.dataThrough);
-        }
         const summary = now.summary;
-        const lySummary = prior?.summary;
+        const lySummary = prior.summary;
         const models = summary?.topProducts ?? [];
         const showKash = models.some((m) => m.kashCost != null && Number(m.kashCost) > 0);
         const next = buildBriefEdition({
-          from: range.from,
-          to: range.to,
+          from: ISSUE.from,
+          to: ISSUE.to,
+          compareFrom: ISSUE_LY.from,
+          compareTo: ISSUE_LY.to,
           net: summary?.totalRevenue ?? 0,
           lyNet: lySummary?.totalRevenue ?? 0,
           units: summary?.totalTransactions ?? 0,
@@ -114,6 +117,10 @@ export default function BriefPage() {
           lyStores: lySummary?.topStores ?? [],
           vendors: summary?.topVendors ?? [],
           lyVendors: lySummary?.topVendors ?? [],
+          departments: asRanks(summary?.topDepartments),
+          lyDepartments: asRanks(lySummary?.topDepartments),
+          designs: asRanks(summary?.topDesigns),
+          lyDesigns: asRanks(lySummary?.topDesigns),
           people: summary?.topSalesPeople ?? [],
           lyPeople: lySummary?.topSalesPeople ?? [],
           pay: summary?.paymentMethods ?? [],
@@ -122,6 +129,9 @@ export default function BriefPage() {
         });
         setEdition(next);
         setStoryId(null);
+        setOpenLine(null);
+        setLinesByDept({});
+        setLinesFailed({});
       })
       .catch((err: unknown) => {
         if (ac.signal.aborted) return;
@@ -131,10 +141,42 @@ export default function BriefPage() {
         if (!ac.signal.aborted) setLoading(false);
       });
     return () => ac.abort();
-  }, [isAdmin, range.from, range.to, dataThrough]);
+  }, [isAdmin]);
 
   const section = edition?.sections.find((s) => s.id === sectionId) ?? edition?.sections[0];
   const story = section?.stories.find((s) => s.id === storyId) ?? section?.stories[0] ?? null;
+  const departmentTitle = section?.id === "departments" ? story?.title ?? null : null;
+  const departmentLines = departmentTitle ? linesByDept[departmentTitle] : undefined;
+
+  useEffect(() => {
+    if (!isAdmin || !departmentTitle || linesByDept[departmentTitle] || linesFailed[departmentTitle]) return;
+    let cancelled = false;
+    setLinesLoading(departmentTitle);
+    setLinesError(null);
+    Promise.all([
+      loadSlice(ISSUE.from, ISSUE.to, departmentTitle),
+      loadSlice(ISSUE_LY.from, ISSUE_LY.to, departmentTitle),
+    ])
+      .then(([now, prior]) => {
+        if (cancelled) return;
+        setLinesByDept((prev) => ({
+          ...prev,
+          [departmentTitle]: designLines(asRanks(now.summary?.topDesigns), asRanks(prior.summary?.topDesigns)),
+        }));
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Could not load designs";
+        setLinesError(message);
+        setLinesFailed((prev) => ({ ...prev, [departmentTitle]: message }));
+      })
+      .finally(() => {
+        if (!cancelled) setLinesLoading((current) => (current === departmentTitle ? null : current));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, departmentTitle, linesByDept, linesFailed]);
 
   if (!isAdmin) return null;
 
@@ -154,28 +196,10 @@ export default function BriefPage() {
           </p>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="brief-sans flex items-center gap-1 text-[13px]">
-            {WINDOWS.map((w) => (
-              <button
-                key={w.id}
-                type="button"
-                onClick={() => {
-                  setWindowId(w.id);
-                  setSectionId("models");
-                  setStoryId(null);
-                }}
-                className={cn(
-                  "px-2 py-1",
-                  windowId === w.id ? "text-[var(--ink)] underline decoration-[var(--oxblood)] decoration-2 underline-offset-[6px]" : "text-[var(--muted)] hover:text-[var(--ink)]"
-                )}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
+          <p className="brief-sans text-[13px] text-[var(--ink)]">September 1–21</p>
           <p className="brief-sans text-[12px] tracking-wide text-[var(--muted)]">
             {formatSpan(range.from, range.to)}
-            {edition?.lyFrom && edition.lyTo ? `  ·  compared with ${formatSpan(edition.lyFrom, edition.lyTo)}` : ""}
+            {edition?.lyFrom && edition.lyTo ? `  ·  compared with ${formatSpan(edition.lyFrom, edition.lyTo)}, ${edition.lyFrom.slice(0, 4)}` : ""}
           </p>
         </div>
       </header>
@@ -218,6 +242,7 @@ export default function BriefPage() {
                   onClick={() => {
                     setSectionId(s.id);
                     setStoryId(null);
+                    setOpenLine(null);
                   }}
                   className={cn(
                     "pb-2 text-[13px] tracking-wide",
@@ -235,7 +260,24 @@ export default function BriefPage() {
               <p className="py-16 text-center italic text-[var(--muted)]">Nothing sold in this window.</p>
             ) : (
               <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(16rem,0.8fr)] lg:gap-14">
-                {story ? <Article story={story} onOpen={setPreview} /> : null}
+                {story ? (
+                  <Article
+                    story={story}
+                    lines={departmentLines}
+                    linesLoading={linesLoading === departmentTitle}
+                    linesError={departmentTitle ? linesError : null}
+                    lineYear={lineYear}
+                    openLine={openLine}
+                    onYear={(year) => setLineYear(year)}
+                    onToggleLine={(id) => setOpenLine((current) => (current === id ? null : id))}
+                    onOpenDesigns={() => {
+                      setSectionId("designs");
+                      setStoryId(null);
+                      setOpenLine(null);
+                    }}
+                    onOpen={setPreview}
+                  />
+                ) : null}
                 <ol className="lg:border-l lg:border-[var(--rule)] lg:pl-8">
                   {section.stories.map((s, i) => {
                     const active = story?.id === s.id;
@@ -243,7 +285,10 @@ export default function BriefPage() {
                       <li key={s.id} className="border-b border-[var(--rule)] last:border-b-0">
                         <button
                           type="button"
-                          onClick={() => setStoryId(s.id)}
+                          onClick={() => {
+                            setStoryId(s.id);
+                            setOpenLine(null);
+                          }}
                           className={cn(
                             "flex w-full items-baseline gap-3 py-3 text-left",
                             active ? "text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -276,9 +321,25 @@ export default function BriefPage() {
 
 function Article({
   story,
+  lines,
+  linesLoading,
+  linesError,
+  lineYear,
+  openLine,
+  onYear,
+  onToggleLine,
+  onOpenDesigns,
   onOpen,
 }: {
   story: BriefStory;
+  lines?: BriefLine[];
+  linesLoading?: boolean;
+  linesError?: string | null;
+  lineYear: "now" | "ly";
+  openLine: string | null;
+  onYear: (year: "now" | "ly") => void;
+  onToggleLine: (id: string) => void;
+  onOpenDesigns: () => void;
   onOpen: (preview: { src: string; alt: string; subtitle?: string }) => void;
 }) {
   return (
@@ -304,6 +365,80 @@ function Article({
           </div>
         ))}
       </dl>
+      {lines || linesLoading || linesError ? (
+        <div className="mt-8 border-t border-[var(--rule)] pt-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <p className="brief-kicker text-[var(--muted)]">Designs inside</p>
+            <div className="brief-sans flex gap-3 text-[12px]">
+              <button
+                type="button"
+                onClick={() => onYear("now")}
+                className={cn(lineYear === "now" ? "text-[var(--ink)] underline decoration-[var(--oxblood)] underline-offset-4" : "text-[var(--muted)]")}
+              >
+                This year
+              </button>
+              <button
+                type="button"
+                onClick={() => onYear("ly")}
+                className={cn(lineYear === "ly" ? "text-[var(--ink)] underline decoration-[var(--oxblood)] underline-offset-4" : "text-[var(--muted)]")}
+              >
+                Last year
+              </button>
+            </div>
+          </div>
+          {linesLoading && !lines ? <p className="brief-sans mt-4 text-[13px] text-[var(--muted)]">Opening designs…</p> : null}
+          {linesError && !lines ? <p className="brief-sans mt-4 text-[13px] text-[var(--oxblood)]">{linesError}</p> : null}
+          {lines && lines.length === 0 ? <p className="mt-4 italic text-[var(--muted)]">No named designs in this department.</p> : null}
+          {lines && lines.length > 0 ? (
+            <ol className="mt-2">
+              {lines.map((line) => {
+                const open = openLine === line.id;
+                const amount = lineYear === "ly" ? line.lyRevenue : line.revenue;
+                return (
+                  <li key={line.id} className="border-b border-[var(--rule)]">
+                    <button
+                      type="button"
+                      onClick={() => onToggleLine(line.id)}
+                      className="flex w-full items-baseline gap-3 py-2.5 text-left"
+                    >
+                      <span className="min-w-0 flex-1 text-[16px] leading-snug">{line.name}</span>
+                      <span className={cn("brief-sans shrink-0 text-[12px] tabular-nums", line.tone === "up" && "text-[var(--pine)]", line.tone === "down" && "text-[var(--oxblood)]")}>
+                        {formatSignedPct(line.delta)}
+                      </span>
+                      <span className="brief-sans w-24 shrink-0 text-right text-[13px] tabular-nums">
+                        {amount == null ? "—" : formatCurrency(amount)}
+                      </span>
+                    </button>
+                    {open ? (
+                      <dl className="brief-sans mb-3 grid grid-cols-2 gap-3 text-[12px] text-[var(--muted)] sm:grid-cols-4">
+                        <div>
+                          <dt className="brief-kicker">This year</dt>
+                          <dd className="mt-1 text-[var(--ink)]">{formatCurrency(line.revenue)}</dd>
+                        </div>
+                        <div>
+                          <dt className="brief-kicker">Last year</dt>
+                          <dd className="mt-1 text-[var(--ink)]">{line.lyRevenue == null ? "—" : formatCurrency(line.lyRevenue)}</dd>
+                        </div>
+                        <div>
+                          <dt className="brief-kicker">Units</dt>
+                          <dd className="mt-1 text-[var(--ink)]">{formatPieceCount(lineYear === "ly" ? line.lyUnits ?? 0 : line.units)}</dd>
+                        </div>
+                        <div>
+                          <dt className="brief-kicker">Vs last year</dt>
+                          <dd className="mt-1 text-[var(--ink)]">{formatSignedPct(line.delta)}</dd>
+                        </div>
+                      </dl>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ol>
+          ) : null}
+          <button type="button" onClick={onOpenDesigns} className="brief-sans mt-3 text-[12px] text-[var(--muted)] underline decoration-[var(--rule)] underline-offset-4 hover:text-[var(--ink)]">
+            All designs
+          </button>
+        </div>
+      ) : null}
     </article>
   );
 }
