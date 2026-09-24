@@ -331,7 +331,8 @@ function pickDonor(
   needyStore: string,
   needyDm: InventoryDm,
   byStoreSold: Map<string, ModelStoreAgg>,
-  onhandStores: Map<string, { onhand: number }>
+  originalOnhand: Map<string, number>,
+  remainingOnhand: Map<string, number>
 ): { store: string; qty: number; spare: number; soldQty: number } | null {
   const candidates: Array<{
     store: string;
@@ -344,12 +345,14 @@ function pickDonor(
     if (isMainStore(meta.store)) continue;
     if (key(meta.store) === key(needyStore)) continue;
     if (meta.tier === "A") continue;
-    const onhand = onhandStores.get(key(meta.store))?.onhand ?? 0;
+    const onhand = originalOnhand.get(key(meta.store)) ?? 0;
+    const left = remainingOnhand.get(key(meta.store)) ?? 0;
     const soldQty = byStoreSold.get(key(meta.store))?.soldQty ?? 0;
+    // Slow-seller check uses the case as it sits now, not after earlier moves.
     if (onhand < 2) continue;
     if (isSellingWell(soldQty, onhand)) continue;
     const reserve = keepReserveQty(soldQty, meta.kind);
-    const spare = onhand - reserve;
+    const spare = left - reserve;
     if (spare < 1) continue;
     candidates.push({
       store: meta.store,
@@ -378,6 +381,13 @@ export function buildInventoryTransfers(
     const inv = onhand.get(model);
     const soldByStore = sales.get(model)?.stores ?? new Map();
     const onhandStores = inv?.stores ?? new Map();
+    const needy: Array<{
+      meta: (typeof MGMT_STORES)[number];
+      soldQty: number;
+      onh: number;
+      want: number;
+      priority: TransferPriority;
+    }> = [];
     for (const meta of MGMT_STORES) {
       const storeKey = key(meta.store);
       const sold = soldByStore.get(storeKey);
@@ -386,21 +396,46 @@ export function buildInventoryTransfers(
       if (!isNeedy(soldQty, onh, meta.tier, meta.kind)) continue;
       const want = needQty(soldQty, onh);
       if (want < 1) continue;
-      const donor = pickDonor(meta.store, meta.dm, soldByStore, onhandStores);
+      needy.push({
+        meta,
+        soldQty,
+        onh,
+        want,
+        priority: transferPriority({
+          onhand: onh,
+          soldQty,
+          toTier: meta.tier,
+          toKind: meta.kind,
+        }),
+      });
+    }
+    // Rush cases take the spare before a slower Fill. Each piece is promised once.
+    needy.sort(
+      (a, b) =>
+        TRANSFER_PRIORITY_RANK[a.priority] - TRANSFER_PRIORITY_RANK[b.priority] ||
+        b.soldQty - a.soldQty ||
+        a.meta.store.localeCompare(b.meta.store)
+    );
+    const original = new Map<string, number>();
+    const remaining = new Map<string, number>();
+    for (const [storeKey, storeRow] of onhandStores) {
+      original.set(storeKey, storeRow.onhand);
+      remaining.set(storeKey, storeRow.onhand);
+    }
+    for (const need of needy) {
+      const { meta, soldQty, onh, want, priority } = need;
+      const storeKey = key(meta.store);
+      const sold = soldByStore.get(storeKey);
+      const donor = pickDonor(meta.store, meta.dm, soldByStore, original, remaining);
       if (!donor) continue;
       const qty = Math.max(1, Math.min(want, Math.floor(donor.qty)));
+      remaining.set(key(donor.store), Math.max(0, (remaining.get(key(donor.store)) ?? 0) - qty));
       const sku =
         [...(onhandStores.get(storeKey)?.skus.keys() ?? [])][0] ||
         [...(sold?.skuSold.keys() ?? [])][0] ||
         inv?.sku ||
         model;
       const fromMeta = MGMT_STORE_BY_KEY.get(key(donor.store));
-      const priority = transferPriority({
-        onhand: onh,
-        soldQty,
-        toTier: meta.tier,
-        toKind: meta.kind,
-      });
       out.push({
         vendorModel: inv?.vendorModel || model,
         sku,

@@ -38,15 +38,34 @@ function baseTagPrice(row: Record<string, string>): number | null {
   return null;
 }
 
+/**
+ * POS exports mix `\r\n` and `\n` when a large file is split and rejoined.
+ * Papa guesses the break from the first 1MB only. A `\r\n` prefix makes it
+ * ignore later `\n` breaks and glue the rest of the snapshot into one row.
+ */
+function normalizeCsvNewlines(csvText: string): string {
+  return csvText.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
 /** Collapse blank header columns (Umair onhand often has ,, spacers). */
 export function collapseEmptyOnhandColumns(csvText: string): string {
-  const parsed = Papa.parse<string[]>(csvText, {
+  const normalized = normalizeCsvNewlines(csvText);
+  const physical = normalized.split("\n").filter((line) => line.trim().length > 0).length;
+  const parsed = Papa.parse<string[]>(normalized, {
     header: false,
     skipEmptyLines: "greedy",
+    newline: "\n",
   });
   const table = (parsed.data ?? []).filter(
     (row) => Array.isArray(row) && row.some((c) => String(c ?? "").trim())
   ) as string[][];
+  // A broken quote or leftover mixed breaks would keep a few thousand rows
+  // and still look "non-empty". Refuse that partial snapshot.
+  if (physical >= 1000 && table.length < physical * 0.9) {
+    throw new Error(
+      `Onhand CSV parse kept ${table.length} of ${physical} lines. Refusing to replace live inventory with a partial snapshot.`
+    );
+  }
   if (table.length === 0) return csvText;
 
   const header = table[0].map((h) => String(h ?? "").trim());
