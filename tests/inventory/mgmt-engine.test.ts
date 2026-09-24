@@ -213,6 +213,69 @@ describe("inventory transfers", () => {
     expect(rows.find((r) => r.store === "VJ-SERRA")).toMatchObject({ onhand: 2, soldQty: 3 });
   });
 
+  it("promises each spare piece once and fills the busier empty case first", () => {
+    const sales = [
+      ...Array.from({ length: 10 }, (_, i) =>
+        sale({
+          transactionId: `A${i}`,
+          storeName: "VJ-SERRA",
+          vendorModel: "RR8179WS",
+          quantity: 1,
+          netRevenue: 100,
+        })
+      ),
+      ...Array.from({ length: 4 }, (_, i) =>
+        sale({
+          transactionId: `B${i}`,
+          storeName: "VJ-FRE",
+          vendorModel: "RR8179WS",
+          quantity: 1,
+          netRevenue: 100,
+        })
+      ),
+    ];
+    const items = [
+      item({ store: "VJ-SERRA", onHand: 0 }),
+      item({ store: "VJ-FRE", onHand: 0 }),
+      item({ store: "VJ-OAK", onHand: 2 }),
+    ];
+    const hits = buildInventoryTransfers(sales, items).filter((t) => t.vendorModel === "RR8179WS");
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ toStore: "VJ-SERRA", fromStore: "VJ-OAK", qty: 1, priority: "rush" });
+  });
+
+  it("splits a larger spare across two empty cases without going under the reserve", () => {
+    const sales = [
+      ...Array.from({ length: 8 }, (_, i) =>
+        sale({
+          transactionId: `A${i}`,
+          storeName: "VJ-SERRA",
+          vendorModel: "RR8179WS",
+          quantity: 1,
+          netRevenue: 100,
+        })
+      ),
+      ...Array.from({ length: 8 }, (_, i) =>
+        sale({
+          transactionId: `B${i}`,
+          storeName: "VJ-FRE",
+          vendorModel: "RR8179WS",
+          quantity: 1,
+          netRevenue: 100,
+        })
+      ),
+    ];
+    const items = [
+      item({ store: "VJ-SERRA", onHand: 0 }),
+      item({ store: "VJ-FRE", onHand: 0 }),
+      item({ store: "VJ-OAK", onHand: 5 }),
+    ];
+    const hits = buildInventoryTransfers(sales, items).filter((t) => t.vendorModel === "RR8179WS");
+    expect(hits).toHaveLength(2);
+    expect(hits.reduce((sum, t) => sum + t.qty, 0)).toBe(4);
+    expect(hits.every((t) => t.fromStore === "VJ-OAK" && t.qty === 2)).toBe(true);
+  });
+
   it("never donates from MAIN even with spare warehouse qty", () => {
     const sales = Array.from({ length: 25 }, (_, i) =>
       sale({
