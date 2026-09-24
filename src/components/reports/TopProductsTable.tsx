@@ -79,7 +79,7 @@ interface TopProductsTableProps {
   showDateFilter?: boolean;
   /** Rozina: keep ITEM / soft-hidden sold lines in the table. */
   includeHiddenTopModels?: boolean;
-  /** Kash / Ross / admin: show CP (Kash) = POS Inventory Cost. */
+  /** Kash / Ross / admin: model row shows Tag Price; SKU lines still show CP (Kash). */
   showKashCost?: boolean;
 }
 
@@ -93,7 +93,7 @@ const ALL_METRIC_COLUMNS: { key: MetricColumn; label: string; width: string }[] 
   { key: "qty", label: "Qty", width: "3.25rem" },
   { key: "revenue", label: "Revenue", width: "5rem" },
   { key: "margin", label: "Margin", width: "3rem" },
-  { key: "kashCost", label: "CP (Kash)", width: "5.25rem" },
+  { key: "kashCost", label: "Tag Price", width: "5.75rem" },
 ];
 
 const COLUMN_STORAGE_KEY = "athena.top-products.columns";
@@ -113,7 +113,7 @@ function loadVisibleColumns(showKashCost?: boolean): MetricColumn[] {
       ALL_METRIC_COLUMNS.filter((c) => c.key !== "kashCost" || showKashCost).map((c) => c.key)
     );
     const next = parsed.filter((k): k is MetricColumn => allowed.has(k as MetricColumn));
-    // Always surface CP (Kash) when the viewer is allowed, even if older localStorage omitted it.
+    // Always surface Tag Price when the viewer is allowed, even if older localStorage omitted it.
     if (showKashCost && !next.includes("kashCost")) next.push("kashCost");
     return next.length ? next : defaultVisibleColumns(showKashCost);
   } catch {
@@ -146,6 +146,12 @@ function formatMarginPct(rate: number | undefined | null): string {
   return `${(rate * 100).toFixed(0)}%`;
 }
 
+/** Tag of the top-selling SKU (Sales Amount). Model row only — SKU lines keep their own tag. */
+function modelTagPrice(skus: TopProductSkuLine[] | undefined): number | null {
+  const hit = skus?.find((s) => typeof s.tagPrice === "number" && s.tagPrice > 0);
+  return hit?.tagPrice ?? null;
+}
+
 function shortIso(iso?: string): string {
   if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "—";
   const [, m, d] = iso.split("-");
@@ -157,7 +163,7 @@ function MetricsBlock({
   revenue,
   marginRate,
   profit,
-  kashCost,
+  tagPrice,
   department,
   dateLabel,
   mobile,
@@ -167,7 +173,7 @@ function MetricsBlock({
   revenue: number;
   marginRate: number | null;
   profit?: number;
-  kashCost?: number | null;
+  tagPrice?: number | null;
   department?: string;
   dateLabel?: string;
   mobile?: boolean;
@@ -236,9 +242,9 @@ function MetricsBlock({
       node: (
         <span
           className={cn(TYPE, "font-semibold tabular-nums text-right text-sky-200/90")}
-          title="POS Inventory Cost (unit — not × qty)"
+          title="Tag price of the top-selling SKU (Sales Amount)"
         >
-          {kashCost == null || !Number.isFinite(kashCost) ? "—" : formatCurrency(kashCost)}
+          {tagPrice == null || !Number.isFinite(tagPrice) ? "—" : formatCurrency(tagPrice)}
         </span>
       ),
     },
@@ -309,13 +315,13 @@ function MetricsBlock({
         show("kashCost") ? (
           <div key="kashCost" className="flex flex-col items-center justify-center px-1.5 py-2.5 text-center">
             <span className={cn(TYPE_HEADER, "text-white/45")}>
-              CP (Kash)
+              Tag Price
             </span>
             <span
               className={cn("mt-0.5 font-semibold tabular-nums text-sky-200/90", TYPE)}
-              title="POS Inventory Cost (unit — not × qty)"
+              title="Tag price of the top-selling SKU (Sales Amount)"
             >
-              {kashCost == null || !Number.isFinite(kashCost) ? "—" : formatCurrency(kashCost)}
+              {tagPrice == null || !Number.isFinite(tagPrice) ? "—" : formatCurrency(tagPrice)}
             </span>
           </div>
         ) : null,
@@ -541,8 +547,8 @@ export function TopProductsTable({
           (b.revenue > 0 && b.margin != null ? b.margin / b.revenue : 0);
         if (ar !== br) return (ar - br) * mul;
       } else if (sortKey === "kashCost") {
-        const ak = a.kashCost ?? Number.NEGATIVE_INFINITY;
-        const bk = b.kashCost ?? Number.NEGATIVE_INFINITY;
+        const ak = modelTagPrice(a.skus) ?? Number.NEGATIVE_INFINITY;
+        const bk = modelTagPrice(b.skus) ?? Number.NEGATIVE_INFINITY;
         if (ak !== bk) return (ak - bk) * mul;
       }
       // Stable tie-breakers
@@ -707,12 +713,12 @@ export function TopProductsTable({
             )}
             {columns.includes("kashCost") && (
               <SortHeader
-                label="CP (Kash)"
+                label="Tag Price"
                 active={sortKey === "kashCost"}
                 dir={sortDir}
                 onClick={() => toggleSort("kashCost")}
                 className="justify-end w-full"
-                title="POS Inventory Cost (unit — not × qty)"
+                title="Tag price of the top-selling SKU (Sales Amount)"
               />
             )}
           </div>
@@ -738,7 +744,7 @@ export function TopProductsTable({
                 ["qty", "Qty"],
                 ["revenue", "Rev"],
                 ["margin", "Margin"],
-                ["kashCost", "CP"],
+                ["kashCost", "Tag"],
               ] as [SortKey, string][]
             )
               .filter(([key]) => columns.includes(key))
@@ -888,7 +894,7 @@ export function TopProductsTable({
                         revenue={product.revenue}
                         marginRate={marginRate}
                         profit={product.margin}
-                        kashCost={product.kashCost}
+                        tagPrice={modelTagPrice(product.skus)}
                         department={product.department}
                         dateLabel={formatModelDate(product)}
                         visible={columns}
@@ -911,7 +917,7 @@ export function TopProductsTable({
                         revenue={product.revenue}
                         marginRate={marginRate}
                         profit={product.margin}
-                        kashCost={product.kashCost}
+                        tagPrice={modelTagPrice(product.skus)}
                         department={product.department}
                         dateLabel={formatModelDate(product)}
                         visible={columns}
