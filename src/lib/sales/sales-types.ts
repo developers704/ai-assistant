@@ -192,7 +192,7 @@ export interface VendorModelSkuStoreLine {
   date?: string;
   /** POS Inventory Cost unit for this sale (Kash CP). Never × qty. */
   kashCost?: number;
-  /** Sales Amount (gross) for this sale — shown as Tag before Net Sale. */
+  /** One piece’s Sales Amount (gross ÷ qty) — Tag, not the line sum. */
   tagPrice?: number;
 }
 
@@ -205,7 +205,7 @@ export interface VendorModelSkuLine {
   margin?: number;
   /** Profit margin = margin / revenue (0–1) */
   marginRate?: number;
-  /** Shown as "tag $" on Top Vendor Models — Sales Amount (gross), not inventory Tag. */
+  /** Shown as "tag $" on Top Vendor Models — one piece’s Sales Amount (gross ÷ qty). */
   tagPrice?: number;
   /** POS Inventory Cost × |qty| (Kash CP). Hidden for ITEM / JVV. */
   kashCost?: number;

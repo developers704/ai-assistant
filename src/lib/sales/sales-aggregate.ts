@@ -127,6 +127,15 @@ function rollupModelInventory(
   };
 }
 
+/** Sales Amount of one piece. A qty-4 line at $999 is tagged $999, not $3,996. */
+function unitGrossTag(gross: number, qty: number): number | undefined {
+  const salesAmt = Math.abs(Number(gross) || 0);
+  if (!(salesAmt > 0)) return undefined;
+  const q = Math.abs(Number(qty) || 0);
+  if (!(q > 0)) return salesAmt;
+  return Math.round((salesAmt / q) * 100) / 100;
+}
+
 export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
   const map = new Map<
     string,
@@ -164,7 +173,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       cur.margin = (cur.margin ?? 0) + (r.netRevenue - signedWholesaleUnitCost(cost, r));
     }
     const hideKash = isRepairServiceMemoSku(sku);
-    const salesAmt = Math.abs(Number(r.grossSales) || 0);
+    const unitTag = unitGrossTag(r.grossSales, r.quantity);
     cur.sales.push({
       name: r.storeName?.trim() || "—",
       units,
@@ -172,14 +181,14 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       transactionId: r.transactionId?.trim() || undefined,
       date: (r.date ?? "").trim() || undefined,
       kashCost: hideKash || unitKash <= 0 ? undefined : unitKash,
-      tagPrice: salesAmt > 0 ? salesAmt : undefined,
+      tagPrice: unitTag,
     });
-    // Prefer latest sale's Sales Amount for the "tag $" label (not inventory Tag)
-    if (salesAmt > 0) {
+    // One piece's Sales Amount (gross ÷ qty), not the line sum of 4 pcs.
+    if (unitTag != null && unitTag > 0) {
       const d = (r.date ?? "").trim();
       if (!cur.lastSaleDate || d >= cur.lastSaleDate) {
         cur.lastSaleDate = d || cur.lastSaleDate;
-        cur.salesAmount = salesAmt;
+        cur.salesAmount = unitTag;
       }
     }
     map.set(key, cur);
@@ -207,7 +216,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
         margin,
         marginRate,
         kashCost,
-        // UI label stays "tag $" — value is Sales Amount (gross), not inventory Tag
+        // UI label stays "tag $" — one piece of Sales Amount (gross ÷ qty)
         tagPrice: salesAmount != null && salesAmount > 0 ? salesAmount : undefined,
         stores: stores.length ? stores : undefined,
       };

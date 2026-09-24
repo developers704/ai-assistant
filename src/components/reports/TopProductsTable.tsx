@@ -146,7 +146,7 @@ function formatMarginPct(rate: number | undefined | null): string {
   return `${(rate * 100).toFixed(0)}%`;
 }
 
-/** Tag of the top-selling SKU (Sales Amount). Model row only — SKU lines keep their own tag. */
+/** One piece’s tag of the top-selling SKU. Model row only. */
 function modelTagPrice(skus: TopProductSkuLine[] | undefined): number | null {
   const hit = skus?.find((s) => typeof s.tagPrice === "number" && s.tagPrice > 0);
   return hit?.tagPrice ?? null;
