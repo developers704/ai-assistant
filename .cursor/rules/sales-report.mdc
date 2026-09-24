@@ -51,10 +51,11 @@ When changing Top Models soft-hide rules, update `src/lib/utils.ts` and this fil
 - **Real negative %** is allowed when Net &lt; wholesale unit cost — do not hide those.
 - **ITEM / JVV repair lines:** no margin % in Top Models (red `—`).
 
-### Top Vendor Models — CP (Kash)
+### Top Vendor Models — Tag Price and CP (Kash)
 
-- Column **CP (Kash)** = POS CSV **Inventory Cost** as **unit cost** (same value on qty 0.5 / 1 / 2 lines). After split txn+SKU merge, show that unit once — **never** × qty and **never** sum across pieces/SKUs (2 pcs at $1,173 → show **$1,173**, not $2,346).
-- Visible only to **Kash, Ross, admin** (`canSeeKashCostPrice`). Not Marina / DMs / employees.
+- Model row, right column **Tag Price** = Sales Amount (gross) of the top-selling SKU under that vendor model. Same number the SKU line labels TAG. Not inventory Tag, and not × qty.
+- SKU lines and the expanded sale rows still show **CP (Kash)** = POS CSV **Inventory Cost** as **unit cost** (same value on qty 0.5 / 1 / 2 lines). After split txn+SKU merge, show that unit once — **never** × qty and **never** sum across pieces/SKUs (2 pcs at $1,173 → show **$1,173**, not $2,346).
+- Both are visible only to **Kash, Ross, admin** (`canSeeKashCostPrice`). Not Marina / DMs / employees. The Tag label on a SKU line is shown to everyone.
 - Historical + daily sales both use the same `inventoryCost` field from parse — no separate backfill file.
 
 ## Bundled default report
