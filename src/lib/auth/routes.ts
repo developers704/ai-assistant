@@ -70,6 +70,8 @@ const API_TO_PERMISSION: Array<{
   { prefix: "/api/news", permission: "news_markets" },
   { prefix: "/api/hr/commission", permission: ["hr_management", "hr_sales"] },
   { prefix: "/api/hr/employee-sales", permission: ["hr_management", "hr_sales"] },
+  // Self-only: the route returns just the caller's own shifts.
+  { prefix: "/api/hr/my-schedule", permission: ["hr_management", "hr_sales"] },
   { prefix: "/api/hr", permission: "hr_management" },
   { prefix: "/api/admin/roles", permission: "role_admin" },
   { prefix: "/api/admin/users", permission: "user_admin" },
