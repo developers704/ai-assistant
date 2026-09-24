@@ -36,16 +36,38 @@ async function main() {
   assert.ok(q.ok && q.summary, q.error ?? "querySales failed");
   assert.ok(Math.abs((q.summary?.netSales ?? 0) - netSales) < 0.02);
   assert.ok(
-    Math.abs(netSales - 145201.32) < 0.02,
-    `Sep 23 CSV Total expected 145201.32 got ${netSales}`
+    Math.abs(netSales - 152630.26) < 0.02,
+    `Sep 23 CSV Total expected 152630.26 got ${netSales}`
   );
-  assert.equal(sep23.length, 317, `Sep 23 rows ${sep23.length}`);
+  assert.equal(sep23.length, 333, `Sep 23 rows ${sep23.length}`);
   assert.equal(new Set(sep23.map((r) => r.storeName)).size, 28);
+
+  const val = sep23.filter((r) => r.storeName === "VJ-VAL");
+  const valNet = val.reduce((s, r) => s + r.netRevenue, 0);
+  const valQty = val.reduce((s, r) => s + r.quantity, 0);
+  assert.ok(Math.abs(valNet - 12788.74) < 0.02, `VJ-VAL net ${valNet}`);
+  assert.ok(Math.abs(valQty - 18) < 0.02, `VJ-VAL qty ${valQty}`);
+  assert.equal(new Set(val.map((r) => r.transactionId)).size, 5);
+  const ticket89 = val
+    .filter((r) => r.transactionId === "FA-10291689")
+    .reduce((s, r) => s + r.netRevenue, 0);
+  assert.ok(Math.abs(ticket89 - 7428.94) < 0.02, `FA-10291689 net ${ticket89}`);
+
+  const valQ = await querySales({
+    dateRange: { type: "custom", startDate: DAY, endDate: DAY },
+    resetContext: true,
+    exactFilters: true,
+    stores: ["VJ-VAL"],
+    include: { summary: true },
+    limit: 20,
+  });
+  assert.ok(valQ.ok && valQ.summary, valQ.error ?? "VJ-VAL query failed");
+  assert.ok(Math.abs((valQ.summary?.netSales ?? 0) - 12788.74) < 0.02);
 
   const payFile = path.join(process.cwd(), "data/reports/Payment-Transactions.csv");
   const legs = parsePaycodeLegs(fs.readFileSync(payFile, "utf8"));
   const sep23Legs = legs.filter((leg) => leg.date === DAY);
-  assert.equal(sep23Legs.length, 119, `Sep 23 payment legs ${sep23Legs.length}`);
+  assert.equal(sep23Legs.length, 120, `Sep 23 payment legs ${sep23Legs.length}`);
 
   const totals = paycodeTotalsForPaymentWindow({
     from: DAY,
@@ -63,6 +85,7 @@ async function main() {
     KAFE: 27078.99,
     SYNC: 24472.8,
     CASH: 8759.02,
+    WELLS: 8100,
     AFFIRM: 3137,
     ACIMA: 1957,
   };
@@ -72,7 +95,7 @@ async function main() {
       `paycode ${name}: got ${byName[name] ?? 0} vs ${amt}`
     );
   }
-  assert.ok(Math.abs(paySum - 154302.61) < 1, `paycode sum ${paySum}`);
+  assert.ok(Math.abs(paySum - 162402.61) < 1, `paycode sum ${paySum}`);
   assert.equal(byName["GE"], undefined);
   assert.equal(byName["SYNY"], undefined);
   assert.equal(byName["AFF"], undefined);
