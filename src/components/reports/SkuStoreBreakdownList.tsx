@@ -54,42 +54,51 @@ function isMainStore(name: string): boolean {
   return name.trim().toUpperCase() === "MAIN";
 }
 
-function uniqueSoldStoreNames(stores?: SkuStoreBreakdownLine[]): string[] {
-  const seen = new Set<string>();
-  const names: string[] = [];
+type StoreSoldLine = {
+  name: string;
+  units: number;
+  revenue: number;
+  tagPrice?: number;
+  kashCost?: number;
+};
+
+/** One row per store: that store's pcs, its net, and the one-piece tag. */
+function storeSoldLines(stores?: SkuStoreBreakdownLine[]): StoreSoldLine[] {
+  const map = new Map<string, StoreSoldLine & { tagUnits: number }>();
   for (const s of stores ?? []) {
-    const n = (s.name ?? "").trim();
-    if (!n || n === "—") continue;
-    const key = n.toUpperCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    names.push(n);
+    const name = (s.name ?? "").trim();
+    if (!name || name === "—") continue;
+    const units = Number(s.units) || 0;
+    const revenue = Number(s.revenue) || 0;
+    if (units <= 0 && revenue === 0) continue;
+    const key = name.toUpperCase();
+    const cur = map.get(key) ?? { name, units: 0, revenue: 0, tagUnits: 0 };
+    cur.units += units;
+    cur.revenue += revenue;
+    const tag = Number(s.tagPrice) || 0;
+    if (tag > 0 && units >= cur.tagUnits) {
+      cur.tagPrice = tag;
+      cur.tagUnits = units;
+    }
+    const kash = Number(s.kashCost) || 0;
+    if (kash > 0) cur.kashCost = kash;
+    map.set(key, cur);
   }
-  return names;
+  return [...map.values()]
+    .map(({ tagUnits: _, ...line }) => line)
+    .sort((a, b) => b.units - a.units || a.name.localeCompare(b.name));
 }
 
-function SaleTxnTable({
-  sales,
-  showKashCost,
-}: {
-  sales: SkuStoreBreakdownLine[];
-  showKashCost?: boolean;
-}) {
-  const cols = showKashCost
-    ? "grid-cols-[5.5rem_minmax(0,1fr)_4.75rem_5.25rem_5rem_4.5rem]"
-    : "grid-cols-[5.75rem_minmax(0,1fr)_5rem_5.5rem_4.75rem]";
+function SaleTxnTable({ sales }: { sales: SkuStoreBreakdownLine[] }) {
+  const cols = "grid-cols-[5.75rem_minmax(0,1fr)_5rem_4.75rem]";
 
   return (
     <>
       {/* Phone / iPad portrait: stacked — no sideways scroll */}
       <ul className="md:hidden divide-y divide-white/[0.06]">
         {sales.map((s, i) => {
-          const storeNet = Number(s.revenue) || 0;
           const tag = Number(s.tagPrice) || 0;
           const txn = s.transactionId?.trim() || "—";
-          const kash = s.kashCost;
-          const hasKash =
-            showKashCost && kash != null && Number.isFinite(kash) && kash !== 0;
           return (
             <li
               key={`${s.transactionId ?? ""}|${s.name}|${s.date ?? ""}|${i}`}
@@ -115,37 +124,11 @@ function SaleTxnTable({
                     "shrink-0 text-[13px] tabular-nums font-medium",
                     tag > 0 ? "text-white/70" : "text-white/30"
                   )}
-                  title={tag > 0 ? formatCurrency(tag) : "Sales Amount"}
+                  title={tag > 0 ? formatCurrency(tag) : "One piece"}
                 >
                   {tag > 0 ? `$${formatMoneyCompact(tag)}` : "—"}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-3 min-w-0">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-white/40">
-                  Net Sale
-                </span>
-                <span
-                  className={cn(
-                    "shrink-0 text-[13px] tabular-nums font-medium",
-                    storeNet !== 0 ? "text-white/85" : "text-white/30"
-                  )}
-                >
-                  {storeNet !== 0 ? `$${formatMoneyCompact(storeNet)}` : "—"}
-                </span>
-              </div>
-              {showKashCost && (
-                <div className="flex items-center justify-between gap-3 min-w-0">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-white/40">
-                    CP (Kash)
-                  </span>
-                  <span
-                    className="shrink-0 text-[13px] tabular-nums font-medium text-sky-200/90"
-                    title={hasKash ? formatCurrency(kash!) : "POS Inventory Cost (unit)"}
-                  >
-                    {hasKash ? `$${formatMoneyCompact(kash!)}` : "—"}
-                  </span>
-                </div>
-              )}
             </li>
           );
         })}
@@ -162,18 +145,12 @@ function SaleTxnTable({
           <span className="min-w-0">Store</span>
           <span className="min-w-0">Transaction #</span>
           <span className="text-right">Tag</span>
-          <span className="text-right">Net Sale</span>
-          {showKashCost && <span className="text-right">CP (Kash)</span>}
           <span className="text-right">Date</span>
         </div>
         <ul className="divide-y divide-white/[0.05]">
           {sales.map((s, i) => {
-            const storeNet = Number(s.revenue) || 0;
             const tag = Number(s.tagPrice) || 0;
             const txn = s.transactionId?.trim() || "—";
-            const kash = s.kashCost;
-            const hasKash =
-              showKashCost && kash != null && Number.isFinite(kash) && kash !== 0;
             return (
               <li
                 key={`${s.transactionId ?? ""}|${s.name}|${s.date ?? ""}|${i}`}
@@ -196,27 +173,10 @@ function SaleTxnTable({
                     "tabular-nums text-right",
                     tag > 0 ? "text-white/70" : "text-white/30"
                   )}
-                  title={tag > 0 ? formatCurrency(tag) : "Sales Amount"}
+                  title={tag > 0 ? formatCurrency(tag) : "One piece"}
                 >
                   {tag > 0 ? `$${formatMoneyCompact(tag)}` : "—"}
                 </span>
-                <span
-                  className={cn(
-                    "tabular-nums text-right",
-                    storeNet !== 0 ? "text-white/85" : "text-white/30"
-                  )}
-                  title={storeNet !== 0 ? formatCurrency(storeNet) : undefined}
-                >
-                  {storeNet !== 0 ? `$${formatMoneyCompact(storeNet)}` : "—"}
-                </span>
-                {showKashCost && (
-                  <span
-                    className="tabular-nums text-right text-sky-200/90"
-                    title={hasKash ? formatCurrency(kash!) : "POS Inventory Cost (unit)"}
-                  >
-                    {hasKash ? `$${formatMoneyCompact(kash!)}` : "—"}
-                  </span>
-                )}
                 <span className="tabular-nums text-right text-white/60">
                   {shortSaleDate(s.date)}
                 </span>
@@ -461,12 +421,7 @@ export function SkuStoreBreakdownList({
         const expanded = openSku === line.sku;
         const saleCount = line.stores?.length ?? 0;
         const canExpand = saleCount > 0;
-        const hasTag = typeof line.tagPrice === "number" && line.tagPrice > 0;
-        const hasNet = typeof line.revenue === "number" && Number.isFinite(line.revenue);
-        const kash = line.kashCost;
-        const hasKash =
-          showKashCost && kash != null && Number.isFinite(kash) && kash !== 0;
-        const storeNames = uniqueSoldStoreNames(line.stores);
+        const byStore = storeSoldLines(line.stores);
 
         return (
           <li key={line.sku} className="min-w-0">
@@ -499,65 +454,72 @@ export function SkuStoreBreakdownList({
                     SKU #{line.sku}
                   </span>
 
-                  {/* Mobile: 2×2 chips · Desktop: single compact row */}
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] tabular-nums font-medium">
-                    {hasTag && (
-                      <span className="text-white/45 font-normal" title="Sales Amount">
-                        TAG ${formatMoneyCompact(line.tagPrice!)}
-                      </span>
-                    )}
-                    {hasTag && hasNet && (
-                      <span className="text-white/25 select-none" aria-hidden>
-                        ·
-                      </span>
-                    )}
-                    {hasNet && (
-                      <span
-                        className="text-white/80 font-normal"
-                        title={formatCurrency(line.revenue!)}
-                      >
-                        NET ${formatMoneyCompact(line.revenue!)}
-                      </span>
-                    )}
-                    {(hasTag || hasNet) && (
-                      <span className="text-white/25 select-none" aria-hidden>
-                        ·
-                      </span>
-                    )}
-                    <span className="text-emerald-300/75">
+                  {byStore.length > 0 ? (
+                    <ul className="space-y-0.5">
+                      {byStore.map((store) => {
+                        const tag = Number(store.tagPrice) || 0;
+                        const net = Number(store.revenue) || 0;
+                        const kash = store.kashCost;
+                        const hasKash =
+                          showKashCost && kash != null && Number.isFinite(kash) && kash !== 0;
+                        return (
+                          <li
+                            key={store.name}
+                            className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] tabular-nums font-medium"
+                          >
+                            {tag > 0 && (
+                              <span className="text-white/45 font-normal" title="One piece">
+                                TAG ${formatMoneyCompact(tag)}
+                              </span>
+                            )}
+                            {hasKash && (
+                              <>
+                                <span className="text-white/25 select-none" aria-hidden>
+                                  ·
+                                </span>
+                                <span
+                                  className="text-sky-200/90 font-normal"
+                                  title="POS Inventory Cost (unit)"
+                                >
+                                  CP ${formatMoneyCompact(kash!)}
+                                </span>
+                              </>
+                            )}
+                            {net !== 0 && (
+                              <>
+                                <span className="text-white/25 select-none" aria-hidden>
+                                  ·
+                                </span>
+                                <span className="text-white/80 font-normal" title={formatCurrency(net)}>
+                                  NET ${formatMoneyCompact(net)}
+                                </span>
+                              </>
+                            )}
+                            <span className="text-white/25 select-none" aria-hidden>
+                              ·
+                            </span>
+                            <span className="text-white/70 font-normal" title={store.name}>
+                              {store.name}
+                            </span>
+                            <span className="text-emerald-300/80">
+                              {formatPieceCount(store.units).toUpperCase()}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="text-[13px] font-medium text-emerald-300/75">
                       {formatPieceCount(line.units).toUpperCase()} SOLD
-                    </span>
-                    {hasKash && (
-                      <>
-                        <span className="text-white/25 select-none" aria-hidden>
-                          ·
-                        </span>
-                        <span
-                          className="text-sky-200/90 font-normal"
-                          title="POS Inventory Cost (unit)"
-                        >
-                          CP ${formatMoneyCompact(kash!)}
-                        </span>
-                      </>
-                    )}
-                    {storeNames.map((store) => (
-                      <span key={store} className="inline-flex items-center gap-x-2">
-                        <span className="text-white/25 select-none" aria-hidden>
-                          ·
-                        </span>
-                        <span className="text-white/55 font-normal" title={store}>
-                          {store}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
+                    </p>
+                  )}
                 </div>
               </div>
             </button>
 
             {expanded && line.stores && line.stores.length > 0 && (
               <div className="mt-1 w-full min-w-0 overflow-hidden rounded-md ring-1 ring-white/8 bg-black/20 max-h-64 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
-                <SaleTxnTable sales={line.stores} showKashCost={showKashCost} />
+                <SaleTxnTable sales={line.stores} />
               </div>
             )}
           </li>

@@ -88,10 +88,42 @@ describe("skuLinesForModel store units", () => {
     expect(sold.every((s) => s.kashCost === 444)).toBe(true);
     expect(sku.kashCost).toBe(444);
     expect(sold.every((s) => s.tagPrice === 1000)).toBe(true);
+    expect(sku.tagPrice).toBe(1000);
     expect([...new Set(sold.map((s) => s.name))]).toEqual(["DBC-GM"]);
     expect(sold.map((s) => s.transactionId).sort()).toEqual([
       "GM-10293371",
       "GM-10293374",
     ]);
+  });
+
+  it("tags one piece, not the sum of a multi-pc line", () => {
+    const lines = skuLinesForModel([
+      row({
+        storeName: "DBC-GM",
+        sku: "231624V",
+        itemNumber: "231624V",
+        transactionId: "GM-10293412",
+        quantity: 4,
+        grossSales: 3996,
+        netRevenue: 3996,
+        inventoryCost: 502,
+      }),
+      row({
+        storeName: "VJ-ROSE",
+        sku: "231624V",
+        itemNumber: "231624V",
+        transactionId: "VR-102291441",
+        quantity: 1,
+        grossSales: 999,
+        netRevenue: 999,
+        inventoryCost: 502,
+      }),
+    ]);
+    const sku = lines.find((l) => l.sku === "231624V")!;
+    expect(sku.tagPrice).toBe(999);
+    expect(sku.units).toBe(5);
+    const byStore = new Map((sku.stores ?? []).map((s) => [s.name, s]));
+    expect(byStore.get("DBC-GM")).toMatchObject({ units: 4, tagPrice: 999, revenue: 3996 });
+    expect(byStore.get("VJ-ROSE")).toMatchObject({ units: 1, tagPrice: 999, revenue: 999 });
   });
 });
