@@ -455,7 +455,7 @@ export function SkuStoreBreakdownList({
                   </span>
 
                   {byStore.length > 0 ? (
-                    <ul className="space-y-0.5">
+                    <ul className="mt-1 space-y-1">
                       {byStore.map((store) => {
                         const tag = Number(store.tagPrice) || 0;
                         const net = Number(store.revenue) || 0;
@@ -465,45 +465,50 @@ export function SkuStoreBreakdownList({
                         return (
                           <li
                             key={store.name}
-                            className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] tabular-nums font-medium"
+                            data-store-sale={store.name}
+                            className="rounded-md bg-white/[0.04] px-2 py-1.5 ring-1 ring-white/[0.06]"
                           >
-                            {tag > 0 && (
-                              <span className="text-white/45 font-normal" title="One piece">
-                                TAG ${formatMoneyCompact(tag)}
+                            <div className="flex items-center justify-between gap-2 min-w-0">
+                              <span
+                                className="min-w-0 truncate text-[13px] font-semibold text-white/90"
+                                title={store.name}
+                              >
+                                {store.name}
                               </span>
-                            )}
-                            {hasKash && (
-                              <>
-                                <span className="text-white/25 select-none" aria-hidden>
-                                  ·
+                              <span className="shrink-0 text-[12px] font-semibold tabular-nums text-emerald-300/90">
+                                {formatPieceCount(store.units).toUpperCase()}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12px] tabular-nums font-medium leading-snug">
+                              {tag > 0 && (
+                                <span className="text-white/50 font-normal" title="One piece">
+                                  TAG ${formatMoneyCompact(tag)}
                                 </span>
-                                <span
-                                  className="text-sky-200/90 font-normal"
-                                  title="POS Inventory Cost (unit)"
-                                >
-                                  CP ${formatMoneyCompact(kash!)}
-                                </span>
-                              </>
-                            )}
-                            {net !== 0 && (
-                              <>
-                                <span className="text-white/25 select-none" aria-hidden>
-                                  ·
-                                </span>
-                                <span className="text-white/80 font-normal" title={formatCurrency(net)}>
-                                  NET ${formatMoneyCompact(net)}
-                                </span>
-                              </>
-                            )}
-                            <span className="text-white/25 select-none" aria-hidden>
-                              ·
-                            </span>
-                            <span className="text-white/70 font-normal" title={store.name}>
-                              {store.name}
-                            </span>
-                            <span className="text-emerald-300/80">
-                              {formatPieceCount(store.units).toUpperCase()}
-                            </span>
+                              )}
+                              {hasKash && (
+                                <>
+                                  <span className="text-white/25 select-none" aria-hidden>
+                                    ·
+                                  </span>
+                                  <span
+                                    className="text-sky-200/90 font-normal"
+                                    title="POS Inventory Cost (unit)"
+                                  >
+                                    CP ${formatMoneyCompact(kash!)}
+                                  </span>
+                                </>
+                              )}
+                              {net !== 0 && (
+                                <>
+                                  <span className="text-white/25 select-none" aria-hidden>
+                                    ·
+                                  </span>
+                                  <span className="text-white/75 font-normal" title={formatCurrency(net)}>
+                                    NET ${formatMoneyCompact(net)}
+                                  </span>
+                                </>
+                              )}
+                            </p>
                           </li>
                         );
                       })}
