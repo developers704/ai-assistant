@@ -450,6 +450,32 @@ function joinEventPhrases(parts: string[]): string {
 }
 
 /** Greeting uses given name only: "Altaf, Fahad" → Fahad. */
+/**
+ * Payroll names are "Last, First [Middle]". Letters and templates must read
+ * "First [Middle] Last" ("Ahmed, Shazia" → "Shazia Ahmed"). Names without a
+ * comma are returned as-is.
+ */
+export function hrPersonFullName(name: string): string {
+  const raw = String(name ?? "").replace(/\s+/g, " ").trim();
+  const comma = raw.indexOf(",");
+  if (comma <= 0) return raw;
+  const last = raw.slice(0, comma).trim();
+  const given = raw.slice(comma + 1).replace(/,/g, " ").replace(/\s+/g, " ").trim();
+  if (!given) return last;
+  return `${given} ${last}`;
+}
+
+/** "June 7, 2026" (no weekday) for write-up templates. */
+export function formatLongDate(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  return new Date(`${iso}T12:00:00.000Z`).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function warningGreetingFirstName(fullName: string): string {
   const raw = String(fullName ?? "").trim();
   if (!raw) return "Team member";
@@ -641,7 +667,7 @@ function warningTextFromTemplate(
   const template = templates?.[key]?.trim();
   if (!template) return null;
   const values: Record<string, string> = {
-    employeeName,
+    employeeName: hrPersonFullName(employeeName),
     date: formatWarningMailDate(date),
     lateMinutes: String(details.lateMinutes ?? 0),
     lateOutMinutes: String(details.lateOutMinutes ?? 0),

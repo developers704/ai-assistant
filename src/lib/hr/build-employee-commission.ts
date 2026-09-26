@@ -24,6 +24,7 @@ import {
 import type { HrAbsenceWaiver, HrScheduleEntry, HrTimecardRow, HrWarningNotice } from "@/lib/hr/types";
 import { namesMatch } from "@/lib/hr/name-match";
 import { loadRankRows } from "@/lib/reports/load-rank-rows";
+import { getLatestReportMeta } from "@/lib/reports/store";
 import type { VendorPosRow } from "@/lib/reports/types";
 import { applySalespersonFilter } from "@/lib/sales/paycode-overlay";
 import {
@@ -181,6 +182,26 @@ type WindowPrep = {
   attendanceMemo: Map<string, AttendanceParts>;
 };
 
+/**
+ * HR's copy of the parsed sales rows. Loading them re-parses the full sales
+ * CSV (~12s), which used to happen every time the 2-minute window cache
+ * expired. Keyed on the latest report's identity, so a new upload is picked
+ * up on the next request and nothing stale is ever served.
+ */
+let hrSalesRowsCache: { key: string; rows: VendorPosRow[] } | null = null;
+registerHrRuntimeCacheClear(() => {
+  hrSalesRowsCache = null;
+});
+
+function hrSalesRows(): VendorPosRow[] {
+  const meta = getLatestReportMeta();
+  const key = meta ? `${meta.id}:${meta.contentHash ?? meta.uploadedAt}` : "";
+  if (key && hrSalesRowsCache?.key === key) return hrSalesRowsCache.rows;
+  const rows = loadRankRows() ?? [];
+  if (key) hrSalesRowsCache = { key, rows };
+  return rows;
+}
+
 const WINDOW_PREP_TTL_MS = 120_000;
 const windowPrepByKey = new Map<string, { at: number; prep: WindowPrep }>();
 registerHrRuntimeCacheClear(() => windowPrepByKey.clear());
@@ -191,7 +212,7 @@ function getWindowPrep(from: string, to: string, rows?: VendorPosRow[]): WindowP
     const cached = windowPrepByKey.get(key);
     if (cached && Date.now() - cached.at < WINDOW_PREP_TTL_MS) return cached.prep;
   }
-  const all = rows ?? loadRankRows() ?? [];
+  const all = rows ?? hrSalesRows();
   const windowRows = all.filter((r) => r.date >= from && r.date <= to);
   const prep: WindowPrep = {
     remapped: applyHrSalesDesigns(windowRows),
@@ -225,7 +246,7 @@ export function buildEmployeeCommissionFromSales(opts: {
   if (!cache.hrIndex) {
     cache.hrIndex = buildHrAttendanceIndex(opts.from, opts.to, cache.punches, cache.schedule);
   }
-  const all = opts.rows ?? prep?.remapped ?? loadRankRows() ?? [];
+  const all = opts.rows ?? prep?.remapped ?? hrSalesRows();
   const windowRows = opts.rows
     ? all.filter((r) => r.date >= opts.from && r.date <= opts.to)
     : prep?.remapped ?? all.filter((r) => r.date >= opts.from && r.date <= opts.to);

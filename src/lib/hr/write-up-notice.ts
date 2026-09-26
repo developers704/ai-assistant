@@ -2,13 +2,16 @@ import type { HrWarningNotice } from "./types";
 import {
   HR_WARNING_FROM,
   HR_WARNING_TO,
+  formatLongDate,
   formatWarningMailDate,
+  hrPersonFullName,
   isEarlyForWarning,
   isEarlyOutForWarning,
   isLateForWarning,
   isLateOutForWarning,
   isEligibleForHrNotice,
   noticeDescriptionForEmployee,
+  noticeDisplayName,
   noticeEmployeeSlug,
   type HrNoticeEmployee,
 } from "./warning-notice";
@@ -53,8 +56,10 @@ export function writeUpDescriptionForEmployee(
 ): string {
   const schedule = emp.schedule as { start?: string; end?: string } | null | undefined;
   const values: Record<string, string> = {
-    employeeName: emp.displayName?.trim() || emp.employeeName,
-    date: formatWarningMailDate(emp.date),
+    // Same resolution as warnings (display name, guard mapping), then
+    // payroll "Last, First" → "First Last" for the letter text.
+    employeeName: hrPersonFullName(noticeDisplayName(emp)),
+    date: formatLongDate(emp.date),
     lateMinutes: String(emp.lateMinutes ?? 0),
     lateOutMinutes: String(emp.lateOutMinutes ?? 0),
     earlyInMinutes: String(emp.earlyInMinutes ?? 0),

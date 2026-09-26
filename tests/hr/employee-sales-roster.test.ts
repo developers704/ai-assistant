@@ -4,7 +4,9 @@ import { employeeSalesRosterCsv } from "@/lib/hr/employee-sales-export";
 import { HR_ATTENDANCE_FROM, HR_ATTENDANCE_TO } from "@/lib/hr/window";
 
 describe("employee sales roster", () => {
-  it("lists Sultan without store codes under his name", () => {
+  // First roster build pays the one-time parse of the full sales report
+  // (shared reports code, ~12s cold); later builds reuse HR's cached rows.
+  it("lists Sultan without store codes under his name", { timeout: 60_000 }, () => {
     const rows = buildEmployeeSalesRoster({
       from: HR_ATTENDANCE_FROM,
       to: HR_ATTENDANCE_TO,

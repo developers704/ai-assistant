@@ -102,7 +102,9 @@ export function summarizeCommission(input: {
   const passed = attendancePasses(writeUps, absenceWriteUps);
   const personalGoalAchieved = input.netSales >= input.personalGoal && input.personalGoal > 0;
   const storeGoalAchieved = input.storeTotalSales >= input.storeGoal && input.storeGoal > 0;
-  const attendanceBonus = passed ? baseCommission : 0;
+  // Bonuses multiply earned commission. When returns outweigh sales the base
+  // is negative; it still pays as-is, but must not be doubled into a bonus.
+  const attendanceBonus = passed ? Math.max(0, baseCommission) : 0;
   const personalGoalBonus = passed && personalGoalAchieved ? roundCommissionDollars(attendanceBonus * 0.5) : 0;
   const storeGoalBonus = passed && storeGoalAchieved ? roundCommissionDollars(attendanceBonus * 0.5) : 0;
   return {
