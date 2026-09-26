@@ -220,14 +220,8 @@ function hasUvOrUltimateValue(item: InventoryItem): boolean {
   return /\buv\b/i.test(desc) || /ultimate\s*value/i.test(desc);
 }
 
-/**
- * DM Cost Price:
- * 1) Fixed SKU Whole Cost (owner list)
- * 2) Sheet formula on Tag Price when a rule matches
- * 3) Else inventory Whole Cost if filled
- * 4) Else Individual Cost Value
- */
-export function getVisibleDmCostPrice(item: InventoryItem): number {
+/** Whole-cost rules, then the Whole Cost column. Does not fall back to Individual Cost. */
+export function getWholesaleCostPrice(item: InventoryItem): number {
   const fixed = fixedWholeCostForSku(item.sku);
   if (fixed != null) return fixed;
 
@@ -247,9 +241,19 @@ export function getVisibleDmCostPrice(item: InventoryItem): number {
     if (fromRules != null && fromRules > 0) return fromRules;
   }
 
-  const wholesale = Number(item.wholesaleCost) || 0;
-  if (wholesale > 0) return wholesale;
+  return Number(item.wholesaleCost) || 0;
+}
 
+/**
+ * DM Cost Price:
+ * 1) Fixed SKU Whole Cost (owner list)
+ * 2) Sheet formula on Tag Price when a rule matches
+ * 3) Else inventory Whole Cost if filled
+ * 4) Else Individual Cost Value
+ */
+export function getVisibleDmCostPrice(item: InventoryItem): number {
+  const wholesale = getWholesaleCostPrice(item);
+  if (wholesale > 0) return wholesale;
   return Number(item.costPrice) || 0;
 }
 

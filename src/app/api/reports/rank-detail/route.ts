@@ -24,7 +24,10 @@ import { scopeStoresForUser } from "@/lib/auth/scope-stores";
 import { sumCostPriceForRole } from "@/lib/sales/cost-price";
 import { hidesVendorInfoFromPermissions } from "@/lib/auth/user-permissions-store";
 import { showsAllSoldInTopVendorModels } from "@/lib/auth/user-permissions";
-import { vendorModelGroupKey } from "@/lib/sales/top-models-wholesale-margin";
+import {
+  calculatorWholesaleUnitCost,
+  vendorModelGroupKey,
+} from "@/lib/sales/top-models-wholesale-margin";
 import {
   applyPaycodeFilter,
   applySalespersonFilter,
@@ -63,7 +66,10 @@ function skuLinesCredited(
   const map = new Map<
     string,
     VendorModelSkuLine & {
-      storeSales: Map<string, { units: number; returned: number; revenue: number }>;
+      storeSales: Map<
+        string,
+        { units: number; returned: number; revenue: number; wholesaleCost?: number }
+      >;
     }
   >();
   for (const r of rows) {
@@ -79,7 +85,7 @@ function skuLinesCredited(
       margin: 0,
       storeSales: new Map<
         string,
-        { units: number; returned: number; revenue: number }
+        { units: number; returned: number; revenue: number; wholesaleCost?: number }
       >(),
     };
     const units = salesUnitsSold(r.quantity) * share;
@@ -98,6 +104,10 @@ function skuLinesCredited(
       const q = Number(r.quantity ?? 0);
       if (q < 0) prev.returned += Math.abs(q) * share;
       prev.revenue += revenueShare;
+      if (!(prev.wholesaleCost && prev.wholesaleCost > 0)) {
+        const unitWs = calculatorWholesaleUnitCost(sku, store, r);
+        if (unitWs != null && unitWs > 0) prev.wholesaleCost = unitWs;
+      }
       cur.storeSales.set(store, prev);
     }
     map.set(key, cur);
@@ -257,7 +267,8 @@ export async function GET(req: Request) {
   const inventoryCost = sumCostPriceForRole(
     matched,
     session.role,
-    (r) => creditOf(r)
+    (r) => creditOf(r),
+    session.username
   );
   const uniqueTransactions = new Set(
     matched.map((r) => r.transactionId).filter(Boolean)

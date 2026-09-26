@@ -44,6 +44,11 @@ const TOP_MODEL_HIDDEN_VENDOR_MODELS = new Set([
   "YG2847",
 ]);
 
+/** One sale line, not the model forever. Still counted in Net Sales. */
+const TOP_MODEL_HIDDEN_ON_DATE: { model: string; date: string }[] = [
+  { model: "JON-201171", date: "2026-09-25" },
+];
+
 function normalizeSalesModelKey(value?: string | null): string {
   return (value ?? "")
     .toUpperCase()
@@ -105,11 +110,20 @@ export function isHiddenFromTopVendorModelsVendorModel(
   return TOP_MODEL_HIDDEN_VENDOR_MODELS.has(normalized);
 }
 
+function isoSaleDate(value?: string | null): string {
+  const s = (value ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return "";
+  return `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+}
+
 export function isHiddenFromTopVendorModelsRow(row: {
   sku?: string | null;
   itemNumber?: string | null;
   vendorModel?: string | null;
   style?: string | null;
+  date?: string | null;
 }): boolean {
   // Repair / SPO / finance / JVV tickets — keep in Net Sales, hide from Top Models only
   const sku =
@@ -118,7 +132,15 @@ export function isHiddenFromTopVendorModelsRow(row: {
     (row.style ?? "").trim();
   if (isRepairServiceMemoSku(sku)) return true;
   if (isHiddenFromTopVendorModelsVendorModel(row.vendorModel)) return true;
-  return isHiddenFromTopVendorModelsVendorModel(sku);
+  if (isHiddenFromTopVendorModelsVendorModel(sku)) return true;
+  const date = isoSaleDate(row.date);
+  if (!date) return false;
+  const keys = [row.vendorModel, row.sku, row.itemNumber, row.style, sku].map((v) =>
+    normalizeSalesModelKey(v)
+  );
+  return TOP_MODEL_HIDDEN_ON_DATE.some(
+    (rule) => rule.date === date && keys.includes(rule.model)
+  );
 }
 
 /** @deprecated Use isExcludedSalesSku — kept for older call sites. */
@@ -157,7 +179,7 @@ export function isExcludedSalesRow(row: {
 }
 
 /** Bump when Net Sales / Top Models soft-hide rules change so cached sales versions rebuild. */
-export const SALES_EXCLUSION_RULES_VERSION = 14;
+export const SALES_EXCLUSION_RULES_VERSION = 15;
 
 type SalesReturnPairRow = {
   sku?: string | null;

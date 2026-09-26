@@ -5,9 +5,17 @@ import {
   saveInventoryCsv,
 } from "@/lib/inventory/store";
 import { readSessionFromCookies } from "@/lib/auth/session";
-import { calculatePricing, getVisibleDmCostPrice } from "@/lib/inventory/pricing";
+import {
+  calculatePricing,
+  getVisibleDmCostPrice,
+  getWholesaleCostPrice,
+} from "@/lib/inventory/pricing";
 import { resolveProductImageUrl } from "@/lib/reports/product-image";
-import { canSeeRealInventoryCost, hidesWholesaleCost } from "@/lib/auth/user-permissions";
+import {
+  canSeeRealInventoryCost,
+  hidesWholesaleCost,
+  seesWholesaleCostOnly,
+} from "@/lib/auth/user-permissions";
 import {
   getPermissionMapForUser,
   hidesVendorInfoFromPermissions,
@@ -100,9 +108,15 @@ export async function GET(req: NextRequest) {
   }
 
   // Admins → real Individual Cost. Everyone else → Whole Cost.
+  // AJ never sees Individual / Kash cost, even when Whole Cost is blank.
   let item = { ...result.item };
   let pricing = result.pricing;
-  if (!canSeeRealInventoryCost(session.username, session.role)) {
+  const wholesaleOnly = seesWholesaleCostOnly(session.username);
+  if (wholesaleOnly) {
+    const visibleCost = getWholesaleCostPrice(result.item);
+    item = { ...item, costPrice: visibleCost };
+    pricing = calculatePricing(item);
+  } else if (!canSeeRealInventoryCost(session.username, session.role)) {
     const visibleCost = getVisibleDmCostPrice(item);
     if (visibleCost > 0) {
       item = { ...item, costPrice: visibleCost };
@@ -123,7 +137,13 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     item: publicItem,
-    ...(hideCost ? {} : { wholeCost: getVisibleDmCostPrice(result.item) }),
+    ...(hideCost
+      ? {}
+      : {
+          wholeCost: wholesaleOnly
+            ? getWholesaleCostPrice(result.item)
+            : getVisibleDmCostPrice(result.item),
+        }),
     ...(includeOfferPricing ? { pricing } : {}),
     stores: result.stores,
     onHandTotal: result.onHandTotal,

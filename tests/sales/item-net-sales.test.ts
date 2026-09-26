@@ -220,3 +220,22 @@ describe("ITEM placeholder — Net Sales keep, Top Models hide", () => {
     ).toHaveLength(2);
   });
 });
+
+describe("JON-201171 on Sep 25 2026", () => {
+  it("hides that sale from Top Vendor Models and leaves other days visible", () => {
+    const sale = row({
+      date: "2026-09-25",
+      sku: "JON-201171",
+      itemNumber: "JON-201171",
+      vendorModel: "",
+      department: "",
+      description: "6 STONE TIGHTENING",
+      netRevenue: 18,
+      quantity: 6,
+      storeName: "VJ-ONT",
+    });
+    expect(isHiddenFromTopVendorModelsRow(sale)).toBe(true);
+    expect(isHiddenFromTopVendorModelsRow({ ...sale, date: "2026-09-24" })).toBe(false);
+    expect(isHiddenFromTopVendorModelsRow({ ...sale, date: "9/25/2026" })).toBe(true);
+  });
+});

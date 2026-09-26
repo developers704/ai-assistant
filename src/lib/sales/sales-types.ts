@@ -192,6 +192,8 @@ export interface VendorModelSkuStoreLine {
   date?: string;
   /** POS Inventory Cost unit for this sale (Kash CP). Never × qty. */
   kashCost?: number;
+  /** Calculator wholesale unit cost. AJ sees this instead of Kash CP. Never × qty. */
+  wholesaleCost?: number;
   /** One piece’s Sales Amount (gross ÷ qty) — Tag, not the line sum. */
   tagPrice?: number;
 }

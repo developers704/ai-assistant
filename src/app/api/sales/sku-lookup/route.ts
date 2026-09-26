@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
     units += r.quantity;
     netRevenue += r.netRevenue;
     grossSales += r.grossSales;
-    const rowCost = costPriceForRole(r, session.role);
+    const rowCost = costPriceForRole(r, session.role, session.username);
     inventoryCost += rowCost;
     discountAmount += r.discountAmount;
     if (r.transactionId) txns.add(r.transactionId);

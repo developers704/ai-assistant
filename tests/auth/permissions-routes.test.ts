@@ -83,6 +83,23 @@ describe("permission ownership and vendor info", () => {
       })
     ).toBe(true);
   });
+
+  it("always hides vendor info for AJ", () => {
+    const defaultMap = mergePermissionMap("aj", "dm", {});
+    expect(defaultMap.vendor_info).toBe(false);
+
+    const enabled = mergePermissionMap("aj", "dm", {
+      aj: { vendor_info: true },
+    });
+    expect(enabled.vendor_info).toBe(false);
+    expect(
+      userHidesVendorInfo({
+        authRole: "dm",
+        username: "aj",
+        permissions: enabled,
+      })
+    ).toBe(true);
+  });
 });
 
 describe("Employee and HR routing", () => {

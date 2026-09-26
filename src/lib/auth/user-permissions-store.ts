@@ -68,8 +68,8 @@ export function hidesVendorInfoFromPermissions(
   username: string | null | undefined
 ): boolean {
   const key = (username ?? "").trim().toLowerCase();
-  // Rozina: always hide vendor (hard rule)
-  if (key === "rozina") return true;
+  // Rozina and AJ: always hide vendor (hard rule)
+  if (key === "rozina" || key === "aj" || key === "akber") return true;
   const user = findAuthUser(username ?? "");
   if (user?.role === "admin") return false;
   const map = getPermissionMapForUser(username, user?.role ?? "dm");
