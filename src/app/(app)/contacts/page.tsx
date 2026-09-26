@@ -206,7 +206,7 @@ export default function ContactsPage() {
 
       <p className="text-[10px] text-ink-muted mt-3">
         On mobile: WhatsApp opens the app directly. Calls use{" "}
-        {callMode === "magicapp" ? "magicApp (intl)" : "your SIM"} by default — change in Settings.
+        {callMode === "magicapp" ? "magicApp (intl)" : "your SIM"} by default. Use the button above to switch.
       </p>
     </div>
   ) : (

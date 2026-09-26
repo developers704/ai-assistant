@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "Gmail is not connected in this app process. Open Settings and connect Google, then retry.",
+          "Gmail is not connected in this app process.",
       },
       { status: 400 }
     );

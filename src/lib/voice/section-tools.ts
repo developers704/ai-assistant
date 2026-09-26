@@ -167,7 +167,7 @@ export function buildSettingsStatusScript(): string {
   parts.push(
     google?.connected
       ? `Google is connected${google.email ? ` as ${google.email}` : ""} for Gmail, Calendar, and Contacts.`
-      : "Google is not connected. Connect it in Settings for live inbox and calendar."
+      : "Google is not connected."
   );
 
   parts.push(
@@ -186,7 +186,7 @@ export function buildSettingsStatusScript(): string {
   parts.push(
     social.connected
       ? "Instagram Business is connected for the Social dashboard."
-      : "Instagram is not connected. Add Meta env keys in Settings."
+      : "Instagram is not connected."
   );
 
   const prefs = state.user?.preferences;

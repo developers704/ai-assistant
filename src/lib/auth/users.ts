@@ -116,7 +116,7 @@ const USERS: AuthUserRecord[] = [
     passwordHash:
       "$2b$10$jJOVYmYvNxqCNyMon31GVu/65jMjPqxnYTOmo7QcWLjXq25AmRlFC", // AJ-Valliani
     role: "dm",
-    storeCodes: [...AJ_STORES],
+    storeCodes: [...AJ_STORES, ...SHAUN_STORES],
     title: "District Manager",
   },
   {
@@ -481,8 +481,20 @@ export function listBuiltinAuthUsers(): AuthUserRecord[] {
   return withGuardDisplayNames(USERS);
 }
 
+/** AJ sees AJ + Shaun stores. Shaun stays on SHAUN_STORES. Adeel and Rozina stay out. */
+function withAjStoreAccess(users: AuthUserRecord[]): AuthUserRecord[] {
+  const visible = [...AJ_STORES, ...SHAUN_STORES];
+  return users.map((user) => {
+    if (normalizeUsername(user.username) !== "aj") return user;
+    if (user.role === "admin" || user.role === "hr") return user;
+    return { ...user, storeCodes: visible };
+  });
+}
+
 export function listAuthUsers(): AuthUserRecord[] {
-  return withGuardDisplayNames(parseEnvUsers() ?? applyUserDirectory(USERS));
+  return withGuardDisplayNames(
+    withAjStoreAccess(parseEnvUsers() ?? applyUserDirectory(USERS))
+  );
 }
 
 export function findAuthUser(username: string): AuthUserRecord | null {

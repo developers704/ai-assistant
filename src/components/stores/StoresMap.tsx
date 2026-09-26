@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -41,6 +41,38 @@ const markerIcon = iconFor("default");
 const selectedIcon = iconFor("selected");
 const pinAIcon = iconFor("a");
 const pinBIcon = iconFor("b");
+
+/**
+ * Carto basemaps paint "API KEY REQUIRED" without a key.
+ * OpenStreetMap needs none. If those tiles fail, Esri streets is the backup.
+ */
+function BasemapTiles() {
+  const [source, setSource] = useState<"osm" | "esri">("osm");
+  const errors = useRef(0);
+  const url =
+    source === "osm"
+      ? "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+      : "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
+  const attribution =
+    source === "osm"
+      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      : 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>';
+
+  return (
+    <TileLayer
+      key={source}
+      attribution={attribution}
+      url={url}
+      maxZoom={19}
+      eventHandlers={{
+        tileerror: () => {
+          errors.current += 1;
+          if (source === "osm" && errors.current >= 4) setSource("esri");
+        },
+      }}
+    />
+  );
+}
 
 /** Leaflet must remeasure after the shell gets a fixed height (avoids grey/blank tiles). */
 function InvalidateOnResize() {
@@ -203,10 +235,7 @@ export function StoresMap({
         className="h-full w-full z-0"
         scrollWheelZoom
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        />
+        <BasemapTiles />
         <InvalidateOnResize />
         <FitView
           stores={mappable}

@@ -694,7 +694,7 @@ export async function sendGmailMessage(params: {
   if (!client) {
     return {
       ok: false,
-      error: "Gmail is not connected. Open Settings and connect your Google account first.",
+      error: "Gmail is not connected.",
     };
   }
 

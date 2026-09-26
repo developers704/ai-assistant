@@ -671,7 +671,7 @@ function showCalendar(message: string, state: AppState): AIResponse {
 
   const sourceNote = googleConnected
     ? `\n\n_Synced from Google Calendar (${tz})._`
-    : "\n\n_Using demo calendar — connect Google in Settings for live events._";
+    : "\n\n_Using the in-app calendar._";
 
   return {
     intent: "calendar_today",

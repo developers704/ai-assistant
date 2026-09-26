@@ -69,14 +69,7 @@ export function VoiceSession() {
   if (!voiceEnabled) {
     return (
       <div className="flex min-h-full flex-col items-center justify-center gap-4 text-center px-6">
-        <p className="text-ink-secondary">Voice is disabled in Settings.</p>
-        <button
-          type="button"
-          onClick={() => router.push("/settings")}
-          className="px-6 py-2.5 rounded-full bg-white/10 text-white text-sm ring-1 ring-white/20"
-        >
-          Open Settings
-        </button>
+        <p className="text-ink-secondary">Voice is not available for this account.</p>
       </div>
     );
   }
@@ -92,10 +85,10 @@ export function VoiceSession() {
         </p>
         <button
           type="button"
-          onClick={() => router.push("/settings")}
+          onClick={() => router.push("/chat")}
           className="px-6 py-2.5 rounded-full bg-white/10 text-white text-sm ring-1 ring-white/20"
         >
-          Open Settings
+          Back to Chat
         </button>
       </div>
     );

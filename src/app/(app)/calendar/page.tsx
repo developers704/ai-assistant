@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useApp } from "@/lib/store/app-context";
 import { PageHeader } from "@/components/layout/Sidebar";
 import {
@@ -33,7 +32,6 @@ import {
   Square,
   CheckSquareIcon,
   Trash2,
-  Link2,
   Video,
 } from "lucide-react";
 
@@ -199,12 +197,7 @@ export default function CalendarTasksPage() {
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 min-h-0">
           {!googleConnected && (
             <Card className="mb-5 p-4 flex flex-wrap items-center justify-between gap-3 ring-1 ring-amber-400/20 bg-amber-500/10">
-              <p className="text-sm text-ink-secondary">Connect Google Calendar in Settings to sync your real schedule.</p>
-              <Link href="/settings">
-                <Button size="sm" variant="outline">
-                  <Link2 size={14} /> Connect Calendar
-                </Button>
-              </Link>
+              <p className="text-sm text-ink-secondary">Google Calendar is not connected. This view uses the in-app schedule.</p>
             </Card>
           )}
 
