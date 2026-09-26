@@ -44,7 +44,7 @@ import {
   canSeeKashCostPrice,
   seesWholesaleCostOnly,
 } from "@/lib/auth/user-permissions";
-import { TrendingUp, TrendingDown, Package, Store, LineChart, GitCompareArrows, CalendarDays } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, Store, LineChart, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function rangeFromSearchParams(sp: {
@@ -238,7 +238,7 @@ export default function SalesPage() {
       stores: filterStores,
       departments: filterDepartments,
       designs: filterDesigns,
-      vendors: filterVendors,
+      vendors: hideVendors ? [] : filterVendors,
       classes: filterClasses,
       subclasses: filterSubclasses,
       paycodes: filterPaycodes,
@@ -258,10 +258,16 @@ export default function SalesPage() {
     filterSubclasses,
     filterPaycodes,
     filterSalespeople,
+    hideVendors,
     router,
   ]);
 
   useEffect(() => {
+    if (hideVendors && filterVendors.length > 0) setFilterVendors([]);
+  }, [hideVendors, filterVendors.length]);
+
+  useEffect(() => {
+    if (hideVendors && detailTypeFromUrl === "vendor") return;
     if (
       detailTypeFromUrl &&
       detailValueFromUrl &&
@@ -272,7 +278,7 @@ export default function SalesPage() {
         value: detailValueFromUrl,
       });
     }
-  }, [detailTypeFromUrl, detailValueFromUrl]);
+  }, [detailTypeFromUrl, detailValueFromUrl, hideVendors]);
 
   useEffect(() => {
     if (!bootstrapped) return;
@@ -283,7 +289,7 @@ export default function SalesPage() {
       stores: filterStores,
       departments: filterDepartments,
       designs: filterDesigns,
-      vendors: filterVendors,
+      vendors: hideVendors ? [] : filterVendors,
       classes: filterClasses,
       subclasses: filterSubclasses,
       paycodes: filterPaycodes,
@@ -422,6 +428,7 @@ export default function SalesPage() {
     filterSubclasses,
     filterPaycodes,
     filterSalespeople,
+    hideVendors,
     refreshNonce,
   ]);
 
@@ -505,32 +512,7 @@ export default function SalesPage() {
                     stores: filterStores,
                     departments: filterDepartments,
                     designs: filterDesigns,
-                    vendors: filterVendors,
-                    classes: filterClasses,
-                    subclasses: filterSubclasses,
-                    paycodes: filterPaycodes,
-                    salespeople: filterSalespeople,
-                  });
-                  const qs = params.toString();
-                  return qs
-                    ? `/sales/lookup-compare?${qs}`
-                    : "/sales/lookup-compare";
-                })()}
-              >
-                <Button size="sm" className="gap-1.5">
-                  <GitCompareArrows size={14} />
-                  Lookup & Compare
-                </Button>
-              </Link>
-              <Link
-                href={(() => {
-                  const params = new URLSearchParams();
-                  appendDateParams(params, dateRange);
-                  appendFilterParams(params, {
-                    stores: filterStores,
-                    departments: filterDepartments,
-                    designs: filterDesigns,
-                    vendors: filterVendors,
+                    vendors: hideVendors ? [] : filterVendors,
                     classes: filterClasses,
                     subclasses: filterSubclasses,
                     paycodes: filterPaycodes,
@@ -881,12 +863,15 @@ export default function SalesPage() {
         filterStore={filterStores.length ? filterStores.join(",") : undefined}
         filterDepartment={filterDepartments.length ? filterDepartments.join(",") : undefined}
         filterDesign={filterDesigns.length ? filterDesigns.join(",") : undefined}
-        filterVendor={filterVendors.length ? filterVendors.join(",") : undefined}
+        filterVendor={
+          hideVendors || filterVendors.length === 0 ? undefined : filterVendors.join(",")
+        }
         filterClass={filterClasses.length ? filterClasses.join(",") : undefined}
         filterSubclass={filterSubclasses.length ? filterSubclasses.join(",") : undefined}
         filterPaycode={filterPaycodes.length ? filterPaycodes.join(",") : undefined}
         filterSalesperson={filterSalespeople.length ? filterSalespeople.join(",") : undefined}
         showWholesaleCost={showWholesaleCost}
+        hideVendors={hideVendors}
         reportId={
           reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
             ? reportId

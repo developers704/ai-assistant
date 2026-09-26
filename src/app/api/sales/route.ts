@@ -627,13 +627,33 @@ export async function GET(req: NextRequest) {
     ...(filterClasses.length ? { filterClasses } : {}),
   });
 
-  if (latest) {
+    if (latest) {
     const summary = { ...latest.summary };
     if (hideVendors) {
       summary.topVendors = [];
       summary.recommendations = (summary.recommendations ?? []).filter(
         (r) => !/top vendor/i.test(r)
       );
+    }
+    if (!canSeeKashCostPrice(session.username, session.role)) {
+      summary.topProducts = (summary.topProducts ?? []).map((p) => {
+        const { kashCost: _drop, skus, ...rest } = p as typeof p & {
+          kashCost?: number | null;
+          skus?: Array<
+            Record<string, unknown> & {
+              kashCost?: number | null;
+              stores?: Array<Record<string, unknown> & { kashCost?: number }>;
+            }
+          >;
+        };
+        return {
+          ...rest,
+          skus: skus?.map(({ kashCost: _s, stores, ...sku }) => ({
+            ...sku,
+            stores: stores?.map(({ kashCost: _c, ...st }) => st),
+          })),
+        };
+      }) as typeof summary.topProducts;
     }
     return NextResponse.json(
       attachHrSalesScope(

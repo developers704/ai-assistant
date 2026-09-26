@@ -86,6 +86,7 @@ type RankDetailDrawerProps = {
   filterSalesperson?: string;
   reportId?: string;
   showWholesaleCost?: boolean;
+  hideVendors?: boolean;
   onClose: () => void;
 };
 
@@ -131,6 +132,7 @@ export function RankDetailDrawer({
   filterSalesperson,
   reportId,
   showWholesaleCost = false,
+  hideVendors = false,
   onClose,
 }: RankDetailDrawerProps) {
   const [data, setData] = useState<RankDetailResponse | null>(null);
@@ -290,7 +292,9 @@ export function RankDetailDrawer({
                   ? ` · subclass ${filterSubclass}`
                   : ""}
                 {filterClass && selection.dimension !== "class" ? ` · class ${filterClass}` : ""}
-                {filterVendor && selection.dimension !== "vendor" ? ` · vendor ${filterVendor}` : ""}
+                {!hideVendors && filterVendor && selection.dimension !== "vendor"
+                  ? ` · vendor ${filterVendor}`
+                  : ""}
                 {filterDepartment && selection.dimension !== "department"
                   ? ` · dept ${filterDepartment}`
                   : ""}
@@ -358,7 +362,7 @@ export function RankDetailDrawer({
               {selection.dimension !== "department" && (
                 <MiniList title="By department" items={b.departments} />
               )}
-              {selection.dimension !== "vendor" && (
+              {!hideVendors && selection.dimension !== "vendor" && (
                 <MiniList title="By vendor" items={b.vendors} />
               )}
               {selection.dimension !== "design" && (
