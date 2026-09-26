@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { mockContacts } from "@/lib/mock-data";
 import { getDefaultPermissionMapForRole } from "@/lib/auth/user-permissions";
+import { displayAttendee } from "@/lib/calendar-utils";
 
 const added = [
   ["Adeel Valliani", "District Manager", "+1 (765) 409-6611"],
@@ -41,6 +42,15 @@ describe("shared team contacts", () => {
       expect(contact?.whatsapp).toBe(phone);
       expect(contact?.company).toBe("Valliani Jewelers");
     }
+  });
+
+  it("lists Irtiza as IT Head", () => {
+    const irtiza = mockContacts.find((c) => c.name === "Irtiza");
+    expect(irtiza?.role).toBe("IT Head");
+    expect(irtiza?.email).toBe("irtaza@valliani.app");
+    expect(displayAttendee("irtiza")).toBe("Irtiza - IT Head");
+    expect(displayAttendee("irtaza@valliani.app")).toBe("Irtiza - IT Head");
+    expect(displayAttendee("irtaza@arrakconsulting.com")).toBe("Irtiza - IT Head");
   });
 
   it("keeps the earlier directory names", () => {

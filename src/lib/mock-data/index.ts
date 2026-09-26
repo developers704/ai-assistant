@@ -203,6 +203,14 @@ export const mockContacts: Contact[] = [
   directoryContact("c33", "Jhovelyn", "Chandler Store Manager", "+1 (415) 988-0472"),
   directoryContact("c34", "Joyce Bermudez", "Stockton Store Manager", "+1 (209) 373-5546"),
   directoryContact("c35", "Omar Siddique", "Roseville Store Manager", "+1 (925) 550-3030"),
+  {
+    id: "c36",
+    name: "Irtiza",
+    role: "IT Head",
+    company: "Valliani Jewelers",
+    email: "irtaza@valliani.app",
+    isImportant: true,
+  },
 ];
 
 const today = new Date();
