@@ -54,6 +54,7 @@ describe("Admin / Employee / HR / DM roles", () => {
     const map = getDefaultPermissionMapForRole("employee");
     expect(map.hr_sales).toBe(true);
     expect(map.sku_lookup).toBe(true);
+    expect(map.contacts).toBe(true);
     expect(map.vendor_info).toBe(true);
     expect(map.sales_dashboard).toBe(false);
     expect(map.stores_map).toBe(false);
@@ -69,6 +70,7 @@ describe("Admin / Employee / HR / DM roles", () => {
     const map = getDefaultPermissionMapForRole("hr");
     expect(map.hr_management).toBe(true);
     expect(map.hr_sales).toBe(true);
+    expect(map.contacts).toBe(true);
     expect(map.user_admin).toBe(true);
     expect(map.role_admin).toBe(false);
     expect(map.sales_dashboard).toBe(false);
@@ -83,6 +85,7 @@ describe("Admin / Employee / HR / DM roles", () => {
     expect(map.sales_dashboard).toBe(true);
     expect(map.stores_map).toBe(true);
     expect(map.price_calculator).toBe(true);
+    expect(map.contacts).toBe(true);
     expect(map.vendor_info).toBe(true);
     expect(map.discounting).toBe(false);
     expect(map.hr_management).toBe(false);

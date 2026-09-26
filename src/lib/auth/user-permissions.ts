@@ -163,6 +163,7 @@ export function getDefaultPermissionMapForRole(
       sales_dashboard: true,
       stores_map: true,
       price_calculator: true,
+      contacts: true,
       vendor_info: true,
     };
   }
@@ -172,6 +173,7 @@ export function getDefaultPermissionMapForRole(
       ...emptyPermissionMap(false),
       hr_management: true,
       hr_sales: true,
+      contacts: true,
       user_admin: true,
       role_admin: false,
       vendor_info: true,
@@ -183,6 +185,7 @@ export function getDefaultPermissionMapForRole(
       ...emptyPermissionMap(false),
       hr_sales: true,
       sku_lookup: true,
+      contacts: true,
       vendor_info: true,
     };
   }

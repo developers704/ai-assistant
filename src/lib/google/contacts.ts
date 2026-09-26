@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import type { GoogleOAuth2Client } from "./client";
+import { correctDirectoryContact, irtizaDedupeKey } from "@/lib/directory-contact";
 import type { Contact } from "@/types";
 
 function pickPhone(
@@ -81,6 +82,8 @@ export async function fetchGoogleContacts(
 }
 
 function contactDedupeKey(contact: Contact): string {
+  const irtiza = irtizaDedupeKey(contact);
+  if (irtiza) return irtiza;
   const email = contact.email?.trim().toLowerCase();
   if (email) return `e:${email}`;
   const phone = contact.phone?.replace(/\D/g, "");
@@ -88,15 +91,36 @@ function contactDedupeKey(contact: Contact): string {
   return `n:${contact.name.trim().toLowerCase()}`;
 }
 
+function preferFilled(current: Contact, extra: Contact): Contact {
+  return {
+    ...current,
+    email: current.email || extra.email,
+    phone: current.phone || extra.phone,
+    whatsapp: current.whatsapp || extra.whatsapp || current.phone || extra.phone,
+    notes: current.notes || extra.notes,
+    company: current.company || extra.company,
+    isImportant: current.isImportant || extra.isImportant,
+  };
+}
+
 /** Team directory first, then Google contacts that are not already listed. */
 export function mergeContactLists(team: Contact[], google: Contact[]): Contact[] {
-  const merged = [...team];
-  const seen = new Set(team.map(contactDedupeKey));
-  for (const contact of google) {
-    const key = contactDedupeKey(contact);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(contact);
-  }
+  const merged: Contact[] = [];
+  const indexByKey = new Map<string, number>();
+
+  const absorb = (contact: Contact) => {
+    const titled = correctDirectoryContact(contact);
+    const key = contactDedupeKey(titled);
+    const existing = indexByKey.get(key);
+    if (existing == null) {
+      indexByKey.set(key, merged.length);
+      merged.push(titled);
+      return;
+    }
+    merged[existing] = correctDirectoryContact(preferFilled(merged[existing]!, titled));
+  };
+
+  for (const contact of team) absorb(contact);
+  for (const contact of google) absorb(contact);
   return merged.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }

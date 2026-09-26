@@ -16,6 +16,7 @@ import {
   openPhoneCall,
   openWhatsAppChat,
 } from "@/lib/contact-links";
+import { correctDirectoryContact } from "@/lib/directory-contact";
 import type { Contact } from "@/types";
 import { Mail, Phone, MessageCircle, Star, Users, ChevronLeft, Search } from "lucide-react";
 
@@ -35,7 +36,9 @@ export default function ContactsPage() {
   }, [selectedId]);
 
   const filteredContacts = useMemo(() => {
-    const list = state?.contacts ?? [];
+    const list = [...(state?.contacts ?? [])]
+      .map(correctDirectoryContact)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
     const q = search.trim().toLowerCase();
     if (!q) return list;
     return list.filter((c) =>
@@ -47,9 +50,10 @@ export default function ContactsPage() {
 
   if (!state) return null;
 
-  const selected =
+  const selectedRaw =
     state.contacts.find((c) => c.id === selectedId) ??
     filteredContacts.find((c) => c.id === selectedId);
+  const selected = selectedRaw ? correctDirectoryContact(selectedRaw) : undefined;
   const mobileDetail = !!selectedId;
   const googleConnected = state.integrations?.google?.connected ?? false;
   const contactsSynced = state.integrations?.google?.contactsSynced;
@@ -202,7 +206,7 @@ export default function ContactsPage() {
 
       <p className="text-[10px] text-ink-muted mt-3">
         On mobile: WhatsApp opens the app directly. Calls use{" "}
-        {callMode === "magicapp" ? "magicApp (intl)" : "your SIM"} by default — change in Settings.
+        {callMode === "magicapp" ? "magicApp (intl)" : "your SIM"} by default. Use the button above to switch.
       </p>
     </div>
   ) : (

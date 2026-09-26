@@ -15,6 +15,10 @@ const EMAIL_NAME_HINTS: Record<string, string> = {
   "umair@arrakconsulting.com": "Umair",
   "marketing@vallianijewelers.com": "Marketing",
   "developer@arrakconsulting.com": "Developer",
+  "irtaza@valliani.app": "Irtiza - IT Head",
+  "irtaza@arrakconsulting.com": "Irtiza - IT Head",
+  "irtiza@valliani.app": "Irtiza - IT Head",
+  "irtiza@arrakconsulting.com": "Irtiza - IT Head",
   "courtney.mcmullin@progleasing.com": "Courtney McMullin",
   "max.sutton@yondatax.com": "Max Sutton",
 };
@@ -26,6 +30,8 @@ function titleCase(s: string): string {
 export function displayAttendee(attendee: string, contacts: Contact[] = []): string {
   const key = attendee.toLowerCase().trim();
   if (EMAIL_NAME_HINTS[key]) return EMAIL_NAME_HINTS[key];
+  const local = key.split("@")[0]?.replace(/[._]/g, "") ?? "";
+  if (local === "irtiza" || local === "irtaza") return "Irtiza - IT Head";
 
   const contact = contacts.find(
     (c) =>
@@ -34,10 +40,10 @@ export function displayAttendee(attendee: string, contacts: Contact[] = []): str
   );
   if (contact) return contact.role ? `${contact.name} · ${contact.role}` : contact.name;
 
-  const local = key.split("@")[0];
-  if (!local) return attendee;
-  if (local.includes(".")) return titleCase(local.replace(/\./g, " "));
-  return titleCase(local);
+  const mailbox = key.split("@")[0];
+  if (!mailbox) return attendee;
+  if (mailbox.includes(".")) return titleCase(mailbox.replace(/\./g, " "));
+  return titleCase(mailbox);
 }
 
 export function formatEventLocation(location: string): { label: string; href?: string } {
