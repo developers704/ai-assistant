@@ -1,7 +1,13 @@
 import { employeeNameTokens, namesMatch } from "./name-match";
 import { resolveHrEmployeeDisplayName } from "./security-guard-names";
 import { formatMinutes, minutesBetweenClocks, parseClockToMinutes } from "./time-utils";
-import type { HrScheduleEntry, HrTimecardRow } from "./types";
+import type { HrEmployeeDay, HrScheduleEntry, HrTimecardRow, HrWarningNotice } from "./types";
+import {
+  isEligibleForHrNotice,
+  noticeViolationKeys,
+  type HrNoticeViolationKey,
+} from "./warning-notice";
+import { noticeKind } from "./warning-store";
 
 export type MyScheduleUser = {
   name: string;
@@ -83,4 +89,81 @@ export function buildMySchedule(
       (parseClockToMinutes(a.start) ?? 0) - (parseClockToMinutes(b.start) ?? 0)
   );
   return { matchedNames: [...matchedNames], shifts };
+}
+
+export type MyAttendanceDay = {
+  date: string;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  clockIn: string | null;
+  clockOut: string | null;
+  workedLabel: string;
+  /** Notice-worthy violations: lateIn, lateOut, earlyIn, earlyOut, absent, missingSchedule. */
+  violations: HrNoticeViolationKey[];
+  lateMinutes: number | null;
+  earlyOutMinutes: number | null;
+  warningSent: boolean;
+  writeUpSent: boolean;
+  absenceWaived: boolean;
+};
+
+export type MyAttendanceTotals = {
+  scheduledDays: number;
+  presentDays: number;
+  absentDays: number;
+  lateDays: number;
+  earlyOutDays: number;
+  warnings: number;
+  writeUps: number;
+};
+
+/**
+ * The signed-in employee's attendance for the HR month, built from the same
+ * day analysis HR Management sees. Waived warnings and waived absences are
+ * not counted against the employee.
+ */
+export function buildMyAttendance(
+  days: HrEmployeeDay[],
+  notices: Pick<HrWarningNotice, "date" | "employeeName" | "kind" | "caseId" | "waivedAt">[],
+  isAbsenceWaived: (day: HrEmployeeDay) => boolean
+): { days: MyAttendanceDay[]; totals: MyAttendanceTotals } {
+  const out: MyAttendanceDay[] = [];
+  for (const day of [...days].sort((a, b) => a.date.localeCompare(b.date))) {
+    const dayNotices = notices.filter(
+      (n) => n.date === day.date && !n.waivedAt && namesMatch(n.employeeName, day.employeeName)
+    );
+    const isWriteUp = (n: (typeof dayNotices)[number]) => noticeKind(n) === "writeup";
+    const punched = day.segments.filter((s) => s.timeIn || s.timeOut);
+    const waived = isAbsenceWaived(day);
+    const violations = isEligibleForHrNotice(day)
+      ? noticeViolationKeys(day).filter((k) => !(k === "absent" && waived))
+      : [];
+    out.push({
+      date: day.date,
+      scheduledStart: day.schedule?.start ?? null,
+      scheduledEnd: day.schedule?.end ?? null,
+      clockIn: punched[0]?.timeIn ?? null,
+      clockOut: punched.at(-1)?.timeOut ?? null,
+      workedLabel: day.totalWorkLabel,
+      violations,
+      lateMinutes: violations.includes("lateIn") ? day.lateMinutes : null,
+      earlyOutMinutes: violations.includes("earlyOut") ? day.earlyOutMinutes : null,
+      warningSent: dayNotices.some((n) => !isWriteUp(n)),
+      writeUpSent: dayNotices.some(isWriteUp),
+      absenceWaived: waived,
+    });
+  }
+  const scheduled = out.filter((d) => d.scheduledStart);
+  return {
+    days: out,
+    totals: {
+      scheduledDays: scheduled.length,
+      presentDays: scheduled.filter((d) => d.clockIn || d.clockOut || d.absenceWaived).length,
+      absentDays: out.filter((d) => d.violations.includes("absent")).length,
+      lateDays: out.filter((d) => d.violations.includes("lateIn")).length,
+      earlyOutDays: out.filter((d) => d.violations.includes("earlyOut")).length,
+      warnings: out.filter((d) => d.warningSent).length,
+      writeUps: out.filter((d) => d.writeUpSent).length,
+    },
+  };
 }

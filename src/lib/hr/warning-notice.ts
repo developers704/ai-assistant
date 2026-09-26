@@ -619,13 +619,13 @@ export function draftWarningNotice(
   const details = warningMailDetailsFromEmployee(emp);
   const caseId = warningCaseId(emp.employeeCode, emp.date, emp.employeeName, warningReason(emp));
   const sheetMail = parseHrMailAddresses(emp.mail ?? "");
-  const templatedText = warningTextFromTemplate(
-    templateKeyForEmployee(emp),
-    display,
-    emp.date,
-    details,
-    templates,
+  const templatedParts = noticeViolationKeys(emp).map((key) =>
+    warningTextFromTemplate(key, display, emp.date, details, templates)
   );
+  const templatedText =
+    templatedParts.length > 0 && templatedParts.every((part) => part)
+      ? templatedParts.join("\n\n")
+      : null;
   const text = templatedText ?? warningMailPlainText(display, emp.date, events, details);
   return {
     caseId,
@@ -648,13 +648,72 @@ export function draftWarningNotice(
   };
 }
 
-function templateKeyForEmployee(emp: HrNoticeEmployee): HrWarningTemplateKey {
-  if (isLateForWarning(emp.lateMinutes)) return "lateIn";
-  if (isLateOutForWarning(emp.lateOutMinutes) || emp.violations?.some((v) => v.type === "late_out")) return "lateOut";
-  if (isEarlyForWarning(emp.earlyInMinutes) || emp.violations?.some((v) => v.type === "early_in")) return "earlyIn";
-  if (isEarlyOutForWarning(emp.earlyOutMinutes) || emp.violations?.some((v) => v.type === "early_out")) return "earlyOut";
-  if (emp.violations?.some((v) => v.type === "absent")) return "absent";
-  return "missingSchedule";
+/** Violation keys, in notice order (same keys for warnings and write-ups). */
+export const HR_NOTICE_VIOLATION_KEYS = [
+  "lateIn",
+  "lateOut",
+  "earlyIn",
+  "earlyOut",
+  "absent",
+  "missingSchedule",
+] as const;
+export type HrNoticeViolationKey = (typeof HR_NOTICE_VIOLATION_KEYS)[number];
+
+const VIOLATION_TYPE_BY_KEY: Record<HrNoticeViolationKey, string> = {
+  lateIn: "late",
+  lateOut: "late_out",
+  earlyIn: "early_in",
+  earlyOut: "early_out",
+  absent: "absent",
+  missingSchedule: "no_schedule",
+};
+
+export function isHrNoticeViolationKey(value: unknown): value is HrNoticeViolationKey {
+  return typeof value === "string" && (HR_NOTICE_VIOLATION_KEYS as readonly string[]).includes(value);
+}
+
+/**
+ * Every schedule violation on the day, in notice order. A day can have
+ * several (e.g. late in and early out). "missingSchedule" only when the day
+ * really had no schedule. Empty for days whose only issues are punches or
+ * meal breaks — those use the standard (non-template) notice text.
+ */
+export function noticeViolationKeys(emp: HrNoticeEmployee): HrNoticeViolationKey[] {
+  const has = (type: string) => emp.violations?.some((v) => v.type === type) ?? false;
+  const keys: HrNoticeViolationKey[] = [];
+  if (isLateForWarning(emp.lateMinutes)) keys.push("lateIn");
+  if (isLateOutForWarning(emp.lateOutMinutes) || has("late_out")) keys.push("lateOut");
+  if (isEarlyForWarning(emp.earlyInMinutes) || has("early_in")) keys.push("earlyIn");
+  if (isEarlyOutForWarning(emp.earlyOutMinutes) || has("early_out")) keys.push("earlyOut");
+  if (has("absent")) keys.push("absent");
+  if (has("no_schedule")) keys.push("missingSchedule");
+  return keys;
+}
+
+/**
+ * The same day limited to the violations HR chose to act on. Unknown or
+ * absent selections leave the day unchanged; choices that do not apply to
+ * the day are ignored, so a notice can never cite a violation that did not
+ * happen.
+ */
+export function restrictNoticeToViolations<T extends HrNoticeEmployee>(
+  emp: T,
+  selected?: readonly unknown[] | null
+): T {
+  const wanted = new Set((selected ?? []).filter(isHrNoticeViolationKey));
+  const actual = noticeViolationKeys(emp);
+  const keep = actual.filter((k) => wanted.has(k));
+  if (!wanted.size || !keep.length || keep.length === actual.length) return emp;
+  const keepTypes = new Set(keep.map((k) => VIOLATION_TYPE_BY_KEY[k]));
+  const scheduleTypes = new Set(Object.values(VIOLATION_TYPE_BY_KEY));
+  return {
+    ...emp,
+    lateMinutes: keep.includes("lateIn") ? emp.lateMinutes : null,
+    lateOutMinutes: keep.includes("lateOut") ? emp.lateOutMinutes : null,
+    earlyInMinutes: keep.includes("earlyIn") ? emp.earlyInMinutes : null,
+    earlyOutMinutes: keep.includes("earlyOut") ? emp.earlyOutMinutes : null,
+    violations: emp.violations?.filter((v) => !scheduleTypes.has(v.type) || keepTypes.has(v.type)),
+  };
 }
 
 function warningTextFromTemplate(

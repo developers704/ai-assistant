@@ -3,22 +3,17 @@ import {
   HR_WARNING_FROM,
   HR_WARNING_TO,
   formatLongDate,
-  formatWarningMailDate,
   hrPersonFullName,
-  isEarlyForWarning,
-  isEarlyOutForWarning,
-  isLateForWarning,
-  isLateOutForWarning,
   isEligibleForHrNotice,
   noticeDescriptionForEmployee,
   noticeDisplayName,
+  noticeViolationKeys,
   noticeEmployeeSlug,
   type HrNoticeEmployee,
 } from "./warning-notice";
 import { formatHrMailTo, parseHrMailAddresses, type HrMailRouting } from "./mail-routing";
 import {
   DEFAULT_HR_WRITE_UP_TEMPLATES,
-  type HrWriteUpTemplateKey,
   type HrWriteUpTemplates,
 } from "./notice-settings-shared";
 
@@ -41,15 +36,6 @@ export type WriteUpDraft = {
   pdfFilename: string;
 };
 
-function writeUpTemplateKey(emp: HrNoticeEmployee): HrWriteUpTemplateKey {
-  if (isLateForWarning(emp.lateMinutes)) return "lateIn";
-  if (isLateOutForWarning(emp.lateOutMinutes) || emp.violations?.some((v) => v.type === "late_out")) return "lateOut";
-  if (isEarlyForWarning(emp.earlyInMinutes) || emp.violations?.some((v) => v.type === "early_in")) return "earlyIn";
-  if (isEarlyOutForWarning(emp.earlyOutMinutes) || emp.violations?.some((v) => v.type === "early_out")) return "earlyOut";
-  if (emp.violations?.some((v) => v.type === "absent")) return "absent";
-  return "missingSchedule";
-}
-
 export function writeUpDescriptionForEmployee(
   emp: HrNoticeEmployee,
   templates: HrWriteUpTemplates = DEFAULT_HR_WRITE_UP_TEMPLATES,
@@ -67,9 +53,17 @@ export function writeUpDescriptionForEmployee(
     scheduledStart: schedule?.start ?? "",
     scheduledEnd: schedule?.end ?? "",
   };
-  return (templates[writeUpTemplateKey(emp)] || DEFAULT_HR_WRITE_UP_TEMPLATES[writeUpTemplateKey(emp)])
-    .replace(/\[Employee Name\]/g, values.employeeName)
-    .replace(/\{\{\s*(employeeName|date|lateMinutes|lateOutMinutes|earlyInMinutes|earlyOutMinutes|scheduledStart|scheduledEnd)\s*\}\}/g, (_, name: string) => values[name] ?? "");
+  const keys = noticeViolationKeys(emp);
+  // Punch / meal-break-only days have no violation template.
+  if (!keys.length) return noticeDescriptionForEmployee(emp);
+  // One paragraph per violation (e.g. late in and early out on one day).
+  return keys
+    .map((key) =>
+      (templates[key] || DEFAULT_HR_WRITE_UP_TEMPLATES[key])
+        .replace(/\[Employee Name\]/g, values.employeeName)
+        .replace(/\{\{\s*(employeeName|date|lateMinutes|lateOutMinutes|earlyInMinutes|earlyOutMinutes|scheduledStart|scheduledEnd)\s*\}\}/g, (_, name: string) => values[name] ?? "")
+    )
+    .join("\n\n");
 }
 
 function escapeHtml(value: string): string {

@@ -12,6 +12,7 @@ import {
   isLateForWarning,
   noticeFromDraft,
   warningChatMessageFromDraft,
+  restrictNoticeToViolations,
 } from "@/lib/hr/warning-notice";
 import { buildWarningNoticePdf, pdfBytesToBase64 } from "@/lib/hr/warning-notice-pdf";
 import {
@@ -157,6 +158,16 @@ export async function GET(req: NextRequest) {
   });
 }
 
+/**
+ * Violations HR chose for this notice (e.g. ["lateIn","earlyOut"]), from the
+ * body or the forwarded notice. Null means "every violation on the day".
+ */
+function selectedViolations(body: Record<string, unknown>): unknown[] | null {
+  const notice = body.notice as Record<string, unknown> | undefined;
+  const raw = body.violations ?? notice?.violations;
+  return Array.isArray(raw) ? raw : null;
+}
+
 export async function POST(req: NextRequest) {
   const denied = await adminOnly();
   if (denied) return denied;
@@ -199,9 +210,10 @@ export async function POST(req: NextRequest) {
     if (!notice) return NextResponse.json({ error: "Invalid warning notice" }, { status: 400 });
     const rows = loadActiveTimecardRows();
     const schedule = loadActiveScheduleEntries();
-    const emp = analyzeDay(notice.date, rows, schedule).find((e) =>
+    const found = analyzeDay(notice.date, rows, schedule).find((e) =>
       namesMatch(e.employeeName, notice.employeeName)
     );
+    const emp = found ? restrictNoticeToViolations(found, selectedViolations(body)) : found;
     if (!emp || !isEligibleForHrNotice(emp)) {
       return NextResponse.json({ error: "No attendance violation for a warning notice" }, { status: 400 });
     }
@@ -294,7 +306,8 @@ export async function POST(req: NextRequest) {
     const date = String(source.date ?? "").trim();
     let description = String(body.description ?? source.description ?? "").trim();
     if (!employeeName || !date) return NextResponse.json({ error: "employeeName and date are required" }, { status: 400 });
-    const emp = analyzeDay(date, loadActiveTimecardRows(), loadActiveScheduleEntries()).find((e) => namesMatch(e.employeeName, employeeName));
+    const found = analyzeDay(date, loadActiveTimecardRows(), loadActiveScheduleEntries()).find((e) => namesMatch(e.employeeName, employeeName));
+    const emp = found ? restrictNoticeToViolations(found, selectedViolations(body)) : found;
     if (!emp || !isEligibleForHrNotice(emp)) return NextResponse.json({ error: "No attendance violation for a write-up" }, { status: 400 });
     const settings = readHrNoticeSettings();
     if (!description) description = writeUpDescriptionForEmployee(emp, settings.writeUpTemplates);
@@ -393,10 +406,11 @@ export async function POST(req: NextRequest) {
     const rows = loadActiveTimecardRows();
     const schedule = loadActiveScheduleEntries();
     const employees = analyzeDay(date, rows, schedule);
-    const emp = employees.find((e) => namesMatch(e.employeeName, employeeName));
-    if (!emp) {
+    const found = employees.find((e) => namesMatch(e.employeeName, employeeName));
+    if (!found) {
       return NextResponse.json({ error: "Employee not found for that date" }, { status: 404 });
     }
+    const emp = restrictNoticeToViolations(found, selectedViolations(body));
     if (!isEligibleForHrNotice(emp)) {
       return NextResponse.json(
         { error: "No attendance violation for a write-up" },
@@ -483,7 +497,8 @@ export async function POST(req: NextRequest) {
     const rows = loadActiveTimecardRows();
     const schedule = loadActiveScheduleEntries();
     const employees = analyzeDay(notice.date, rows, schedule);
-    const emp = employees.find((e) => namesMatch(e.employeeName, notice.employeeName));
+    const found = employees.find((e) => namesMatch(e.employeeName, notice.employeeName));
+    const emp = found ? restrictNoticeToViolations(found, selectedViolations(body)) : found;
     const noticeSettings = readHrNoticeSettings();
     const noticeIn = (body.notice as Record<string, unknown> | undefined) ?? {};
     // Warning chat recipient = UserEmail (chat login) only — never personal Mail.
