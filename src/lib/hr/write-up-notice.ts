@@ -103,11 +103,11 @@ export function writeUpCoverText(input: {
   description: string;
   pdfFilename: string;
 }): string {
-  const preview = input.description.split("\n").find((line) => line.trim()) ?? input.description;
+  const description = input.description.trim();
   return [
     `Please see the attached PDF: ${input.pdfFilename}`,
     "",
-    `${input.employeeName} — ${preview}`,
+    `${input.employeeName} — ${description}`,
     "",
     "Reply to this email if you have remarks.",
   ].join("\n");
@@ -118,9 +118,15 @@ export function writeUpCoverHtml(input: {
   description: string;
   pdfFilename: string;
 }): string {
-  const preview = input.description.split("\n").find((line) => line.trim()) ?? input.description;
+  const paragraphs = input.description
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
+    .join("\n");
   return `<p>Please see the attached Disciplinary Action Form (PDF): <strong>${escapeHtml(input.pdfFilename)}</strong></p>
-<p>${escapeHtml(input.employeeName)} — ${escapeHtml(preview)}</p>
+<p><strong>${escapeHtml(input.employeeName)}</strong></p>
+${paragraphs}
 <p>Reply to this email if you have remarks.</p>`;
 }
 
@@ -190,6 +196,8 @@ export function writeUpFromDraft(
     date: draft.date,
     lateMinutes: draft.lateMinutes,
     description: draft.description,
+    text: draft.text,
+    pdfFilename: draft.pdfFilename,
     from: draft.from,
     to: draft.to,
     subject: draft.subject,
@@ -197,4 +205,26 @@ export function writeUpFromDraft(
     messageId: extras?.messageId ?? null,
     remarks: [],
   };
+}
+
+/**
+ * The write-up email body as sent. Older records did not store it, so it is
+ * rebuilt from the saved description with the same cover format.
+ */
+export function writeUpEmailText(notice: HrWarningNotice): string {
+  const stored = notice.text?.trim();
+  if (stored) return stored;
+  return writeUpCoverText({
+    employeeName: notice.employeeName,
+    description: notice.description?.trim() || "Disciplinary action",
+    pdfFilename:
+      notice.pdfFilename?.trim() ||
+      writeUpPdfFilename(notice.employeeCode, notice.date, notice.employeeName),
+  });
+}
+
+/** Write-up record for API responses, always carrying its email body. */
+export function withWriteUpEmailText(notice: HrWarningNotice | null): HrWarningNotice | null {
+  if (!notice) return notice;
+  return { ...notice, text: writeUpEmailText(notice) };
 }

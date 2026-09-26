@@ -16,6 +16,7 @@ import {
 } from "@/lib/hr/warning-notice";
 import { buildWarningNoticePdf, pdfBytesToBase64 } from "@/lib/hr/warning-notice-pdf";
 import {
+  withWriteUpEmailText,
   draftWriteUpNotice,
   requireWriteUpDescription,
   writeUpDescriptionForEmployee,
@@ -154,7 +155,7 @@ export async function GET(req: NextRequest) {
     employee: emp,
     draft,
     warning: existing,
-    writeUp: existingWriteUp,
+    writeUp: withWriteUpEmailText(existingWriteUp),
   });
 }
 
@@ -427,7 +428,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: "A write-up was already sent for this employee and date",
-          writeUp: existingWriteUp,
+          writeUp: withWriteUpEmailText(existingWriteUp),
         },
         { status: 409 }
       );

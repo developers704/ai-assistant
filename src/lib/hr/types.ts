@@ -109,6 +109,10 @@ export type HrWarningNotice = {
   date: string;
   lateMinutes: number;
   description?: string | null;
+  /** Exact email body sent (write-ups). */
+  text?: string | null;
+  /** Attached Disciplinary Action Form PDF (write-ups). */
+  pdfFilename?: string | null;
   from: string;
   to: string;
   subject: string;
