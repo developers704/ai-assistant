@@ -85,6 +85,7 @@ type RankDetailDrawerProps = {
   filterPaycode?: string;
   filterSalesperson?: string;
   reportId?: string;
+  showWholesaleCost?: boolean;
   onClose: () => void;
 };
 
@@ -129,6 +130,7 @@ export function RankDetailDrawer({
   filterPaycode,
   filterSalesperson,
   reportId,
+  showWholesaleCost = false,
   onClose,
 }: RankDetailDrawerProps) {
   const [data, setData] = useState<RankDetailResponse | null>(null);
@@ -435,7 +437,10 @@ export function RankDetailDrawer({
                           {m.vendorModel}
                         </p>
                         {skuLines.length > 0 && (
-                          <SkuStoreBreakdownList lines={skuLines} />
+                          <SkuStoreBreakdownList
+                            lines={skuLines}
+                            showWholesaleCost={showWholesaleCost}
+                          />
                         )}
                       </div>
                       <div className="text-right shrink-0 min-w-[4.75rem]">

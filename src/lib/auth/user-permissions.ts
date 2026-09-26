@@ -201,14 +201,19 @@ export function showsAllSoldInTopVendorModels(username?: string | null): boolean
   return normalizeUsername(username) === "rozina";
 }
 
-/** Built-in overrides applied after user/file overrides (Rozina: never vendor). */
+/** AJ sees wholesale / whole cost only. Kash inventory cost stays off every AJ surface. */
+export function seesWholesaleCostOnly(username?: string | null): boolean {
+  return normalizeUsername(username) === "aj";
+}
+
+/** Built-in overrides applied after user/file overrides (Rozina and AJ: never vendor). */
 function applyBuiltInFixes(
   username: string | null | undefined,
   map: UserPermissionMap
 ): UserPermissionMap {
   const key = normalizeUsername(username);
   const next = { ...map };
-  if (key === "rozina") {
+  if (key === "rozina" || key === "aj") {
     next.vendor_info = false;
   }
   return next;
@@ -301,7 +306,8 @@ export function userHidesVendorInfo(user: {
   permissions?: Record<string, boolean> | null;
 } | null | undefined): boolean {
   if (!user) return false;
-  if (normalizeUsername(user.username) === "rozina") return true;
+  const name = normalizeUsername(user.username);
+  if (name === "rozina" || name === "aj") return true;
   if (user.authRole === "admin") return false;
   if (user.permissions && typeof user.permissions.vendor_info === "boolean") {
     return !user.permissions.vendor_info;

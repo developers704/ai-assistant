@@ -81,6 +81,8 @@ interface TopProductsTableProps {
   includeHiddenTopModels?: boolean;
   /** Kash / Ross / admin: model row shows Tag Price; SKU lines still show CP (Kash). */
   showKashCost?: boolean;
+  /** AJ: SKU lines show wholesale unit cost, never Kash CP. */
+  showWholesaleCost?: boolean;
 }
 
 type SortKey = "date" | "qty" | "revenue" | "margin" | "kashCost";
@@ -414,6 +416,7 @@ export function TopProductsTable({
   showDateFilter = false,
   includeHiddenTopModels = false,
   showKashCost = false,
+  showWholesaleCost = false,
 }: TopProductsTableProps) {
   const baseRows = filterTopProductSkus(products, { includeHiddenTopModels });
   const [query, setQuery] = useState("");
@@ -879,6 +882,7 @@ export function TopProductsTable({
                                 setOpenSkuByRow((prev) => ({ ...prev, [rowKey]: sku }))
                               }
                               showKashCost={showKashCost}
+                              showWholesaleCost={showWholesaleCost}
                             />
                           )}
                         </div>
@@ -908,6 +912,7 @@ export function TopProductsTable({
                             setOpenSkuByRow((prev) => ({ ...prev, [rowKey]: sku }))
                           }
                           showKashCost={showKashCost}
+                          showWholesaleCost={showWholesaleCost}
                         />
                       )}
                     </div>

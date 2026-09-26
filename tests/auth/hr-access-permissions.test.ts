@@ -99,6 +99,8 @@ describe("Admin / Employee / HR / DM roles", () => {
     expect(costPriceForRole(row, "hr")).toBe(40);
     expect(costPriceForRole(row, "dm")).toBe(40);
     expect(costPriceForRole(row, "admin")).toBe(100);
+    expect(costPriceForRole({ inventoryCost: 900, wholesaleCost: 0 }, "dm", "aj")).toBe(0);
+    expect(costPriceForRole({ inventoryCost: 900, wholesaleCost: 40 }, "admin", "aj")).toBe(40);
     expect(canSeeRealInventoryCost("admin", "admin")).toBe(true);
     expect(canSeeRealInventoryCost("marina", "admin")).toBe(true);
     expect(canSeeRealInventoryCost("keya@valliani.app", "employee")).toBe(false);

@@ -42,6 +42,7 @@ import {
   showsAllSoldInTopVendorModels,
   userHidesVendorInfo,
   canSeeKashCostPrice,
+  seesWholesaleCostOnly,
 } from "@/lib/auth/user-permissions";
 import { TrendingUp, TrendingDown, Package, Store, LineChart, GitCompareArrows, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,7 @@ export default function SalesPage() {
     state?.user?.username
   );
   const showKashCost = canSeeKashCostPrice(state?.user?.username, state?.user?.role);
+  const showWholesaleCost = seesWholesaleCostOnly(state?.user?.username);
   const detailTypeFromUrl = searchParams.get("detail");
   const detailValueFromUrl = searchParams.get("detailValue");
   const [summary, setSummary] = useState<SalesSummary | null>(null);
@@ -861,6 +863,7 @@ export default function SalesPage() {
                   products={topProducts}
                   includeHiddenTopModels={includeHiddenTopModels}
                   showKashCost={showKashCost}
+                  showWholesaleCost={showWholesaleCost}
                   showDateFilter={multiDayRange}
                 />
               </div>
@@ -883,6 +886,7 @@ export default function SalesPage() {
         filterSubclass={filterSubclasses.length ? filterSubclasses.join(",") : undefined}
         filterPaycode={filterPaycodes.length ? filterPaycodes.join(",") : undefined}
         filterSalesperson={filterSalespeople.length ? filterSalespeople.join(",") : undefined}
+        showWholesaleCost={showWholesaleCost}
         reportId={
           reportId && reportId !== "latest" && !/^\d{4}-\d{2}-\d{2}$/.test(reportId)
             ? reportId

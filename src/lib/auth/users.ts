@@ -523,7 +523,8 @@ export function listPermissionMatrixUsers(): AuthUserRecord[] {
   return listAuthUsers().filter(isPermissionMatrixUser);
 }
 
-/** Rozina default / client fallback — server APIs use hidesVendorInfoFromPermissions. */
+/** Rozina and AJ default / client fallback — server APIs use hidesVendorInfoFromPermissions. */
 export function hidesVendorInfo(username: string | null | undefined): boolean {
-  return (username ?? "").trim().toLowerCase() === "rozina";
+  const key = (username ?? "").trim().toLowerCase();
+  return key === "rozina" || key === "aj" || key === "akber";
 }

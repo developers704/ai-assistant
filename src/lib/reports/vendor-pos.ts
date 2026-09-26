@@ -117,7 +117,8 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
   for (const rec of records) {
     const net = netCol ? parseNumber(rec[netCol]) : 0;
     const gross = grossCol ? parseNumber(rec[grossCol]) : net;
-    const qty = qtyCol ? parseNumber(rec[qtyCol]) : 1;
+    const rawQty = qtyCol ? String(rec[qtyCol] ?? "").trim() : "";
+    const qty = rawQty === "" ? 1 : parseNumber(rawQty);
     const inventoryCost = invCostCol ? parseNumber(rec[invCostCol]) : 0;
     const wholesaleCost = wholesaleCostCol
       ? parseNumber(rec[wholesaleCostCol])
@@ -186,7 +187,7 @@ export function parseVendorPosRows(records: Record<string, unknown>[]): {
       vendorModel,
       productClass,
       subClass,
-      quantity: qty === 0 || qty == null || Number.isNaN(qty) ? 1 : qty,
+      quantity: Number.isNaN(qty) ? 1 : qty,
       inventoryCost,
       wholesaleCost,
       grossSales: gross,

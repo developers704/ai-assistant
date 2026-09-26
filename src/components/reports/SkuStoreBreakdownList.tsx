@@ -16,6 +16,8 @@ export type SkuStoreBreakdownLine = {
   date?: string;
   /** POS Inventory Cost unit — Kash / Ross / admin only. */
   kashCost?: number;
+  /** Wholesale unit cost — AJ only. Never Kash inventory cost. */
+  wholesaleCost?: number;
   /** Sales Amount (gross) — Tag, shown before Net Sale when expanded. */
   tagPrice?: number;
 };
@@ -60,6 +62,7 @@ type StoreSoldLine = {
   revenue: number;
   tagPrice?: number;
   kashCost?: number;
+  wholesaleCost?: number;
 };
 
 /** One row per store: that store's pcs, its net, and the one-piece tag. */
@@ -82,6 +85,10 @@ function storeSoldLines(stores?: SkuStoreBreakdownLine[]): StoreSoldLine[] {
     }
     const kash = Number(s.kashCost) || 0;
     if (kash > 0) cur.kashCost = kash;
+    const wholesale = Number(s.wholesaleCost) || 0;
+    if (wholesale > 0 && !(cur.wholesaleCost && cur.wholesaleCost > 0)) {
+      cur.wholesaleCost = wholesale;
+    }
     map.set(key, cur);
   }
   return [...map.values()]
@@ -394,6 +401,7 @@ export function SkuStoreBreakdownList({
   openSku: openSkuProp,
   onOpenSkuChange,
   showKashCost = false,
+  showWholesaleCost = false,
 }: {
   lines: SkuBreakdownRow[];
   className?: string;
@@ -402,6 +410,8 @@ export function SkuStoreBreakdownList({
   onOpenSkuChange?: (sku: string | null) => void;
   /** Kash / Ross / admin: CP (Kash) column on each sale row. */
   showKashCost?: boolean;
+  /** AJ: wholesale unit cost on each sale row. */
+  showWholesaleCost?: boolean;
 }) {
   const [internalOpen, setInternalOpen] = useState<string | null>(null);
   const controlled = openSkuProp !== undefined;
@@ -462,6 +472,13 @@ export function SkuStoreBreakdownList({
                         const kash = store.kashCost;
                         const hasKash =
                           showKashCost && kash != null && Number.isFinite(kash) && kash !== 0;
+                        const wholesale = store.wholesaleCost;
+                        const hasWholesale =
+                          showWholesaleCost &&
+                          !hasKash &&
+                          wholesale != null &&
+                          Number.isFinite(wholesale) &&
+                          wholesale !== 0;
                         return (
                           <li
                             key={store.name}
@@ -495,6 +512,19 @@ export function SkuStoreBreakdownList({
                                     title="POS Inventory Cost (unit)"
                                   >
                                     CP ${formatMoneyCompact(kash!)}
+                                  </span>
+                                </>
+                              )}
+                              {hasWholesale && (
+                                <>
+                                  <span className="text-white/25 select-none" aria-hidden>
+                                    ·
+                                  </span>
+                                  <span
+                                    className="text-sky-200/90 font-normal"
+                                    title="Wholesale cost (unit)"
+                                  >
+                                    WS ${formatMoneyCompact(wholesale!)}
                                   </span>
                                 </>
                               )}

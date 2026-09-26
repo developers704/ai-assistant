@@ -29,7 +29,12 @@ import type {
   VendorModelSkuStoreLine,
 } from "./sales-types";
 
-type StoreSaleStats = { units: number; returned: number; revenue: number };
+type StoreSaleStats = {
+  units: number;
+  returned: number;
+  revenue: number;
+  wholesaleCost?: number;
+};
 
 /** Merge sold units / net with every onhand store for this SKU (0 sold still listed). */
 export function buildSkuStoreLines(
@@ -41,10 +46,17 @@ export function buildSkuStoreLines(
   returned: number;
   revenue: number;
   onhand?: number;
+  wholesaleCost?: number;
 }[] {
   const merged = new Map<
     string,
-    { units: number; returned: number; revenue: number; onhand: number | null }
+    {
+      units: number;
+      returned: number;
+      revenue: number;
+      onhand: number | null;
+      wholesaleCost?: number;
+    }
   >();
 
   for (const [name, stats] of storeSales) {
@@ -53,6 +65,7 @@ export function buildSkuStoreLines(
       returned: stats.returned,
       revenue: stats.revenue,
       onhand: lookupOnhandQty(sku, name),
+      wholesaleCost: stats.wholesaleCost,
     });
   }
 
@@ -75,6 +88,7 @@ export function buildSkuStoreLines(
       units: v.units,
       returned: v.returned,
       revenue: v.revenue,
+      ...(v.wholesaleCost && v.wholesaleCost > 0 ? { wholesaleCost: v.wholesaleCost } : {}),
       ...(hasOnhand ? { onhand: v.onhand ?? 0 } : {}),
     }))
     .sort((a, b) => {
@@ -181,6 +195,7 @@ export function skuLinesForModel(rows: VendorPosRow[]): VendorModelSkuLine[] {
       transactionId: r.transactionId?.trim() || undefined,
       date: (r.date ?? "").trim() || undefined,
       kashCost: hideKash || unitKash <= 0 ? undefined : unitKash,
+      wholesaleCost: cost != null && cost > 0 ? cost : undefined,
       tagPrice: unitTag,
     });
     // One piece's Sales Amount (gross ÷ qty), not the line sum of 4 pcs.
