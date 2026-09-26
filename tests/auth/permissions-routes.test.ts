@@ -4,6 +4,7 @@ import {
   canManageDmPermissions,
   canSeeKashCostPrice,
   getDefaultPermissionMapForRole,
+  seesWholesaleCostOnly,
   hasRolesPermission,
   hasUsersPermission,
   mergePermissionMap,
@@ -99,6 +100,9 @@ describe("permission ownership and vendor info", () => {
         permissions: enabled,
       })
     ).toBe(true);
+    expect(canSeeKashCostPrice("aj", "dm")).toBe(false);
+    expect(seesWholesaleCostOnly("aj")).toBe(true);
+    expect(canSeeKashCostPrice("kash", "admin")).toBe(true);
   });
 });
 

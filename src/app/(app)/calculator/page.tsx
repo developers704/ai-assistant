@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { ProductThumb, ProductLightbox } from "@/components/reports/ProductImagePreview";
 import { useApp } from "@/lib/store/app-context";
+import { seesWholesaleCostOnly } from "@/lib/auth/user-permissions";
 
 const money = (n: number) =>
   isFinite(n)
@@ -90,6 +91,8 @@ interface LookupResponse {
 export default function CalculatorPage() {
   const { state } = useApp();
   const hideCost = state?.user?.authRole === "employee";
+  const wholesaleOnly = seesWholesaleCostOnly(state?.user?.username);
+  const costLabel = wholesaleOnly ? "Wholesale" : "Cost Price";
   const [sku, setSku] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -367,7 +370,7 @@ export default function CalculatorPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
                         {!hideCost && (
-                          <Detail label="Cost Price" value={money(wholeCost)} highlight />
+                          <Detail label={costLabel} value={money(wholeCost)} highlight />
                         )}
                       </div>
                       <Input
@@ -378,15 +381,16 @@ export default function CalculatorPage() {
                         onChange={(e) => setCustomerOfferInput(e.target.value)}
                       />
                       <p className="text-xs text-ink-muted">
-                        Floor = cost price + {CUSTOMER_OFFER_TAX_PERCENT}% tax +{" "}
-                        {CUSTOMER_OFFER_COMMISSION_PERCENT}% commission (each on cost price).
+                        Floor = {wholesaleOnly ? "wholesale" : "cost price"} + {CUSTOMER_OFFER_TAX_PERCENT}% tax +{" "}
+                        {CUSTOMER_OFFER_COMMISSION_PERCENT}% commission (each on{" "}
+                        {wholesaleOnly ? "wholesale" : "cost price"}).
                       </p>
                     </div>
 
                     <div className="space-y-3">
                       <div className="rounded-xl bg-white/5 px-4 py-3 text-sm ring-1 ring-white/10 space-y-1">
                         {!hideCost && (
-                          <Row label="Cost price" value={money(customerOffer.wholeCost)} />
+                          <Row label={costLabel} value={money(customerOffer.wholeCost)} />
                         )}
                         <Row
                           label={`Tax (${CUSTOMER_OFFER_TAX_PERCENT}%)`}
@@ -494,7 +498,7 @@ export default function CalculatorPage() {
                   <Detail label="Sub-Class" value={result.item.subClass || "—"} />
                   <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
                   {!hideCost && (
-                    <Detail label="Cost Price" value={money(result.item.costPrice)} />
+                    <Detail label={costLabel} value={money(result.item.costPrice)} />
                   )}
                   <Detail
                     label="Avg Weight (g)"
