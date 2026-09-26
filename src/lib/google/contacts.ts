@@ -81,6 +81,7 @@ export async function fetchGoogleContacts(
 }
 
 function contactDedupeKey(contact: Contact): string {
+  if (isIrtizaContact(contact)) return "person:irtiza";
   const email = contact.email?.trim().toLowerCase();
   if (email) return `e:${email}`;
   const phone = contact.phone?.replace(/\D/g, "");
@@ -88,15 +89,47 @@ function contactDedupeKey(contact: Contact): string {
   return `n:${contact.name.trim().toLowerCase()}`;
 }
 
+function isIrtizaContact(contact: Contact): boolean {
+  const blob = `${contact.name} ${contact.role} ${contact.email ?? ""}`.toLowerCase();
+  return /\birtiz[ae]\b/.test(blob);
+}
+
+/** Irtiza is IT Head. A synced card titled Manager must not stay that way. */
+export function correctDirectoryContact(contact: Contact): Contact {
+  if (!isIrtizaContact(contact)) return contact;
+  return { ...contact, name: "Irtiza", role: "IT Head" };
+}
+
+function preferFilled(current: Contact, extra: Contact): Contact {
+  return {
+    ...current,
+    email: current.email || extra.email,
+    phone: current.phone || extra.phone,
+    whatsapp: current.whatsapp || extra.whatsapp || current.phone || extra.phone,
+    notes: current.notes || extra.notes,
+    company: current.company || extra.company,
+    isImportant: current.isImportant || extra.isImportant,
+  };
+}
+
 /** Team directory first, then Google contacts that are not already listed. */
 export function mergeContactLists(team: Contact[], google: Contact[]): Contact[] {
-  const merged = [...team];
-  const seen = new Set(team.map(contactDedupeKey));
-  for (const contact of google) {
-    const key = contactDedupeKey(contact);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(contact);
-  }
+  const merged: Contact[] = [];
+  const indexByKey = new Map<string, number>();
+
+  const absorb = (contact: Contact) => {
+    const titled = correctDirectoryContact(contact);
+    const key = contactDedupeKey(titled);
+    const existing = indexByKey.get(key);
+    if (existing == null) {
+      indexByKey.set(key, merged.length);
+      merged.push(titled);
+      return;
+    }
+    merged[existing] = correctDirectoryContact(preferFilled(merged[existing]!, titled));
+  };
+
+  for (const contact of team) absorb(contact);
+  for (const contact of google) absorb(contact);
   return merged.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }

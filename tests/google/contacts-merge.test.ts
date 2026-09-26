@@ -47,4 +47,35 @@ describe("mergeContactLists", () => {
     expect(merged).toHaveLength(2);
     expect(merged.map((c) => c.name)).toEqual(["Jane Doe", "Ross"]);
   });
+
+  it("replaces Irtiza Manager with IT Head and keeps a single card", () => {
+    const google: Contact[] = [
+      {
+        id: "g-irtiza",
+        name: "Irtiza Manager",
+        role: "Manager",
+        company: "Valliani Jewelers",
+        email: "irtiza@example.com",
+        phone: "+1 (408) 555-0100",
+        isImportant: false,
+      },
+    ];
+    const directory: Contact[] = [
+      ...team,
+      {
+        id: "c36",
+        name: "Irtiza",
+        role: "IT Head",
+        company: "Valliani Jewelers",
+        email: "irtaza@valliani.app",
+        isImportant: true,
+      },
+    ];
+    const merged = mergeContactLists(directory, google);
+    const irtiza = merged.filter((c) => c.name === "Irtiza");
+    expect(irtiza).toHaveLength(1);
+    expect(irtiza[0]?.role).toBe("IT Head");
+    expect(irtiza[0]?.phone).toBe("+1 (408) 555-0100");
+    expect(merged.some((c) => c.role === "Manager" && /irtiz/i.test(c.name))).toBe(false);
+  });
 });
