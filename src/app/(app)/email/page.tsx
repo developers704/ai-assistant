@@ -568,7 +568,7 @@ export default function EmailPage() {
           return;
         }
         setComposeError(
-          msg || "Could not save draft. Reconnect Google in Settings if this persists."
+          msg || "Could not save draft."
         );
         return;
       }

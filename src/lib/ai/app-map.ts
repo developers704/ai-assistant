@@ -490,31 +490,20 @@ export const APP_SECTIONS: Record<AppSectionId, AppSectionDefinition> = {
     id: "settings",
     label: "Settings",
     route: "/settings",
-    purpose:
-      "Profile, Google/Plaid integrations, confirmation preferences, and assistant behavior.",
-    availableData: [
-      "User profile & role",
-      "Google Gmail/Calendar connection",
-      "Confirm-before-send preferences",
-      "Timezone & communication style",
-    ],
-    relatedTools: ["get_settings_status", "show_detail_page", "search_company_knowledge"],
-    commonQuestions: [
-      "Connect Gmail",
-      "Turn off confirm before send",
-      "Update my profile",
-    ],
-    whenToNavigate: "When user needs toggles, OAuth, or profile forms.",
-    whenToClarify: "Distinguish account settings vs company policy questions.",
+    purpose: "Change the password for this account.",
+    availableData: ["Password change for the signed-in account"],
+    relatedTools: ["show_detail_page", "search_company_knowledge"],
+    commonQuestions: ["Change my password"],
+    whenToNavigate: "When the user wants to change their password.",
+    whenToClarify: "Company policy questions are not changed on this page.",
     whenToUseLiveTool:
-      "Company policy → search_company_knowledge; account changes → direct to Settings UI.",
+      "Company policy → search_company_knowledge; password change → direct to Settings.",
     exampleResponses: {
       explain:
-        "**Settings** manages your profile, Google connection, and confirmation preferences (email, meetings, calls). Open the page to connect Gmail or adjust how I ask before sending.",
-      capabilities:
-        "Here you connect Google, set confirm-before-send rules, and update your executive profile. For company policies, ask me directly — for account toggles, use this page.",
+        "**Settings** is where you change the password for this account.",
+      capabilities: "Here you can change your password.",
     },
-    aliases: ["settings", "preferences", "profile", "connect google", "integration"],
+    aliases: ["settings", "preferences", "password", "change password"],
   }),
 };
 
