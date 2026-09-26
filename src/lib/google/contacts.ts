@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import type { GoogleOAuth2Client } from "./client";
+import { correctDirectoryContact, irtizaDedupeKey } from "@/lib/directory-contact";
 import type { Contact } from "@/types";
 
 function pickPhone(
@@ -81,23 +82,13 @@ export async function fetchGoogleContacts(
 }
 
 function contactDedupeKey(contact: Contact): string {
-  if (isIrtizaContact(contact)) return "person:irtiza";
+  const irtiza = irtizaDedupeKey(contact);
+  if (irtiza) return irtiza;
   const email = contact.email?.trim().toLowerCase();
   if (email) return `e:${email}`;
   const phone = contact.phone?.replace(/\D/g, "");
   if (phone) return `p:${phone}`;
   return `n:${contact.name.trim().toLowerCase()}`;
-}
-
-function isIrtizaContact(contact: Contact): boolean {
-  const blob = `${contact.name} ${contact.role} ${contact.email ?? ""}`.toLowerCase();
-  return /\birtiz[ae]\b/.test(blob);
-}
-
-/** Irtiza is IT Head. A synced card titled Manager must not stay that way. */
-export function correctDirectoryContact(contact: Contact): Contact {
-  if (!isIrtizaContact(contact)) return contact;
-  return { ...contact, name: "Irtiza", role: "IT Head" };
 }
 
 function preferFilled(current: Contact, extra: Contact): Contact {

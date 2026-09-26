@@ -16,7 +16,7 @@ import {
   openPhoneCall,
   openWhatsAppChat,
 } from "@/lib/contact-links";
-import { correctDirectoryContact } from "@/lib/google/contacts";
+import { correctDirectoryContact } from "@/lib/directory-contact";
 import type { Contact } from "@/types";
 import { Mail, Phone, MessageCircle, Star, Users, ChevronLeft, Search } from "lucide-react";
 
