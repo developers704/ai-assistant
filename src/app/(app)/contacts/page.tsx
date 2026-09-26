@@ -35,7 +35,9 @@ export default function ContactsPage() {
   }, [selectedId]);
 
   const filteredContacts = useMemo(() => {
-    const list = state?.contacts ?? [];
+    const list = [...(state?.contacts ?? [])].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    );
     const q = search.trim().toLowerCase();
     if (!q) return list;
     return list.filter((c) =>

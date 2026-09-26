@@ -68,6 +68,24 @@ export const mockStores: StoreLocation[] = [
   { id: "st29", city: "Humble", state: "TX", mall: "Deerbrook Mall", region: "Texas", status: "open" },
 ];
 
+function directoryContact(
+  id: string,
+  name: string,
+  role: string,
+  phone: string,
+  isImportant = true
+): Contact {
+  return {
+    id,
+    name,
+    role,
+    company: "Valliani Jewelers",
+    phone,
+    whatsapp: phone,
+    isImportant,
+  };
+}
+
 export const mockContacts: Contact[] = [
   {
     id: "c1",
@@ -159,6 +177,32 @@ export const mockContacts: Contact[] = [
     isImportant: true,
     notes: "India office — regional operations and coordination.",
   },
+  directoryContact("c10", "Adeel Valliani", "District Manager", "+1 (765) 409-6611"),
+  directoryContact("c11", "Anh Dao", "Corporate Manager", "+1 (408) 591-0648"),
+  directoryContact("c12", "Cecelia", "Palmdale Store Manager", "+1 (323) 633-5984"),
+  directoryContact("c13", "Fayaz Jivani", "Office", "+1 (559) 362-6817"),
+  directoryContact("c14", "Jorge", "Northridge Store Manager", "+1 (805) 746-7656"),
+  directoryContact("c15", "Kevin", "Corporate Manager", "+1 (707) 592-6504"),
+  directoryContact("c16", "Shazia", "Corporate Manager", "+1 (510) 409-8209"),
+  directoryContact("c17", "Zoya Artani", "Salesperson", "+1 (650) 519-7938", false),
+  directoryContact("c18", "Rosela", "Ontario Store Manager", "+1 (619) 818-0579"),
+  directoryContact("c19", "Robert Camacho", "Bakersfield Store Manager", "+1 (408) 518-9137"),
+  directoryContact("c20", "Lynette", "Valley Fair Store Manager", "+1 (510) 509-0943"),
+  directoryContact("c21", "Lalith Samararathnage", "Corporate Manager", "+1 (203) 841-6289"),
+  directoryContact("c22", "Alexzandra Reyes", "Victorville Store Manager", "+1 (562) 351-6038"),
+  directoryContact("c23", "Shakib Nakhwa", "Arden Store Manager", "+1 (408) 768-2480"),
+  directoryContact("c24", "Aurelia Silva", "Eastridge Store Manager", "+1 (408) 912-4665"),
+  directoryContact("c25", "Maria Beth", "Serramonte Store Manager", "+1 (650) 430-9756"),
+  directoryContact("c26", "Cynthia", "Salinas Store Manager", "+1 (831) 540-8042"),
+  directoryContact("c27", "Issah Salameh", "Inland Store Manager", "+1 (951) 732-6633"),
+  directoryContact("c28", "Lourdes Vilchis", "Fresno Store Manager", "+1 (559) 270-2121"),
+  directoryContact("c29", "Maria Morales", "Modesto Store Manager", "+1 (650) 862-3881"),
+  directoryContact("c30", "Steven Rosales", "Culver City Store Manager", "+1 (209) 688-6243"),
+  directoryContact("c31", "Syed", "Plaza Bonita Store Manager", "+1 (341) 465-7118"),
+  directoryContact("c32", "Fahad", "Oakridge Store Manager", "+1 (510) 253-8463"),
+  directoryContact("c33", "Jhovelyn", "Chandler Store Manager", "+1 (415) 988-0472"),
+  directoryContact("c34", "Joyce Bermudez", "Stockton Store Manager", "+1 (209) 373-5546"),
+  directoryContact("c35", "Omar Siddique", "Roseville Store Manager", "+1 (925) 550-3030"),
 ];
 
 const today = new Date();
