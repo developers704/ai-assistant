@@ -4,8 +4,8 @@ import { seesWholesaleCostOnly } from "@/lib/auth/user-permissions";
 /**
  * UI label is always "Cost" / "Cost Price".
  * Kash (admin) → Inventory Cost.
- * DMs → Wholesale Cost, falling back to Inventory Cost when wholesale is blank/0.
- * AJ → Wholesale Cost only. Blank wholesale stays 0 (never Kash inventory cost).
+ * Other DMs → Wholesale Cost, falling back to Inventory Cost when wholesale is blank/0.
+ * AJ, Adeel, Shaun, Rozina → Wholesale Cost only (shown as Cost Price). Blank stays 0.
  */
 export function costPriceForRole(
   row: { inventoryCost?: number | null; wholesaleCost?: number | null },

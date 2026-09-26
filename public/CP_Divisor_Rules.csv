@@ -10,26 +10,33 @@ Priority,Match Column(s),Match Value / Condition,Whole Cost Formula,Rule Name,In
 0h,SKU,230768,940,Fixed SKU 230768,Fixed,Fixed,10KT-UV AGI solitaire
 0i,SKU,232736,150,Fixed SKU 232736,Fixed,Fixed,Virgin Mary UV pendant
 0j,SKU,240304,Tag Price / 8.8,SKU ÷8.8 240304,Tag Price,Sales Amount,NUGGET.CROSS mens ring — SKU-only override (beats GOLD JEWL ÷4)
-0k,Department,GENTS RING,Tag Price / 8.8,Gents ring department,Tag Price,Sales Amount,Always ÷8.8 — beats GOLD JEWL ÷4 (same as ladies ring diamond)
+0k,Department,GENTS RING,Tag Price / 8.8,Gents ring department,Tag Price,Sales Amount,÷8.8 after priority collections — beats GOLD JEWL ÷4
+0p1,Design or description,BELLA OVANI / BELLA OVAN,Tag Price / 2.25,Bella Ovani,Tag Price,Sales Amount,PRIORITY — before generic Ovani and before LADYS RING / GENTS RING ÷8.8
+0p2,Design or description,AANIKA.V / AANIKA V / ANIKA V,Tag Price / 2.25,Aanika V,Tag Price,Sales Amount,PRIORITY — beats department formulas
+0p3,Design or description,OVANI (incl. OVANI GENT / OVANIFUSIO; any department incl. LADYS RING),Tag Price / 2.25,Ovani,Tag Price,Sales Amount,PRIORITY — beats LADYS RING and GENTS RING ÷8.8
+0p4,Design or description,NOVELLO / NOVELO,Tag Price / 8.8,Novello,Tag Price,Sales Amount,PRIORITY — fixed UV SKUs still win first
+0p5,Design or description,QUINCE / QUIENCE,Tag Price / 2.25,Quince,Tag Price,Sales Amount,PRIORITY
+0p6,Design or description or Class,ETERNAL VOW / ETERNAL-VOW,Tag Price / 2.25,Eternal Vow,Tag Price,Sales Amount,PRIORITY — POS Class ETERNAL-VOW counts
+0p7,Description,BENCHMARK,Tag Price / 2.25,Benchmark,Tag Price,Sales Amount,PRIORITY — description only
 1,Design/Department + UV,"Gold dept (GOLD CHAIN, GOLD ID, …) or Design GOLD JEWL + Design UV or Class UV or UV/ultimate value in description",Tag Price / 1.3,Gold JEWL + UV / Ultimate Value,Tag Price,Sales Amount,HARD RULE — all sales + calculator
 1b,Department/Description + Description,"Diamond dept OR diamond in description + UV/ultimate value in description",Tag Price / 8.8,Diamond + UV / Ultimate Value,Tag Price,Sales Amount,HARD RULE — except fixed special SKUs
 2,Design,LINKNLOCK,Tag Price / 2.75,Linknlock,Tag Price,Sales Amount,
 3,Design,LOVE,Tag Price / 2.75,Love Spell,Tag Price,Sales Amount,
 4,Design,OROVENTI,Tag Price / 2.5,Oroventi,Tag Price,Sales Amount,
 5,Design,CLOVER,Tag Price / 4,Clover gold,Tag Price,Sales Amount,
-6,Design,AANIKA.V,Tag Price / 8.8,Aanika V,Tag Price,Sales Amount,
+6,Design or description,AANIKA.V / ANIKA V,Tag Price / 2.25,Aanika V,Tag Price,Sales Amount,Moved to priority 0p2 — kept here as the sheet row
 7,Design,PLAT JEWL,Tag Price / 4,Platinum Jewelry,Tag Price,Sales Amount,
 8,Design,SILVER JEW,Tag Price / 4,Silver Jewelry,Tag Price,Sales Amount,
 9,Design,B STONE,Tag Price / 8.8,Birthstone Jewelry by design,Tag Price,Sales Amount,
 10,Sub-Class,BIRTHSTONE,Tag Price / 8.8,Birthstone Jewelry by subclass,Tag Price,Sales Amount,
 11,Design,GOLD JEWL/GOLD JEWEL/GOLD BANDS,Tag Price / 4,Gold by design,Tag Price,Sales Amount,
 12,Department,"GOLD BANDS, GOLD ID, GOLD HOOPS, GOLD PNDTS/GOLF PNDTS, GOLD RINGS",Tag Price / 4,Gold by department,Tag Price,Sales Amount,
-13,Department,TUNGS BAND / value containing TUNG,Tag Price * 0.06,Tungsten,Tag Price,Sales Amount,
-14,Department,TRITON,Tag Price / 4,Triton,Tag Price,Sales Amount,
+13,Department or description,TUNGS BAND / TUNGSTEN,Tag Price,Tungsten,Tag Price,Sales Amount,Cost equals the tag / sales-amount base
+14,Department or design,TRITON,Tag Price / 2.25,Triton,Tag Price,Sales Amount,
 15,Department,"BANGLE, EARRINGS, FANCY NECK, GENTS RING, LADYS RING, LADYS BRCL, MENS BRCLT, PENDANT, TRIO",Tag Price / 8.8,Diamond departments / loose stone,Tag Price,Sales Amount,
-16,Department,ROLEX (POS),Tag Price / 4,Rolex,Tag Price,Sales Amount,
+16,Department,ROLEX (POS),Tag Price / 2.10,Rolex,Tag Price,Sales Amount,
 17,Department,RADO (POS),Tag Price / 1.82 + $20,Rado,Tag Price,Sales Amount,
-18,Department,CARTIER (POS),Tag Price / 4,Cartier,Tag Price,Sales Amount,
+18,Department,CARTIER (POS),Tag Price / 2.10,Cartier,Tag Price,Sales Amount,
 19,Department,BRIGHT LINK (POS),Tag Price / 4,Bright Link,Tag Price,Sales Amount,
 20,Department,MOVADO (POS),Tag Price / 1.82 + $20,Movado,Tag Price,Sales Amount,
 21,Department,"MONT WATCH / MONT ACCES / Montblanc (POS)",Tag Price / 1.82 + $20,Mont Blank,Tag Price,Sales Amount,

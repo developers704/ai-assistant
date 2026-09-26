@@ -34,7 +34,6 @@ import {
 } from "lucide-react";
 import { ProductThumb, ProductLightbox } from "@/components/reports/ProductImagePreview";
 import { useApp } from "@/lib/store/app-context";
-import { seesWholesaleCostOnly } from "@/lib/auth/user-permissions";
 
 const money = (n: number) =>
   isFinite(n)
@@ -91,8 +90,7 @@ interface LookupResponse {
 export default function CalculatorPage() {
   const { state } = useApp();
   const hideCost = state?.user?.authRole === "employee";
-  const wholesaleOnly = seesWholesaleCostOnly(state?.user?.username);
-  const costLabel = wholesaleOnly ? "Wholesale" : "Cost Price";
+  const costLabel = "Cost Price";
   const [sku, setSku] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -381,9 +379,8 @@ export default function CalculatorPage() {
                         onChange={(e) => setCustomerOfferInput(e.target.value)}
                       />
                       <p className="text-xs text-ink-muted">
-                        Floor = {wholesaleOnly ? "wholesale" : "cost price"} + {CUSTOMER_OFFER_TAX_PERCENT}% tax +{" "}
-                        {CUSTOMER_OFFER_COMMISSION_PERCENT}% commission (each on{" "}
-                        {wholesaleOnly ? "wholesale" : "cost price"}).
+                        Floor = cost price + {CUSTOMER_OFFER_TAX_PERCENT}% tax +{" "}
+                        {CUSTOMER_OFFER_COMMISSION_PERCENT}% commission (each on cost price).
                       </p>
                     </div>
 

@@ -102,6 +102,11 @@ describe("permission ownership and vendor info", () => {
     ).toBe(true);
     expect(canSeeKashCostPrice("aj", "dm")).toBe(false);
     expect(seesWholesaleCostOnly("aj")).toBe(true);
+    expect(seesWholesaleCostOnly("adeel")).toBe(true);
+    expect(seesWholesaleCostOnly("shaun")).toBe(true);
+    expect(seesWholesaleCostOnly("rozina")).toBe(true);
+    expect(seesWholesaleCostOnly("kash")).toBe(false);
+    expect(seesWholesaleCostOnly("marina")).toBe(false);
     expect(canSeeKashCostPrice("kash", "admin")).toBe(true);
   });
 });
