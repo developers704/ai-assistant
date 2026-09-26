@@ -64,8 +64,8 @@ When changing Top Models soft-hide rules, update `src/lib/utils.ts` and this fil
 
 - File: `data/reports/Sales-Report.csv`
 - Seeded via `src/lib/reports/store.ts`; app refreshes `.data/reports/` when the file changes
-- Current seed window: **2025-01-01 → 2026-09-24**
-- Companion paycode overlay: `data/reports/Payment-Transactions.csv` (Applied Amt by Transaction # / Pay Code). The file is the full POS payment export through **2026-09-24**. Daily files still append / replace that same day. A few legs in the export have a Transaction Date before 2026-01-01 ($19,622.96 Applied Amt); the dashboard date filter leaves them out.
+- Current seed window: **2025-01-01 → 2026-09-25**
+- Companion paycode overlay: `data/reports/Payment-Transactions.csv` (Applied Amt by Transaction # / Pay Code). The file is the full POS payment export through **2026-09-25**. Daily files still append / replace that same day. A few legs in the export have a Transaction Date before 2026-01-01 ($19,622.96 Applied Amt); the dashboard date filter leaves them out.
 
 ## Paycode overlay (Sales Dashboard only)
 
