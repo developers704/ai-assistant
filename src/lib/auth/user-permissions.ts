@@ -201,9 +201,10 @@ export function showsAllSoldInTopVendorModels(username?: string | null): boolean
   return normalizeUsername(username) === "rozina";
 }
 
-/** AJ sees wholesale / whole cost only. Kash inventory cost stays off every AJ surface. */
+/** AJ, Adeel, Shaun, and Rozina see wholesale cost only. Label is Cost Price. Kash inventory cost stays off. */
 export function seesWholesaleCostOnly(username?: string | null): boolean {
-  return normalizeUsername(username) === "aj";
+  const key = normalizeUsername(username);
+  return (DM_USERNAMES as readonly string[]).includes(key);
 }
 
 /** Built-in overrides applied after user/file overrides (Rozina and AJ: never vendor). */

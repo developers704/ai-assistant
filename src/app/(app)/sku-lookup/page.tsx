@@ -110,7 +110,7 @@ export default function SkuLookupPage() {
           subtitle={
             hideCost
               ? "Product details — no customer offer or discounting"
-              : "Product details and wholesale cost — no customer offer or discounting"
+              : "Product details and cost price — no customer offer or discounting"
           }
           action={
             inventoryLoaded === true ? (
@@ -185,7 +185,7 @@ export default function SkuLookupPage() {
               <Detail label="Class" value={result.item.class || "—"} />
               <Detail label="Sub-Class" value={result.item.subClass || "—"} />
               <Detail label="Tag Price" value={money(result.item.tagPrice)} highlight />
-              {!hideCost && <Detail label="Wholesale cost" value={money(cost)} highlight />}
+              {!hideCost && <Detail label="Cost Price" value={money(cost)} highlight />}
               <Detail
                 label="Avg Weight (g)"
                 value={Number.isFinite(result.item.avgWeight) ? String(result.item.avgWeight) : "—"}

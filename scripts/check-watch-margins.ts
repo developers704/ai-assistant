@@ -33,7 +33,7 @@ const WATCHES: {
   formula: string;
 }[] = [
   { name: "Rado", dept: "RADO", expect: (t) => t / 1.82 + 20, formula: "÷1.82 + $20" },
-  { name: "Cartier", dept: "CARTIER", expect: (t) => t / 4, formula: "÷4" },
+  { name: "Cartier", dept: "CARTIER", expect: (t) => t / 2.1, formula: "÷2.10" },
   { name: "Bright Link", dept: "BRIGHT LINK", expect: (t) => t / 4, formula: "÷4" },
   { name: "Movado", dept: "MOVADO", expect: (t) => t / 1.82 + 20, formula: "÷1.82 + $20" },
   {
@@ -62,7 +62,7 @@ const WATCHES: {
     formula: "×0.4825 + $15",
   },
   { name: "Tissot", dept: "TISSOT", expect: (t) => t / 2 + 10, formula: "÷2 + $10" },
-  { name: "Rolex", dept: "ROLEX", expect: (t) => t / 4, formula: "÷4" },
+  { name: "Rolex", dept: "ROLEX", expect: (t) => t / 2.1, formula: "÷2.10" },
 ];
 
 console.log("=== A) Formula unit checks (sheet) ===");

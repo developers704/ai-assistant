@@ -124,7 +124,7 @@ export function kashInventoryCostForRows(rows: VendorPosRow[]): number | null {
 }
 
 /** Bump when Top Models cancel / margin logic changes (forces snapshot refresh). */
-export const TOP_MODELS_MARGIN_RULES_VERSION = 10;
+export const TOP_MODELS_MARGIN_RULES_VERSION = 11;
 
 function absAmountCents(row: Pick<VendorPosRow, "netRevenue" | "grossSales">): number {
   const net = Number(row.netRevenue ?? 0);

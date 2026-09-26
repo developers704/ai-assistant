@@ -6,12 +6,17 @@
  * HARD RULES (owner — always):
  * 1) Fixed SKU list → fixed $ cost (everyone)
  * 1b) SKU divisor overrides (e.g. 240304 → base ÷ 8.8) — beats design/dept formulas
- * 1c) Department GENTS RING → base ÷ 8.8 (beats GOLD JEWL ÷4; same as ladies ring diamond)
+ * 1c) Priority collections (design and/or description; Eternal Vow also Class):
+ *     Bella Ovani, Aanika V, Ovani, Quince, Eternal Vow, Benchmark → ÷ 2.25
+ *     Novello → ÷ 8.8
+ *     These beat department formulas (LADYS RING, GENTS RING, GOLD JEWL, diamond ÷8.8).
+ * 1d) Department GENTS RING → base ÷ 8.8 (beats GOLD JEWL ÷4; same as ladies ring diamond)
  * 2) Gold jewelry (GOLD JEWL design or gold dept incl. GOLD CHAIN) + UV signal
  *    (description UV/ultimate value, Design UV, or Class UV) → base ÷ 1.3
  * 3) Diamond (diamond dept OR "diamond" in description) + UV / ultimate value in description
  *    → base ÷ 8.8 (fixed SKUs already handled above)
- * Then remaining sheet rules (LINKNLOCK, gold÷4, watches, …).
+ * Then remaining sheet rules (LINKNLOCK, gold÷4, Triton ÷2.25, Tungsten = tag, watches, …).
+ * Rolex and Cartier → base ÷ 2.10.
  */
 
 export type WholeCostRuleFields = {
@@ -194,7 +199,7 @@ type WatchRule = {
 const WATCH_DEPT_RULES: WatchRule[] = [
   {
     ruleName: "Rolex",
-    calc: (b) => b / 4,
+    calc: (b) => b / 2.1,
     matchDept: (d, c) => d === "ROLEX" || c === "ROLEX",
   },
   {
@@ -204,7 +209,7 @@ const WATCH_DEPT_RULES: WatchRule[] = [
   },
   {
     ruleName: "Cartier",
-    calc: (b) => b / 4,
+    calc: (b) => b / 2.1,
     matchDept: (d, c) => d === "CARTIER" || c === "CARTIER",
   },
   {
@@ -265,6 +270,85 @@ function finish(cost: number, ruleName: string): WholeCostRuleHit | null {
   return { cost, ruleName };
 }
 
+/** Bella Ovani before generic Ovani (BELLA OVAN is the POS short design). */
+function mentionsBellaOvani(value: string): boolean {
+  const c = compact(value);
+  return c.includes("BELLAOVANI") || c.includes("BELLAOVAN");
+}
+
+/** Aanika V / Anika V in one column (AANIKA.V, AANIKA V, ANIKA V). */
+function mentionsAanikaV(value: string): boolean {
+  const c = compact(value);
+  return c.includes("AANIKAV") || c.includes("ANIKAV");
+}
+
+/** Ovani, Ovani Gent, Ovanifusio — not a preceding letter (so NOVANI does not hit). */
+function mentionsOvani(value: string): boolean {
+  return /\bOVANI/.test(norm(value));
+}
+
+function mentionsNovello(value: string): boolean {
+  const text = norm(value);
+  return /\bNOVELLO/.test(text) || /\bNOVELO/.test(text);
+}
+
+function mentionsQuince(value: string): boolean {
+  const text = norm(value);
+  return /\bQUINCE\b/.test(text) || /\bQUIENCE\b/.test(text);
+}
+
+/** Eternal Vow, Eternal-vow, Etternal / Etrenal typos. POS stores this in Class. */
+function mentionsEternalVow(value: string): boolean {
+  const c = compact(value);
+  return c.includes("ETERNALVOW") || c.includes("ETRENALVOW") || c.includes("ETTERNALVOW");
+}
+
+function mentionsBenchmark(description: string | null | undefined): boolean {
+  return /\bBENCHMARK\b/i.test(String(description ?? ""));
+}
+
+/**
+ * Collection brands that beat department divisors (ladies ring, gents ring, gold ÷4).
+ * Bella Ovani is checked before Ovani so the rule name stays Bella.
+ */
+function priorityCollectionCost(
+  fields: WholeCostRuleFields,
+  base: number
+): WholeCostRuleHit | null {
+  const design = norm(fields.design);
+  const description = norm(fields.description);
+  const productClass = norm(fields.class);
+  const subClass = norm(fields.subClass);
+
+  if (mentionsBellaOvani(design) || mentionsBellaOvani(description)) {
+    return finish(base / 2.25, "Bella Ovani");
+  }
+  if (mentionsAanikaV(design) || mentionsAanikaV(description)) {
+    return finish(base / 2.25, "Aanika V");
+  }
+  if (mentionsOvani(design) || mentionsOvani(description)) {
+    return finish(base / 2.25, "Ovani");
+  }
+  if (mentionsNovello(design) || mentionsNovello(description)) {
+    return finish(base / 8.8, "Novello");
+  }
+  if (mentionsQuince(design) || mentionsQuince(description)) {
+    return finish(base / 2.25, "Quince");
+  }
+  if (
+    mentionsEternalVow(design) ||
+    mentionsEternalVow(description) ||
+    mentionsEternalVow(productClass) ||
+    mentionsEternalVow(subClass)
+  ) {
+    return finish(base / 2.25, "Eternal Vow");
+  }
+  if (mentionsBenchmark(fields.description)) {
+    return finish(base / 2.25, "Benchmark");
+  }
+  return null;
+}
+
 /**
  * Apply first matching Whole Cost rule to `basePrice`
  * (Tag Price for inventory, Sales Amount for sales fallback).
@@ -294,7 +378,10 @@ export function resolveWholeCostFromRules(
   const deptCompact = compact(department);
   const designCompact = compact(design);
 
-  // GENTS RING — always diamond ÷8.8 (do not fall through to GOLD JEWL ÷4)
+  const priority = priorityCollectionCost(fields, base);
+  if (priority) return priority;
+
+  // GENTS RING — diamond ÷8.8 unless a priority collection already matched
   if (department === "GENTS RING" || deptCompact === "GENTSRING") {
     return finish(base / 8.8, "Gents ring department");
   }
@@ -333,9 +420,6 @@ export function resolveWholeCostFromRules(
   if (design === "CLOVER" || designCompact === "CLOVER") {
     return finish(base / 4, "Clover gold");
   }
-  if (design === "AANIKA.V" || design === "AANIKA V" || designCompact === "AANIKAV") {
-    return finish(base / 8.8, "Aanika V");
-  }
   if (design === "PLAT JEWL" || designCompact === "PLATJEWL") {
     return finish(base / 4, "Platinum Jewelry");
   }
@@ -361,14 +445,19 @@ export function resolveWholeCostFromRules(
     return finish(base / 4, "Gold by department");
   }
 
-  // 14. Tungsten
-  if (department === "TUNGS BAND" || deptCompact.includes("TUNG")) {
-    return finish(base * 0.06, "Tungsten");
+  // 14. Tungsten — cost equals the tag / sales-amount base
+  if (
+    department === "TUNGS BAND" ||
+    deptCompact.includes("TUNG") ||
+    designCompact.includes("TUNGSTEN") ||
+    compact(String(fields.description ?? "")).includes("TUNGSTEN")
+  ) {
+    return finish(base, "Tungsten");
   }
 
   // 15. Triton
-  if (department === "TRITON" || deptCompact === "TRITON") {
-    return finish(base / 4, "Triton");
+  if (department === "TRITON" || deptCompact === "TRITON" || designCompact === "TRITON") {
+    return finish(base / 2.25, "Triton");
   }
 
   // 16. Diamond departments (no UV in description — still ÷ 8.8 per sheet)

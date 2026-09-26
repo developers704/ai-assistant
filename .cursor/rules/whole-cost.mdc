@@ -11,10 +11,19 @@ Single engine: `src/lib/inventory/whole-cost-rules.ts` (wired into price calcula
 
 1. **Fixed SKU costs** (everyone) — see `FIXED_WHOLE_COST_BY_SKU` (231611→350, …). Match by leading Item # digits (`231618S` → `231618`).
 1b. **SKU divisor overrides** — see `SKU_DIVISOR_OVERRIDE` (e.g. `240304` → base ÷ 8.8). Beats design/dept formulas (including GOLD JEWL ÷4).
-1c. **Department `GENTS RING`** → **base ÷ 8.8** (beats GOLD JEWL ÷4). Same diamond divisor as ladies ring.
+1c. **Priority collections** (beat LADYS RING, GENTS RING, gold ÷4, and diamond-dept ÷8.8). Match design **or** description unless noted. Check Bella Ovani before generic Ovani.
+   - **Bella Ovani** (design `BELLA OVANI` / `BELLA OVAN`, or description) → **base ÷ 2.25**
+   - **Aanika V** / Anika V (design or description) → **base ÷ 2.25**
+   - **Ovani** (design or description, including Ladies Ring and Ovani Gent / Ovanifusio) → **base ÷ 2.25**
+   - **Novello** (design or description) → **base ÷ 8.8**
+   - **Quince** / Quience (design or description) → **base ÷ 2.25**
+   - **Eternal Vow** (design, description, or Class `ETERNAL-VOW`) → **base ÷ 2.25**
+   - **Benchmark** (description only) → **base ÷ 2.25**
+1d. **Department `GENTS RING`** → **base ÷ 8.8** when no priority collection matched (beats GOLD JEWL ÷4).
 2. **UV gold** — gold jewelry (Design `GOLD JEWL` / `GOLD JEWEL` / `GOLD BANDS` **or** gold dept incl. `GOLD CHAIN`, `GOLD ID`, …) + UV signal (Design `UV`, Class `UV`, or description `UV` / `ultimate value`) → **base ÷ 1.3**
 3. **Diamond** (diamond department **or** “diamond” in description) + UV / ultimate value in description → **base ÷ 8.8**  
-   - Except the fixed special SKUs above
+   - Except the fixed special SKUs and priority collections above
+4. **Triton** → **base ÷ 2.25**. **Tungsten** (`TUNGS BAND` or tungsten in description) → **cost = base** (tag on calculator, Sales Amount on the dashboard). **Rolex** and **Cartier** → **base ÷ 2.10**.
 
 ## Cost base (important)
 

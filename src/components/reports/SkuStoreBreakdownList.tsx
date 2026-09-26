@@ -16,7 +16,7 @@ export type SkuStoreBreakdownLine = {
   date?: string;
   /** POS Inventory Cost unit — Kash / Ross / admin only. */
   kashCost?: number;
-  /** Wholesale unit cost — AJ only. Never Kash inventory cost. */
+  /** Wholesale unit cost, labeled Cost Price. AJ, Adeel, Shaun, Rozina. Never Kash inventory cost. */
   wholesaleCost?: number;
   /** Sales Amount (gross) — Tag, shown before Net Sale when expanded. */
   tagPrice?: number;
@@ -522,9 +522,9 @@ export function SkuStoreBreakdownList({
                                   </span>
                                   <span
                                     className="text-sky-200/90 font-normal"
-                                    title="Wholesale cost (unit)"
+                                    title="Cost Price (unit)"
                                   >
-                                    WS ${formatMoneyCompact(wholesale!)}
+                                    Cost Price ${formatMoneyCompact(wholesale!)}
                                   </span>
                                 </>
                               )}

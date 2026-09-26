@@ -6,7 +6,11 @@ import {
   classifyProduct,
   getVisibleDmCostPrice,
 } from "@/lib/inventory/pricing";
-import { fixedWholeCostForSku, wholeCostFromRules } from "@/lib/inventory/whole-cost-rules";
+import {
+  fixedWholeCostForSku,
+  resolveWholeCostFromRules,
+  wholeCostFromRules,
+} from "@/lib/inventory/whole-cost-rules";
 
 function makeItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
   return {
@@ -204,18 +208,124 @@ describe("Whole Cost rules (CP Divisor sheet = truth)", () => {
     expect(getVisibleDmCostPrice(item)).toBe(220);
   });
 
-  it("LADYS RING → Tag ÷ 8.8", () => {
+  it("LADYS RING without a priority brand → Tag ÷ 8.8", () => {
     expect(
-      wholeCostFromRules({ department: "LADYS RING", design: "OVANI", class: "14KT" }, 21995)
+      wholeCostFromRules({ department: "LADYS RING", design: "SOLITAIRE", class: "14KT" }, 21995)
     ).toBeCloseTo(21995 / 8.8, 5);
   });
 
-  it("ROLEX → Tag ÷ 4", () => {
-    expect(wholeCostFromRules({ department: "ROLEX" }, 4000)).toBeCloseTo(1000, 5);
+  it("ROLEX → Tag ÷ 2.10", () => {
+    expect(wholeCostFromRules({ department: "ROLEX" }, 4000)).toBeCloseTo(4000 / 2.1, 5);
+  });
+
+  it("CARTIER → Tag ÷ 2.10", () => {
+    expect(wholeCostFromRules({ department: "CARTIER" }, 4200)).toBeCloseTo(4200 / 2.1, 5);
   });
 
   it("MICHAEL KO → Tag/2 + 10", () => {
     expect(wholeCostFromRules({ department: "MICHAEL KO" }, 200)).toBeCloseTo(110, 5);
+  });
+});
+
+describe("Priority collection wholesale costs", () => {
+  it("Ovani in Ladies Ring → ÷ 2.25 (beats diamond dept ÷ 8.8)", () => {
+    const hit = resolveWholeCostFromRules(
+      { department: "LADYS RING", design: "OVANI", class: "14KT" },
+      21995
+    );
+    expect(hit?.ruleName).toBe("Ovani");
+    expect(hit?.cost).toBeCloseTo(21995 / 2.25, 5);
+  });
+
+  it("Ovani in the description of a gents ring → ÷ 2.25", () => {
+    const hit = resolveWholeCostFromRules(
+      {
+        department: "GENTS RING",
+        design: "GOLD JEWL",
+        description: "14KT OVANI GENT band",
+      },
+      8800
+    );
+    expect(hit?.ruleName).toBe("Ovani");
+    expect(hit?.cost).toBeCloseTo(8800 / 2.25, 5);
+  });
+
+  it("Bella Ovani is named before generic Ovani", () => {
+    const hit = resolveWholeCostFromRules(
+      { department: "LADYS RING", design: "BELLA OVAN", description: "OVANI halo" },
+      2250
+    );
+    expect(hit?.ruleName).toBe("Bella Ovani");
+    expect(hit?.cost).toBeCloseTo(1000, 5);
+  });
+
+  it("Aanika V / Anika V in design or description → ÷ 2.25", () => {
+    expect(
+      resolveWholeCostFromRules({ department: "EARRINGS", design: "AANIKA.V" }, 2250)?.cost
+    ).toBeCloseTo(1000, 5);
+    expect(
+      resolveWholeCostFromRules(
+        { department: "PENDANT", design: "SOLITAIRE", description: "Anika V pendant" },
+        450
+      )?.ruleName
+    ).toBe("Aanika V");
+  });
+
+  it("Novello in design beats ladies ring ÷ 8.8 and uses ÷ 8.8", () => {
+    const hit = resolveWholeCostFromRules(
+      { department: "LADYS RING", design: "NOVELLO", description: "halo ring" },
+      880
+    );
+    expect(hit?.ruleName).toBe("Novello");
+    expect(hit?.cost).toBeCloseTo(100, 5);
+  });
+
+  it("fixed Novello UV SKU still wins over Novello ÷ 8.8", () => {
+    expect(
+      wholeCostFromRules(
+        { sku: "231611", department: "LADYS RING", design: "NOVELLO", description: "UV halo" },
+        9000
+      )
+    ).toBe(350);
+  });
+
+  it("Quince and Quience → ÷ 2.25", () => {
+    expect(
+      resolveWholeCostFromRules({ design: "QUINCE", department: "PENDANT" }, 225)?.cost
+    ).toBeCloseTo(100, 5);
+    expect(
+      resolveWholeCostFromRules({ description: "QUIENCE band", department: "LADYS RING" }, 450)
+        ?.ruleName
+    ).toBe("Quince");
+  });
+
+  it("Eternal Vow matches Class ETERNAL-VOW → ÷ 2.25", () => {
+    const hit = resolveWholeCostFromRules(
+      { department: "LADYS RING", design: "SOLITAIRE", class: "ETERNAL-VOW" },
+      2250
+    );
+    expect(hit?.ruleName).toBe("Eternal Vow");
+    expect(hit?.cost).toBeCloseTo(1000, 5);
+  });
+
+  it("Benchmark is description only → ÷ 2.25", () => {
+    const fromDesc = resolveWholeCostFromRules(
+      { department: "MENS BRCLT", design: "GOLD JEWL", description: "Benchmark tungsten band" },
+      225
+    );
+    expect(fromDesc?.ruleName).toBe("Benchmark");
+    expect(fromDesc?.cost).toBeCloseTo(100, 5);
+    expect(
+      resolveWholeCostFromRules({ department: "LADYS RING", design: "BENCHMARK" }, 880)?.ruleName
+    ).toBe("Diamond departments / loose stone");
+  });
+
+  it("Triton → ÷ 2.25 and Tungsten equals the base", () => {
+    expect(wholeCostFromRules({ department: "TRITON" }, 225)).toBeCloseTo(100, 5);
+    expect(wholeCostFromRules({ department: "TUNGS BAND" }, 499)).toBe(499);
+    expect(
+      wholeCostFromRules({ department: "BAND", description: "Tungsten comfort fit" }, 300)
+    ).toBe(300);
   });
 });
 

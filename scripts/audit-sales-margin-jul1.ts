@@ -96,9 +96,9 @@ const sheetCases: {
     expect: 100,
   },
   {
-    name: "AANIKA.V → ÷8.8",
+    name: "AANIKA.V → ÷2.25",
     fields: { design: "AANIKA.V" },
-    base: 880,
+    base: 225,
     expect: 100,
   },
   {
@@ -138,21 +138,21 @@ const sheetCases: {
     expect: 100,
   },
   {
-    name: "Tungsten → ×0.06",
+    name: "Tungsten → tag",
     fields: { department: "TUNGS BAND" },
     base: 1000,
-    expect: 60,
+    expect: 1000,
   },
   {
-    name: "TRITON → ÷4",
+    name: "TRITON → ÷2.25",
     fields: { department: "TRITON" },
-    base: 400,
+    base: 225,
     expect: 100,
   },
   {
-    name: "LADYS RING → ÷8.8",
+    name: "LADYS RING OVANI → ÷2.25",
     fields: { department: "LADYS RING", design: "OVANI" },
-    base: 880,
+    base: 225,
     expect: 100,
   },
   {
@@ -162,9 +162,9 @@ const sheetCases: {
     expect: 1820 / 1.82 + 20,
   },
   {
-    name: "Cartier → ÷4",
+    name: "Cartier → ÷2.10",
     fields: { department: "CARTIER" },
-    base: 4000,
+    base: 2100,
     expect: 1000,
   },
   {
@@ -216,9 +216,9 @@ const sheetCases: {
     expect: 110,
   },
   {
-    name: "Rolex → ÷4",
+    name: "Rolex → ÷2.10",
     fields: { department: "ROLEX" },
-    base: 4000,
+    base: 2100,
     expect: 1000,
   },
 ];

@@ -171,7 +171,7 @@ describe("collapseSplitTxnSkuRows", () => {
     expect(merged[0]!.netRevenue).toBeCloseTo(12376.45, 2);
 
     const { profit, marginRate } = wholesaleProfitForModelRows(split);
-    const cost = 20995 / 4;
+    const cost = 20995 / 2.1;
     expect(profit).toBeCloseTo(12376.45 - cost, 2);
     expect(marginRate).toBeCloseTo((12376.45 - cost) / 12376.45, 4);
 
